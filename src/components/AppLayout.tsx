@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { DISCLAIMER } from "@/lib/mockData";
 import { RequireAuth } from "./RequireAuth";
+import { MobileTopBar } from "./MobileTopBar";
 
 export function AppLayout({ children, title, subtitle, actions }: {
   children: ReactNode;
@@ -14,6 +15,7 @@ export function AppLayout({ children, title, subtitle, actions }: {
       <div className="flex min-h-screen w-full bg-background">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
+          <MobileTopBar />
           <main className="flex-1 px-4 py-6 sm:px-8 sm:py-10">
             <div className="mx-auto max-w-6xl">
               {(title || actions) && (
