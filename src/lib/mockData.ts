@@ -109,3 +109,19 @@ export const mockMetrics = {
   yieldPct: 6.2,
   monthlyRent: 1850,
 };
+
+export type RecentAnalysis = {
+  id: string;
+  projectId: string;
+  projectName: string;
+  room: string;
+  summary: string;
+  when: string;
+};
+
+export const mockRecentAnalyses: RecentAnalysis[] = [
+  { id: "a1", projectId: "1", projectName: "Victorian Terrace Refurb", room: "Kitchen", summary: "High priority — full kitchen replacement recommended.", when: "2h ago" },
+  { id: "a2", projectId: "2", projectName: "Manchester Buy-to-Let", room: "Bathroom", summary: "Retile, replace suite, improve ventilation.", when: "Yesterday" },
+  { id: "a3", projectId: "1", projectName: "Victorian Terrace Refurb", room: "Living Room", summary: "Cosmetic refresh — repaint and refinish flooring.", when: "Yesterday" },
+  { id: "a4", projectId: "3", projectName: "Edinburgh Tenement Flat", room: "Bedroom 1", summary: "Good condition, low priority.", when: "3d ago" },
+];
