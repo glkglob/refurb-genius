@@ -9,38 +9,180 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProjectsNewRouteImport } from './routes/projects.new'
+import { Route as ProjectsIdIndexRouteImport } from './routes/projects.$id.index'
+import { Route as ProjectsIdUploadRouteImport } from './routes/projects.$id.upload'
+import { Route as ProjectsIdReportRouteImport } from './routes/projects.$id.report'
+import { Route as ProjectsIdEstimateRouteImport } from './routes/projects.$id.estimate'
+import { Route as ProjectsIdAnalysisRouteImport } from './routes/projects.$id.analysis'
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsNewRoute = ProjectsNewRouteImport.update({
+  id: '/projects/new',
+  path: '/projects/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIdIndexRoute = ProjectsIdIndexRouteImport.update({
+  id: '/projects/$id/',
+  path: '/projects/$id/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIdUploadRoute = ProjectsIdUploadRouteImport.update({
+  id: '/projects/$id/upload',
+  path: '/projects/$id/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIdReportRoute = ProjectsIdReportRouteImport.update({
+  id: '/projects/$id/report',
+  path: '/projects/$id/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIdEstimateRoute = ProjectsIdEstimateRouteImport.update({
+  id: '/projects/$id/estimate',
+  path: '/projects/$id/estimate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProjectsIdAnalysisRoute = ProjectsIdAnalysisRouteImport.update({
+  id: '/projects/$id/analysis',
+  path: '/projects/$id/analysis',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
+  '/settings': typeof SettingsRoute
+  '/projects/new': typeof ProjectsNewRoute
+  '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
+  '/projects/$id/estimate': typeof ProjectsIdEstimateRoute
+  '/projects/$id/report': typeof ProjectsIdReportRoute
+  '/projects/$id/upload': typeof ProjectsIdUploadRoute
+  '/projects/$id/': typeof ProjectsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
+  '/settings': typeof SettingsRoute
+  '/projects/new': typeof ProjectsNewRoute
+  '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
+  '/projects/$id/estimate': typeof ProjectsIdEstimateRoute
+  '/projects/$id/report': typeof ProjectsIdReportRoute
+  '/projects/$id/upload': typeof ProjectsIdUploadRoute
+  '/projects/$id': typeof ProjectsIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRoute
+  '/settings': typeof SettingsRoute
+  '/projects/new': typeof ProjectsNewRoute
+  '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
+  '/projects/$id/estimate': typeof ProjectsIdEstimateRoute
+  '/projects/$id/report': typeof ProjectsIdReportRoute
+  '/projects/$id/upload': typeof ProjectsIdUploadRoute
+  '/projects/$id/': typeof ProjectsIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/settings'
+    | '/projects/new'
+    | '/projects/$id/analysis'
+    | '/projects/$id/estimate'
+    | '/projects/$id/report'
+    | '/projects/$id/upload'
+    | '/projects/$id/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/settings'
+    | '/projects/new'
+    | '/projects/$id/analysis'
+    | '/projects/$id/estimate'
+    | '/projects/$id/report'
+    | '/projects/$id/upload'
+    | '/projects/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/settings'
+    | '/projects/new'
+    | '/projects/$id/analysis'
+    | '/projects/$id/estimate'
+    | '/projects/$id/report'
+    | '/projects/$id/upload'
+    | '/projects/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
+  DashboardRoute: typeof DashboardRoute
+  SettingsRoute: typeof SettingsRoute
+  ProjectsNewRoute: typeof ProjectsNewRoute
+  ProjectsIdAnalysisRoute: typeof ProjectsIdAnalysisRoute
+  ProjectsIdEstimateRoute: typeof ProjectsIdEstimateRoute
+  ProjectsIdReportRoute: typeof ProjectsIdReportRoute
+  ProjectsIdUploadRoute: typeof ProjectsIdUploadRoute
+  ProjectsIdIndexRoute: typeof ProjectsIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,12 +190,73 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/new': {
+      id: '/projects/new'
+      path: '/projects/new'
+      fullPath: '/projects/new'
+      preLoaderRoute: typeof ProjectsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id/': {
+      id: '/projects/$id/'
+      path: '/projects/$id'
+      fullPath: '/projects/$id/'
+      preLoaderRoute: typeof ProjectsIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id/upload': {
+      id: '/projects/$id/upload'
+      path: '/projects/$id/upload'
+      fullPath: '/projects/$id/upload'
+      preLoaderRoute: typeof ProjectsIdUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id/report': {
+      id: '/projects/$id/report'
+      path: '/projects/$id/report'
+      fullPath: '/projects/$id/report'
+      preLoaderRoute: typeof ProjectsIdReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id/estimate': {
+      id: '/projects/$id/estimate'
+      path: '/projects/$id/estimate'
+      fullPath: '/projects/$id/estimate'
+      preLoaderRoute: typeof ProjectsIdEstimateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/projects/$id/analysis': {
+      id: '/projects/$id/analysis'
+      path: '/projects/$id/analysis'
+      fullPath: '/projects/$id/analysis'
+      preLoaderRoute: typeof ProjectsIdAnalysisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
+  DashboardRoute: DashboardRoute,
+  SettingsRoute: SettingsRoute,
+  ProjectsNewRoute: ProjectsNewRoute,
+  ProjectsIdAnalysisRoute: ProjectsIdAnalysisRoute,
+  ProjectsIdEstimateRoute: ProjectsIdEstimateRoute,
+  ProjectsIdReportRoute: ProjectsIdReportRoute,
+  ProjectsIdUploadRoute: ProjectsIdUploadRoute,
+  ProjectsIdIndexRoute: ProjectsIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
