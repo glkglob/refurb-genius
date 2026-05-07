@@ -4,7 +4,9 @@ import { MetricCard } from "@/components/MetricCard";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { mockProjects, mockRecentAnalyses } from "@/lib/mockData";
+import { mockRecentAnalyses } from "@/lib/mockData";
+import { projectStore, estimatedRefurbCost, estimatedProfit } from "@/lib/projects";
+import { useSyncExternalStore } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Building2,
@@ -23,9 +25,13 @@ export const Route = createFileRoute("/dashboard")({
 
 function Dashboard() {
   const { user } = useAuth();
-  const projects = mockProjects;
-  const totalRefurb = projects.reduce((s, p) => s + p.estimate, 0);
-  const totalProfit = projects.reduce((s, p) => s + (p.uplift - p.estimate), 0);
+  const projects = useSyncExternalStore(
+    projectStore.subscribe,
+    () => projectStore.list(),
+    () => projectStore.list(),
+  );
+  const totalRefurb = projects.reduce((s, p) => s + estimatedRefurbCost(p), 0);
+  const totalProfit = projects.reduce((s, p) => s + estimatedProfit(p), 0);
   const firstName = (user?.fullName ?? user?.email ?? "there").split(/[\s@]/)[0];
 
   return (
@@ -104,7 +110,7 @@ function Dashboard() {
                       </p>
                       <div className="mt-4 flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">
-                          £{p.estimate.toLocaleString()} refurb
+                          £{estimatedRefurbCost(p).toLocaleString()} refurb
                         </span>
                         <span className="flex items-center gap-1 font-medium text-accent">
                           Open <ArrowRight className="h-3.5 w-3.5" />
