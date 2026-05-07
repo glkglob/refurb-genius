@@ -109,6 +109,22 @@ let projects: Project[] = [...seed];
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
+export type ProjectStage = "photos" | "analysis" | "estimate" | "report";
+
+const seedProgress: Record<string, Record<ProjectStage, boolean>> = {
+  "1": { photos: true, analysis: true, estimate: true, report: false },
+  "2": { photos: true, analysis: true, estimate: false, report: false },
+  "3": { photos: true, analysis: true, estimate: true, report: true },
+};
+let progress: Record<string, Record<ProjectStage, boolean>> = { ...seedProgress };
+
+const emptyProgress = (): Record<ProjectStage, boolean> => ({
+  photos: false,
+  analysis: false,
+  estimate: false,
+  report: false,
+});
+
 export const projectStore = {
   list(): Project[] {
     return projects;
@@ -125,8 +141,16 @@ export const projectStore = {
       status: "Draft",
     };
     projects = [project, ...projects];
+    progress[project.id] = emptyProgress();
     notify();
     return project;
+  },
+  getProgress(id: string): Record<ProjectStage, boolean> {
+    return progress[id] ?? emptyProgress();
+  },
+  setStage(id: string, stage: ProjectStage, value = true) {
+    progress[id] = { ...(progress[id] ?? emptyProgress()), [stage]: value };
+    notify();
   },
   subscribe(fn: () => void): () => void {
     listeners.add(fn);
@@ -143,3 +167,4 @@ export function estimatedRefurbCost(p: Project): number {
 export function estimatedProfit(p: Project): number {
   return p.estimated_gdv - p.purchase_price - estimatedRefurbCost(p);
 }
+
