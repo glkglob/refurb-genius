@@ -1,76 +1,9 @@
-export const UK_REGIONS = [
-  "London",
-  "South East England",
-  "South West England",
-  "East of England",
-  "East Midlands",
-  "West Midlands",
-  "North West England",
-  "North East England",
-  "Yorkshire and the Humber",
-  "Scotland",
-  "Wales",
-  "Northern Ireland",
-];
+export { UK_REGIONS, PROPERTY_TYPES, projectStore, estimatedRefurbCost, estimatedProfit } from "./projects";
+export type { Project, PropertyType, UKRegion } from "./projects";
 
 export const DISCLAIMER =
   "AI-generated refurbishment estimates and visualisations are for guidance only and are not fixed contractor quotations. Actual costs may vary depending on labour, materials, site conditions, and regional pricing.";
 
-export type Project = {
-  id: string;
-  name: string;
-  address: string;
-  region: string;
-  propertyType: string;
-  status: "Draft" | "Analysing" | "Estimated" | "Complete";
-  createdAt: string;
-  beds: number;
-  estimate: number;
-  uplift: number;
-};
-
-export const mockProjects: Project[] = [
-  {
-    id: "1",
-    name: "Victorian Terrace Refurb",
-    address: "12 Elm Street, London",
-    region: "London",
-    propertyType: "Terraced House",
-    status: "Estimated",
-    createdAt: "2026-04-12",
-    beds: 3,
-    estimate: 64500,
-    uplift: 95000,
-  },
-  {
-    id: "2",
-    name: "Manchester Buy-to-Let",
-    address: "44 Oak Road, Manchester",
-    region: "North West England",
-    propertyType: "Semi-Detached",
-    status: "Analysing",
-    createdAt: "2026-04-28",
-    beds: 2,
-    estimate: 38000,
-    uplift: 52000,
-  },
-  {
-    id: "3",
-    name: "Edinburgh Tenement Flat",
-    address: "8 Royal Mile, Edinburgh",
-    region: "Scotland",
-    propertyType: "Flat",
-    status: "Complete",
-    createdAt: "2026-03-04",
-    beds: 1,
-    estimate: 22500,
-    uplift: 34000,
-  },
-];
-
-export function getProject(id: string): Project | undefined {
-  return mockProjects.find((p) => p.id === id);
-}
 
 export const mockAnalysis = {
   rooms: [
