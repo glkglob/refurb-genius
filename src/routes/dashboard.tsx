@@ -4,7 +4,9 @@ import { MetricCard } from "@/components/MetricCard";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { mockProjects, mockRecentAnalyses } from "@/lib/mockData";
+import { mockRecentAnalyses } from "@/lib/mockData";
+import { projectStore, estimatedRefurbCost, estimatedProfit } from "@/lib/projects";
+import { useSyncExternalStore } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Building2,

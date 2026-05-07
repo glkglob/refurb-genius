@@ -1,23 +1,23 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getProject } from "@/lib/mockData";
+import { projectStore, estimatedRefurbCost } from "@/lib/projects";
 import { Camera, Sparkles, Calculator, FileText, MapPin } from "lucide-react";
+import { useSyncExternalStore } from "react";
 
 export const Route = createFileRoute("/projects/$id/")({
   head: () => ({ meta: [{ title: "Project — Refurb Genius" }] }),
   component: ProjectDetail,
-  loader: ({ params }) => {
-    const project = getProject(params.id);
-    if (!project) throw notFound();
-    return project;
-  },
 });
 
 function ProjectDetail() {
-  const project = Route.useLoaderData();
   const { id } = Route.useParams();
+  // Subscribe so newly-created projects appear after navigation
+  useSyncExternalStore(projectStore.subscribe, () => projectStore.list().length, () => 0);
+  const project = projectStore.get(id);
+
+  if (!project) return <Navigate to="/dashboard" />;
 
   const steps = [
     { to: "/projects/$id/upload", label: "Upload photos", desc: "Add property photos for AI analysis.", icon: Camera },
@@ -29,7 +29,7 @@ function ProjectDetail() {
   return (
     <AppLayout
       title={project.name}
-      subtitle={project.address}
+      subtitle={`${project.address} · ${project.postcode}`}
       actions={
         <Button asChild>
           <Link to="/projects/$id/upload" params={{ id }}>Continue</Link>
@@ -37,13 +37,21 @@ function ProjectDetail() {
       }
     >
       <Card className="mb-8">
-        <CardContent className="grid gap-4 p-6 sm:grid-cols-4">
+        <CardContent className="grid gap-4 p-6 sm:grid-cols-3 lg:grid-cols-6">
           <Detail label="Region" value={project.region} icon={MapPin} />
-          <Detail label="Type" value={project.propertyType} />
-          <Detail label="Beds" value={String(project.beds)} />
+          <Detail label="Type" value={project.property_type} />
+          <Detail label="Beds" value={String(project.bedrooms)} />
+          <Detail label="Baths" value={String(project.bathrooms)} />
+          <Detail label="Size" value={`${project.size_sqm} m²`} />
           <Detail label="Status" value={project.status} />
         </CardContent>
       </Card>
+
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <Money label="Purchase price" value={project.purchase_price} />
+        <Money label="Estimated refurb" value={estimatedRefurbCost(project)} />
+        <Money label="Estimated GDV" value={project.estimated_gdv} accent />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {steps.map((s) => (
@@ -75,5 +83,18 @@ function Detail({ label, value, icon: Icon }: { label: string; value: string; ic
         {value}
       </p>
     </div>
+  );
+}
+
+function Money({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+  return (
+    <Card>
+      <CardContent className="p-5">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className={`mt-2 text-2xl font-semibold tracking-tight ${accent ? "text-accent" : "text-foreground"}`}>
+          £{value.toLocaleString()}
+        </p>
+      </CardContent>
+    </Card>
   );
 }
