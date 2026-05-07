@@ -1,6 +1,8 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderPlus, Settings, Building2 } from "lucide-react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { LayoutDashboard, FolderPlus, Settings, Building2, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { auth } from "@/lib/auth";
+import { useAuth } from "@/hooks/useAuth";
 
 const items = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -10,6 +12,13 @@ const items = [
 
 export function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const handleLogout = async () => {
+    await auth.signOut();
+    navigate({ to: "/" });
+  };
 
   return (
     <aside className="hidden w-60 shrink-0 border-r border-border bg-card md:flex md:flex-col">
@@ -41,6 +50,21 @@ export function Sidebar() {
           );
         })}
       </nav>
+      <div className="border-t border-border p-3">
+        {user && (
+          <div className="mb-2 px-3 py-2">
+            <p className="truncate text-xs text-muted-foreground">Signed in as</p>
+            <p className="truncate text-sm font-medium text-foreground">{user.fullName ?? user.email}</p>
+          </div>
+        )}
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </button>
+      </div>
     </aside>
   );
 }
