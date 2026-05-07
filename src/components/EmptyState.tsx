@@ -1,5 +1,5 @@
-import { Inbox } from "lucide-react";
-import type { LucideIcon, ReactNode } from "react";
+import { Inbox, type LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 type Props = {
   icon?: LucideIcon;
