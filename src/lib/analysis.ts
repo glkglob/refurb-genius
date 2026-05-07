@@ -162,8 +162,8 @@ function pickTemplate(i: number) {
 }
 
 function buildFromPhotos(projectId: string): RoomAnalysis[] {
-  const photos: { id: string; url: string; name: string }[] = photoStore.list(projectId);
-  const sources =
+  const photos = photoStore.list(projectId);
+  const sources: { id: string; url: string; name: string }[] =
     photos.length > 0
       ? photos.map((p: ProjectPhoto) => ({ id: p.id, url: p.url, name: p.name }))
       : FALLBACK_PHOTOS.map((p, i) => ({ id: `fallback-${i}`, url: p.url, name: p.name }));
