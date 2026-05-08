@@ -21,30 +21,15 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { RequireAuth } from "@/components/RequireAuth";
-import { projectStore } from "@/core/projects";
-import { photoStore } from "@/core/projects";
+import { projectStore, photoStore } from "@/core/projects";
 import { analysisStore, type RoomAnalysis } from "@/core/ai";
-import { REDESIGN_CONCEPTS } from "@/core/ai";
-import {
-  calculateEstimate,
-  formatGBP,
-  type EstimateCategory,
-} from "@/core/pricing";
-import { calculateInvestorMetrics } from "@/core/roi";
-import { DISCLAIMER } from "@/core/reports";
+import { formatGBP } from "@/core/pricing";
+import { buildReport } from "@/core/reports";
 
 export const Route = createFileRoute("/projects/$id/report")({
   head: () => ({ meta: [{ title: "Investor report — Refurb Genius" }] }),
   component: ReportPage,
 });
-
-const DEFAULT_CATEGORIES: EstimateCategory[] = [
-  "Kitchen",
-  "Bathroom",
-  "Flooring",
-  "Painting",
-  "Electrical",
-];
 
 function ReportPage() {
   const { id } = Route.useParams();
