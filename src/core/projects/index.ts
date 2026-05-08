@@ -4,6 +4,10 @@
 // TODO(deal-copilot): acquisition pipeline, opportunities, saved searches,
 // and automation will all wrap `projectStore` + `createProject` rather than
 // fork the schema. Opportunities convert into `Project` rows on underwrite.
+//
+// TODO(refurb-iq): contractor workflows (tender, valuation, snagging) live
+// as sibling tables keyed by `project_id`. No parallel "job" entity.
+
 
 export { projectStore } from "./projectStore";
 export {
