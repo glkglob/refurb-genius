@@ -48,23 +48,45 @@ function ReportPage() {
 
   const photos = photoStore.list(id);
 
-  const estimate = useMemo(
+  const report = useMemo(
     () =>
       project
-        ? calculateEstimate({
-            region: project.region,
-            condition: "Dated",
-            finish: "Standard",
-            categories: DEFAULT_CATEGORIES,
-          })
+        ? buildReport({ project, photos, analysis })
         : null,
-    [project],
+    [project, photos, analysis],
   );
 
-  const metrics = useMemo(
-    () => (project && estimate ? calculateInvestorMetrics(project, estimate) : null),
-    [project, estimate],
-  );
+  // Shim legacy local shapes from the structured report so the JSX below
+  // stays unchanged. All values originate from the deterministic engines.
+  const estimate = report
+    ? {
+        items: report.sections.cost_breakdown.body.items,
+        subtotal: report.sections.cost_breakdown.body.subtotal,
+        contingency: report.sections.cost_breakdown.body.contingency,
+        vat: report.sections.cost_breakdown.body.vat,
+        mid_total: report.sections.cost_breakdown.body.mid_total,
+        timeline_weeks: report.sections.timeline.body.weeks,
+      }
+    : null;
+
+  const metrics = report
+    ? {
+        refurb_budget: report.sections.cost_breakdown.body.mid_total,
+        total_cost: report.sections.investment_metrics.body.total_project_cost,
+        estimated_profit: report.sections.investment_metrics.body.estimated_profit,
+        roi: report.sections.investment_metrics.body.roi,
+        yield_pct: report.sections.investment_metrics.body.gross_yield,
+        rental_uplift_annual: report.sections.investment_metrics.body.rental_uplift,
+        rental_uplift_monthly: Math.round(
+          report.sections.investment_metrics.body.rental_uplift / 12,
+        ),
+        investment_score: report.sections.investment_metrics.body.investment_score,
+        risk_level: report.sections.investment_metrics.body.risk_level,
+      }
+    : null;
+
+  const concepts = report?.sections.redesign_concepts.body.concepts ?? [];
+  const disclaimerText = report?.sections.disclaimer.body.text ?? "";
 
   if (!project) {
     throw notFound();
