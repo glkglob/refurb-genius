@@ -25,7 +25,7 @@ import { ArrowRight, Calculator, Clock, PoundSterling, TrendingUp, Wallet, Home,
 import { projectStore, type UKRegion } from "@/core/projects";
 import { type ConditionLevel } from "@/core/ai";
 import { calculateEstimate, formatGBP, type EstimateCategory, type FinishLevel } from "@/core/pricing";
-import { calculateInvestorMetrics, type RiskLevel } from "@/core/roi";
+import { runRoiEngine, type RoiRiskLevel as RiskLevel } from "@/core/roi";
 import {
   UK_REGIONS,
   CONDITION_LEVELS,
@@ -61,10 +61,29 @@ function EstimatePage() {
     [region, condition, finish, categories],
   );
 
-  const metrics = useMemo(
-    () => (project ? calculateInvestorMetrics(project, result) : null),
-    [project, result],
-  );
+  const metrics = useMemo(() => {
+    if (!project) return null;
+    const roi = runRoiEngine({
+      purchase_price: project.purchase_price,
+      refurb_budget: result.mid_total,
+      estimated_gdv: project.estimated_gdv,
+      rental_income: 0,
+      holding_costs: 0,
+      region,
+      property_condition: condition,
+    });
+    return {
+      refurb_budget: result.mid_total,
+      total_cost: roi.total_project_cost,
+      estimated_profit: roi.estimated_profit,
+      roi: roi.roi,
+      yield_pct: roi.gross_yield,
+      rental_uplift_annual: roi.rental_uplift,
+      rental_uplift_monthly: Math.round(roi.rental_uplift / 12),
+      investment_score: roi.investment_score,
+      risk_level: roi.risk_level,
+    };
+  }, [project, result, region, condition]);
 
   function toggleCategory(cat: EstimateCategory, checked: boolean) {
     setCategories((prev) =>
