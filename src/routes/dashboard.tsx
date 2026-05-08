@@ -5,7 +5,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { mockRecentAnalyses } from "@/core/reports";
-import { projectStore, estimatedRefurbCost, estimatedProfit } from "@/core/projects";
+import { projectStore, estimatedRefurbCost } from "@/core/projects";
+import { runRoiEngine } from "@/core/roi";
 import { useSyncExternalStore } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import {
