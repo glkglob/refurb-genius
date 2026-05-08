@@ -13,7 +13,6 @@ import {
   Calendar,
   ShieldCheck,
 } from "lucide-react";
-import { RequireAuth } from "@/components/RequireAuth";
 import { ReportSection as Section } from "@/components/ReportSection";
 import { EstimateTable } from "@/components/EstimateTable";
 import { projectStore, photoStore } from "@/core/projects";
