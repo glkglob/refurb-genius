@@ -315,58 +315,16 @@ function ReportPage() {
                 title="Cost breakdown"
                 subtitle="Itemised refurbishment estimate."
               >
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Labour</TableHead>
-                      <TableHead className="text-right">Materials</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {estimate.items.map((i) => (
-                      <TableRow key={i.category}>
-                        <TableCell className="font-medium">{i.category}</TableCell>
-                        <TableCell className="text-right">{formatGBP(i.labour)}</TableCell>
-                        <TableCell className="text-right">{formatGBP(i.materials)}</TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {formatGBP(i.total)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-muted-foreground">
-                        Subtotal
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatGBP(estimate.subtotal)}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-muted-foreground">
-                        Contingency (10%)
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatGBP(estimate.contingency)}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-muted-foreground">
-                        VAT (20%)
-                      </TableCell>
-                      <TableCell className="text-right">{formatGBP(estimate.vat)}</TableCell>
-                    </TableRow>
-                    <TableRow className="bg-muted/40">
-                      <TableCell colSpan={3} className="font-semibold">
-                        Mid total
-                      </TableCell>
-                      <TableCell className="text-right text-base font-semibold">
-                        {formatGBP(estimate.mid_total)}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                <EstimateTable
+                  items={estimate.items}
+                  labour_total={estimate.labour_total}
+                  materials_total={estimate.materials_total}
+                  subtotal={estimate.subtotal}
+                  contingency={estimate.contingency}
+                  vat={estimate.vat}
+                  mid_total={estimate.mid_total}
+                  showWeeks={false}
+                />
               </Section>
             )}
 
