@@ -448,30 +448,6 @@ function ReportPage() {
   );
 }
 
-function Section({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="break-inside-avoid">
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
-          {title}
-        </h2>
-        {subtitle && (
-          <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-        )}
-      </div>
-      {children}
-    </section>
-  );
-}
-
 function DetailGrid({ rows }: { rows: [string, string][] }) {
   return (
     <div className="divide-y divide-border rounded-md border border-border">
