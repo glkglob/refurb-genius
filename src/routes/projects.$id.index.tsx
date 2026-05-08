@@ -34,8 +34,8 @@ export const Route = createFileRoute("/projects/$id/")({
 function ProjectDetail() {
   const { id } = Route.useParams();
   useSyncExternalStore(projectStore.subscribe, () => projectStore.list().length, () => 0);
-  const project = projectStore.get(id);
-  const progress = projectStore.getProgress(id);
+  const project = getProjectById(id);
+  const progress = calculateProjectProgress(id);
 
   if (!project) return <Navigate to="/dashboard" />;
 
