@@ -25,7 +25,7 @@ import { ArrowRight, Calculator, Clock, PoundSterling, TrendingUp, Wallet, Home,
 import { projectStore, type UKRegion } from "@/core/projects";
 import { type ConditionLevel } from "@/core/ai";
 import { calculateEstimate, formatGBP, type EstimateCategory, type FinishLevel } from "@/core/pricing";
-import { calculateInvestorMetrics, type RiskLevel } from "@/core/roi";
+import { runRoiEngine, type RoiRiskLevel as RiskLevel } from "@/core/roi";
 import {
   UK_REGIONS,
   CONDITION_LEVELS,
