@@ -1,8 +1,9 @@
-// Mock auth helper. Structure mirrors Supabase Auth so it can be swapped later.
-// Replace the implementation of these functions with Supabase calls without
-// changing the consumer code.
-
-const STORAGE_KEY = "rg.auth.user";
+// Supabase-backed auth. Keeps the same surface the app already uses
+// (signIn / signUp / signOut / getUser / onChange) so consumers don't need
+// to change. Google sign-in is exposed via signInWithGoogle().
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
+import { isSupabaseConfigured } from "./supabase-config";
 
 export type AuthUser = {
   id: string;
@@ -13,56 +14,91 @@ export type AuthUser = {
 type Listener = (user: AuthUser | null) => void;
 const listeners = new Set<Listener>();
 
-function read(): AuthUser | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as AuthUser) : null;
-  } catch {
-    return null;
-  }
+let currentUser: AuthUser | null = null;
+let initialized = false;
+
+function fromSupabaseUser(u: { id: string; email?: string | null; user_metadata?: any } | null | undefined): AuthUser | null {
+  if (!u) return null;
+  return {
+    id: u.id,
+    email: u.email ?? "",
+    fullName:
+      u.user_metadata?.full_name ??
+      u.user_metadata?.name ??
+      undefined,
+  };
 }
 
-function write(user: AuthUser | null) {
-  if (typeof window === "undefined") return;
-  if (user) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-  else window.localStorage.removeItem(STORAGE_KEY);
-  listeners.forEach((l) => l(user));
+function notify() {
+  listeners.forEach((l) => l(currentUser));
 }
 
-function delay(ms = 600) {
-  return new Promise((r) => setTimeout(r, ms));
+function ensureInitialized() {
+  if (initialized || typeof window === "undefined") return;
+  if (!isSupabaseConfigured()) return;
+  initialized = true;
+
+  // 1. Bind the listener BEFORE getSession to avoid races.
+  supabase.auth.onAuthStateChange((_event, session) => {
+    currentUser = fromSupabaseUser(session?.user);
+    notify();
+  });
+
+  // 2. Restore any persisted session.
+  supabase.auth.getSession().then(({ data }) => {
+    currentUser = fromSupabaseUser(data.session?.user);
+    notify();
+  });
 }
 
 export const auth = {
   getUser(): AuthUser | null {
-    return read();
+    ensureInitialized();
+    return currentUser;
   },
   isAuthenticated(): boolean {
-    return read() !== null;
+    return currentUser !== null;
   },
   async signIn(email: string, password: string): Promise<AuthUser> {
-    await delay();
     if (!email || !password) throw new Error("Email and password are required.");
-    if (password.length < 6) throw new Error("Incorrect email or password.");
-    const user: AuthUser = { id: crypto.randomUUID(), email };
-    write(user);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
+    const user = fromSupabaseUser(data.user);
+    if (!user) throw new Error("Sign in failed.");
     return user;
   },
   async signUp(email: string, password: string, fullName: string): Promise<AuthUser> {
-    await delay();
     if (!email || !password || !fullName) throw new Error("All fields are required.");
     if (password.length < 6) throw new Error("Password must be at least 6 characters.");
-    const user: AuthUser = { id: crypto.randomUUID(), email, fullName };
-    write(user);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+    if (error) throw new Error(error.message);
+    const user = fromSupabaseUser(data.user);
+    if (!user) throw new Error("Sign up failed.");
     return user;
   },
+  async signInWithGoogle(): Promise<void> {
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin + "/dashboard",
+    });
+    if (result.error) throw new Error(result.error.message ?? "Google sign-in failed.");
+  },
   async signOut(): Promise<void> {
-    await delay(200);
-    write(null);
+    await supabase.auth.signOut();
+    currentUser = null;
+    notify();
   },
   onChange(listener: Listener): () => void {
+    ensureInitialized();
     listeners.add(listener);
-    return () => listeners.delete(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   },
 };
