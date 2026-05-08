@@ -14,13 +14,8 @@ import {
 } from "@/components/ui/select";
 import { useState, type FormEvent } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
-import {
-  PROPERTY_TYPES,
-  UK_REGIONS,
-  projectStore,
-  type PropertyType,
-  type UKRegion,
-} from "@/core/projects";
+import { PROPERTY_TYPES, UK_REGIONS } from "@/core/constants";
+import { projectStore, type PropertyType, type UKRegion } from "@/core/projects";
 
 export const Route = createFileRoute("/projects/new")({
   head: () => ({ meta: [{ title: "New project — Refurb Genius" }] }),
