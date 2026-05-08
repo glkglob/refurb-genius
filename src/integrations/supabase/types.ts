@@ -14,7 +14,281 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      estimate_items: {
+        Row: {
+          category: string
+          estimate_id: string
+          id: string
+          labour: number
+          materials: number
+          total: number
+          user_id: string
+          weeks: number
+        }
+        Insert: {
+          category: string
+          estimate_id: string
+          id?: string
+          labour?: number
+          materials?: number
+          total?: number
+          user_id: string
+          weeks?: number
+        }
+        Update: {
+          category?: string
+          estimate_id?: string
+          id?: string
+          labour?: number
+          materials?: number
+          total?: number
+          user_id?: string
+          weeks?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_items_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimates: {
+        Row: {
+          condition_level: string
+          contingency: number
+          created_at: string
+          finish_level: string
+          high_total: number
+          id: string
+          labour_total: number
+          low_total: number
+          materials_total: number
+          mid_total: number
+          project_id: string
+          region: string
+          subtotal: number
+          timeline_weeks: number
+          user_id: string
+          vat: number
+        }
+        Insert: {
+          condition_level: string
+          contingency?: number
+          created_at?: string
+          finish_level: string
+          high_total?: number
+          id?: string
+          labour_total?: number
+          low_total?: number
+          materials_total?: number
+          mid_total?: number
+          project_id: string
+          region: string
+          subtotal?: number
+          timeline_weeks?: number
+          user_id: string
+          vat?: number
+        }
+        Update: {
+          condition_level?: string
+          contingency?: number
+          created_at?: string
+          finish_level?: string
+          high_total?: number
+          id?: string
+          labour_total?: number
+          low_total?: number
+          materials_total?: number
+          mid_total?: number
+          project_id?: string
+          region?: string
+          subtotal?: number
+          timeline_weeks?: number
+          user_id?: string
+          vat?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      photos: {
+        Row: {
+          id: string
+          name: string
+          project_id: string
+          size: number
+          storage_path: string
+          uploaded_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          project_id: string
+          size?: number
+          storage_path: string
+          uploaded_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          project_id?: string
+          size?: number
+          storage_path?: string
+          uploaded_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photos_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          company: string | null
+          created_at: string
+          default_region: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          default_region?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          default_region?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          address: string
+          analysis_done: boolean
+          bathrooms: number
+          bedrooms: number
+          created_at: string
+          estimate_done: boolean
+          estimated_gdv: number
+          id: string
+          name: string
+          notes: string
+          photos_done: boolean
+          postcode: string
+          property_type: string
+          purchase_price: number
+          region: string
+          report_done: boolean
+          size_sqm: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          address?: string
+          analysis_done?: boolean
+          bathrooms?: number
+          bedrooms?: number
+          created_at?: string
+          estimate_done?: boolean
+          estimated_gdv?: number
+          id?: string
+          name: string
+          notes?: string
+          photos_done?: boolean
+          postcode?: string
+          property_type: string
+          purchase_price?: number
+          region: string
+          report_done?: boolean
+          size_sqm?: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          analysis_done?: boolean
+          bathrooms?: number
+          bedrooms?: number
+          created_at?: string
+          estimate_done?: boolean
+          estimated_gdv?: number
+          id?: string
+          name?: string
+          notes?: string
+          photos_done?: boolean
+          postcode?: string
+          property_type?: string
+          purchase_price?: number
+          region?: string
+          report_done?: boolean
+          size_sqm?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      redesign_concepts: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          project_id: string
+          style: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload: Json
+          project_id: string
+          style: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          project_id?: string
+          style?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "redesign_concepts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
