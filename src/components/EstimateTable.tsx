@@ -6,9 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatGBP, type PricingEstimateItem } from "@/core/pricing";
-
-export type EstimateTableItem = PricingEstimateItem;
+import { formatGBP, type LineItem } from "@/core/pricing";
 
 export type EstimateTableProps = {
   items: PricingEstimateItem[];
