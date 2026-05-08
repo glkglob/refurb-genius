@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UK_REGIONS } from "@/core/reports";
+import { UK_REGIONS } from "@/core/constants";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ title: "Settings — Refurb Genius" }] }),
