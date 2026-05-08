@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   projectStore,
+  getProjectById,
+  calculateProjectProgress,
   estimatedRefurbCost,
   estimatedProfit,
   type ProjectStage,
