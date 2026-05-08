@@ -3,14 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { RequireAuth } from "@/components/RequireAuth";
 import {
   ArrowLeft,
   Building2,
@@ -20,7 +13,8 @@ import {
   Calendar,
   ShieldCheck,
 } from "lucide-react";
-import { RequireAuth } from "@/components/RequireAuth";
+import { ReportSection as Section } from "@/components/ReportSection";
+import { EstimateTable } from "@/components/EstimateTable";
 import { projectStore, photoStore } from "@/core/projects";
 import { analysisStore, type RoomAnalysis } from "@/core/ai";
 import { formatGBP } from "@/core/pricing";
@@ -66,6 +60,14 @@ function ReportPage() {
         vat: report.sections.cost_breakdown.body.vat,
         mid_total: report.sections.cost_breakdown.body.mid_total,
         timeline_weeks: report.sections.timeline.body.weeks,
+        labour_total: report.sections.cost_breakdown.body.items.reduce(
+          (s, i) => s + i.labour,
+          0,
+        ),
+        materials_total: report.sections.cost_breakdown.body.items.reduce(
+          (s, i) => s + i.materials,
+          0,
+        ),
       }
     : null;
 
@@ -305,58 +307,16 @@ function ReportPage() {
                 title="Cost breakdown"
                 subtitle="Itemised refurbishment estimate."
               >
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Labour</TableHead>
-                      <TableHead className="text-right">Materials</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {estimate.items.map((i) => (
-                      <TableRow key={i.category}>
-                        <TableCell className="font-medium">{i.category}</TableCell>
-                        <TableCell className="text-right">{formatGBP(i.labour)}</TableCell>
-                        <TableCell className="text-right">{formatGBP(i.materials)}</TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {formatGBP(i.total)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-muted-foreground">
-                        Subtotal
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatGBP(estimate.subtotal)}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-muted-foreground">
-                        Contingency (10%)
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatGBP(estimate.contingency)}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-muted-foreground">
-                        VAT (20%)
-                      </TableCell>
-                      <TableCell className="text-right">{formatGBP(estimate.vat)}</TableCell>
-                    </TableRow>
-                    <TableRow className="bg-muted/40">
-                      <TableCell colSpan={3} className="font-semibold">
-                        Mid total
-                      </TableCell>
-                      <TableCell className="text-right text-base font-semibold">
-                        {formatGBP(estimate.mid_total)}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
+                <EstimateTable
+                  items={estimate.items}
+                  labour_total={estimate.labour_total}
+                  materials_total={estimate.materials_total}
+                  subtotal={estimate.subtotal}
+                  contingency={estimate.contingency}
+                  vat={estimate.vat}
+                  mid_total={estimate.mid_total}
+                  showWeeks={false}
+                />
               </Section>
             )}
 
@@ -443,30 +403,6 @@ function ReportPage() {
         </main>
       </div>
     </RequireAuth>
-  );
-}
-
-function Section({
-  title,
-  subtitle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="break-inside-avoid">
-      <div className="mb-4">
-        <h2 className="text-xl font-semibold tracking-tight text-foreground">
-          {title}
-        </h2>
-        {subtitle && (
-          <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
-        )}
-      </div>
-      {children}
-    </section>
   );
 }
 
