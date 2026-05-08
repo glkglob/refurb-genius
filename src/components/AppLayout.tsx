@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
-import { DISCLAIMER } from "@/lib/mockData";
+import { DISCLAIMER } from "@/core/reports";
 import { RequireAuth } from "./RequireAuth";
 import { MobileTopBar } from "./MobileTopBar";
 
