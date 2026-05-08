@@ -67,7 +67,7 @@ let loading: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
-function rowToProject(r: any): ProjectRow {
+function rowToProject(r: Record<string, unknown>): ProjectRow {
   return {
     id: r.id,
     user_id: r.user_id,
