@@ -432,7 +432,7 @@ function ReportPage() {
               <div className="flex items-start gap-3 rounded-md bg-muted/40 p-4">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  {DISCLAIMER}
+                  {disclaimerText}
                 </p>
               </div>
               <p className="mt-4 text-center text-xs text-muted-foreground">
