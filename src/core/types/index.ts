@@ -1,25 +1,28 @@
-// Cross-module shared types. Re-exported from owning modules so consumers
-// can import a single canonical name.
+// Shared cross-product type registry. Pages and components import from here
+// instead of defining inline interfaces.
+export type { Profile } from "./profile";
 export type {
   Project,
+  ProjectStatus,
   NewProjectInput,
   ProjectStage,
-  ProjectStatus,
   PropertyType,
   UKRegion,
-  ProjectPhoto,
-} from "@/core/projects";
+} from "./project";
+export type { Photo } from "./photo";
 export type {
-  FinishLevel,
-  EstimateCategory,
-  EstimateInputs,
-  EstimateResult,
-  LineItem,
-} from "@/core/pricing";
-export type { InvestorMetrics, RiskLevel } from "@/core/roi";
-export type {
-  RoomAnalysis,
+  AnalysisResult,
   RoomType,
   ConditionLevel,
   RefurbLevel,
-} from "@/core/ai";
+} from "./analysis";
+export type { RedesignConcept, RedesignStyle } from "./redesign";
+export type {
+  Estimate,
+  EstimateItem,
+  EstimateInputs,
+  EstimateCategory,
+  FinishLevel,
+} from "./estimate";
+export type { InvestmentMetrics, RiskLevel } from "./metrics";
+export type { Report } from "./report";
