@@ -3,8 +3,8 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
-import { photoStore, formatFileSize } from "@/lib/photos";
-import { projectStore } from "@/lib/projects";
+import { photoStore, formatFileSize } from "@/core/projects";
+import { projectStore } from "@/core/projects";
 import { Upload, ImagePlus, X, Sparkles, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import { useRef, useState, useSyncExternalStore } from "react";
 

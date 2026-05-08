@@ -6,10 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/LoadingState";
 import { useEffect, useState } from "react";
 import { Sparkles, AlertTriangle, Wrench, ArrowRight, Palette, Sofa, Lightbulb, Layers } from "lucide-react";
-import { analysisStore, type RoomAnalysis, type ConditionLevel } from "@/lib/analysis";
-import { projectStore } from "@/lib/projects";
-import { DISCLAIMER } from "@/lib/mockData";
-import { REDESIGN_CONCEPTS } from "@/lib/redesign";
+import { analysisStore, type RoomAnalysis, type ConditionLevel } from "@/core/ai";
+import { projectStore } from "@/core/projects";
+import { DISCLAIMER } from "@/core/reports";
+import { REDESIGN_CONCEPTS } from "@/core/ai";
 
 export const Route = createFileRoute("/projects/$id/analysis")({
   head: () => ({ meta: [{ title: "AI analysis — Refurb Genius" }] }),

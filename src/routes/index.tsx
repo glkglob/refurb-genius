@@ -20,7 +20,7 @@ import {
 import heroAfter from "@/assets/hero-after.jpg";
 import beforeImg from "@/assets/before.jpg";
 import afterImg from "@/assets/after.jpg";
-import { DISCLAIMER } from "@/lib/mockData";
+import { DISCLAIMER } from "@/core/reports";
 
 export const Route = createFileRoute("/")({
   head: () => ({
