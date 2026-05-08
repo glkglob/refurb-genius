@@ -264,7 +264,7 @@ function ReportPage() {
               subtitle="AI-generated style directions for the refurbishment."
             >
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {REDESIGN_CONCEPTS.map((c) => (
+                {concepts.map((c) => (
                   <div
                     key={c.style}
                     className="overflow-hidden rounded-md border border-border"
