@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/LoadingState";
+import { AnalysisCard } from "@/components/AnalysisCard";
+import { RedesignCard } from "@/components/RedesignCard";
 import { useEffect, useState } from "react";
-import { Sparkles, AlertTriangle, Wrench, ArrowRight, Palette, Sofa, Lightbulb, Layers } from "lucide-react";
-import { analysisStore, type RoomAnalysis, type ConditionLevel } from "@/core/ai";
+import { Sparkles, ArrowRight } from "lucide-react";
+import { analysisStore, type RoomAnalysis } from "@/core/ai";
 import { projectStore } from "@/core/projects";
 import { DISCLAIMER } from "@/core/reports";
 import { REDESIGN_CONCEPTS } from "@/core/ai";
@@ -15,14 +17,6 @@ export const Route = createFileRoute("/projects/$id/analysis")({
   head: () => ({ meta: [{ title: "AI analysis — Refurb Genius" }] }),
   component: AnalysisPage,
 });
-
-const conditionTone: Record<ConditionLevel, string> = {
-  "Modern": "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  "Average": "bg-secondary text-foreground border-border",
-  "Dated": "bg-accent/10 text-accent border-accent/20",
-  "Poor": "bg-destructive/10 text-destructive border-destructive/20",
-  "Full Renovation Needed": "bg-destructive/15 text-destructive border-destructive/30",
-};
 
 function AnalysisPage() {
   const { id } = Route.useParams();
