@@ -63,6 +63,11 @@ function EstimatePage() {
     [region, condition, finish, categories],
   );
 
+  const metrics = useMemo(
+    () => (project ? calculateInvestorMetrics(project, result) : null),
+    [project, result],
+  );
+
   function toggleCategory(cat: EstimateCategory, checked: boolean) {
     setCategories((prev) =>
       checked ? [...prev, cat] : prev.filter((c) => c !== cat),
