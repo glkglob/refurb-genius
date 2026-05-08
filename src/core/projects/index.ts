@@ -1,5 +1,10 @@
 // Shared project domain: store, helpers, mocks, types, constants.
 // Canonical source for project business logic across products.
+//
+// TODO(deal-copilot): acquisition pipeline, opportunities, saved searches,
+// and automation will all wrap `projectStore` + `createProject` rather than
+// fork the schema. Opportunities convert into `Project` rows on underwrite.
+
 export { projectStore } from "./projectStore";
 export {
   createProject,
