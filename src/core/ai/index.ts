@@ -8,6 +8,11 @@
 // TODO(deal-copilot): listing parsing, deal narratives, and inbox triage
 // extend this module via new providers. They must stay language/vision
 // only — financial figures still come from the pricing and ROI engines.
+//
+// TODO(refurb-iq): specification writer, scope-of-works prose, and snag
+// descriptions extend this module via new providers. AI writes prose;
+// quantities, rates, and totals stay deterministic in `@/core/pricing`.
+
 
 
 export {
