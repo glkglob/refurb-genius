@@ -63,7 +63,7 @@ function NewProject() {
 
     setSubmitting(true);
     try {
-      const project = await projectStore.create({
+      const project = await createProject({
         name: name.trim(),
         address: address.trim(),
         postcode: postcode.trim().toUpperCase(),
