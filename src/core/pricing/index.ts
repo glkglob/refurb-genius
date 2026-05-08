@@ -3,6 +3,11 @@
 //
 // TODO(deal-copilot): underwriting + monitoring must call `runPricingEngine`
 // for every refurb cost figure. No parallel pricing math anywhere else.
+//
+// TODO(refurb-iq): BOQ + cost plans expand each `PricingEstimateItem` into
+// measured items (quantity × unit rate). Rates always come from this engine;
+// quantities derive from project size + room analysis.
+
 
 export {
   runPricingEngine,
