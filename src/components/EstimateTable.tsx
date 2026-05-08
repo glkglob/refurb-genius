@@ -9,7 +9,7 @@ import {
 import { formatGBP, type LineItem } from "@/core/pricing";
 
 export type EstimateTableProps = {
-  items: PricingEstimateItem[];
+  items: LineItem[];
   labour_total: number;
   materials_total: number;
   subtotal: number;
