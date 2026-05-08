@@ -11,7 +11,7 @@ import { formatGBP, type PricingEstimateItem } from "@/core/pricing";
 export type EstimateTableItem = PricingEstimateItem;
 
 export type EstimateTableProps = {
-  items: EstimateItem[];
+  items: PricingEstimateItem[];
   labour_total: number;
   materials_total: number;
   subtotal: number;
