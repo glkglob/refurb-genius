@@ -1,5 +1,9 @@
-// Mock project store. API surface mirrors what a Supabase-backed store would
-// expose so it can be swapped later without touching consumers.
+// Supabase-backed project store. Preserves the synchronous external-store
+// API the app already consumes (list / get / getProgress / subscribe) by
+// caching results in memory and notifying subscribers when async fetches
+// complete.
+import { supabase } from "@/integrations/supabase/client";
+import { auth } from "./auth";
 
 export const PROPERTY_TYPES = [
   "Flat",
@@ -9,7 +13,6 @@ export const PROPERTY_TYPES = [
   "HMO",
   "Bungalow",
 ] as const;
-
 export type PropertyType = (typeof PROPERTY_TYPES)[number];
 
 export const UK_REGIONS = [
@@ -26,7 +29,6 @@ export const UK_REGIONS = [
   "Wales",
   "Northern Ireland",
 ] as const;
-
 export type UKRegion = (typeof UK_REGIONS)[number];
 
 export type ProjectStatus = "Draft" | "Analysing" | "Estimated" | "Complete";
@@ -50,111 +52,154 @@ export type Project = {
 };
 
 export type NewProjectInput = Omit<Project, "id" | "user_id" | "created_at" | "status">;
+export type ProjectStage = "photos" | "analysis" | "estimate" | "report";
 
-const seed: Project[] = [
-  {
-    id: "1",
-    user_id: "demo",
-    name: "Victorian Terrace Refurb",
-    address: "12 Elm Street, London",
-    postcode: "E1 6AN",
-    region: "London",
-    property_type: "Terraced",
-    bedrooms: 3,
-    bathrooms: 1,
-    size_sqm: 95,
-    purchase_price: 285000,
-    estimated_gdv: 410000,
-    notes: "Probate sale, dated throughout, strong street.",
-    created_at: "2026-04-12",
-    status: "Estimated",
-  },
-  {
-    id: "2",
-    user_id: "demo",
-    name: "Manchester Buy-to-Let",
-    address: "44 Oak Road, Manchester",
-    postcode: "M14 5GH",
-    region: "North West England",
-    property_type: "Semi-detached",
-    bedrooms: 2,
-    bathrooms: 1,
-    size_sqm: 72,
-    purchase_price: 165000,
-    estimated_gdv: 230000,
-    notes: "Tenanted, light refurb on void.",
-    created_at: "2026-04-28",
-    status: "Analysing",
-  },
-  {
-    id: "3",
-    user_id: "demo",
-    name: "Edinburgh Tenement Flat",
-    address: "8 Royal Mile, Edinburgh",
-    postcode: "EH1 1RE",
-    region: "Scotland",
-    property_type: "Flat",
-    bedrooms: 1,
-    bathrooms: 1,
-    size_sqm: 48,
-    purchase_price: 195000,
-    estimated_gdv: 250000,
-    notes: "Short-let potential. Listed building.",
-    created_at: "2026-03-04",
-    status: "Complete",
-  },
-];
+type ProjectRow = Project & {
+  photos_done: boolean;
+  analysis_done: boolean;
+  estimate_done: boolean;
+  report_done: boolean;
+};
 
-let projects: Project[] = [...seed];
+let cache: ProjectRow[] = [];
+let loaded = false;
+let loading: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
-export type ProjectStage = "photos" | "analysis" | "estimate" | "report";
+function rowToProject(r: any): ProjectRow {
+  return {
+    id: r.id,
+    user_id: r.user_id,
+    name: r.name,
+    address: r.address ?? "",
+    postcode: r.postcode ?? "",
+    region: r.region as UKRegion,
+    property_type: r.property_type as PropertyType,
+    bedrooms: Number(r.bedrooms ?? 0),
+    bathrooms: Number(r.bathrooms ?? 0),
+    size_sqm: Number(r.size_sqm ?? 0),
+    purchase_price: Number(r.purchase_price ?? 0),
+    estimated_gdv: Number(r.estimated_gdv ?? 0),
+    notes: r.notes ?? "",
+    created_at: r.created_at,
+    status: (r.status ?? "Draft") as ProjectStatus,
+    photos_done: !!r.photos_done,
+    analysis_done: !!r.analysis_done,
+    estimate_done: !!r.estimate_done,
+    report_done: !!r.report_done,
+  };
+}
 
-const seedProgress: Record<string, Record<ProjectStage, boolean>> = {
-  "1": { photos: true, analysis: true, estimate: true, report: false },
-  "2": { photos: true, analysis: true, estimate: false, report: false },
-  "3": { photos: true, analysis: true, estimate: true, report: true },
-};
-let progress: Record<string, Record<ProjectStage, boolean>> = { ...seedProgress };
+async function fetchAll(): Promise<void> {
+  if (!auth.getUser()) {
+    cache = [];
+    loaded = true;
+    notify();
+    return;
+  }
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("[projects] fetch failed", error);
+    cache = [];
+  } else {
+    cache = (data ?? []).map(rowToProject);
+  }
+  loaded = true;
+  notify();
+}
 
-const emptyProgress = (): Record<ProjectStage, boolean> => ({
-  photos: false,
-  analysis: false,
-  estimate: false,
-  report: false,
-});
+function ensureLoaded() {
+  if (loaded || loading) return;
+  loading = fetchAll().finally(() => {
+    loading = null;
+  });
+}
+
+// Reload when auth changes
+if (typeof window !== "undefined") {
+  auth.onChange(() => {
+    loaded = false;
+    cache = [];
+    notify();
+    ensureLoaded();
+  });
+}
 
 export const projectStore = {
   list(): Project[] {
-    return projects;
+    ensureLoaded();
+    return cache;
   },
   get(id: string): Project | undefined {
-    return projects.find((p) => p.id === id);
+    ensureLoaded();
+    return cache.find((p) => p.id === id);
   },
-  create(input: NewProjectInput): Project {
-    const project: Project = {
-      ...input,
-      id: crypto.randomUUID(),
-      user_id: "demo",
-      created_at: new Date().toISOString(),
-      status: "Draft",
-    };
-    projects = [project, ...projects];
-    progress[project.id] = emptyProgress();
+  async refresh(): Promise<void> {
+    await fetchAll();
+  },
+  async create(input: NewProjectInput): Promise<Project> {
+    const user = auth.getUser();
+    if (!user) throw new Error("You must be signed in.");
+    const { data, error } = await supabase
+      .from("projects")
+      .insert({
+        user_id: user.id,
+        name: input.name,
+        address: input.address,
+        postcode: input.postcode,
+        region: input.region,
+        property_type: input.property_type,
+        bedrooms: input.bedrooms,
+        bathrooms: input.bathrooms,
+        size_sqm: input.size_sqm,
+        purchase_price: input.purchase_price,
+        estimated_gdv: input.estimated_gdv,
+        notes: input.notes,
+        status: "Draft",
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    const project = rowToProject(data);
+    cache = [project, ...cache];
     notify();
     return project;
   },
   getProgress(id: string): Record<ProjectStage, boolean> {
-    return progress[id] ?? emptyProgress();
+    const p = cache.find((x) => x.id === id);
+    return {
+      photos: !!p?.photos_done,
+      analysis: !!p?.analysis_done,
+      estimate: !!p?.estimate_done,
+      report: !!p?.report_done,
+    };
   },
   setStage(id: string, stage: ProjectStage, value = true) {
-    progress[id] = { ...(progress[id] ?? emptyProgress()), [stage]: value };
+    const idx = cache.findIndex((p) => p.id === id);
+    if (idx === -1) return;
+    const column = `${stage}_done` as const;
+    if (cache[idx][column] === value) return;
+    cache = cache.map((p) =>
+      p.id === id ? { ...p, [column]: value } : p,
+    );
     notify();
+    supabase
+      .from("projects")
+      .update({ [column]: value })
+      .eq("id", id)
+      .then(({ error }) => {
+        if (error) console.error("[projects] setStage failed", error);
+      });
   },
   subscribe(fn: () => void): () => void {
     listeners.add(fn);
-    return () => listeners.delete(fn);
+    return () => {
+      listeners.delete(fn);
+    };
   },
 };
 
@@ -167,4 +212,3 @@ export function estimatedRefurbCost(p: Project): number {
 export function estimatedProfit(p: Project): number {
   return p.estimated_gdv - p.purchase_price - estimatedRefurbCost(p);
 }
-
