@@ -3,6 +3,11 @@
 // TODO(deal-copilot): acquisition reports extend `buildReport` with extra
 // `ReportSection`s (e.g. opportunity source, comparable deals, monitoring
 // history). Do not introduce a parallel report builder.
+//
+// TODO(refurb-iq): client exports (BOQ, specification, cost plan,
+// valuation certificate) extend `buildReport` with extra `ReportSection`s
+// and a Refurb IQ branding profile. Same builder, different sections.
+
 
 export {
   buildReport,
