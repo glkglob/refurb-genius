@@ -1,12 +1,19 @@
-// Shared project domain: entity, store, derived helpers.
-// Canonical implementation lives in src/lib/projects.ts.
+// Shared project domain: store, helpers, mocks, types, constants.
+// Canonical source for project business logic across products.
+export { projectStore } from "./projectStore";
 export {
-  projectStore,
+  createProject,
+  updateProject,
+  getProjectById,
+  getProjectStatus,
+  calculateProjectProgress,
   estimatedRefurbCost,
   estimatedProfit,
-  PROPERTY_TYPES,
-  UK_REGIONS,
-} from "@/lib/projects";
+  type ProjectProgress,
+} from "./projectHelpers";
+export { MOCK_PROJECTS, getMockProjectById } from "./mockProjects";
+
+export { PROPERTY_TYPES, UK_REGIONS } from "@/lib/projects";
 export type {
   Project,
   NewProjectInput,
