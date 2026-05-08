@@ -187,9 +187,14 @@ export const projectStore = {
       p.id === id ? { ...p, [column]: value } : p,
     );
     notify();
+    const patch =
+      stage === "photos" ? { photos_done: value }
+      : stage === "analysis" ? { analysis_done: value }
+      : stage === "estimate" ? { estimate_done: value }
+      : { report_done: value };
     supabase
       .from("projects")
-      .update({ [column]: value })
+      .update(patch)
       .eq("id", id)
       .then(({ error }) => {
         if (error) console.error("[projects] setStage failed", error);
