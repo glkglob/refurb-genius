@@ -1,5 +1,9 @@
 // Refurbishment pricing engine. Pure functions — safe for any product surface.
 // Canonical engine: ./pricingEngine.ts
+//
+// TODO(deal-copilot): underwriting + monitoring must call `runPricingEngine`
+// for every refurb cost figure. No parallel pricing math anywhere else.
+
 export {
   runPricingEngine,
   sizeMultiplier,
