@@ -1,4 +1,16 @@
-// Report-layer shared constants, demo fixtures, and helpers.
+// Report-layer shared constants, demo fixtures, and the report engine.
+export {
+  buildReport,
+  REPORT_SECTION_ORDER,
+} from "./reportEngine";
+export type {
+  Report,
+  ReportBranding,
+  ReportEngineInputs,
+  ReportSection,
+  ReportSectionKey,
+} from "./reportEngine";
+
 export {
   DISCLAIMER,
   mockAnalysis,
