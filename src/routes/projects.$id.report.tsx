@@ -21,17 +21,17 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { RequireAuth } from "@/components/RequireAuth";
-import { projectStore } from "@/lib/projects";
-import { photoStore } from "@/lib/photos";
-import { analysisStore, type RoomAnalysis } from "@/lib/analysis";
-import { REDESIGN_CONCEPTS } from "@/lib/redesign";
+import { projectStore } from "@/core/projects";
+import { photoStore } from "@/core/projects";
+import { analysisStore, type RoomAnalysis } from "@/core/ai";
+import { REDESIGN_CONCEPTS } from "@/core/ai";
 import {
   calculateEstimate,
   formatGBP,
   type EstimateCategory,
-} from "@/lib/estimate";
-import { calculateInvestorMetrics } from "@/lib/metrics";
-import { DISCLAIMER } from "@/lib/mockData";
+} from "@/core/pricing";
+import { calculateInvestorMetrics } from "@/core/roi";
+import { DISCLAIMER } from "@/core/reports";
 
 export const Route = createFileRoute("/projects/$id/report")({
   head: () => ({ meta: [{ title: "Investor report — Refurb Genius" }] }),

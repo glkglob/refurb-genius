@@ -20,7 +20,7 @@ import {
   projectStore,
   type PropertyType,
   type UKRegion,
-} from "@/lib/projects";
+} from "@/core/projects";
 
 export const Route = createFileRoute("/projects/new")({
   head: () => ({ meta: [{ title: "New project — Refurb Genius" }] }),
