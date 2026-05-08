@@ -17,7 +17,8 @@ const listeners = new Set<Listener>();
 let currentUser: AuthUser | null = null;
 let initialized = false;
 
-function fromSupabaseUser(u: { id: string; email?: string | null; user_metadata?: Record<string, unknown> } | null | undefined): AuthUser | null {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function fromSupabaseUser(u: { id: string; email?: string | null; user_metadata?: any } | null | undefined): AuthUser | null {
   if (!u) return null;
   return {
     id: u.id,
