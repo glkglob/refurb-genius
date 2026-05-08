@@ -15,9 +15,7 @@ import {
   PoundSterling,
   TrendingUp,
   FolderPlus,
-  ArrowRight,
   Sparkles,
-  MapPin,
 } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard")({
