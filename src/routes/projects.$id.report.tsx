@@ -21,30 +21,15 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { RequireAuth } from "@/components/RequireAuth";
-import { projectStore } from "@/core/projects";
-import { photoStore } from "@/core/projects";
+import { projectStore, photoStore } from "@/core/projects";
 import { analysisStore, type RoomAnalysis } from "@/core/ai";
-import { REDESIGN_CONCEPTS } from "@/core/ai";
-import {
-  calculateEstimate,
-  formatGBP,
-  type EstimateCategory,
-} from "@/core/pricing";
-import { calculateInvestorMetrics } from "@/core/roi";
-import { DISCLAIMER } from "@/core/reports";
+import { formatGBP } from "@/core/pricing";
+import { buildReport } from "@/core/reports";
 
 export const Route = createFileRoute("/projects/$id/report")({
   head: () => ({ meta: [{ title: "Investor report — Refurb Genius" }] }),
   component: ReportPage,
 });
-
-const DEFAULT_CATEGORIES: EstimateCategory[] = [
-  "Kitchen",
-  "Bathroom",
-  "Flooring",
-  "Painting",
-  "Electrical",
-];
 
 function ReportPage() {
   const { id } = Route.useParams();
@@ -63,23 +48,45 @@ function ReportPage() {
 
   const photos = photoStore.list(id);
 
-  const estimate = useMemo(
+  const report = useMemo(
     () =>
       project
-        ? calculateEstimate({
-            region: project.region,
-            condition: "Dated",
-            finish: "Standard",
-            categories: DEFAULT_CATEGORIES,
-          })
+        ? buildReport({ project, photos, analysis })
         : null,
-    [project],
+    [project, photos, analysis],
   );
 
-  const metrics = useMemo(
-    () => (project && estimate ? calculateInvestorMetrics(project, estimate) : null),
-    [project, estimate],
-  );
+  // Shim legacy local shapes from the structured report so the JSX below
+  // stays unchanged. All values originate from the deterministic engines.
+  const estimate = report
+    ? {
+        items: report.sections.cost_breakdown.body.items,
+        subtotal: report.sections.cost_breakdown.body.subtotal,
+        contingency: report.sections.cost_breakdown.body.contingency,
+        vat: report.sections.cost_breakdown.body.vat,
+        mid_total: report.sections.cost_breakdown.body.mid_total,
+        timeline_weeks: report.sections.timeline.body.weeks,
+      }
+    : null;
+
+  const metrics = report
+    ? {
+        refurb_budget: report.sections.cost_breakdown.body.mid_total,
+        total_cost: report.sections.investment_metrics.body.total_project_cost,
+        estimated_profit: report.sections.investment_metrics.body.estimated_profit,
+        roi: report.sections.investment_metrics.body.roi,
+        yield_pct: report.sections.investment_metrics.body.gross_yield,
+        rental_uplift_annual: report.sections.investment_metrics.body.rental_uplift,
+        rental_uplift_monthly: Math.round(
+          report.sections.investment_metrics.body.rental_uplift / 12,
+        ),
+        investment_score: report.sections.investment_metrics.body.investment_score,
+        risk_level: report.sections.investment_metrics.body.risk_level,
+      }
+    : null;
+
+  const concepts = report?.sections.redesign_concepts.body.concepts ?? [];
+  const disclaimerText = report?.sections.disclaimer.body.text ?? "";
 
   if (!project) {
     throw notFound();
@@ -257,7 +264,7 @@ function ReportPage() {
               subtitle="AI-generated style directions for the refurbishment."
             >
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {REDESIGN_CONCEPTS.map((c) => (
+                {concepts.map((c) => (
                   <div
                     key={c.style}
                     className="overflow-hidden rounded-md border border-border"
@@ -425,7 +432,7 @@ function ReportPage() {
               <div className="flex items-start gap-3 rounded-md bg-muted/40 p-4">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  {DISCLAIMER}
+                  {disclaimerText}
                 </p>
               </div>
               <p className="mt-4 text-center text-xs text-muted-foreground">
