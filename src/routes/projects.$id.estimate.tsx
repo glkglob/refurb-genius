@@ -278,55 +278,15 @@ function EstimatePage() {
             <Badge variant="outline">{result.items.length} categories</Badge>
           </div>
 
-          {result.items.length === 0 ? (
-            <div className="p-10 text-center text-sm text-muted-foreground">
-              Select at least one category to generate an estimate.
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Category</TableHead>
-                  <TableHead className="text-right">Labour</TableHead>
-                  <TableHead className="text-right">Materials</TableHead>
-                  <TableHead className="text-right">Weeks</TableHead>
-                  <TableHead className="text-right">Total</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {result.items.map((i) => (
-                  <TableRow key={i.category}>
-                    <TableCell className="font-medium text-foreground">{i.category}</TableCell>
-                    <TableCell className="text-right">{formatGBP(i.labour)}</TableCell>
-                    <TableCell className="text-right">{formatGBP(i.materials)}</TableCell>
-                    <TableCell className="text-right text-muted-foreground">{i.weeks}</TableCell>
-                    <TableCell className="text-right font-semibold">{formatGBP(i.total)}</TableCell>
-                  </TableRow>
-                ))}
-                <TableRow>
-                  <TableCell className="font-medium">Subtotal</TableCell>
-                  <TableCell className="text-right">{formatGBP(result.labour_total)}</TableCell>
-                  <TableCell className="text-right">{formatGBP(result.materials_total)}</TableCell>
-                  <TableCell />
-                  <TableCell className="text-right font-semibold">{formatGBP(result.subtotal)}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">Contingency (10%)</TableCell>
-                  <TableCell className="text-right">{formatGBP(result.contingency)}</TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell colSpan={4} className="text-muted-foreground">VAT (20%)</TableCell>
-                  <TableCell className="text-right">{formatGBP(result.vat)}</TableCell>
-                </TableRow>
-                <TableRow className="bg-muted/40">
-                  <TableCell colSpan={4} className="font-semibold text-foreground">Mid total</TableCell>
-                  <TableCell className="text-right text-base font-semibold text-foreground">
-                    {formatGBP(result.mid_total)}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          )}
+          <EstimateTable
+            items={result.items}
+            labour_total={result.labour_total}
+            materials_total={result.materials_total}
+            subtotal={result.subtotal}
+            contingency={result.contingency}
+            vat={result.vat}
+            mid_total={result.mid_total}
+          />
         </CardContent>
       </Card>
 
