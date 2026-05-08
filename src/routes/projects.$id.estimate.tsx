@@ -178,8 +178,85 @@ function EstimatePage() {
         />
       </div>
 
+      {/* Investor metrics */}
+      {metrics && project && (
+        <div className="mt-8">
+          <div className="mb-4 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight text-foreground">
+                Investor metrics
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Live ROI, profit, rental uplift and risk based on your inputs.
+              </p>
+            </div>
+            <Badge variant="outline" className="hidden sm:inline-flex">
+              GDV {formatGBP(project.estimated_gdv)}
+            </Badge>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <SummaryCard
+              icon={<Wallet className="h-4 w-4" />}
+              label="Refurb budget"
+              value={formatGBP(metrics.refurb_budget)}
+              hint="Mid estimate inc. VAT"
+            />
+            <SummaryCard
+              icon={<Home className="h-4 w-4" />}
+              label="Total project cost"
+              value={formatGBP(metrics.total_cost)}
+              hint={`Purchase ${formatGBP(project.purchase_price)} + refurb`}
+            />
+            <SummaryCard
+              icon={<TrendingUp className="h-4 w-4" />}
+              label="Estimated GDV"
+              value={formatGBP(project.estimated_gdv)}
+              hint={`Rental uplift ${formatGBP(metrics.rental_uplift_monthly)}/mo`}
+            />
+            <SummaryCard
+              icon={<Banknote className="h-4 w-4" />}
+              label="Estimated profit"
+              value={formatGBP(metrics.estimated_profit)}
+              hint={`After all costs`}
+              highlight={metrics.estimated_profit > 0}
+            />
+            <SummaryCard
+              icon={<Percent className="h-4 w-4" />}
+              label="ROI"
+              value={`${metrics.roi}%`}
+              hint={`Yield ${metrics.yield_pct}%`}
+            />
+            <SummaryCard
+              icon={<Gauge className="h-4 w-4" />}
+              label="Investment score"
+              value={`${metrics.investment_score} / 10`}
+              hint="ROI 70% · yield 30%"
+            />
+            <RiskCard risk={metrics.risk_level} />
+            <Card className="border-dashed">
+              <CardContent className="flex h-full flex-col justify-between gap-3 p-5">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Ready to share?
+                  </p>
+                  <p className="mt-1 text-sm text-foreground">
+                    Generate a polished investor report with these numbers.
+                  </p>
+                </div>
+                <Button asChild size="sm" onClick={() => projectStore.setStage(id, "estimate", true)}>
+                  <Link to="/projects/$id/report" params={{ id }}>
+                    View report <ArrowRight className="ml-1 h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
       {/* Itemised table */}
-      <Card className="mt-6">
+      <Card className="mt-8">
         <CardContent className="p-0">
           <div className="flex items-center justify-between border-b border-border p-5">
             <div>
