@@ -23,7 +23,7 @@ const inFlight = new Map<string, Promise<void>>();
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
-function rowToPhoto(r: any): ProjectPhoto {
+function rowToPhoto(r: Record<string, unknown>): ProjectPhoto {
   return {
     id: r.id,
     projectId: r.project_id,
