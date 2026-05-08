@@ -118,6 +118,28 @@ function AuthPage() {
               </Button>
             </form>
 
+            <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              or
+              <span className="h-px flex-1 bg-border" />
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              disabled={loading}
+              onClick={async () => {
+                setError(null);
+                try {
+                  await auth.signInWithGoogle();
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : "Google sign-in failed.");
+                }
+              }}
+            >
+              Continue with Google
+            </Button>
+
             <p className="mt-6 text-center text-sm text-muted-foreground">
               {mode === "signin" ? "No account yet?" : "Already have an account?"}{" "}
               <button
