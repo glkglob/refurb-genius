@@ -1,5 +1,42 @@
-// Mock AI analysis + redesign concepts. Swap implementations here when
-// upgrading to a real model — consumers won't change.
+// AI surface: photo analysis, redesign concepts, summary wording.
+// Mock today, real models tomorrow — UI imports only from here.
+//
+// Boundary: AI generates language and visuals. AI does NOT generate
+// pricing, ROI, or any financial number. Money lives in `@/core/pricing`
+// and `@/core/roi`.
+
+export {
+  photoAnalysisProvider,
+  mockPhotoAnalysisProvider,
+  getPhotoAnalysis,
+  runPhotoAnalysis,
+  subscribePhotoAnalysis,
+} from "./photoAnalysis";
+export type {
+  PhotoAnalysisProvider,
+  PhotoAnalysisInput,
+} from "./photoAnalysis";
+
+export {
+  redesignProvider,
+  mockRedesignProvider,
+  listRedesignConcepts,
+  generateRedesignConcepts,
+} from "./redesignConcepts";
+export type { RedesignProvider, RedesignInput } from "./redesignConcepts";
+
+export {
+  aiSummariesProvider,
+  mockAiSummariesProvider,
+  reportHeadline,
+  executiveSummary,
+  roomSummary,
+  recommendedWorks,
+} from "./aiSummaries";
+export type { AiSummariesProvider, ProjectSummaryInput } from "./aiSummaries";
+
+// Legacy exports — pages currently import these directly. New code should
+// prefer the provider helpers above.
 export {
   analysisStore,
   ROOM_TYPES,
@@ -13,4 +50,5 @@ export type {
   RefurbLevel,
 } from "@/lib/analysis";
 
-export * from "@/lib/redesign";
+export { REDESIGN_CONCEPTS, REDESIGN_STYLES } from "@/lib/redesign";
+export type { RedesignConcept, RedesignStyle } from "@/lib/redesign";
