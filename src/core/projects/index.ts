@@ -16,5 +16,5 @@ export type {
   UKRegion,
 } from "@/lib/projects";
 
-export { photoStore } from "@/lib/photos";
+export { photoStore, formatFileSize } from "@/lib/photos";
 export type { ProjectPhoto } from "@/lib/photos";
