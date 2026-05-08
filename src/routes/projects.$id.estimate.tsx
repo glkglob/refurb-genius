@@ -21,7 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowRight, Calculator, Clock, PoundSterling, TrendingUp } from "lucide-react";
+import { ArrowRight, Calculator, Clock, PoundSterling, TrendingUp, Wallet, Home, Banknote, Percent, Gauge, ShieldAlert } from "lucide-react";
 import { projectStore } from "@/lib/projects";
 import { UK_REGIONS, type UKRegion } from "@/lib/projects";
 import { CONDITION_LEVELS, type ConditionLevel } from "@/lib/analysis";
@@ -33,6 +33,7 @@ import {
   type EstimateCategory,
   type FinishLevel,
 } from "@/lib/estimate";
+import { calculateInvestorMetrics, type RiskLevel } from "@/lib/metrics";
 import { DISCLAIMER } from "@/lib/mockData";
 
 export const Route = createFileRoute("/projects/$id/estimate")({
