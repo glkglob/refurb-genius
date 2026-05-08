@@ -85,95 +85,13 @@ function AnalysisPage() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {REDESIGN_CONCEPTS.map((c) => {
-            const beforePhoto = results[0]?.photo_url;
-            return (
-              <Card key={c.style} className="overflow-hidden">
-                <div className="grid grid-cols-2 gap-px bg-border">
-                  <div className="relative aspect-[4/5] bg-muted">
-                    {beforePhoto ? (
-                      <img
-                        src={beforePhoto}
-                        alt={`${c.style} before`}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : null}
-                    <Badge
-                      variant="secondary"
-                      className="absolute left-2 top-2 bg-background/85 backdrop-blur"
-                    >
-                      Before
-                    </Badge>
-                  </div>
-                  <div
-                    className="relative aspect-[4/5] overflow-hidden"
-                    style={{ background: c.afterGradient }}
-                  >
-                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.35),transparent_60%)]" />
-                    <Badge className="absolute left-2 top-2 bg-foreground/85 text-background backdrop-blur">
-                      <Sparkles className="mr-1 h-3 w-3" /> AI render
-                    </Badge>
-                    <div className="absolute inset-x-0 bottom-0 p-3">
-                      <p className="text-xs font-medium uppercase tracking-wider text-background/90 drop-shadow">
-                        {c.style}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <CardContent className="space-y-4 p-5">
-                  <div>
-                    <h3 className="text-base font-semibold text-foreground">{c.style}</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">{c.tagline}</p>
-                  </div>
-
-                  <div>
-                    <p className="mb-2 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      <Palette className="h-3.5 w-3.5" /> Colour palette
-                    </p>
-                    <div className="flex gap-2">
-                      {c.palette.map((p) => (
-                        <div key={p.hex} className="flex flex-col items-center gap-1">
-                          <div
-                            className="h-8 w-8 rounded-md border border-border shadow-sm"
-                            style={{ backgroundColor: p.hex }}
-                            title={`${p.name} ${p.hex}`}
-                          />
-                          <span className="text-[10px] text-muted-foreground">
-                            {p.name}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-start gap-2">
-                      <Layers className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                      <p className="text-foreground">
-                        <span className="text-muted-foreground">Flooring — </span>
-                        {c.flooring}
-                      </p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                      <p className="text-foreground">
-                        <span className="text-muted-foreground">Lighting — </span>
-                        {c.lighting}
-                      </p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <Sofa className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                      <p className="text-foreground">
-                        <span className="text-muted-foreground">Furniture — </span>
-                        {c.furniture}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {REDESIGN_CONCEPTS.map((c) => (
+            <RedesignCard
+              key={c.style}
+              concept={c}
+              beforePhotoUrl={results[0]?.photo_url}
+            />
+          ))}
         </div>
       </div>
 
