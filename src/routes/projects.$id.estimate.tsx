@@ -350,3 +350,29 @@ function SummaryCard({
     </Card>
   );
 }
+
+function RiskCard({ risk }: { risk: RiskLevel }) {
+  const tone =
+    risk === "Low"
+      ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"
+      : risk === "Moderate"
+      ? "border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-400"
+      : "border-destructive/30 bg-destructive/5 text-destructive";
+  return (
+    <Card className={tone}>
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide opacity-80">
+          <ShieldAlert className="h-4 w-4" /> Risk level
+        </div>
+        <p className="mt-2 text-2xl font-semibold tracking-tight">{risk}</p>
+        <p className="mt-1 text-xs opacity-80">
+          {risk === "Low"
+            ? "Strong fundamentals across ROI and yield."
+            : risk === "Moderate"
+            ? "Workable deal — verify costs on site."
+            : "Margins are tight. Renegotiate or rework scope."}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
