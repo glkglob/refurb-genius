@@ -68,6 +68,14 @@ function ReportPage() {
         vat: report.sections.cost_breakdown.body.vat,
         mid_total: report.sections.cost_breakdown.body.mid_total,
         timeline_weeks: report.sections.timeline.body.weeks,
+        labour_total: report.sections.cost_breakdown.body.items.reduce(
+          (s, i) => s + i.labour,
+          0,
+        ),
+        materials_total: report.sections.cost_breakdown.body.items.reduce(
+          (s, i) => s + i.materials,
+          0,
+        ),
       }
     : null;
 
