@@ -5,7 +5,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { mockRecentAnalyses } from "@/core/reports";
-import { projectStore, estimatedRefurbCost, estimatedProfit } from "@/core/projects";
+import { projectStore, estimatedRefurbCost } from "@/core/projects";
+import { runRoiEngine } from "@/core/roi";
 import { useSyncExternalStore } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -31,7 +32,18 @@ function Dashboard() {
     () => projectStore.list(),
   );
   const totalRefurb = projects.reduce((s, p) => s + estimatedRefurbCost(p), 0);
-  const totalProfit = projects.reduce((s, p) => s + estimatedProfit(p), 0);
+  const totalProfit = projects.reduce((s, p) => {
+    const roi = runRoiEngine({
+      purchase_price: p.purchase_price,
+      refurb_budget: estimatedRefurbCost(p),
+      estimated_gdv: p.estimated_gdv,
+      rental_income: 0,
+      holding_costs: 0,
+      region: p.region,
+      property_condition: "Dated",
+    });
+    return s + roi.estimated_profit;
+  }, 0);
   const firstName = (user?.fullName ?? user?.email ?? "there").split(/[\s@]/)[0];
 
   return (
