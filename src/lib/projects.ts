@@ -67,6 +67,7 @@ let loading: Promise<void> | null = null;
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rowToProject(r: any): ProjectRow {
   return {
     id: r.id,

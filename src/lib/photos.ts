@@ -23,6 +23,7 @@ const inFlight = new Map<string, Promise<void>>();
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rowToPhoto(r: any): ProjectPhoto {
   return {
     id: r.id,
