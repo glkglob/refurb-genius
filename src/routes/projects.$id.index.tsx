@@ -7,7 +7,7 @@ import {
   estimatedRefurbCost,
   estimatedProfit,
   type ProjectStage,
-} from "@/lib/projects";
+} from "@/core/projects";
 import {
   Camera,
   Sparkles,

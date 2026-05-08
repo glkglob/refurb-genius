@@ -22,9 +22,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ArrowRight, Calculator, Clock, PoundSterling, TrendingUp, Wallet, Home, Banknote, Percent, Gauge, ShieldAlert } from "lucide-react";
-import { projectStore } from "@/lib/projects";
-import { UK_REGIONS, type UKRegion } from "@/lib/projects";
-import { CONDITION_LEVELS, type ConditionLevel } from "@/lib/analysis";
+import { projectStore } from "@/core/projects";
+import { UK_REGIONS, type UKRegion } from "@/core/projects";
+import { CONDITION_LEVELS, type ConditionLevel } from "@/core/ai";
 import {
   ESTIMATE_CATEGORIES,
   FINISH_LEVELS,
@@ -32,9 +32,9 @@ import {
   formatGBP,
   type EstimateCategory,
   type FinishLevel,
-} from "@/lib/estimate";
-import { calculateInvestorMetrics, type RiskLevel } from "@/lib/metrics";
-import { DISCLAIMER } from "@/lib/mockData";
+} from "@/core/pricing";
+import { calculateInvestorMetrics, type RiskLevel } from "@/core/roi";
+import { DISCLAIMER } from "@/core/reports";
 
 export const Route = createFileRoute("/projects/$id/estimate")({
   head: () => ({ meta: [{ title: "Cost estimate — Refurb Genius" }] }),
