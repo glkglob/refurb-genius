@@ -4,6 +4,11 @@
 // Boundary: AI generates language and visuals. AI does NOT generate
 // pricing, ROI, or any financial number. Money lives in `@/core/pricing`
 // and `@/core/roi`.
+//
+// TODO(deal-copilot): listing parsing, deal narratives, and inbox triage
+// extend this module via new providers. They must stay language/vision
+// only — financial figures still come from the pricing and ROI engines.
+
 
 export {
   photoAnalysisProvider,
