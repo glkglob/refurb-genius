@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingState } from "@/components/LoadingState";
+import { EmptyState } from "@/components/EmptyState";
 import {
   ArrowLeft,
   Building2,
@@ -13,6 +14,7 @@ import {
   Sparkles,
   Calendar,
   ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 import { ReportSection as Section } from "@/components/ReportSection";
 import { EstimateTable } from "@/components/EstimateTable";
@@ -131,6 +133,21 @@ function ReportPage() {
       <RequireAuth>
         <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
           <LoadingState label="Loading project…" />
+        </div>
+      </RequireAuth>
+    );
+  }
+
+  if (snapshot.error) {
+    return (
+      <RequireAuth>
+        <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+          <EmptyState
+            icon={AlertCircle}
+            title="Failed to load project"
+            description={snapshot.error}
+            action={<Button onClick={() => projectStore.refresh()}>Try again</Button>}
+          />
         </div>
       </RequireAuth>
     );

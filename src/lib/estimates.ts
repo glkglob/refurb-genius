@@ -88,10 +88,14 @@ export async function saveProjectEstimate(
 export async function getLatestProjectEstimate(
   projectId: string,
 ): Promise<PersistedProjectEstimate | null> {
+  const user = auth.getUser();
+  if (!user) return null;
+
   const { data: estimate, error: estimateError } = await supabase
     .from("estimates")
     .select("*")
     .eq("project_id", projectId)
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
