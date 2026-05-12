@@ -133,6 +133,17 @@ function EstimateContent({ id, project }: { id: string; project: Project }) {
   }
 
   async function handleReportClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
     event.preventDefault();
     try {
       if (project) await saveProjectEstimate(id, result);
