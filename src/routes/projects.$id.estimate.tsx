@@ -2,6 +2,7 @@ import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-ro
 import { useEffect, useMemo, useState, useSyncExternalStore, type MouseEvent } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/LoadingState";
+import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +28,7 @@ import {
   Percent,
   Gauge,
   ShieldAlert,
+  AlertCircle,
 } from "lucide-react";
 import { projectStore, type Project, type UKRegion } from "@/core/projects";
 import { type ConditionLevel } from "@/core/ai";
@@ -72,6 +74,19 @@ function EstimatePage() {
     return (
       <AppLayout title="Cost estimate" subtitle="Loading project details…">
         <LoadingState label="Loading project…" />
+      </AppLayout>
+    );
+  }
+
+  if (snapshot.error) {
+    return (
+      <AppLayout title="Cost estimate" subtitle="Failed to load project">
+        <EmptyState
+          icon={AlertCircle}
+          title="Failed to load project"
+          description={snapshot.error}
+          action={<Button onClick={() => projectStore.refresh()}>Try again</Button>}
+        />
       </AppLayout>
     );
   }

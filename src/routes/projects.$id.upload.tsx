@@ -43,6 +43,19 @@ function UploadPage() {
     );
   }
 
+  if (snapshot.error) {
+    return (
+      <AppLayout title="Upload photos" subtitle="Failed to load project">
+        <EmptyState
+          icon={AlertCircle}
+          title="Failed to load project"
+          description={snapshot.error}
+          action={<Button onClick={() => projectStore.refresh()}>Try again</Button>}
+        />
+      </AppLayout>
+    );
+  }
+
   if (!project) return <Navigate to="/dashboard" />;
 
   const handleFiles = async (fileList: FileList | null) => {

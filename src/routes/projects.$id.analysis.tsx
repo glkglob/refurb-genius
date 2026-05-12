@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/LoadingState";
+import { EmptyState } from "@/components/EmptyState";
 import { AnalysisCard } from "@/components/AnalysisCard";
 import { RedesignCard } from "@/components/RedesignCard";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { Sparkles, ArrowRight, AlertCircle } from "lucide-react";
 import { analysisStore, type RoomAnalysis } from "@/core/ai";
 import { projectStore } from "@/core/projects";
 import { DISCLAIMER } from "@/core/reports";
@@ -53,6 +54,19 @@ function AnalysisPage() {
     return (
       <AppLayout title="AI analysis" subtitle="Loading project details…">
         <LoadingState label="Loading project…" />
+      </AppLayout>
+    );
+  }
+
+  if (snapshot.error) {
+    return (
+      <AppLayout title="AI analysis" subtitle="Failed to load project">
+        <EmptyState
+          icon={AlertCircle}
+          title="Failed to load project"
+          description={snapshot.error}
+          action={<Button onClick={() => projectStore.refresh()}>Try again</Button>}
+        />
       </AppLayout>
     );
   }
