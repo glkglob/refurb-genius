@@ -28,16 +28,20 @@ export type {
 export {
   calculateEstimate,
   formatGBP,
+} from "@/lib/estimate";
+export {
   FINISH_LEVELS,
   ESTIMATE_CATEGORIES,
   REGION_MULTIPLIERS,
   CONDITION_MULTIPLIERS,
   FINISH_MULTIPLIERS,
   CATEGORY_BASE,
-} from "@/lib/estimate";
+} from "./pricingData";
 export type {
   FinishLevel,
   EstimateCategory,
+} from "./pricingData";
+export type {
   EstimateInputs,
   EstimateResult,
   LineItem,
