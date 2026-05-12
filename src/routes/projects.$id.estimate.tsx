@@ -161,12 +161,16 @@ function EstimateContent({ id, project }: { id: string; project: Project }) {
 
     event.preventDefault();
     try {
-      if (project) await saveProjectEstimate(id, result);
+      if (project) {
+        await saveProjectEstimate(id, result);
+      }
+
+      projectStore.setStage(id, "estimate", true);
+      navigate({ to: "/projects/$id/report", params: { id } });
     } catch (err) {
       console.error("[estimates] save failed", err);
+      return;
     }
-    projectStore.setStage(id, "estimate", true);
-    navigate({ to: "/projects/$id/report", params: { id } });
   }
 
   return (
