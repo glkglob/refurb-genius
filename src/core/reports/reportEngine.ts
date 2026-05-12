@@ -180,7 +180,7 @@ export function buildReport(inputs: ReportEngineInputs): Report {
     estimated_gdv: project.estimated_gdv,
     rental_income: inputs.roi?.rental_income ?? 0,
     holding_costs: inputs.roi?.holding_costs ?? 0,
-    region: project.region,
+    region,
     property_condition: condition,
   });
 
