@@ -73,6 +73,12 @@ let loaded = false;
 let loading: Promise<void> | null = null;
 let waitingForAuth = false;
 let error: string | null = null;
+let snapshot: ProjectStoreSnapshot = {
+  projects: cache,
+  loading: false,
+  loaded,
+  error,
+};
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
@@ -146,6 +152,24 @@ function ensureLoaded() {
   });
 }
 
+function getProjectStoreSnapshot(): ProjectStoreSnapshot {
+  const isLoading = Boolean(loading) || waitingForAuth;
+  if (
+    snapshot.projects !== cache ||
+    snapshot.loading !== isLoading ||
+    snapshot.loaded !== loaded ||
+    snapshot.error !== error
+  ) {
+    snapshot = {
+      projects: cache,
+      loading: isLoading,
+      loaded,
+      error,
+    };
+  }
+  return snapshot;
+}
+
 // Reload when auth changes
 if (typeof window !== "undefined") {
   auth.onChange(() => {
@@ -174,12 +198,7 @@ export const projectStore = {
   },
   getSnapshot(): ProjectStoreSnapshot {
     ensureLoaded();
-    return {
-      projects: cache,
-      loading: Boolean(loading) || waitingForAuth,
-      loaded,
-      error,
-    };
+    return getProjectStoreSnapshot();
   },
   async refresh(): Promise<void> {
     await fetchAll();
