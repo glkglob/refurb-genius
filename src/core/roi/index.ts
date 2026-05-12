@@ -14,8 +14,11 @@ export type {
   RoiEngineResult,
   RoiRiskLevel,
 } from "./roiEngine";
+export type {
+  RoiEngineResult as InvestorMetrics,
+  RoiRiskLevel as RiskLevel,
+} from "./roiEngine";
 
 // Legacy project+estimate metrics — kept for pages already wired to the
 // older API. New code should call `runRoiEngine` instead.
 export { calculateInvestorMetrics } from "@/lib/metrics";
-export type { InvestorMetrics, RiskLevel } from "@/lib/metrics";
