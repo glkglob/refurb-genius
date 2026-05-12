@@ -14,10 +14,7 @@ export type {
   RoiEngineResult,
   RoiRiskLevel,
 } from "./roiEngine";
-export type {
-  RoiEngineResult as InvestorMetrics,
-  RoiRiskLevel as RiskLevel,
-} from "./roiEngine";
+export type { InvestorMetrics, RiskLevel } from "@/lib/metrics";
 
 // Canonical runtime ROI comes from `runRoiEngine` above. The export below is
 // a legacy compatibility helper and should not be used by new code.
