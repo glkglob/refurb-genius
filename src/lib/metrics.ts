@@ -17,6 +17,10 @@ export type InvestorMetrics = {
   risk_level: RiskLevel;
 };
 
+/**
+ * @deprecated Use `runRoiEngine` from `@/core/roi` for canonical ROI calculations.
+ * This helper is kept only for legacy project+estimate compatibility.
+ */
 export function calculateInvestorMetrics(
   project: Project,
   estimate: EstimateResult,
