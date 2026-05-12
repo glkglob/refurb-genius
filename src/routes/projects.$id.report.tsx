@@ -1,9 +1,10 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RequireAuth } from "@/components/RequireAuth";
+import { LoadingState } from "@/components/LoadingState";
 import {
   ArrowLeft,
   Building2,
@@ -32,7 +33,12 @@ export const Route = createFileRoute("/projects/$id/report")({
 
 function ReportPage() {
   const { id } = Route.useParams();
-  const project = projectStore.get(id);
+  const snapshot = useSyncExternalStore(
+    projectStore.subscribe,
+    projectStore.getSnapshot,
+    projectStore.getSnapshot,
+  );
+  const project = snapshot.projects.find((p) => p.id === id);
   const [analysis, setAnalysis] = useState<RoomAnalysis[]>(() => analysisStore.get(id) ?? []);
   const [savedEstimate, setSavedEstimate] = useState<PersistedProjectEstimate | null>(null);
 
@@ -107,6 +113,16 @@ function ReportPage() {
 
   const concepts = report?.sections.redesign_concepts.body.concepts ?? [];
   const disclaimerText = report?.sections.disclaimer.body.text ?? "";
+
+  if (snapshot.loading || !snapshot.loaded) {
+    return (
+      <RequireAuth>
+        <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+          <LoadingState label="Loading project…" />
+        </div>
+      </RequireAuth>
+    );
+  }
 
   if (!project) {
     throw notFound();
