@@ -61,7 +61,24 @@ export async function saveProjectEstimate(
     .select();
 
   if (itemsError) {
-    await supabase.from("estimates").delete().eq("id", estimate.id);
+    const { error: rollbackError } = await supabase
+      .from("estimates")
+      .delete()
+      .eq("id", estimate.id);
+
+    if (rollbackError) {
+      console.error("Failed to rollback estimate after estimate_items insert failure.", {
+        estimateId: estimate.id,
+        projectId,
+        itemsInsertError: itemsError.message,
+        rollbackError: rollbackError.message,
+      });
+
+      throw new Error(
+        `Failed to save estimate items: ${itemsError.message}. Rollback delete also failed for estimate ${estimate.id}: ${rollbackError.message}`,
+      );
+    }
+
     throw new Error(itemsError.message);
   }
 
