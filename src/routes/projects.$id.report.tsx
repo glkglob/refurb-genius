@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,15 +42,56 @@ function ReportPage() {
   );
   const project = snapshot.projects.find((p) => p.id === id);
   const [analysis, setAnalysis] = useState<RoomAnalysis[]>(() => analysisStore.get(id) ?? []);
+  const analysisProjectIdRef = useRef(id);
   const [savedEstimate, setSavedEstimate] = useState<PersistedProjectEstimate | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(true);
+  const [estimateLoadError, setEstimateLoadError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!project) return;
-    if (analysis.length === 0) {
-      analysisStore.run(id).then(setAnalysis);
+    let cancelled = false;
+
+    if (!project) {
+      return () => {
+        cancelled = true;
+      };
     }
+
+    const cachedAnalysis = analysisStore.get(id) ?? [];
+
+    const loadAnalysis = () => {
+      analysisStore.run(id).then((nextAnalysis) => {
+        if (cancelled) return;
+        setAnalysis(nextAnalysis);
+      });
+    };
+
+    if (analysisProjectIdRef.current !== id) {
+      analysisProjectIdRef.current = id;
+      setAnalysis(cachedAnalysis);
+
+      if (cachedAnalysis.length === 0) {
+        loadAnalysis();
+      }
+
+      projectStore.setStage(id, "report", true);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (analysis.length === 0) {
+      if (cachedAnalysis.length > 0) {
+        setAnalysis(cachedAnalysis);
+      } else {
+        loadAnalysis();
+      }
+    }
+
     projectStore.setStage(id, "report", true);
+
+    return () => {
+      cancelled = true;
+    };
   }, [id, project, analysis.length]);
 
   const photos = photoStore.list(id);
@@ -59,13 +100,18 @@ function ReportPage() {
     let cancelled = false;
     if (!project) return;
     setEstimateLoading(true);
+    setEstimateLoadError(null);
     getLatestProjectEstimate(id)
       .then((estimate) => {
         if (!cancelled) setSavedEstimate(estimate);
       })
       .catch((error) => {
         console.error("[estimates] load failed", error);
-        if (!cancelled) setSavedEstimate(null);
+        if (!cancelled) {
+          setEstimateLoadError(
+            error instanceof Error ? error : new Error("Failed to load saved estimate."),
+          );
+        }
       })
       .finally(() => {
         if (!cancelled) setEstimateLoading(false);
@@ -77,18 +123,19 @@ function ReportPage() {
 
   const estimateInput = useMemo(() => {
     if (estimateLoading) return undefined;
+    if (estimateLoadError) return undefined;
     if (savedEstimate) return persistedEstimateInput(savedEstimate);
     // Explicit fallback: no persisted estimate exists, so buildReport uses
     // its deterministic report-engine defaults.
     return undefined;
-  }, [estimateLoading, savedEstimate]);
+  }, [estimateLoading, estimateLoadError, savedEstimate]);
 
   const report = useMemo(
     () =>
-      project && !estimateLoading
+      project && !estimateLoading && !estimateLoadError
         ? buildReport({ project, photos, analysis, estimate: estimateInput })
         : null,
-    [project, estimateLoading, photos, analysis, estimateInput],
+    [project, estimateLoading, estimateLoadError, photos, analysis, estimateInput],
   );
 
   // Shim legacy local shapes from the structured report so the JSX below
@@ -162,6 +209,20 @@ function ReportPage() {
       <RequireAuth>
         <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
           <LoadingState label="Loading saved estimate…" />
+        </div>
+      </RequireAuth>
+    );
+  }
+
+  if (estimateLoadError) {
+    return (
+      <RequireAuth>
+        <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+          <EmptyState
+            icon={AlertCircle}
+            title="Could not load saved estimate"
+            description="Could not load the saved estimate. Please try again."
+          />
         </div>
       </RequireAuth>
     );
@@ -258,7 +319,7 @@ function ReportPage() {
                   {photos.slice(0, 9).map((p) => (
                     <div
                       key={p.id}
-                      className="aspect-[4/3] overflow-hidden rounded-md border border-border bg-muted"
+                      className="aspect-4/3 overflow-hidden rounded-md border border-border bg-muted"
                     >
                       <img src={p.url} alt={p.name} className="h-full w-full object-cover" />
                     </div>
