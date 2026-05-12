@@ -31,20 +31,35 @@ function AnalysisPage() {
   const [results, setResults] = useState<RoomAnalysis[]>([]);
 
   useEffect(() => {
-    if (!project) return;
     let cancelled = false;
+
+    if (!project) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setResults([]);
+    setLoading(true);
+
     const cached = analysisStore.get(id);
-    if (cached && cached.length) {
+
+    if (cached?.length) {
       setResults(cached);
       setLoading(false);
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
+
     analysisStore.run(id).then((r) => {
       if (cancelled) return;
+
       setResults(r);
       setLoading(false);
       projectStore.setStage(id, "analysis", true);
     });
+
     return () => {
       cancelled = true;
     };
