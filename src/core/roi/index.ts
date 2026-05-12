@@ -19,6 +19,6 @@ export type {
   RoiRiskLevel as RiskLevel,
 } from "./roiEngine";
 
-// Legacy project+estimate metrics — kept for pages already wired to the
-// older API. New code should call `runRoiEngine` instead.
+// Canonical runtime ROI comes from `runRoiEngine` above. The export below is
+// a legacy compatibility helper and should not be used by new code.
 export { calculateInvestorMetrics } from "@/lib/metrics";
