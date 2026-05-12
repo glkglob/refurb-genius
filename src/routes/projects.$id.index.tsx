@@ -1,10 +1,10 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
+import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   projectStore,
-  getProjectById,
   calculateProjectProgress,
   estimatedRefurbCost,
   estimatedProfit,
@@ -33,11 +33,24 @@ export const Route = createFileRoute("/projects/$id/")({
 
 function ProjectDetail() {
   const { id } = Route.useParams();
-  useSyncExternalStore(projectStore.subscribe, () => projectStore.list().length, () => 0);
-  const project = getProjectById(id);
-  const progress = calculateProjectProgress(id);
+  const snapshot = useSyncExternalStore(
+    projectStore.subscribe,
+    projectStore.getSnapshot,
+    projectStore.getSnapshot,
+  );
+  const project = snapshot.projects.find((p) => p.id === id);
+
+  if (snapshot.loading || !snapshot.loaded) {
+    return (
+      <AppLayout title="Project" subtitle="Loading project details…">
+        <LoadingState label="Loading project…" />
+      </AppLayout>
+    );
+  }
 
   if (!project) return <Navigate to="/dashboard" />;
+
+  const progress = calculateProjectProgress(id);
 
   const workflow: { stage: ProjectStage; to: typeof workflowRoutes[number]; label: string; desc: string; icon: typeof Camera }[] = [
     { stage: "photos", to: "/projects/$id/upload", label: "Upload Photos", desc: "Add property photos for AI analysis.", icon: Camera },

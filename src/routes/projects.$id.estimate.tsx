@@ -1,6 +1,7 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState, type MouseEvent } from "react";
+import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState, useSyncExternalStore, type MouseEvent } from "react";
 import { AppLayout } from "@/components/AppLayout";
+import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +28,7 @@ import {
   Gauge,
   ShieldAlert,
 } from "lucide-react";
-import { projectStore, type UKRegion } from "@/core/projects";
+import { projectStore, type Project, type UKRegion } from "@/core/projects";
 import { type ConditionLevel } from "@/core/ai";
 import {
   runPricingEngine,
@@ -60,13 +61,37 @@ const DEFAULT_CATEGORIES: EstimateCategory[] = [
 
 function EstimatePage() {
   const { id } = Route.useParams();
-  const navigate = useNavigate();
-  const project = projectStore.get(id);
+  const snapshot = useSyncExternalStore(
+    projectStore.subscribe,
+    projectStore.getSnapshot,
+    projectStore.getSnapshot,
+  );
+  const project = snapshot.projects.find((p) => p.id === id);
 
-  const [region, setRegion] = useState<UKRegion>(project?.region ?? "London");
+  if (snapshot.loading || !snapshot.loaded) {
+    return (
+      <AppLayout title="Cost estimate" subtitle="Loading project details…">
+        <LoadingState label="Loading project…" />
+      </AppLayout>
+    );
+  }
+
+  if (!project) return <Navigate to="/dashboard" />;
+
+  return <EstimateContent id={id} project={project} />;
+}
+
+function EstimateContent({ id, project }: { id: string; project: Project }) {
+  const navigate = useNavigate();
+
+  const [region, setRegion] = useState<UKRegion>(project.region);
   const [condition, setCondition] = useState<ConditionLevel>("Dated");
   const [finish, setFinish] = useState<FinishLevel>("Standard");
   const [categories, setCategories] = useState<EstimateCategory[]>(DEFAULT_CATEGORIES);
+
+  useEffect(() => {
+    setRegion(project.region);
+  }, [project.region]);
 
   const result = useMemo(
     () =>
@@ -75,13 +100,12 @@ function EstimatePage() {
         property_condition: condition,
         finish_quality: finish,
         selected_categories: categories,
-        property_size_sqm: project?.size_sqm ?? 0,
+        property_size_sqm: project.size_sqm,
       }),
-    [region, condition, finish, categories, project?.size_sqm],
+    [region, condition, finish, categories, project.size_sqm],
   );
 
   const metrics = useMemo(() => {
-    if (!project) return null;
     const roi = runRoiEngine({
       purchase_price: project.purchase_price,
       refurb_budget: result.mid_total,
@@ -233,7 +257,7 @@ function EstimatePage() {
       </div>
 
       {/* Investor metrics */}
-      {metrics && project && (
+      {metrics && (
         <div className="mt-8">
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>

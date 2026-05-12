@@ -61,9 +61,18 @@ type ProjectRow = Project & {
   report_done: boolean;
 };
 
+export type ProjectStoreSnapshot = {
+  projects: Project[];
+  loading: boolean;
+  loaded: boolean;
+  error: string | null;
+};
+
 let cache: ProjectRow[] = [];
 let loaded = false;
 let loading: Promise<void> | null = null;
+let waitingForAuth = false;
+let error: string | null = null;
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
@@ -96,27 +105,44 @@ async function fetchAll(): Promise<void> {
   if (!auth.getUser()) {
     cache = [];
     loaded = true;
+    waitingForAuth = false;
+    error = null;
     notify();
     return;
   }
-  const { data, error } = await supabase
+  const { data, error: fetchError } = await supabase
     .from("projects")
     .select("*")
     .order("created_at", { ascending: false });
-  if (error) {
-    console.error("[projects] fetch failed", error);
+  if (fetchError) {
+    console.error("[projects] fetch failed", fetchError);
     cache = [];
+    loaded = true;
+    waitingForAuth = false;
+    projectStoreError(fetchError.message);
   } else {
     cache = (data ?? []).map(rowToProject);
+    loaded = true;
+    waitingForAuth = false;
+    projectStoreError(null);
   }
-  loaded = true;
   notify();
+}
+
+function projectStoreError(message: string | null) {
+  error = message;
 }
 
 function ensureLoaded() {
   if (loaded || loading) return;
+  if (!auth.getUser()) {
+    waitingForAuth = true;
+    return;
+  }
+  waitingForAuth = false;
   loading = fetchAll().finally(() => {
     loading = null;
+    notify();
   });
 }
 
@@ -124,9 +150,16 @@ function ensureLoaded() {
 if (typeof window !== "undefined") {
   auth.onChange(() => {
     loaded = false;
+    waitingForAuth = false;
+    error = null;
     cache = [];
     notify();
-    ensureLoaded();
+    if (auth.getUser()) {
+      ensureLoaded();
+    } else {
+      loaded = true;
+      notify();
+    }
   });
 }
 
@@ -138,6 +171,15 @@ export const projectStore = {
   get(id: string): Project | undefined {
     ensureLoaded();
     return cache.find((p) => p.id === id);
+  },
+  getSnapshot(): ProjectStoreSnapshot {
+    ensureLoaded();
+    return {
+      projects: cache,
+      loading: Boolean(loading) || waitingForAuth,
+      loaded,
+      error,
+    };
   },
   async refresh(): Promise<void> {
     await fetchAll();
