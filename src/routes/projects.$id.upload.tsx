@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
+import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
@@ -22,12 +23,25 @@ function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const project = projectStore.get(id);
+  const snapshot = useSyncExternalStore(
+    projectStore.subscribe,
+    projectStore.getSnapshot,
+    projectStore.getSnapshot,
+  );
+  const project = snapshot.projects.find((p) => p.id === id);
   const photos = useSyncExternalStore(
     photoStore.subscribe,
     () => photoStore.list(id),
     () => photoStore.list(id),
   );
+
+  if (snapshot.loading || !snapshot.loaded) {
+    return (
+      <AppLayout title="Upload photos" subtitle="Loading project details…">
+        <LoadingState label="Loading project…" />
+      </AppLayout>
+    );
+  }
 
   if (!project) return <Navigate to="/dashboard" />;
 

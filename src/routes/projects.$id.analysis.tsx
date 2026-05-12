@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/LoadingState";
 import { AnalysisCard } from "@/components/AnalysisCard";
 import { RedesignCard } from "@/components/RedesignCard";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { analysisStore, type RoomAnalysis } from "@/core/ai";
 import { projectStore } from "@/core/projects";
@@ -20,10 +20,17 @@ export const Route = createFileRoute("/projects/$id/analysis")({
 
 function AnalysisPage() {
   const { id } = Route.useParams();
+  const snapshot = useSyncExternalStore(
+    projectStore.subscribe,
+    projectStore.getSnapshot,
+    projectStore.getSnapshot,
+  );
+  const project = snapshot.projects.find((p) => p.id === id);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<RoomAnalysis[]>([]);
 
   useEffect(() => {
+    if (!project) return;
     let cancelled = false;
     const cached = analysisStore.get(id);
     if (cached && cached.length) {
@@ -40,7 +47,17 @@ function AnalysisPage() {
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, project]);
+
+  if (snapshot.loading || !snapshot.loaded) {
+    return (
+      <AppLayout title="AI analysis" subtitle="Loading project details…">
+        <LoadingState label="Loading project…" />
+      </AppLayout>
+    );
+  }
+
+  if (!project) return <Navigate to="/dashboard" />;
 
   if (loading) {
     return (
