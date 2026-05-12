@@ -19,11 +19,7 @@ import {
   type FinishLevel,
 } from "@/core/pricing";
 import { runRoiEngine, type RoiEngineResult } from "@/core/roi";
-import {
-  reportHeadline,
-  executiveSummary,
-  recommendedWorks,
-} from "@/core/ai/aiSummaries";
+import { reportHeadline, executiveSummary, recommendedWorks } from "@/core/ai/aiSummaries";
 import { listRedesignConcepts } from "@/core/ai/redesignConcepts";
 import { DISCLAIMER } from "@/lib/mockData";
 
@@ -43,6 +39,7 @@ export type ReportEngineInputs = {
   concepts?: RedesignConcept[];
   /** Estimate inputs (defaults: project condition / Standard / typical scope). */
   estimate?: {
+    region?: Project["region"];
     condition?: ConditionLevel;
     finish?: FinishLevel;
     categories?: EstimateCategory[];
@@ -86,49 +83,70 @@ export type Report = {
     selected_categories: EstimateCategory[];
   };
   sections: {
-    project_summary: ReportSection<"project_summary", {
-      headline: string;
-      executive: string;
-    }>;
-    property_details: ReportSection<"property_details", {
-      address: string;
-      postcode: string;
-      region: string;
-      property_type: string;
-      bedrooms: number;
-      bathrooms: number;
-      size_sqm: number;
-      purchase_price: number;
-      estimated_gdv: number;
-      notes?: string;
-    }>;
-    uploaded_photos: ReportSection<"uploaded_photos", {
-      count: number;
-      items: { id: string; url: string; name: string }[];
-    }>;
-    ai_analysis: ReportSection<"ai_analysis", {
-      rooms: RoomAnalysis[];
-      recommended_works: string[];
-    }>;
-    redesign_concepts: ReportSection<"redesign_concepts", {
-      concepts: RedesignConcept[];
-    }>;
-    cost_breakdown: ReportSection<"cost_breakdown", {
-      items: PricingEstimateItem[];
-      labour_total: number;
-      materials_total: number;
-      subtotal: number;
-      contingency: number;
-      vat: number;
-      low_total: number;
-      mid_total: number;
-      high_total: number;
-    }>;
+    project_summary: ReportSection<
+      "project_summary",
+      {
+        headline: string;
+        executive: string;
+      }
+    >;
+    property_details: ReportSection<
+      "property_details",
+      {
+        address: string;
+        postcode: string;
+        region: string;
+        property_type: string;
+        bedrooms: number;
+        bathrooms: number;
+        size_sqm: number;
+        purchase_price: number;
+        estimated_gdv: number;
+        notes?: string;
+      }
+    >;
+    uploaded_photos: ReportSection<
+      "uploaded_photos",
+      {
+        count: number;
+        items: { id: string; url: string; name: string }[];
+      }
+    >;
+    ai_analysis: ReportSection<
+      "ai_analysis",
+      {
+        rooms: RoomAnalysis[];
+        recommended_works: string[];
+      }
+    >;
+    redesign_concepts: ReportSection<
+      "redesign_concepts",
+      {
+        concepts: RedesignConcept[];
+      }
+    >;
+    cost_breakdown: ReportSection<
+      "cost_breakdown",
+      {
+        items: PricingEstimateItem[];
+        labour_total: number;
+        materials_total: number;
+        subtotal: number;
+        contingency: number;
+        vat: number;
+        low_total: number;
+        mid_total: number;
+        high_total: number;
+      }
+    >;
     investment_metrics: ReportSection<"investment_metrics", RoiEngineResult>;
-    timeline: ReportSection<"timeline", {
-      weeks: number;
-      months: number;
-    }>;
+    timeline: ReportSection<
+      "timeline",
+      {
+        weeks: number;
+        months: number;
+      }
+    >;
     assumptions: ReportSection<"assumptions", { items: string[] }>;
     disclaimer: ReportSection<"disclaimer", { text: string }>;
   };
@@ -145,11 +163,11 @@ export function buildReport(inputs: ReportEngineInputs): Report {
 
   const condition: ConditionLevel = inputs.estimate?.condition ?? "Dated";
   const finish: FinishLevel = inputs.estimate?.finish ?? "Standard";
-  const categories: EstimateCategory[] =
-    inputs.estimate?.categories ?? DEFAULT_CATEGORIES;
+  const categories: EstimateCategory[] = inputs.estimate?.categories ?? DEFAULT_CATEGORIES;
+  const region = inputs.estimate?.region ?? project.region;
 
   const pricing = runPricingEngine({
-    region: project.region,
+    region,
     property_condition: condition,
     finish_quality: finish,
     selected_categories: categories,
@@ -162,7 +180,7 @@ export function buildReport(inputs: ReportEngineInputs): Report {
     estimated_gdv: project.estimated_gdv,
     rental_income: inputs.roi?.rental_income ?? 0,
     holding_costs: inputs.roi?.holding_costs ?? 0,
-    region: project.region,
+    region,
     property_condition: condition,
   });
 
@@ -183,7 +201,7 @@ export function buildReport(inputs: ReportEngineInputs): Report {
     reference: project.id,
     generated_at: new Date().toISOString(),
     inputs_summary: {
-      region: project.region,
+      region,
       property_condition: condition,
       finish_quality: finish,
       selected_categories: categories,
@@ -272,7 +290,7 @@ export function buildReport(inputs: ReportEngineInputs): Report {
         subtitle: "Key inputs used in this report.",
         body: {
           items: [
-            `Region: ${project.region} (regional cost multiplier applied).`,
+            `Region: ${region} (regional cost multiplier applied).`,
             `Condition baseline: ${condition}. Finish quality: ${finish}.`,
             `Categories included: ${categories.join(", ")}.`,
             `Contingency 10%, VAT 20% applied to subtotal.`,

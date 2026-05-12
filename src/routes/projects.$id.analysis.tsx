@@ -1,13 +1,14 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/LoadingState";
+import { EmptyState } from "@/components/EmptyState";
 import { AnalysisCard } from "@/components/AnalysisCard";
 import { RedesignCard } from "@/components/RedesignCard";
-import { useEffect, useState } from "react";
-import { Sparkles, ArrowRight } from "lucide-react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { Sparkles, ArrowRight, AlertCircle } from "lucide-react";
 import { analysisStore, type RoomAnalysis } from "@/core/ai";
 import { projectStore } from "@/core/projects";
 import { DISCLAIMER } from "@/core/reports";
@@ -20,27 +21,72 @@ export const Route = createFileRoute("/projects/$id/analysis")({
 
 function AnalysisPage() {
   const { id } = Route.useParams();
+  const snapshot = useSyncExternalStore(
+    projectStore.subscribe,
+    projectStore.getSnapshot,
+    projectStore.getSnapshot,
+  );
+  const project = snapshot.projects.find((p) => p.id === id);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<RoomAnalysis[]>([]);
 
   useEffect(() => {
     let cancelled = false;
+
+    if (!project) {
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setResults([]);
+    setLoading(true);
+
     const cached = analysisStore.get(id);
-    if (cached && cached.length) {
+
+    if (cached?.length) {
       setResults(cached);
       setLoading(false);
-      return;
+      return () => {
+        cancelled = true;
+      };
     }
+
     analysisStore.run(id).then((r) => {
       if (cancelled) return;
+
       setResults(r);
       setLoading(false);
       projectStore.setStage(id, "analysis", true);
     });
+
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, project]);
+
+  if (snapshot.loading || !snapshot.loaded) {
+    return (
+      <AppLayout title="AI analysis" subtitle="Loading project details…">
+        <LoadingState label="Loading project…" />
+      </AppLayout>
+    );
+  }
+
+  if (snapshot.error) {
+    return (
+      <AppLayout title="AI analysis" subtitle="Failed to load project">
+        <EmptyState
+          icon={AlertCircle}
+          title="Failed to load project"
+          description="We couldn't load this project. Please try again or contact support if the problem persists."
+          action={<Button onClick={() => projectStore.refresh()}>Try again</Button>}
+        />
+      </AppLayout>
+    );
+  }
+
+  if (!project) return <Navigate to="/dashboard" />;
 
   if (loading) {
     return (
@@ -75,8 +121,8 @@ function AnalysisPage() {
               AI redesign concepts
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Six visual directions generated from your hero photo. Pick the one that
-              matches your buyer or tenant.
+              Six visual directions generated from your hero photo. Pick the one that matches your
+              buyer or tenant.
             </p>
           </div>
           <Badge variant="outline" className="hidden sm:inline-flex">
@@ -86,11 +132,7 @@ function AnalysisPage() {
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {REDESIGN_CONCEPTS.map((c) => (
-            <RedesignCard
-              key={c.style}
-              concept={c}
-              beforePhotoUrl={results[0]?.photo_url}
-            />
+            <RedesignCard key={c.style} concept={c} beforePhotoUrl={results[0]?.photo_url} />
           ))}
         </div>
       </div>

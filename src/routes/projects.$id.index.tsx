@@ -1,10 +1,10 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
+import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   projectStore,
-  getProjectById,
   calculateProjectProgress,
   estimatedRefurbCost,
   estimatedProfit,
@@ -33,17 +33,80 @@ export const Route = createFileRoute("/projects/$id/")({
 
 function ProjectDetail() {
   const { id } = Route.useParams();
-  useSyncExternalStore(projectStore.subscribe, () => projectStore.list().length, () => 0);
-  const project = getProjectById(id);
-  const progress = calculateProjectProgress(id);
+  const snapshot = useSyncExternalStore(
+    projectStore.subscribe,
+    projectStore.getSnapshot,
+    projectStore.getSnapshot,
+  );
+  const project = snapshot.projects.find((p) => p.id === id);
+
+  if (snapshot.loading || !snapshot.loaded) {
+    return (
+      <AppLayout title="Project" subtitle="Loading project details…">
+        <LoadingState label="Loading project…" />
+      </AppLayout>
+    );
+  }
+
+  if (snapshot.error) {
+    return (
+      <AppLayout title="Project" subtitle="We couldn't load this project.">
+        <Card>
+          <CardContent className="flex flex-col gap-4 p-6">
+            <div>
+              <p className="text-sm font-medium text-foreground">Failed to load project details.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {snapshot.error instanceof Error ? snapshot.error.message : "Please try again."}
+              </p>
+            </div>
+            <div>
+              <Button onClick={() => projectStore.refresh()}>Retry</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </AppLayout>
+    );
+  }
 
   if (!project) return <Navigate to="/dashboard" />;
 
-  const workflow: { stage: ProjectStage; to: typeof workflowRoutes[number]; label: string; desc: string; icon: typeof Camera }[] = [
-    { stage: "photos", to: "/projects/$id/upload", label: "Upload Photos", desc: "Add property photos for AI analysis.", icon: Camera },
-    { stage: "analysis", to: "/projects/$id/analysis", label: "AI Analysis", desc: "Room-by-room condition & redesigns.", icon: Sparkles },
-    { stage: "estimate", to: "/projects/$id/estimate", label: "Estimate", desc: "Detailed regional refurb estimate.", icon: Calculator },
-    { stage: "report", to: "/projects/$id/report", label: "Report", desc: "Investor-ready report and metrics.", icon: FileText },
+  const progress = calculateProjectProgress(id);
+
+  const workflow: {
+    stage: ProjectStage;
+    to: (typeof workflowRoutes)[number];
+    label: string;
+    desc: string;
+    icon: typeof Camera;
+  }[] = [
+    {
+      stage: "photos",
+      to: "/projects/$id/upload",
+      label: "Upload Photos",
+      desc: "Add property photos for AI analysis.",
+      icon: Camera,
+    },
+    {
+      stage: "analysis",
+      to: "/projects/$id/analysis",
+      label: "AI Analysis",
+      desc: "Room-by-room condition & redesigns.",
+      icon: Sparkles,
+    },
+    {
+      stage: "estimate",
+      to: "/projects/$id/estimate",
+      label: "Estimate",
+      desc: "Detailed regional refurb estimate.",
+      icon: Calculator,
+    },
+    {
+      stage: "report",
+      to: "/projects/$id/report",
+      label: "Report",
+      desc: "Investor-ready report and metrics.",
+      icon: FileText,
+    },
   ];
 
   const status: { stage: ProjectStage; label: string }[] = [
@@ -78,7 +141,10 @@ function ProjectDetail() {
           <Detail label="Bathrooms" value={String(project.bathrooms)} icon={Bath} />
           <Detail label="Size" value={`${project.size_sqm} m²`} icon={Ruler} />
           <Detail label="Status" value={project.status} />
-          <Detail label="Created" value={new Date(project.created_at).toLocaleDateString("en-GB")} />
+          <Detail
+            label="Created"
+            value={new Date(project.created_at).toLocaleDateString("en-GB")}
+          />
         </CardContent>
       </Card>
 
@@ -93,7 +159,9 @@ function ProjectDetail() {
       {project.notes && (
         <Card className="mb-8">
           <CardContent className="p-6">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Notes</h3>
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+              Notes
+            </h3>
             <p className="mt-2 whitespace-pre-line text-sm text-foreground">{project.notes}</p>
           </CardContent>
         </Card>
@@ -142,7 +210,9 @@ function ProjectDetail() {
               <div
                 key={s.stage}
                 className={`flex items-center gap-2.5 rounded-lg border p-3 text-sm ${
-                  done ? "border-accent/30 bg-accent/5 text-foreground" : "border-border bg-secondary/30 text-muted-foreground"
+                  done
+                    ? "border-accent/30 bg-accent/5 text-foreground"
+                    : "border-border bg-secondary/30 text-muted-foreground"
                 }`}
               >
                 {done ? (
@@ -167,7 +237,15 @@ const workflowRoutes = [
   "/projects/$id/report",
 ] as const;
 
-function Detail({ label, value, icon: Icon }: { label: string; value: string; icon?: typeof MapPin }) {
+function Detail({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  icon?: typeof MapPin;
+}) {
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
@@ -184,7 +262,9 @@ function Money({ label, value, accent }: { label: string; value: number; accent?
     <Card>
       <CardContent className="p-5">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-        <p className={`mt-2 text-2xl font-semibold tracking-tight ${accent ? "text-accent" : "text-foreground"}`}>
+        <p
+          className={`mt-2 text-2xl font-semibold tracking-tight ${accent ? "text-accent" : "text-foreground"}`}
+        >
           £{value.toLocaleString()}
         </p>
       </CardContent>

@@ -1,9 +1,11 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { RequireAuth } from "@/components/RequireAuth";
+import { LoadingState } from "@/components/LoadingState";
+import { EmptyState } from "@/components/EmptyState";
 import {
   ArrowLeft,
   Building2,
@@ -12,6 +14,7 @@ import {
   Sparkles,
   Calendar,
   ShieldCheck,
+  AlertCircle,
 } from "lucide-react";
 import { ReportSection as Section } from "@/components/ReportSection";
 import { EstimateTable } from "@/components/EstimateTable";
@@ -19,6 +22,11 @@ import { projectStore, photoStore } from "@/core/projects";
 import { analysisStore, type RoomAnalysis } from "@/core/ai";
 import { formatGBP } from "@/core/pricing";
 import { buildReport } from "@/core/reports";
+import {
+  getLatestProjectEstimate,
+  persistedEstimateInput,
+  type PersistedProjectEstimate,
+} from "@/lib/estimates";
 
 export const Route = createFileRoute("/projects/$id/report")({
   head: () => ({ meta: [{ title: "Investor report — Refurb Genius" }] }),
@@ -27,27 +35,107 @@ export const Route = createFileRoute("/projects/$id/report")({
 
 function ReportPage() {
   const { id } = Route.useParams();
-  const project = projectStore.get(id);
-  const [analysis, setAnalysis] = useState<RoomAnalysis[]>(
-    () => analysisStore.get(id) ?? [],
+  const snapshot = useSyncExternalStore(
+    projectStore.subscribe,
+    projectStore.getSnapshot,
+    projectStore.getSnapshot,
   );
+  const project = snapshot.projects.find((p) => p.id === id);
+  const [analysis, setAnalysis] = useState<RoomAnalysis[]>(() => analysisStore.get(id) ?? []);
+  const analysisProjectIdRef = useRef(id);
+  const [savedEstimate, setSavedEstimate] = useState<PersistedProjectEstimate | null>(null);
+  const [estimateLoading, setEstimateLoading] = useState(true);
+  const [estimateLoadError, setEstimateLoadError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!project) return;
-    if (analysis.length === 0) {
-      analysisStore.run(id).then(setAnalysis);
+    let cancelled = false;
+
+    if (!project) {
+      return () => {
+        cancelled = true;
+      };
     }
+
+    const cachedAnalysis = analysisStore.get(id) ?? [];
+
+    const loadAnalysis = () => {
+      analysisStore.run(id).then((nextAnalysis) => {
+        if (cancelled) return;
+        setAnalysis(nextAnalysis);
+      });
+    };
+
+    if (analysisProjectIdRef.current !== id) {
+      analysisProjectIdRef.current = id;
+      setAnalysis(cachedAnalysis);
+
+      if (cachedAnalysis.length === 0) {
+        loadAnalysis();
+      }
+
+      projectStore.setStage(id, "report", true);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    if (analysis.length === 0) {
+      if (cachedAnalysis.length > 0) {
+        setAnalysis(cachedAnalysis);
+      } else {
+        loadAnalysis();
+      }
+    }
+
     projectStore.setStage(id, "report", true);
+
+    return () => {
+      cancelled = true;
+    };
   }, [id, project, analysis.length]);
 
   const photos = photoStore.list(id);
 
+  useEffect(() => {
+    let cancelled = false;
+    if (!project) return;
+    setEstimateLoading(true);
+    setEstimateLoadError(null);
+    getLatestProjectEstimate(id)
+      .then((estimate) => {
+        if (!cancelled) setSavedEstimate(estimate);
+      })
+      .catch((error) => {
+        console.error("[estimates] load failed", error);
+        if (!cancelled) {
+          setEstimateLoadError(
+            error instanceof Error ? error : new Error("Failed to load saved estimate."),
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setEstimateLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, project]);
+
+  const estimateInput = useMemo(() => {
+    if (estimateLoading) return undefined;
+    if (estimateLoadError) return undefined;
+    if (savedEstimate) return persistedEstimateInput(savedEstimate);
+    // Explicit fallback: no persisted estimate exists, so buildReport uses
+    // its deterministic report-engine defaults.
+    return undefined;
+  }, [estimateLoading, estimateLoadError, savedEstimate]);
+
   const report = useMemo(
     () =>
-      project
-        ? buildReport({ project, photos, analysis })
+      project && !estimateLoading && !estimateLoadError
+        ? buildReport({ project, photos, analysis, estimate: estimateInput })
         : null,
-    [project, photos, analysis],
+    [project, estimateLoading, estimateLoadError, photos, analysis, estimateInput],
   );
 
   // Shim legacy local shapes from the structured report so the JSX below
@@ -60,10 +148,7 @@ function ReportPage() {
         vat: report.sections.cost_breakdown.body.vat,
         mid_total: report.sections.cost_breakdown.body.mid_total,
         timeline_weeks: report.sections.timeline.body.weeks,
-        labour_total: report.sections.cost_breakdown.body.items.reduce(
-          (s, i) => s + i.labour,
-          0,
-        ),
+        labour_total: report.sections.cost_breakdown.body.items.reduce((s, i) => s + i.labour, 0),
         materials_total: report.sections.cost_breakdown.body.items.reduce(
           (s, i) => s + i.materials,
           0,
@@ -90,8 +175,57 @@ function ReportPage() {
   const concepts = report?.sections.redesign_concepts.body.concepts ?? [];
   const disclaimerText = report?.sections.disclaimer.body.text ?? "";
 
+  if (snapshot.loading || !snapshot.loaded) {
+    return (
+      <RequireAuth>
+        <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+          <LoadingState label="Loading project…" />
+        </div>
+      </RequireAuth>
+    );
+  }
+
+  if (snapshot.error) {
+    return (
+      <RequireAuth>
+        <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+          <EmptyState
+            icon={AlertCircle}
+            title="Failed to load project"
+            description="We couldn't load this project. Please try again or contact support if the problem persists."
+            action={<Button onClick={() => projectStore.refresh()}>Try again</Button>}
+          />
+        </div>
+      </RequireAuth>
+    );
+  }
+
   if (!project) {
     throw notFound();
+  }
+
+  if (estimateLoading) {
+    return (
+      <RequireAuth>
+        <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+          <LoadingState label="Loading saved estimate…" />
+        </div>
+      </RequireAuth>
+    );
+  }
+
+  if (estimateLoadError) {
+    return (
+      <RequireAuth>
+        <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+          <EmptyState
+            icon={AlertCircle}
+            title="Could not load saved estimate"
+            description="Could not load the saved estimate. Please try again."
+          />
+        </div>
+      </RequireAuth>
+    );
   }
 
   const reportDate = new Date().toLocaleDateString("en-GB", {
@@ -185,13 +319,9 @@ function ReportPage() {
                   {photos.slice(0, 9).map((p) => (
                     <div
                       key={p.id}
-                      className="aspect-[4/3] overflow-hidden rounded-md border border-border bg-muted"
+                      className="aspect-4/3 overflow-hidden rounded-md border border-border bg-muted"
                     >
-                      <img
-                        src={p.url}
-                        alt={p.name}
-                        className="h-full w-full object-cover"
-                      />
+                      <img src={p.url} alt={p.name} className="h-full w-full object-cover" />
                     </div>
                   ))}
                 </div>
@@ -210,7 +340,7 @@ function ReportPage() {
                       key={r.id}
                       className="grid gap-4 rounded-md border border-border p-4 sm:grid-cols-[140px_1fr]"
                     >
-                      <div className="aspect-[4/3] overflow-hidden rounded-md bg-muted">
+                      <div className="aspect-4/3 overflow-hidden rounded-md bg-muted">
                         <img
                           src={r.photo_url}
                           alt={r.room_type}
@@ -219,13 +349,9 @@ function ReportPage() {
                       </div>
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-base font-semibold text-foreground">
-                            {r.room_type}
-                          </h3>
+                          <h3 className="text-base font-semibold text-foreground">{r.room_type}</h3>
                           <Badge variant="outline">{r.condition_level}</Badge>
-                          <Badge variant="secondary">
-                            {r.refurbishment_level} refurb
-                          </Badge>
+                          <Badge variant="secondary">{r.refurbishment_level} refurb</Badge>
                           <span className="text-xs text-muted-foreground">
                             Confidence {Math.round(r.confidence_score * 100)}%
                           </span>
@@ -267,24 +393,14 @@ function ReportPage() {
             >
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {concepts.map((c) => (
-                  <div
-                    key={c.style}
-                    className="overflow-hidden rounded-md border border-border"
-                  >
-                    <div
-                      className="aspect-[4/3]"
-                      style={{ background: c.afterGradient }}
-                    />
+                  <div key={c.style} className="overflow-hidden rounded-md border border-border">
+                    <div className="aspect-4/3" style={{ background: c.afterGradient }} />
                     <div className="p-3">
                       <div className="flex items-center gap-2">
                         <Sparkles className="h-3.5 w-3.5 text-primary" />
-                        <p className="text-sm font-semibold text-foreground">
-                          {c.style}
-                        </p>
+                        <p className="text-sm font-semibold text-foreground">{c.style}</p>
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {c.tagline}
-                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">{c.tagline}</p>
                       <div className="mt-2 flex gap-1">
                         {c.palette.map((p) => (
                           <span
@@ -303,10 +419,7 @@ function ReportPage() {
 
             {/* Cost breakdown */}
             {estimate && (
-              <Section
-                title="Cost breakdown"
-                subtitle="Itemised refurbishment estimate."
-              >
+              <Section title="Cost breakdown" subtitle="Itemised refurbishment estimate.">
                 <EstimateTable
                   items={estimate.items}
                   labour_total={estimate.labour_total}
@@ -322,10 +435,7 @@ function ReportPage() {
 
             {/* Investor metrics */}
             {metrics && estimate && (
-              <Section
-                title="Investor metrics"
-                subtitle="Profitability and risk indicators."
-              >
+              <Section title="Investor metrics" subtitle="Profitability and risk indicators.">
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   <Stat label="Refurb budget" value={formatGBP(metrics.refurb_budget)} />
                   <Stat label="Total project cost" value={formatGBP(metrics.total_cost)} />
@@ -337,10 +447,7 @@ function ReportPage() {
                   />
                   <Stat label="ROI" value={`${metrics.roi}%`} />
                   <Stat label="Gross yield" value={`${metrics.yield_pct}%`} />
-                  <Stat
-                    label="Investment score"
-                    value={`${metrics.investment_score} / 10`}
-                  />
+                  <Stat label="Investment score" value={`${metrics.investment_score} / 10`} />
                   <Stat label="Risk level" value={metrics.risk_level} />
                 </div>
                 <p className="mt-3 text-sm text-muted-foreground">
@@ -364,8 +471,8 @@ function ReportPage() {
                     {estimate.timeline_weeks} weeks
                   </p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Approx. {Math.ceil(estimate.timeline_weeks / 4.33)} months on site,
-                    excluding planning and procurement lead times.
+                    Approx. {Math.ceil(estimate.timeline_weeks / 4.33)} months on site, excluding
+                    planning and procurement lead times.
                   </p>
                 </div>
               </Section>
@@ -374,16 +481,9 @@ function ReportPage() {
             {/* Assumptions */}
             <Section title="Assumptions" subtitle="Key inputs used in this report.">
               <ul className="space-y-2 text-sm text-foreground">
-                <li>• Region: {project.region} (regional cost multiplier applied).</li>
-                <li>• Condition baseline: Dated. Finish quality: Standard.</li>
-                <li>• Contingency 10%, VAT 20% applied to subtotal.</li>
-                <li>
-                  • Rental uplift derived from property size, bedrooms and finish.
-                </li>
-                <li>
-                  • Investment score weighted 70% ROI / 30% gross yield (capped 1–10).
-                </li>
-                <li>• Photos and AI analysis based on user-uploaded imagery.</li>
+                {report?.sections.assumptions.body.items.map((item) => (
+                  <li key={item}>• {item}</li>
+                ))}
               </ul>
             </Section>
 
@@ -391,9 +491,7 @@ function ReportPage() {
             <footer className="border-t border-border pt-6">
               <div className="flex items-start gap-3 rounded-md bg-muted/40 p-4">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  {disclaimerText}
-                </p>
+                <p className="text-xs leading-relaxed text-muted-foreground">{disclaimerText}</p>
               </div>
               <p className="mt-4 text-center text-xs text-muted-foreground">
                 Generated by Refurb Genius · refurbgenius.com
@@ -419,24 +517,12 @@ function DetailGrid({ rows }: { rows: [string, string][] }) {
   );
 }
 
-function Stat({
-  label,
-  value,
-  highlight,
-}: {
-  label: string;
-  value: string;
-  highlight?: boolean;
-}) {
+function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <Card className={highlight ? "border-accent/40 bg-accent/5" : undefined}>
       <CardContent className="p-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
-        </p>
-        <p className="mt-1 text-xl font-semibold tracking-tight text-foreground">
-          {value}
-        </p>
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="mt-1 text-xl font-semibold tracking-tight text-foreground">{value}</p>
       </CardContent>
     </Card>
   );

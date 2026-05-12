@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
+import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
@@ -22,12 +23,38 @@ function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const project = projectStore.get(id);
+  const snapshot = useSyncExternalStore(
+    projectStore.subscribe,
+    projectStore.getSnapshot,
+    projectStore.getSnapshot,
+  );
+  const project = snapshot.projects.find((p) => p.id === id);
   const photos = useSyncExternalStore(
     photoStore.subscribe,
     () => photoStore.list(id),
     () => photoStore.list(id),
   );
+
+  if (snapshot.loading || !snapshot.loaded) {
+    return (
+      <AppLayout title="Upload photos" subtitle="Loading project details…">
+        <LoadingState label="Loading project…" />
+      </AppLayout>
+    );
+  }
+
+  if (snapshot.error) {
+    return (
+      <AppLayout title="Upload photos" subtitle="Failed to load project">
+        <EmptyState
+          icon={AlertCircle}
+          title="Failed to load project"
+          description="We couldn't load this project. Please try again or contact support if the problem persists."
+          action={<Button onClick={() => projectStore.refresh()}>Try again</Button>}
+        />
+      </AppLayout>
+    );
+  }
 
   if (!project) return <Navigate to="/dashboard" />;
 
@@ -68,7 +95,9 @@ function UploadPage() {
       actions={
         <div className="flex gap-2">
           <Button asChild variant="outline">
-            <Link to="/projects/$id" params={{ id }}>Back</Link>
+            <Link to="/projects/$id" params={{ id }}>
+              Back
+            </Link>
           </Button>
           <Button onClick={handleAnalyse} disabled={photos.length === 0}>
             <Sparkles className="h-4 w-4" /> Run AI Analysis
@@ -124,7 +153,9 @@ function UploadPage() {
             ) : (
               <>
                 <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{photos.length} photo{photos.length === 1 ? "" : "s"} ready for analysis</span>
+                  <span>
+                    {photos.length} photo{photos.length === 1 ? "" : "s"} ready for analysis
+                  </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                   {photos.map((p) => (
@@ -145,7 +176,9 @@ function UploadPage() {
                       </div>
                       <div className="p-3">
                         <p className="truncate text-xs font-medium text-foreground">{p.name}</p>
-                        <p className="text-[11px] text-muted-foreground">{formatFileSize(p.size)}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {formatFileSize(p.size)}
+                        </p>
                       </div>
                     </Card>
                   ))}

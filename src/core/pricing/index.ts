@@ -8,7 +8,6 @@
 // measured items (quantity × unit rate). Rates always come from this engine;
 // quantities derive from project size + room analysis.
 
-
 export {
   runPricingEngine,
   sizeMultiplier,
@@ -25,20 +24,14 @@ export type {
 // Legacy calculator + lookup tables kept for backwards compatibility with
 // pages already wired to the older API. New code should call
 // `runPricingEngine` instead.
+export { calculateEstimate, formatGBP } from "@/lib/estimate";
 export {
-  calculateEstimate,
-  formatGBP,
   FINISH_LEVELS,
   ESTIMATE_CATEGORIES,
   REGION_MULTIPLIERS,
   CONDITION_MULTIPLIERS,
   FINISH_MULTIPLIERS,
   CATEGORY_BASE,
-} from "@/lib/estimate";
-export type {
-  FinishLevel,
-  EstimateCategory,
-  EstimateInputs,
-  EstimateResult,
-  LineItem,
-} from "@/lib/estimate";
+} from "./pricingData";
+export type { FinishLevel, EstimateCategory } from "./pricingData";
+export type { EstimateInputs, EstimateResult, LineItem } from "@/lib/estimate";

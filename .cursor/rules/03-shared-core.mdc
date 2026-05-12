@@ -1,0 +1,33 @@
+---
+description: Shared core architecture rules
+globs: ["src/core/**/*.ts", "src/core/**/*.tsx"]
+alwaysApply: false
+---
+
+# Shared Core Rules
+
+Core modules must be framework-light where possible.
+
+Allowed in src/core:
+- TypeScript types
+- constants
+- pure functions
+- deterministic calculations
+- report builders
+- AI helper wrappers
+- project helpers
+
+Avoid in src/core:
+- React components
+- page routing
+- direct DOM usage
+- UI styling
+- component state
+- localStorage unless isolated behind a service
+
+Core should be reusable later by:
+- Refurb Genius
+- Deal Copilot
+- Refurb IQ
+
+Pricing, ROI, and report logic must be importable from core.
