@@ -14,8 +14,8 @@ import {
 import type { UKRegion } from "@/lib/projects";
 import type { ConditionLevel } from "@/lib/analysis";
 
-export const VAT_RATE = 0.20;
-export const CONTINGENCY_RATE = 0.10;
+export const VAT_RATE = 0.2;
+export const CONTINGENCY_RATE = 0.1;
 
 /** Floor area at which CATEGORY_BASE costs are calibrated (m²). */
 export const REFERENCE_SIZE_SQM = 90;
@@ -145,10 +145,5 @@ export function runPricingEngine(inputs: PricingEngineInputs): PricingEngineResu
 }
 
 // Re-export shared lookup tables and types so callers have a single import.
-export {
-  CATEGORY_BASE,
-  REGION_MULTIPLIERS,
-  CONDITION_MULTIPLIERS,
-  FINISH_MULTIPLIERS,
-};
+export { CATEGORY_BASE, REGION_MULTIPLIERS, CONDITION_MULTIPLIERS, FINISH_MULTIPLIERS };
 export type { EstimateCategory, FinishLevel };
