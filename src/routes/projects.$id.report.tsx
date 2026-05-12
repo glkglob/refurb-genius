@@ -41,6 +41,7 @@ function ReportPage() {
   const project = snapshot.projects.find((p) => p.id === id);
   const [analysis, setAnalysis] = useState<RoomAnalysis[]>(() => analysisStore.get(id) ?? []);
   const [savedEstimate, setSavedEstimate] = useState<PersistedProjectEstimate | null>(null);
+  const [estimateLoading, setEstimateLoading] = useState(true);
 
   useEffect(() => {
     if (!project) return;
@@ -54,6 +55,8 @@ function ReportPage() {
 
   useEffect(() => {
     let cancelled = false;
+    if (!project) return;
+    setEstimateLoading(true);
     getLatestProjectEstimate(id)
       .then((estimate) => {
         if (!cancelled) setSavedEstimate(estimate);
@@ -61,20 +64,29 @@ function ReportPage() {
       .catch((error) => {
         console.error("[estimates] load failed", error);
         if (!cancelled) setSavedEstimate(null);
+      })
+      .finally(() => {
+        if (!cancelled) setEstimateLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [id]);
+  }, [id, project]);
 
-  const estimateInput = useMemo(
-    () => (savedEstimate ? persistedEstimateInput(savedEstimate) : undefined),
-    [savedEstimate],
-  );
+  const estimateInput = useMemo(() => {
+    if (estimateLoading) return undefined;
+    if (savedEstimate) return persistedEstimateInput(savedEstimate);
+    // Explicit fallback: no persisted estimate exists, so buildReport uses
+    // its deterministic report-engine defaults.
+    return undefined;
+  }, [estimateLoading, savedEstimate]);
 
   const report = useMemo(
-    () => (project ? buildReport({ project, photos, analysis, estimate: estimateInput }) : null),
-    [project, photos, analysis, estimateInput],
+    () =>
+      project && !estimateLoading
+        ? buildReport({ project, photos, analysis, estimate: estimateInput })
+        : null,
+    [project, estimateLoading, photos, analysis, estimateInput],
   );
 
   // Shim legacy local shapes from the structured report so the JSX below
@@ -126,6 +138,16 @@ function ReportPage() {
 
   if (!project) {
     throw notFound();
+  }
+
+  if (estimateLoading) {
+    return (
+      <RequireAuth>
+        <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+          <LoadingState label="Loading saved estimate…" />
+        </div>
+      </RequireAuth>
+    );
   }
 
   const reportDate = new Date().toLocaleDateString("en-GB", {
