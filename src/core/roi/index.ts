@@ -5,15 +5,8 @@
 // detect drift; alerts fire when score / ROI / risk crosses a threshold.
 // Automation rules read the same result shape — never recompute metrics.
 
-export {
-  runRoiEngine,
-  projectedAnnualRent,
-} from "./roiEngine";
-export type {
-  RoiEngineInputs,
-  RoiEngineResult,
-  RoiRiskLevel,
-} from "./roiEngine";
+export { runRoiEngine, projectedAnnualRent } from "./roiEngine";
+export type { RoiEngineInputs, RoiEngineResult, RoiRiskLevel } from "./roiEngine";
 export type { InvestorMetrics, RiskLevel } from "@/lib/metrics";
 
 // Canonical runtime ROI comes from `runRoiEngine` above. The export below is
