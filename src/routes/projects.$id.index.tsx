@@ -48,6 +48,28 @@ function ProjectDetail() {
     );
   }
 
+  if (snapshot.error) {
+    return (
+      <AppLayout title="Project" subtitle="We couldn't load this project.">
+        <Card>
+          <CardContent className="flex flex-col gap-4 p-6">
+            <div>
+              <p className="text-sm font-medium text-foreground">Failed to load project details.</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {snapshot.error instanceof Error
+                  ? snapshot.error.message
+                  : "Please try again."}
+              </p>
+            </div>
+            <div>
+              <Button onClick={() => window.location.reload()}>Retry</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </AppLayout>
+    );
+  }
+
   if (!project) return <Navigate to="/dashboard" />;
 
   const progress = calculateProjectProgress(id);
