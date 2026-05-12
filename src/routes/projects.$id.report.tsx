@@ -241,7 +241,7 @@ function ReportPage() {
                   {photos.slice(0, 9).map((p) => (
                     <div
                       key={p.id}
-                      className="aspect-4/3 overflow-hidden rounded-md border border-border bg-muted"
+                      className="aspect-[4/3] overflow-hidden rounded-md border border-border bg-muted"
                     >
                       <img src={p.url} alt={p.name} className="h-full w-full object-cover" />
                     </div>
