@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState, type MouseEvent } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,11 +14,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EstimateTable } from "@/components/EstimateTable";
-import { ArrowRight, Calculator, Clock, PoundSterling, TrendingUp, Wallet, Home, Banknote, Percent, Gauge, ShieldAlert } from "lucide-react";
+import {
+  ArrowRight,
+  Calculator,
+  Clock,
+  PoundSterling,
+  TrendingUp,
+  Wallet,
+  Home,
+  Banknote,
+  Percent,
+  Gauge,
+  ShieldAlert,
+} from "lucide-react";
 import { projectStore, type UKRegion } from "@/core/projects";
 import { type ConditionLevel } from "@/core/ai";
-import { runPricingEngine, formatGBP, type EstimateCategory, type FinishLevel } from "@/core/pricing";
+import {
+  runPricingEngine,
+  formatGBP,
+  type EstimateCategory,
+  type FinishLevel,
+} from "@/core/pricing";
 import { runRoiEngine, type RoiRiskLevel as RiskLevel } from "@/core/roi";
+import { saveProjectEstimate } from "@/lib/estimates";
 import {
   UK_REGIONS,
   CONDITION_LEVELS,
@@ -42,6 +60,7 @@ const DEFAULT_CATEGORIES: EstimateCategory[] = [
 
 function EstimatePage() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const project = projectStore.get(id);
 
   const [region, setRegion] = useState<UKRegion>(project?.region ?? "London");
@@ -50,13 +69,14 @@ function EstimatePage() {
   const [categories, setCategories] = useState<EstimateCategory[]>(DEFAULT_CATEGORIES);
 
   const result = useMemo(
-    () => runPricingEngine({
-      region,
-      property_condition: condition,
-      finish_quality: finish,
-      selected_categories: categories,
-      property_size_sqm: project?.size_sqm ?? 0,
-    }),
+    () =>
+      runPricingEngine({
+        region,
+        property_condition: condition,
+        finish_quality: finish,
+        selected_categories: categories,
+        property_size_sqm: project?.size_sqm ?? 0,
+      }),
     [region, condition, finish, categories, project?.size_sqm],
   );
 
@@ -85,9 +105,18 @@ function EstimatePage() {
   }, [project, result, region, condition]);
 
   function toggleCategory(cat: EstimateCategory, checked: boolean) {
-    setCategories((prev) =>
-      checked ? [...prev, cat] : prev.filter((c) => c !== cat),
-    );
+    setCategories((prev) => (checked ? [...prev, cat] : prev.filter((c) => c !== cat)));
+  }
+
+  async function handleReportClick(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    try {
+      if (project) await saveProjectEstimate(id, result);
+    } catch (err) {
+      console.error("[estimates] save failed", err);
+    }
+    projectStore.setStage(id, "estimate", true);
+    navigate({ to: "/projects/$id/report", params: { id } });
   }
 
   return (
@@ -95,11 +124,8 @@ function EstimatePage() {
       title="Cost estimate"
       subtitle="Region, condition and finish-aware UK refurbishment calculator."
       actions={
-        <Button
-          asChild
-          onClick={() => projectStore.setStage(id, "estimate", true)}
-        >
-          <Link to="/projects/$id/report" params={{ id }}>
+        <Button asChild>
+          <Link to="/projects/$id/report" params={{ id }} onClick={handleReportClick}>
             View investor report <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
         </Button>
@@ -111,10 +137,14 @@ function EstimatePage() {
           <div className="space-y-2">
             <Label>Region</Label>
             <Select value={region} onValueChange={(v) => setRegion(v as UKRegion)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {UK_REGIONS.map((r) => (
-                  <SelectItem key={r} value={r}>{r}</SelectItem>
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -122,10 +152,14 @@ function EstimatePage() {
           <div className="space-y-2">
             <Label>Condition level</Label>
             <Select value={condition} onValueChange={(v) => setCondition(v as ConditionLevel)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {CONDITION_LEVELS.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -133,10 +167,14 @@ function EstimatePage() {
           <div className="space-y-2">
             <Label>Finish quality</Label>
             <Select value={finish} onValueChange={(v) => setFinish(v as FinishLevel)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {FINISH_LEVELS.map((f) => (
-                  <SelectItem key={f} value={f}>{f}</SelectItem>
+                  <SelectItem key={f} value={f}>
+                    {f}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -260,8 +298,8 @@ function EstimatePage() {
                     Generate a polished investor report with these numbers.
                   </p>
                 </div>
-                <Button asChild size="sm" onClick={() => projectStore.setStage(id, "estimate", true)}>
-                  <Link to="/projects/$id/report" params={{ id }}>
+                <Button asChild size="sm">
+                  <Link to="/projects/$id/report" params={{ id }} onClick={handleReportClick}>
                     View report <ArrowRight className="ml-1 h-4 w-4" />
                   </Link>
                 </Button>
@@ -332,8 +370,8 @@ function RiskCard({ risk }: { risk: RiskLevel }) {
     risk === "Low"
       ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"
       : risk === "Moderate"
-      ? "border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-400"
-      : "border-destructive/30 bg-destructive/5 text-destructive";
+        ? "border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-400"
+        : "border-destructive/30 bg-destructive/5 text-destructive";
   return (
     <Card className={tone}>
       <CardContent className="p-5">
@@ -345,8 +383,8 @@ function RiskCard({ risk }: { risk: RiskLevel }) {
           {risk === "Low"
             ? "Strong fundamentals across ROI and yield."
             : risk === "Moderate"
-            ? "Workable deal — verify costs on site."
-            : "Margins are tight. Renegotiate or rework scope."}
+              ? "Workable deal — verify costs on site."
+              : "Margins are tight. Renegotiate or rework scope."}
         </p>
       </CardContent>
     </Card>
