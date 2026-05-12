@@ -245,15 +245,16 @@ export const projectStore = {
     if (idx === -1) return;
     const column = `${stage}_done` as const;
     if (cache[idx][column] === value) return;
-    cache = cache.map((p) =>
-      p.id === id ? { ...p, [column]: value } : p,
-    );
+    cache = cache.map((p) => (p.id === id ? { ...p, [column]: value } : p));
     notify();
     const patch =
-      stage === "photos" ? { photos_done: value }
-      : stage === "analysis" ? { analysis_done: value }
-      : stage === "estimate" ? { estimate_done: value }
-      : { report_done: value };
+      stage === "photos"
+        ? { photos_done: value }
+        : stage === "analysis"
+          ? { analysis_done: value }
+          : stage === "estimate"
+            ? { estimate_done: value }
+            : { report_done: value };
     supabase
       .from("projects")
       .update(patch)

@@ -82,7 +82,9 @@ function UploadPage() {
       actions={
         <div className="flex gap-2">
           <Button asChild variant="outline">
-            <Link to="/projects/$id" params={{ id }}>Back</Link>
+            <Link to="/projects/$id" params={{ id }}>
+              Back
+            </Link>
           </Button>
           <Button onClick={handleAnalyse} disabled={photos.length === 0}>
             <Sparkles className="h-4 w-4" /> Run AI Analysis
@@ -138,7 +140,9 @@ function UploadPage() {
             ) : (
               <>
                 <div className="mb-3 flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{photos.length} photo{photos.length === 1 ? "" : "s"} ready for analysis</span>
+                  <span>
+                    {photos.length} photo{photos.length === 1 ? "" : "s"} ready for analysis
+                  </span>
                 </div>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
                   {photos.map((p) => (
@@ -159,7 +163,9 @@ function UploadPage() {
                       </div>
                       <div className="p-3">
                         <p className="truncate text-xs font-medium text-foreground">{p.name}</p>
-                        <p className="text-[11px] text-muted-foreground">{formatFileSize(p.size)}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {formatFileSize(p.size)}
+                        </p>
                       </div>
                     </Card>
                   ))}

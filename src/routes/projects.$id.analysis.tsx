@@ -92,8 +92,8 @@ function AnalysisPage() {
               AI redesign concepts
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Six visual directions generated from your hero photo. Pick the one that
-              matches your buyer or tenant.
+              Six visual directions generated from your hero photo. Pick the one that matches your
+              buyer or tenant.
             </p>
           </div>
           <Badge variant="outline" className="hidden sm:inline-flex">
@@ -103,11 +103,7 @@ function AnalysisPage() {
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {REDESIGN_CONCEPTS.map((c) => (
-            <RedesignCard
-              key={c.style}
-              concept={c}
-              beforePhotoUrl={results[0]?.photo_url}
-            />
+            <RedesignCard key={c.style} concept={c} beforePhotoUrl={results[0]?.photo_url} />
           ))}
         </div>
       </div>
