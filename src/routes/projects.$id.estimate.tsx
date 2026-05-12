@@ -17,7 +17,7 @@ import { EstimateTable } from "@/components/EstimateTable";
 import { ArrowRight, Calculator, Clock, PoundSterling, TrendingUp, Wallet, Home, Banknote, Percent, Gauge, ShieldAlert } from "lucide-react";
 import { projectStore, type UKRegion } from "@/core/projects";
 import { type ConditionLevel } from "@/core/ai";
-import { calculateEstimate, formatGBP, type EstimateCategory, type FinishLevel } from "@/core/pricing";
+import { runPricingEngine, formatGBP, type EstimateCategory, type FinishLevel } from "@/core/pricing";
 import { runRoiEngine, type RoiRiskLevel as RiskLevel } from "@/core/roi";
 import {
   UK_REGIONS,
@@ -50,8 +50,14 @@ function EstimatePage() {
   const [categories, setCategories] = useState<EstimateCategory[]>(DEFAULT_CATEGORIES);
 
   const result = useMemo(
-    () => calculateEstimate({ region, condition, finish, categories }),
-    [region, condition, finish, categories],
+    () => runPricingEngine({
+      region,
+      property_condition: condition,
+      finish_quality: finish,
+      selected_categories: categories,
+      property_size_sqm: project?.size_sqm ?? 0,
+    }),
+    [region, condition, finish, categories, project?.size_sqm],
   );
 
   const metrics = useMemo(() => {
@@ -275,11 +281,11 @@ function EstimatePage() {
                 Per-category labour and materials at the chosen region, condition and finish.
               </p>
             </div>
-            <Badge variant="outline">{result.items.length} categories</Badge>
+            <Badge variant="outline">{result.estimate_items.length} categories</Badge>
           </div>
 
           <EstimateTable
-            items={result.items}
+            items={result.estimate_items}
             labour_total={result.labour_total}
             materials_total={result.materials_total}
             subtotal={result.subtotal}
