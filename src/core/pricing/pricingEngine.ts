@@ -4,19 +4,18 @@
 // given the same inputs, returns the same outputs. Pages and components
 // must call `runPricingEngine` instead of recomputing totals locally.
 import {
-  calculateEstimate,
   CATEGORY_BASE,
   REGION_MULTIPLIERS,
   CONDITION_MULTIPLIERS,
   FINISH_MULTIPLIERS,
   type EstimateCategory,
   type FinishLevel,
-} from "@/lib/estimate";
+} from "./pricingData";
 import type { UKRegion } from "@/lib/projects";
 import type { ConditionLevel } from "@/lib/analysis";
 
-export const VAT_RATE = 0.20;
-export const CONTINGENCY_RATE = 0.10;
+export const VAT_RATE = 0.2;
+export const CONTINGENCY_RATE = 0.1;
 
 /** Floor area at which CATEGORY_BASE costs are calibrated (m²). */
 export const REFERENCE_SIZE_SQM = 90;
@@ -58,6 +57,30 @@ export type PricingEngineResult = {
 
 const round10 = (n: number) => Math.round(n / 10) * 10;
 
+function baseMultiplier(inputs: PricingEngineInputs): number {
+  return (
+    REGION_MULTIPLIERS[inputs.region] *
+    CONDITION_MULTIPLIERS[inputs.property_condition] *
+    FINISH_MULTIPLIERS[inputs.finish_quality]
+  );
+}
+
+function baseEstimateItems(inputs: PricingEngineInputs, multiplier: number): PricingEstimateItem[] {
+  const condition = CONDITION_MULTIPLIERS[inputs.property_condition];
+  return inputs.selected_categories.map((category) => {
+    const base = CATEGORY_BASE[category];
+    const labour = round10(base.labour * multiplier);
+    const materials = round10(base.materials * multiplier);
+    return {
+      category,
+      labour,
+      materials,
+      total: labour + materials,
+      weeks: +(base.weeks * Math.max(0.8, condition)).toFixed(1),
+    };
+  });
+}
+
 /** Linear scaling around the reference size, clamped to a sensible band. */
 export function sizeMultiplier(sqm: number): number {
   if (!Number.isFinite(sqm) || sqm <= 0) return 1;
@@ -74,17 +97,10 @@ export function sizeMultiplier(sqm: number): number {
  */
 export function runPricingEngine(inputs: PricingEngineInputs): PricingEngineResult {
   const sizeMult = sizeMultiplier(inputs.property_size_sqm);
+  const multiplier = baseMultiplier(inputs);
+  const baseItems = baseEstimateItems(inputs, multiplier);
 
-  // Reuse the underlying calculator for region/condition/finish math, then
-  // apply size scaling on top so totals scale with property footprint.
-  const base = calculateEstimate({
-    region: inputs.region,
-    condition: inputs.property_condition,
-    finish: inputs.finish_quality,
-    categories: inputs.selected_categories,
-  });
-
-  const estimate_items: PricingEstimateItem[] = base.items.map((i) => {
+  const estimate_items: PricingEstimateItem[] = baseItems.map((i) => {
     const labour = round10(i.labour * sizeMult);
     const materials = round10(i.materials * sizeMult);
     return {
@@ -113,7 +129,7 @@ export function runPricingEngine(inputs: PricingEngineInputs): PricingEngineResu
 
   return {
     inputs,
-    multiplier: +(base.multiplier * sizeMult).toFixed(3),
+    multiplier: +(multiplier * sizeMult).toFixed(3),
     size_multiplier: +sizeMult.toFixed(3),
     estimate_items,
     labour_total,
@@ -129,10 +145,5 @@ export function runPricingEngine(inputs: PricingEngineInputs): PricingEngineResu
 }
 
 // Re-export shared lookup tables and types so callers have a single import.
-export {
-  CATEGORY_BASE,
-  REGION_MULTIPLIERS,
-  CONDITION_MULTIPLIERS,
-  FINISH_MULTIPLIERS,
-};
+export { CATEGORY_BASE, REGION_MULTIPLIERS, CONDITION_MULTIPLIERS, FINISH_MULTIPLIERS };
 export type { EstimateCategory, FinishLevel };

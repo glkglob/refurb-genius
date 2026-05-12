@@ -61,9 +61,24 @@ type ProjectRow = Project & {
   report_done: boolean;
 };
 
+export type ProjectStoreSnapshot = {
+  projects: Project[];
+  loading: boolean;
+  loaded: boolean;
+  error: string | null;
+};
+
 let cache: ProjectRow[] = [];
 let loaded = false;
 let loading: Promise<void> | null = null;
+let waitingForAuth = false;
+let error: string | null = null;
+let snapshot: ProjectStoreSnapshot = {
+  projects: cache,
+  loading: false,
+  loaded,
+  error,
+};
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
@@ -96,37 +111,79 @@ async function fetchAll(): Promise<void> {
   if (!auth.getUser()) {
     cache = [];
     loaded = true;
+    waitingForAuth = false;
+    error = null;
     notify();
     return;
   }
-  const { data, error } = await supabase
+  const { data, error: fetchError } = await supabase
     .from("projects")
     .select("*")
     .order("created_at", { ascending: false });
-  if (error) {
-    console.error("[projects] fetch failed", error);
+  if (fetchError) {
+    console.error("[projects] fetch failed", fetchError);
     cache = [];
+    loaded = true;
+    waitingForAuth = false;
+    projectStoreError(fetchError.message);
   } else {
     cache = (data ?? []).map(rowToProject);
+    loaded = true;
+    waitingForAuth = false;
+    projectStoreError(null);
   }
-  loaded = true;
   notify();
+}
+
+function projectStoreError(message: string | null) {
+  error = message;
 }
 
 function ensureLoaded() {
   if (loaded || loading) return;
+  if (!auth.getUser()) {
+    waitingForAuth = true;
+    return;
+  }
+  waitingForAuth = false;
   loading = fetchAll().finally(() => {
     loading = null;
+    notify();
   });
+}
+
+function getProjectStoreSnapshot(): ProjectStoreSnapshot {
+  const isLoading = Boolean(loading) || waitingForAuth;
+  if (
+    snapshot.projects !== cache ||
+    snapshot.loading !== isLoading ||
+    snapshot.loaded !== loaded ||
+    snapshot.error !== error
+  ) {
+    snapshot = {
+      projects: cache,
+      loading: isLoading,
+      loaded,
+      error,
+    };
+  }
+  return snapshot;
 }
 
 // Reload when auth changes
 if (typeof window !== "undefined") {
   auth.onChange(() => {
     loaded = false;
+    waitingForAuth = false;
+    error = null;
     cache = [];
     notify();
-    ensureLoaded();
+    if (auth.getUser()) {
+      ensureLoaded();
+    } else {
+      loaded = true;
+      notify();
+    }
   });
 }
 
@@ -138,6 +195,10 @@ export const projectStore = {
   get(id: string): Project | undefined {
     ensureLoaded();
     return cache.find((p) => p.id === id);
+  },
+  getSnapshot(): ProjectStoreSnapshot {
+    ensureLoaded();
+    return getProjectStoreSnapshot();
   },
   async refresh(): Promise<void> {
     await fetchAll();
@@ -184,15 +245,16 @@ export const projectStore = {
     if (idx === -1) return;
     const column = `${stage}_done` as const;
     if (cache[idx][column] === value) return;
-    cache = cache.map((p) =>
-      p.id === id ? { ...p, [column]: value } : p,
-    );
+    cache = cache.map((p) => (p.id === id ? { ...p, [column]: value } : p));
     notify();
     const patch =
-      stage === "photos" ? { photos_done: value }
-      : stage === "analysis" ? { analysis_done: value }
-      : stage === "estimate" ? { estimate_done: value }
-      : { report_done: value };
+      stage === "photos"
+        ? { photos_done: value }
+        : stage === "analysis"
+          ? { analysis_done: value }
+          : stage === "estimate"
+            ? { estimate_done: value }
+            : { report_done: value };
     supabase
       .from("projects")
       .update(patch)
