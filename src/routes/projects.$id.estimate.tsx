@@ -84,7 +84,7 @@ function EstimatePage() {
         <EmptyState
           icon={AlertCircle}
           title="Failed to load project"
-          description={snapshot.error}
+          description="We couldn't load this project. Please try again or contact support if the problem persists."
           action={<Button onClick={() => projectStore.refresh()}>Try again</Button>}
         />
       </AppLayout>
