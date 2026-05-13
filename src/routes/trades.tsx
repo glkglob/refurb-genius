@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
+import { PlatformNavButtons } from "@/components/PlatformNavButtons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -227,6 +228,8 @@ function LiveJobListings() {
           title="Posted refurbishment jobs."
           subtitle="Browse jobs posted by UK property clients — apply directly with a short message."
         />
+
+        <PlatformNavButtons exclude={["/trades"]} className="mt-8" />
 
         {/* Category filter */}
         <div className="mt-8 flex flex-wrap items-center gap-2">
