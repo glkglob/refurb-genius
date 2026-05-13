@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,8 +21,20 @@ import {
   MessageSquare,
   FileText,
   UserCheck,
+  Loader2,
+  MapPin,
+  CalendarDays,
+  SlidersHorizontal,
 } from "lucide-react";
 import { DISCLAIMER } from "@/core/reports";
+import type { TradesJob, TradesJobCategory } from "@/core/trades";
+import { TRADES_JOB_CATEGORIES } from "@/core/trades";
+import {
+  formatCategoryLabel,
+  formatBudgetRange,
+  formatShortDate,
+} from "@/core/trades/tradesJob.selectors";
+import { listPostedTradesJobs } from "@/services/trades/tradesJobStore";
 
 export const Route = createFileRoute("/trades")({
   head: () => ({
@@ -43,6 +56,7 @@ function TradesPage() {
       <Navbar />
       <TradesHero />
       <AudienceCards />
+      <LiveJobListings />
       <HowItWorks />
       <JobDetails />
       <TradeCategories />
@@ -168,6 +182,178 @@ function AudienceCards() {
     </section>
   );
 }
+
+// ─── Live job listings ────────────────────────────────────────────────────────
+
+type JobsState =
+  | { status: "loading" }
+  | { status: "ok"; jobs: TradesJob[] }
+  | { status: "error"; message: string };
+
+function usePostedJobs(category: string): JobsState {
+  const [state, setState] = useState<JobsState>({ status: "loading" });
+
+  useEffect(() => {
+    let cancelled = false;
+    setState({ status: "loading" });
+    listPostedTradesJobs(category || undefined)
+      .then((jobs) => {
+        if (!cancelled) setState({ status: "ok", jobs });
+      })
+      .catch((err: unknown) => {
+        if (!cancelled)
+          setState({
+            status: "error",
+            message: err instanceof Error ? err.message : "Failed to load jobs.",
+          });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [category]);
+
+  return state;
+}
+
+function LiveJobListings() {
+  const [activeCategory, setActiveCategory] = useState<string>("");
+  const state = usePostedJobs(activeCategory);
+
+  return (
+    <section className="py-20" id="live-jobs">
+      <div className="mx-auto max-w-6xl px-6">
+        <SectionHeader
+          eyebrow="Live jobs"
+          title="Posted refurbishment jobs."
+          subtitle="Browse jobs posted by UK property clients — apply directly with a short message."
+        />
+
+        {/* Category filter */}
+        <div className="mt-8 flex flex-wrap items-center gap-2">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <SlidersHorizontal className="h-3.5 w-3.5" /> Filter:
+          </span>
+          <button
+            onClick={() => setActiveCategory("")}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              activeCategory === ""
+                ? "border-accent bg-accent/10 text-accent"
+                : "border-border bg-background text-muted-foreground hover:border-accent/50 hover:text-foreground"
+            }`}
+          >
+            All categories
+          </button>
+          {TRADES_JOB_CATEGORIES.map((cat) => (
+            <button
+              key={cat.value}
+              onClick={() => setActiveCategory(cat.value)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                activeCategory === cat.value
+                  ? "border-accent bg-accent/10 text-accent"
+                  : "border-border bg-background text-muted-foreground hover:border-accent/50 hover:text-foreground"
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Results */}
+        <div className="mt-8">
+          {state.status === "loading" && (
+            <div className="flex items-center justify-center py-20 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          )}
+
+          {state.status === "error" && (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-center text-sm text-destructive">
+              {state.message}
+            </div>
+          )}
+
+          {state.status === "ok" && state.jobs.length === 0 && (
+            <div className="flex flex-col items-center gap-3 rounded-xl border border-border bg-secondary/30 py-16 text-center">
+              <Briefcase className="h-10 w-10 text-muted-foreground/40" />
+              <p className="font-medium text-foreground">No jobs posted yet</p>
+              <p className="max-w-xs text-sm text-muted-foreground">
+                {activeCategory
+                  ? `No ${formatCategoryLabel(activeCategory as TradesJobCategory)} jobs are live right now. Check back soon.`
+                  : "Be the first to post a refurbishment job to the marketplace."}
+              </p>
+              <Button asChild size="sm" className="mt-2">
+                <Link to="/auth" search={{ mode: "signup" }}>
+                  Post a job <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          )}
+
+          {state.status === "ok" && state.jobs.length > 0 && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {state.jobs.map((job) => (
+                <JobCard key={job.id} job={job} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function JobCard({ job }: { job: TradesJob }) {
+  const descPreview =
+    job.description.length > 120 ? job.description.slice(0, 120).trimEnd() + "…" : job.description;
+
+  return (
+    <Card className="flex flex-col overflow-hidden transition-shadow hover:shadow-md">
+      <CardContent className="flex flex-1 flex-col gap-4 p-5">
+        {/* Category pill */}
+        <div className="flex items-center justify-between">
+          <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
+            {formatCategoryLabel(job.jobCategory)}
+          </span>
+          <span className="text-xs text-muted-foreground">{formatShortDate(job.createdAt)}</span>
+        </div>
+
+        {/* Title */}
+        <h3 className="text-base font-semibold leading-snug text-foreground">{job.title}</h3>
+
+        {/* Meta row */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          {job.postcode && (
+            <span className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              {job.postcode}
+            </span>
+          )}
+          {job.desiredStartDate && (
+            <span className="flex items-center gap-1">
+              <CalendarDays className="h-3 w-3" />
+              {formatShortDate(job.desiredStartDate)}
+            </span>
+          )}
+        </div>
+
+        {/* Description */}
+        <p className="flex-1 text-sm text-muted-foreground">{descPreview}</p>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between border-t border-border pt-3">
+          <span className="text-sm font-medium text-foreground">{formatBudgetRange(job)}</span>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/trades/$jobId" params={{ jobId: job.id }}>
+              View job <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─── Marketing sections ────────────────────────────────────────────────────────
 
 function HowItWorks() {
   const steps = [

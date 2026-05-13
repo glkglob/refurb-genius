@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderPlus, Settings, Building2, LogOut, LineChart } from "lucide-react";
+import { LayoutDashboard, FolderPlus, Settings, Building2, LogOut, LineChart, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/auth";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,6 +8,7 @@ const items = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/projects/new", label: "New Project", icon: FolderPlus },
   { to: "/deal-copilot", label: "Deal Copilot", icon: LineChart },
+  { to: "/trades", label: "Trades", icon: Briefcase },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
