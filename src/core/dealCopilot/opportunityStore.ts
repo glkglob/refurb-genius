@@ -245,7 +245,8 @@ export async function updateDealOpportunity(
 ): Promise<DealOpportunity | null> {
   try {
     return await opportunityStore.update(id, updates);
-  } catch {
+  } catch (err) {
+    console.error("[deal-opportunities] update failed", { id, updates }, err);
     return null;
   }
 }
@@ -254,7 +255,8 @@ export async function deleteDealOpportunity(id: string): Promise<boolean> {
   try {
     await opportunityStore.delete(id);
     return true;
-  } catch {
+  } catch (err) {
+    console.error("[deal-opportunities] delete failed", { id }, err);
     return false;
   }
 }
