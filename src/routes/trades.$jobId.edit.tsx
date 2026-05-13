@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, AlertCircle, Briefcase, Lock } from "lucide-react";
+import { Loader2, AlertCircle, Briefcase, Lock, ArrowLeft } from "lucide-react";
 import { TRADES_JOB_CATEGORIES, type TradesJobCategory, type TradesJobStatus } from "@/core/trades";
 import type { TradesJob } from "@/core/trades";
 import { getTradesJobById, updateTradesJob } from "@/services/trades/tradesJobStore";
@@ -195,7 +195,22 @@ function TradesJobEditPage() {
   }
 
   return (
-    <AppLayout title="Edit job" subtitle="Update the details of your refurbishment job posting.">
+    <AppLayout
+      title="Edit job"
+      subtitle="Update the details of your refurbishment job posting."
+      actions={
+        <>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/trades/$jobId" params={{ jobId }}>
+              <ArrowLeft className="h-4 w-4" /> Back to job
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/trades">Trades</Link>
+          </Button>
+        </>
+      }
+    >
       <EditForm
         job={state.job}
         onSaved={() => navigate({ to: "/trades/$jobId", params: { jobId } })}

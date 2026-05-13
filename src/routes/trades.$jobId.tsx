@@ -17,6 +17,7 @@ import {
   Users,
   Check,
   X,
+  Pencil,
 } from "lucide-react";
 import type { TradesJob, TradesJobInterest } from "@/core/trades";
 import {
@@ -117,6 +118,7 @@ function useExistingInterest(jobId: string, isAuthenticated: boolean): InterestS
 function TradesJobDetailPage() {
   const { jobId } = Route.useParams();
   const state = useTradesJob(jobId);
+  const { user } = useAuth();
 
   if (state.status === "loading") {
     return (
@@ -163,17 +165,27 @@ function TradesJobDetailPage() {
   }
 
   const { job } = state;
+  const isOwner = !!user && user.id === job.userId;
 
   return (
     <AppLayout
       title={job.title}
       subtitle={`${formatCategoryLabel(job.jobCategory)} · ${job.postcode ?? "Location not specified"}`}
       actions={
-        <Button asChild variant="ghost" size="sm">
-          <Link to="/trades">
-            <ArrowLeft className="h-4 w-4" /> Back
-          </Link>
-        </Button>
+        <>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/trades">
+              <ArrowLeft className="h-4 w-4" /> Trades
+            </Link>
+          </Button>
+          {isOwner && (
+            <Button asChild variant="outline" size="sm">
+              <Link to="/trades/$jobId/edit" params={{ jobId }}>
+                <Pencil className="h-4 w-4" /> Edit Job
+              </Link>
+            </Button>
+          )}
+        </>
       }
     >
       <div className="mx-auto max-w-3xl space-y-6">

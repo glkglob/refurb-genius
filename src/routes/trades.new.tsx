@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, type FormEvent } from "react";
-import { Loader2, AlertCircle, Lock } from "lucide-react";
+import { Loader2, AlertCircle, Lock, ArrowLeft } from "lucide-react";
 import { TRADES_JOB_CATEGORIES, type TradesJobCategory } from "@/core/trades";
 import { createTradesJob } from "@/services/trades/tradesJobStore";
 import { useAuth } from "@/hooks/useAuth";
@@ -112,6 +112,13 @@ function TradesNewPage() {
     <AppLayout
       title="Post a refurbishment job"
       subtitle="Fill in the details below and we'll connect you with trusted local trades."
+      actions={
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/trades">
+            <ArrowLeft className="h-4 w-4" /> Trades Marketplace
+          </Link>
+        </Button>
+      }
     >
       <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-6">
         {error && (
