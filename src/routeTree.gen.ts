@@ -13,7 +13,9 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DealCopilotIndexRouteImport } from './routes/deal-copilot/index'
 import { Route as ProjectsNewRouteImport } from './routes/projects.new'
+import { Route as DealCopilotNewRouteImport } from './routes/deal-copilot/new'
 import { Route as ProjectsIdIndexRouteImport } from './routes/projects.$id.index'
 import { Route as ProjectsIdUploadRouteImport } from './routes/projects.$id.upload'
 import { Route as ProjectsIdReportRouteImport } from './routes/projects.$id.report'
@@ -40,9 +42,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DealCopilotIndexRoute = DealCopilotIndexRouteImport.update({
+  id: '/deal-copilot/',
+  path: '/deal-copilot/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsNewRoute = ProjectsNewRouteImport.update({
   id: '/projects/new',
   path: '/projects/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DealCopilotNewRoute = DealCopilotNewRouteImport.update({
+  id: '/deal-copilot/new',
+  path: '/deal-copilot/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProjectsIdIndexRoute = ProjectsIdIndexRouteImport.update({
@@ -76,7 +88,9 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/settings': typeof SettingsRoute
+  '/deal-copilot/new': typeof DealCopilotNewRoute
   '/projects/new': typeof ProjectsNewRoute
+  '/deal-copilot/': typeof DealCopilotIndexRoute
   '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
   '/projects/$id/estimate': typeof ProjectsIdEstimateRoute
   '/projects/$id/report': typeof ProjectsIdReportRoute
@@ -88,7 +102,9 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/settings': typeof SettingsRoute
+  '/deal-copilot/new': typeof DealCopilotNewRoute
   '/projects/new': typeof ProjectsNewRoute
+  '/deal-copilot': typeof DealCopilotIndexRoute
   '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
   '/projects/$id/estimate': typeof ProjectsIdEstimateRoute
   '/projects/$id/report': typeof ProjectsIdReportRoute
@@ -101,7 +117,9 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/settings': typeof SettingsRoute
+  '/deal-copilot/new': typeof DealCopilotNewRoute
   '/projects/new': typeof ProjectsNewRoute
+  '/deal-copilot/': typeof DealCopilotIndexRoute
   '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
   '/projects/$id/estimate': typeof ProjectsIdEstimateRoute
   '/projects/$id/report': typeof ProjectsIdReportRoute
@@ -115,7 +133,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/settings'
+    | '/deal-copilot/new'
     | '/projects/new'
+    | '/deal-copilot/'
     | '/projects/$id/analysis'
     | '/projects/$id/estimate'
     | '/projects/$id/report'
@@ -127,7 +147,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/settings'
+    | '/deal-copilot/new'
     | '/projects/new'
+    | '/deal-copilot'
     | '/projects/$id/analysis'
     | '/projects/$id/estimate'
     | '/projects/$id/report'
@@ -139,7 +161,9 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/settings'
+    | '/deal-copilot/new'
     | '/projects/new'
+    | '/deal-copilot/'
     | '/projects/$id/analysis'
     | '/projects/$id/estimate'
     | '/projects/$id/report'
@@ -152,7 +176,9 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DashboardRoute: typeof DashboardRoute
   SettingsRoute: typeof SettingsRoute
+  DealCopilotNewRoute: typeof DealCopilotNewRoute
   ProjectsNewRoute: typeof ProjectsNewRoute
+  DealCopilotIndexRoute: typeof DealCopilotIndexRoute
   ProjectsIdAnalysisRoute: typeof ProjectsIdAnalysisRoute
   ProjectsIdEstimateRoute: typeof ProjectsIdEstimateRoute
   ProjectsIdReportRoute: typeof ProjectsIdReportRoute
@@ -190,11 +216,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/deal-copilot/': {
+      id: '/deal-copilot/'
+      path: '/deal-copilot'
+      fullPath: '/deal-copilot/'
+      preLoaderRoute: typeof DealCopilotIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/new': {
       id: '/projects/new'
       path: '/projects/new'
       fullPath: '/projects/new'
       preLoaderRoute: typeof ProjectsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/deal-copilot/new': {
+      id: '/deal-copilot/new'
+      path: '/deal-copilot/new'
+      fullPath: '/deal-copilot/new'
+      preLoaderRoute: typeof DealCopilotNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/projects/$id/': {
@@ -240,7 +280,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DashboardRoute: DashboardRoute,
   SettingsRoute: SettingsRoute,
+  DealCopilotNewRoute: DealCopilotNewRoute,
   ProjectsNewRoute: ProjectsNewRoute,
+  DealCopilotIndexRoute: DealCopilotIndexRoute,
   ProjectsIdAnalysisRoute: ProjectsIdAnalysisRoute,
   ProjectsIdEstimateRoute: ProjectsIdEstimateRoute,
   ProjectsIdReportRoute: ProjectsIdReportRoute,

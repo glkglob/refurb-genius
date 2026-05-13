@@ -4,13 +4,12 @@
 // same helpers.
 import {
   projectStore,
-  estimatedRefurbCost,
-  estimatedProfit,
   type Project,
   type ProjectStatus,
   type ProjectStage,
   type NewProjectInput,
-} from "@/lib/projects";
+} from "./projectStore";
+import { estimatedRefurbCost, estimatedProfit } from "@/lib/projects";
 
 export type ProjectProgress = Record<ProjectStage, boolean> & {
   /** 0–1 share of stages complete. */
