@@ -38,12 +38,14 @@ function EditDealOpportunity() {
     opportunityStore.getSnapshot,
   );
   const opportunity = opportunities.find((o) => o.id === opportunityId) ?? null;
+  const opportunityKey = opportunity?.id;
+  const opportunityStatus = opportunity?.status;
   const [status, setStatus] = useState<DealOpportunityStatus>("sourced");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (opportunity) setStatus(opportunity.status);
-  }, [opportunity]);
+    if (opportunityStatus) setStatus(opportunityStatus);
+  }, [opportunityKey, opportunityStatus]);
 
   if (!loaded) {
     return (
