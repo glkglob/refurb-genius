@@ -110,9 +110,9 @@ function Hero() {
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg">
-                <a href="/auth?mode=signup">
+                <Link to="/auth" search={{ mode: "signup" }}>
                   Get started free <ArrowRight className="h-4 w-4" />
-                </a>
+                </Link>
               </Button>
               <Button asChild size="lg" variant="outline">
                 <Link to="/dashboard">View demo dashboard</Link>
