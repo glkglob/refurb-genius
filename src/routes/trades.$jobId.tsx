@@ -34,6 +34,7 @@ import {
   updateTradesJobInterestStatus,
 } from "@/services/trades/tradesJobInterestStore";
 import { useAuth } from "@/hooks/useAuth";
+import { PlatformNavButtons } from "@/components/PlatformNavButtons";
 
 export const Route = createFileRoute("/trades/$jobId")({
   head: () => ({ meta: [{ title: "Job detail — Trades Marketplace" }] }),
@@ -189,6 +190,7 @@ function TradesJobDetailPage() {
       }
     >
       <div className="mx-auto max-w-3xl space-y-6">
+        <PlatformNavButtons exclude={["/trades"]} className="mb-2" />
         <JobDetailCard job={job} />
         <JobInteractionSection job={job} />
       </div>

@@ -17,6 +17,7 @@ import { Loader2, AlertCircle, Lock, ArrowLeft } from "lucide-react";
 import { TRADES_JOB_CATEGORIES, type TradesJobCategory } from "@/core/trades";
 import { createTradesJob } from "@/services/trades/tradesJobStore";
 import { useAuth } from "@/hooks/useAuth";
+import { PlatformNavButtons } from "@/components/PlatformNavButtons";
 
 export const Route = createFileRoute("/trades/new")({
   head: () => ({ meta: [{ title: "Post a job — Trades Marketplace" }] }),
@@ -120,6 +121,7 @@ function TradesNewPage() {
         </Button>
       }
     >
+      <PlatformNavButtons exclude={["/trades/new"]} className="mb-8" />
       <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-6">
         {error && (
           <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">

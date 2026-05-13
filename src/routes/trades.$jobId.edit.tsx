@@ -18,6 +18,7 @@ import { TRADES_JOB_CATEGORIES, type TradesJobCategory, type TradesJobStatus } f
 import type { TradesJob } from "@/core/trades";
 import { getTradesJobById, updateTradesJob } from "@/services/trades/tradesJobStore";
 import { useAuth } from "@/hooks/useAuth";
+import { PlatformNavButtons } from "@/components/PlatformNavButtons";
 
 export const Route = createFileRoute("/trades/$jobId/edit")({
   head: () => ({ meta: [{ title: "Edit job — Trades Marketplace" }] }),
@@ -211,6 +212,7 @@ function TradesJobEditPage() {
         </>
       }
     >
+      <PlatformNavButtons exclude={["/trades/new"]} className="mb-6" />
       <EditForm
         job={state.job}
         onSaved={() => navigate({ to: "/trades/$jobId", params: { jobId } })}

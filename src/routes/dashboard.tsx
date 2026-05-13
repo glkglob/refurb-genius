@@ -27,6 +27,7 @@ import {
   formatShortDate,
 } from "@/core/trades/tradesJob.selectors";
 import { listCurrentUserTradesJobs, updateTradesJob } from "@/services/trades/tradesJobStore";
+import { PlatformNavButtons } from "@/components/PlatformNavButtons";
 import {
   listCurrentUserInterestsWithJobs,
   type TradesJobInterestWithJob,
@@ -173,6 +174,9 @@ function Dashboard() {
           </Button>
         </div>
       </div>
+
+      {/* Platform navigation */}
+      <PlatformNavButtons exclude={["/dashboard"]} className="mb-10" />
 
       {/* Section 2 — My Trades Jobs */}
       <section className="mb-10">
