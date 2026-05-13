@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Calculator, FileText, Home, ShieldAlert } from "lucide-react";
 
 import { AppLayout } from "@/components/AppLayout";
-import { Badge } from "@/components/ui/badge";
+import { DealIntakeScaffold } from "@/components/deal-copilot";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const Route = createFileRoute("/deal-copilot/new")({
@@ -19,31 +19,7 @@ function NewDealAnalysis() {
       subtitle="Manual Deal Copilot intake. This is the first wedge before background agents and portal connectors."
     >
       <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
-        <Card>
-          <CardContent className="p-6">
-            <div className="mb-6 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-semibold text-foreground">Deal assumptions</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  The first version captures assumptions only. Next step is wiring these fields into
-                  the shared pricing and ROI engines.
-                </p>
-              </div>
-              <Badge variant="secondary">MVP scaffold</Badge>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <ReadonlyField label="Listing URL" value="Coming next" />
-              <ReadonlyField label="Postcode / area" value="Coming next" />
-              <ReadonlyField label="Property type" value="Coming next" />
-              <ReadonlyField label="Bedrooms" value="Coming next" />
-              <ReadonlyField label="Purchase price" value="Coming next" />
-              <ReadonlyField label="Target GDV" value="Coming next" />
-              <ReadonlyField label="Expected monthly rent" value="Coming next" />
-              <ReadonlyField label="Refurb level" value="Coming next" />
-            </div>
-          </CardContent>
-        </Card>
+        <DealIntakeScaffold />
 
         <div className="space-y-4">
           <SummaryCard
@@ -69,17 +45,6 @@ function NewDealAnalysis() {
         </div>
       </div>
     </AppLayout>
-  );
-}
-
-function ReadonlyField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-border bg-secondary/30 p-4">
-      <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-2 text-sm font-medium text-foreground">{value}</p>
-    </div>
   );
 }
 

@@ -11,6 +11,7 @@
 
 export * as platform from "./platform";
 export * as property from "./property";
+export * as dealCopilot from "./dealCopilot";
 export * as projects from "./projects";
 export * as pricing from "./pricing";
 export * as roi from "./roi";
