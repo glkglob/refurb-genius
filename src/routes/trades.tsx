@@ -89,7 +89,7 @@ function TradesHero() {
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Button asChild size="lg">
-            <Link to="/auth" search={{ mode: "signup" }}>
+            <Link to="/trades/new">
               Post a job <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
@@ -137,7 +137,7 @@ function AudienceCards() {
               </ul>
               <div className="mt-8">
                 <Button asChild className="w-full sm:w-auto">
-                  <Link to="/auth" search={{ mode: "signup" }}>
+                  <Link to="/trades/new">
                     Post a job <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
@@ -282,7 +282,7 @@ function LiveJobListings() {
                   : "Be the first to post a refurbishment job to the marketplace."}
               </p>
               <Button asChild size="sm" className="mt-2">
-                <Link to="/auth" search={{ mode: "signup" }}>
+                <Link to="/trades/new">
                   Post a job <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
