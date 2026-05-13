@@ -19,7 +19,7 @@ export function Navbar() {
             <Link to="/auth">Sign in</Link>
           </Button>
           <Button asChild size="sm">
-            <Link to="/dashboard">Open app</Link>
+            <a href="/auth?mode=signup">Get started free</a>
           </Button>
         </nav>
       </div>
