@@ -23,9 +23,25 @@ function formatMoney(value: number | null | undefined) {
   return value == null ? "—" : moneyFormatter.format(value);
 }
 
+function toSafeExternalUrl(value: string | undefined) {
+  if (!value) return null;
+
+  try {
+    const parsedUrl = new URL(value);
+    if (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") {
+      return parsedUrl.toString();
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function DealOpportunityDetail() {
   const { opportunityId } = Route.useParams();
   const opportunity = getDealOpportunityById(opportunityId);
+  const safeListingUrl = toSafeExternalUrl(opportunity?.listingUrl);
 
   if (!opportunity) {
     return (
