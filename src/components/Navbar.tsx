@@ -19,7 +19,9 @@ export function Navbar() {
             <Link to="/auth">Sign in</Link>
           </Button>
           <Button asChild size="sm">
-            <Link to="/dashboard">Open app</Link>
+            <Link to="/auth" search={{ mode: "signup" }}>
+              Get started free
+            </Link>
           </Button>
         </nav>
       </div>

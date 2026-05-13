@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,15 +7,22 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useState, type FormEvent } from "react";
 import { auth } from "@/lib/auth";
 import { Loader2, AlertCircle } from "lucide-react";
+import { z } from "zod";
+
+const authSearchSchema = z.object({
+  mode: z.enum(["signin", "signup"]).default("signin").catch("signin"),
+});
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Sign in — Refurb Genius" }] }),
+  validateSearch: authSearchSchema,
   component: AuthPage,
 });
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const { mode: searchMode } = useSearch({ from: "/auth" });
+  const [mode, setMode] = useState<"signin" | "signup">(searchMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -113,8 +120,12 @@ function AuthPage() {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {loading
-                  ? mode === "signin" ? "Signing in…" : "Creating account…"
-                  : mode === "signin" ? "Sign in" : "Create account"}
+                  ? mode === "signin"
+                    ? "Signing in…"
+                    : "Creating account…"
+                  : mode === "signin"
+                    ? "Sign in"
+                    : "Create account"}
               </Button>
             </form>
 
@@ -152,7 +163,9 @@ function AuthPage() {
               </button>
             </p>
             <p className="mt-4 text-center text-xs text-muted-foreground">
-              <Link to="/" className="hover:underline">← Back to home</Link>
+              <Link to="/" className="hover:underline">
+                ← Back to home
+              </Link>
             </p>
           </CardContent>
         </Card>
