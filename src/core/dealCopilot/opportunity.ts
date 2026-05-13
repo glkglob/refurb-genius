@@ -38,14 +38,16 @@ export function createDealOpportunity(
   const timestamp = now.toISOString();
 
   return {
+    ...input,
     id: crypto.randomUUID(),
     status: "sourced",
     createdAt: timestamp,
     updatedAt: timestamp,
-    ...input,
   };
 }
 
 export function isDealReadyForUnderwriting(input: DealOpportunityInput) {
-  return Boolean(input.title && input.purchasePrice && input.estimatedGdv && input.refurbBudget);
+  return Boolean(
+    input.title?.trim() && input.purchasePrice && input.estimatedGdv && input.refurbBudget,
+  );
 }
