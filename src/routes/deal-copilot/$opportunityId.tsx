@@ -1,10 +1,11 @@
+import { useSyncExternalStore } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ExternalLink, Pencil } from "lucide-react";
 
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { getDealOpportunityById } from "@/core/dealCopilot";
+import { opportunityStore } from "@/core/dealCopilot";
 import { formatGBP } from "@/lib/utils";
 
 export const Route = createFileRoute("/deal-copilot/$opportunityId")({
@@ -49,13 +50,30 @@ function getSafeListingUrl(listingUrl: string | undefined): string | null {
 
 function DealOpportunityDetail() {
   const { opportunityId } = Route.useParams();
-  const opportunity = getDealOpportunityById(opportunityId);
+  const { opportunities, loaded } = useSyncExternalStore(
+    opportunityStore.subscribe,
+    opportunityStore.getSnapshot,
+    opportunityStore.getSnapshot,
+  );
+  const opportunity = opportunities.find((o) => o.id === opportunityId) ?? null;
+
+  if (!loaded) {
+    return (
+      <AppLayout title="Loading…" subtitle="Fetching opportunity from your account.">
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-sm text-muted-foreground">Loading opportunity…</p>
+          </CardContent>
+        </Card>
+      </AppLayout>
+    );
+  }
 
   if (!opportunity) {
     return (
       <AppLayout
         title="Opportunity not found"
-        subtitle="This in-memory opportunity is no longer available. Create or save it again from the Deal Copilot intake flow."
+        subtitle="This opportunity could not be found. It may have been deleted."
         actions={
           <Button asChild variant="outline">
             <Link to="/deal-copilot">
@@ -68,8 +86,8 @@ function DealOpportunityDetail() {
         <Card>
           <CardContent className="p-6">
             <p className="text-sm leading-6 text-muted-foreground">
-              In-memory opportunities only exist during the current app session. A page refresh,
-              server restart, or new browser session can clear them.
+              This opportunity could not be found in your account. It may have been deleted or the
+              link may be incorrect.
             </p>
           </CardContent>
         </Card>

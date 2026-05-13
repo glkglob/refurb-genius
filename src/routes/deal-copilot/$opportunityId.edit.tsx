@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Save } from "lucide-react";
 
@@ -6,7 +6,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  getDealOpportunityById,
+  opportunityStore,
   updateDealOpportunity,
   type DealOpportunityStatus,
 } from "@/core/dealCopilot";
@@ -28,15 +28,36 @@ const editableStatuses: DealOpportunityStatus[] = [
 function EditDealOpportunity() {
   const navigate = useNavigate();
   const { opportunityId } = Route.useParams();
-  const opportunity = getDealOpportunityById(opportunityId);
-  const [status, setStatus] = useState<DealOpportunityStatus>(opportunity?.status ?? "sourced");
+  const { opportunities, loaded } = useSyncExternalStore(
+    opportunityStore.subscribe,
+    opportunityStore.getSnapshot,
+    opportunityStore.getSnapshot,
+  );
+  const opportunity = opportunities.find((o) => o.id === opportunityId) ?? null;
+  const [status, setStatus] = useState<DealOpportunityStatus>("sourced");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (opportunity) setStatus(opportunity.status);
+  }, [opportunity?.id, opportunity?.status]);
+
+  if (!loaded) {
+    return (
+      <AppLayout title="Loading…" subtitle="Fetching opportunity from your account.">
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-sm text-muted-foreground">Loading opportunity…</p>
+          </CardContent>
+        </Card>
+      </AppLayout>
+    );
+  }
 
   if (!opportunity) {
     return (
       <AppLayout
         title="Opportunity not found"
-        subtitle="This in-memory opportunity is no longer available. Create or save it again from the Deal Copilot intake flow."
+        subtitle="This opportunity could not be found. It may have been deleted."
         actions={
           <Button asChild variant="outline">
             <Link to="/deal-copilot">
@@ -49,7 +70,8 @@ function EditDealOpportunity() {
         <Card>
           <CardContent className="p-6">
             <p className="text-sm leading-6 text-muted-foreground">
-              In-memory opportunities only exist during the current app session.
+              This opportunity could not be found in your account. It may have been deleted or the
+              link may be incorrect.
             </p>
           </CardContent>
         </Card>
@@ -57,26 +79,27 @@ function EditDealOpportunity() {
     );
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    const updated = updateDealOpportunity(opportunityId, { status });
-
-    if (!updated) {
-      setError("Unable to update this opportunity. It may have been cleared from memory.");
-      return;
+    try {
+      const updated = await updateDealOpportunity(opportunityId, { status });
+      if (!updated) {
+        setError("Unable to update this opportunity.");
+        return;
+      }
+      await navigate({
+        to: "/deal-copilot/$opportunityId",
+        params: { opportunityId: updated.id },
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update this opportunity.");
     }
-
-    void navigate({
-      to: "/deal-copilot/$opportunityId",
-      params: { opportunityId: updated.id },
-    });
   }
 
   return (
     <AppLayout
       title={`Edit ${opportunity.title}`}
-      subtitle="Update lightweight Deal Copilot opportunity metadata before Supabase persistence is added."
+      subtitle="Update Deal Copilot opportunity metadata."
       actions={
         <Button asChild variant="outline">
           <Link to="/deal-copilot/$opportunityId" params={{ opportunityId }}>

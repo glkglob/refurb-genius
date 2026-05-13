@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, BrainCircuit, LineChart, ShieldAlert } from "lucide-react";
 
@@ -5,7 +6,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { ProductCard } from "@/components/platform";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { listDealOpportunities } from "@/core/dealCopilot";
+import { opportunityStore } from "@/core/dealCopilot";
 import { PRODUCT_DEFINITIONS } from "@/core/platform";
 
 export const Route = createFileRoute("/deal-copilot/")({
@@ -16,7 +17,11 @@ export const Route = createFileRoute("/deal-copilot/")({
 });
 
 function DealCopilotIndex() {
-  const opportunities = listDealOpportunities();
+  const { opportunities } = useSyncExternalStore(
+    opportunityStore.subscribe,
+    opportunityStore.getSnapshot,
+    opportunityStore.getSnapshot,
+  );
 
   return (
     <AppLayout
@@ -71,7 +76,7 @@ function DealCopilotIndex() {
         <div>
           <h2 className="text-lg font-semibold text-foreground">Saved opportunities</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            In-memory opportunities created during this session.
+            Opportunities saved to your account.
           </p>
         </div>
 
