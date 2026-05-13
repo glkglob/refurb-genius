@@ -16,3 +16,11 @@ export type {
   DealOpportunityInput,
   DealOpportunityStatus,
 } from "./opportunity";
+
+export {
+  clearDealOpportunityStore,
+  deleteDealOpportunity,
+  getDealOpportunityById,
+  listDealOpportunities,
+  saveDealOpportunity,
+} from "./opportunityStore";
