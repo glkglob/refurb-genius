@@ -29,7 +29,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "AI-first UK proptech for refurbishment analysis: photo analysis, room redesigns, regional cost estimates and investor-ready reports.",
+          "Upload room photos, review condition flags, see regional refurb estimates, model ROI and export a downloadable deal summary.",
       },
       {
         property: "og:title",
@@ -104,12 +104,13 @@ function Hero() {
               <span className="text-accent">future potential.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-              Refurb Genius analyses property photos, generates redesign concepts, estimates UK
-              refurb costs and projects investor returns — all in minutes.
+              Upload room photos, then add property type, UK region, floor area, condition and
+              finish level. First, you’ll see condition flags and a regional refurb cost range. A
+              first-pass estimate usually takes about 2 minutes once the inputs are complete.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg">
-                <Link to="/auth?mode=signup">
+                <Link to="/auth" search={{ mode: "signup" }}>
                   Get started free <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -117,15 +118,18 @@ function Hero() {
                 <a href="#workflow">See how it works</a>
               </Button>
             </div>
-            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-accent" /> All 12 UK regions
+            <div className="mt-8 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+              <span className="flex items-center gap-1.5 rounded-lg border border-border bg-background/70 px-3 py-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-accent" /> 12 UK regions supported by
+                regional rate adjustments
               </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-accent" /> Investor-ready reports
+              <span className="flex items-center gap-1.5 rounded-lg border border-border bg-background/70 px-3 py-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-accent" /> Downloadable deal summary after
+                estimate generation
               </span>
-              <span className="flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 text-accent" /> No card required
+              <span className="flex items-center gap-1.5 rounded-lg border border-border bg-background/70 px-3 py-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-accent" /> No payment card required to
+                create a free account
               </span>
             </div>
           </div>
@@ -173,7 +177,7 @@ function HowItWorks() {
     {
       icon: FileDown,
       title: "Get your report",
-      desc: "Costs, ROI assumptions and a clear deal summary you can review quickly.",
+      desc: "Costs, ROI and a polished investor-ready report — instantly.",
     },
   ];
   return (
@@ -181,7 +185,7 @@ function HowItWorks() {
       <div className="mx-auto max-w-6xl px-6">
         <SectionHeader
           eyebrow="How it works"
-          title="From photos to costed deal view in three steps."
+          title="From photos to investor report in three steps."
         />
         <div className="mt-12 grid gap-6 md:grid-cols-3">
           {steps.map((s, i) => (
@@ -371,7 +375,7 @@ function ReportExport() {
               Investor-ready reports in one click.
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Export a PDF with scope notes, redesigns, cost estimates and ROI assumptions — useful
+              Export a polished PDF report with analysis, redesigns, costings and metrics — perfect
               for JV partners, lenders and your own deal pipeline.
             </p>
             <ul className="mt-6 space-y-2.5">
