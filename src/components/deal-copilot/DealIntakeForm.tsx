@@ -4,6 +4,7 @@ import { Calculator, CheckCircle2, CircleAlert } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { CONDITION_LEVELS, type ConditionLevel } from "@/lib/analysis";
 import { UK_REGIONS, type UKRegion } from "@/lib/projects";
+import { formatGBP } from "@/lib/utils";
 import {
   createDealOpportunity,
   saveDealOpportunity,
@@ -39,12 +40,6 @@ const initialState: DealFormState = {
   propertyCondition: "Average",
 };
 
-const moneyFormatter = new Intl.NumberFormat("en-GB", {
-  style: "currency",
-  currency: "GBP",
-  maximumFractionDigits: 0,
-});
-
 function parseMoney(value: string): number | undefined {
   const trimmed = value.trim();
   const firstMinus = trimmed.indexOf("-");
@@ -67,10 +62,6 @@ function parseMoney(value: string): number | undefined {
   }
 
   return parsed;
-}
-
-function formatMoney(value: number | null | undefined) {
-  return value == null ? "—" : moneyFormatter.format(value);
 }
 
 function formatPercent(value: number | null | undefined) {
@@ -276,11 +267,11 @@ function DealScorePanel({
         ) : null}
 
         <div className="mt-6 grid gap-3">
-          <MetricRow label="Total project cost" value={formatMoney(result?.total_project_cost)} />
-          <MetricRow label="Estimated profit" value={formatMoney(result?.estimated_profit)} />
+          <MetricRow label="Total project cost" value={formatGBP(result?.total_project_cost)} />
+          <MetricRow label="Estimated profit" value={formatGBP(result?.estimated_profit)} />
           <MetricRow label="ROI" value={formatPercent(result?.roi)} />
           <MetricRow label="Gross yield" value={formatPercent(result?.gross_yield)} />
-          <MetricRow label="Rental uplift" value={formatMoney(result?.rental_uplift)} />
+          <MetricRow label="Rental uplift" value={formatGBP(result?.rental_uplift)} />
           <MetricRow
             label="Investment score"
             value={result ? `${result.investment_score}/10` : "—"}

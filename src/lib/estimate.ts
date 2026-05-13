@@ -6,6 +6,7 @@ import {
   runPricingEngine,
   type PricingEstimateItem,
 } from "@/core/pricing/pricingEngine";
+import { formatGBP as formatGBPUtil } from "./utils";
 
 export {
   CATEGORY_BASE,
@@ -67,4 +68,4 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResult {
   };
 }
 
-export const formatGBP = (n: number) => `£${Math.round(n).toLocaleString("en-GB")}`;
+export const formatGBP = formatGBPUtil;
