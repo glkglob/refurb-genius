@@ -14,6 +14,8 @@ export type RoiEngineInputs = {
   estimated_gdv: number;
   /** Current annual rental income (£), pre-refurb. 0 if unknown. */
   rental_income: number;
+  /** Expected annual rental income (£), post-refurb. Falls back to projection if omitted. */
+  projected_rental_income?: number;
   /** Annual holding costs: finance, insurance, council tax, utilities, etc. */
   holding_costs: number;
   region: UKRegion;
@@ -36,28 +38,29 @@ export type RoiEngineResult = {
 };
 
 // Regional rental strength — used to project post-refurb annual rent when
-// the caller does not provide one. Calibrated to West Midlands = 1.00.
+// the caller does not provide an expected post-refurb rent. Calibrated to
+// West Midlands = 1.00.
 const REGION_RENT_STRENGTH: Record<UKRegion, number> = {
-  "London": 1.55,
-  "South East England": 1.30,
+  London: 1.55,
+  "South East England": 1.3,
   "East of England": 1.18,
-  "South West England": 1.10,
-  "West Midlands": 1.00,
+  "South West England": 1.1,
+  "West Midlands": 1.0,
   "East Midlands": 0.96,
   "Yorkshire and the Humber": 0.92,
   "North West England": 0.95,
-  "Scotland": 0.95,
-  "Wales": 0.90,
+  Scotland: 0.95,
+  Wales: 0.9,
   "North East England": 0.88,
   "Northern Ireland": 0.88,
 };
 
 // Condition risk premium — worse condition = higher delivery risk.
 const CONDITION_RISK: Record<ConditionLevel, number> = {
-  "Modern": 0.0,
-  "Average": 0.5,
-  "Dated": 1.0,
-  "Poor": 1.8,
+  Modern: 0.0,
+  Average: 0.5,
+  Dated: 1.0,
+  Poor: 1.8,
   "Full Renovation Needed": 2.5,
 };
 
@@ -84,7 +87,7 @@ export function runRoiEngine(inputs: RoiEngineInputs): RoiEngineResult {
 
   const roi = total_project_cost > 0 ? (estimated_profit / total_project_cost) * 100 : 0;
 
-  const annualRent = projectedAnnualRent(inputs);
+  const annualRent = Math.max(0, inputs.projected_rental_income ?? projectedAnnualRent(inputs));
   const gross_yield = total_project_cost > 0 ? (annualRent / total_project_cost) * 100 : 0;
   const rental_uplift = Math.max(0, annualRent - Math.max(0, inputs.rental_income));
 
