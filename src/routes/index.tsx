@@ -484,7 +484,7 @@ function FinalCTA() {
           </p>
           <div className="relative mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild size="lg" variant="secondary">
-              <Link to="/auth?mode=signup">
+              <Link to="/auth" search={{ mode: "signup" }}>
                 Get started free <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
