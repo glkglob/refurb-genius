@@ -26,11 +26,23 @@ export function ProductCard({
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{product.description}</p>
         </div>
         <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
-          {ctaLabel}
+          {product.comingSoon ? "Coming soon" : ctaLabel}
         </span>
       </div>
     </>
   );
+
+  if (product.comingSoon) {
+    return (
+      <div
+        className="block cursor-default rounded-2xl border border-border bg-card p-6 text-card-foreground opacity-60 shadow-sm"
+        role="article"
+        aria-disabled="true"
+      >
+        {content}
+      </div>
+    );
+  }
 
   const className =
     "block rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-sm transition hover:-translate-y-0.5 hover:shadow-md";
