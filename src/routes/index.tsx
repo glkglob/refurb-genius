@@ -115,7 +115,7 @@ function Hero() {
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline">
-                <Link to="/dashboard">View demo dashboard</Link>
+                <a href="#workflow">See how it works</a>
               </Button>
             </div>
             <div className="mt-8 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
@@ -181,7 +181,7 @@ function HowItWorks() {
     },
   ];
   return (
-    <section className="border-t border-border bg-secondary/30 py-20">
+    <section id="workflow" className="border-t border-border bg-secondary/30 py-20">
       <div className="mx-auto max-w-6xl px-6">
         <SectionHeader
           eyebrow="How it works"
@@ -337,7 +337,7 @@ function InvestorMetrics() {
       <div className="mx-auto max-w-6xl px-6">
         <SectionHeader
           eyebrow="Investor Metrics"
-          title="Numbers your investors actually want to see."
+          title="Cost, scope and ROI assumptions in one view."
           subtitle="Purchase price, GDV, ROI, gross yield, monthly rent — modelled instantly from the analysis."
         />
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -484,7 +484,7 @@ function FinalCTA() {
           </p>
           <div className="relative mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild size="lg" variant="secondary">
-              <Link to="/auth">
+              <Link to="/auth" search={{ mode: "signup" }}>
                 Get started free <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
