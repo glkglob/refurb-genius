@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,10 +20,8 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthPage() {
-  const { mode: initialMode } = Route.useSearch();
+  const { mode } = Route.useSearch();
   const navigate = useNavigate();
-  const { mode: searchMode } = useSearch({ from: "/auth" });
-  const [mode, setMode] = useState<"signin" | "signup">(searchMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -50,7 +48,7 @@ function AuthPage() {
 
   const toggle = () => {
     setError(null);
-    setMode(mode === "signin" ? "signup" : "signin");
+    navigate({ to: "/auth", search: { mode: mode === "signin" ? "signup" : "signin" } });
   };
 
   return (
