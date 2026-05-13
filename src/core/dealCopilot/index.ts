@@ -4,6 +4,10 @@
 // reuse shared Refurb Genius engines for pricing, ROI, reporting, and AI
 // language helpers. Do not fork pricing or ROI calculations here.
 
+export { getMissingDealFields, scoreDealOpportunity } from "./dealScore";
+
+export type { DealScoreInput, DealScoreResult } from "./dealScore";
+
 export { createDealOpportunity, isDealReadyForUnderwriting } from "./opportunity";
 
 export type {

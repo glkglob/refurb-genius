@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Calculator, FileText, Home, ShieldAlert } from "lucide-react";
 
 import { AppLayout } from "@/components/AppLayout";
-import { DealIntakeScaffold } from "@/components/deal-copilot";
+import { DealIntakeForm } from "@/components/deal-copilot";
 import { Card, CardContent } from "@/components/ui/card";
 
 export const Route = createFileRoute("/deal-copilot/new")({
@@ -19,7 +19,7 @@ function NewDealAnalysis() {
       subtitle="Manual Deal Copilot intake. This is the first wedge before background agents and portal connectors."
     >
       <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
-        <DealIntakeScaffold />
+        <DealIntakeForm />
 
         <div className="space-y-4">
           <SummaryCard
