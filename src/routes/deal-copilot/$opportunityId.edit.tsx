@@ -41,7 +41,7 @@ function EditDealOpportunity() {
   const opportunityKey = opportunity?.id;
   const opportunityStatus = opportunity?.status;
   const [status, setStatus] = useState<DealOpportunityStatus>("sourced");
-  const [error, setError] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
 
   useEffect(() => {
     if (opportunityStatus) setStatus(opportunityStatus);
@@ -116,7 +116,7 @@ function EditDealOpportunity() {
     try {
       const updated = await updateDealOpportunity(opportunityId, { status });
       if (!updated) {
-        setError("This opportunity no longer exists.");
+        setUpdateError("This opportunity no longer exists.");
         return;
       }
       await navigate({
@@ -124,7 +124,7 @@ function EditDealOpportunity() {
         params: { opportunityId: updated.id },
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update this opportunity.");
+      setUpdateError(err instanceof Error ? err.message : "Unable to update this opportunity.");
     }
   }
 
@@ -159,9 +159,9 @@ function EditDealOpportunity() {
               </select>
             </label>
 
-            {error ? (
+            {updateError ? (
               <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {error}
+                {updateError}
               </p>
             ) : null}
 
