@@ -53,6 +53,20 @@ function DealOpportunityDetail() {
     );
   }
 
+  let safeListingUrl: string | null = null;
+
+  if (opportunity.listingUrl) {
+    try {
+      const listingUrl = new URL(opportunity.listingUrl);
+
+      if (listingUrl.protocol === "http:" || listingUrl.protocol === "https:") {
+        safeListingUrl = listingUrl.href;
+      }
+    } catch {
+      safeListingUrl = null;
+    }
+  }
+
   return (
     <AppLayout
       title={opportunity.title}
@@ -103,9 +117,9 @@ function DealOpportunityDetail() {
               />
             </dl>
 
-            {opportunity.listingUrl ? (
+            {safeListingUrl ? (
               <Button asChild className="mt-6">
-                <a href={opportunity.listingUrl} target="_blank" rel="noreferrer">
+                <a href={safeListingUrl} target="_blank" rel="noopener noreferrer">
                   Open listing <ExternalLink className="h-4 w-4" />
                 </a>
               </Button>
