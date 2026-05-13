@@ -18,15 +18,14 @@ let currentUser: AuthUser | null = null;
 let initialized = false;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function fromSupabaseUser(u: { id: string; email?: string | null; user_metadata?: any } | null | undefined): AuthUser | null {
+function fromSupabaseUser(
+  u: { id: string; email?: string | null; user_metadata?: any } | null | undefined,
+): AuthUser | null {
   if (!u) return null;
   return {
     id: u.id,
     email: u.email ?? "",
-    fullName:
-      u.user_metadata?.full_name ??
-      u.user_metadata?.name ??
-      undefined,
+    fullName: u.user_metadata?.full_name ?? u.user_metadata?.name ?? undefined,
   };
 }
 
@@ -66,7 +65,9 @@ export const auth = {
     if (error) throw new Error(error.message);
     const user = fromSupabaseUser(data.user);
     if (!user) throw new Error("Sign in failed.");
-    return user;
+    currentUser = user;
+    listeners.forEach((listener) => listener(currentUser));
+    return currentUser;
   },
   async signUp(email: string, password: string, fullName: string): Promise<AuthUser> {
     if (!email || !password || !fullName) throw new Error("All fields are required.");
