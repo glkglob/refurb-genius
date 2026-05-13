@@ -103,7 +103,7 @@ export function DealIntakeForm() {
 
   const score = useMemo<DealScoreResult>(() => scoreDealOpportunity(scoreInput), [scoreInput]);
 
-  function handleSaveOpportunity() {
+  async function handleSaveOpportunity() {
     if (!score.ready) {
       return;
     }
@@ -122,8 +122,12 @@ export function DealIntakeForm() {
       return;
     }
 
-    saveDealOpportunity(opportunity);
-    setSavedOpportunity(opportunity);
+    try {
+      const saved = await saveDealOpportunity(opportunity);
+      setSavedOpportunity(saved);
+    } catch (err) {
+      console.error("[deal-intake] save failed", err);
+    }
   }
 
   return (
@@ -232,7 +236,7 @@ function DealScorePanel({
 }: {
   score: DealScoreResult;
   savedOpportunity: DealOpportunity | null;
-  onSaveOpportunity: () => void;
+  onSaveOpportunity: () => Promise<void>;
 }) {
   const result = score.roiResult;
 
@@ -282,7 +286,9 @@ function DealScorePanel({
         <button
           type="button"
           disabled={!score.ready}
-          onClick={onSaveOpportunity}
+          onClick={() => {
+            void onSaveOpportunity();
+          }}
           className="mt-6 w-full rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Save opportunity
