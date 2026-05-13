@@ -17,7 +17,7 @@ export const Route = createFileRoute("/deal-copilot/")({
 });
 
 function DealCopilotIndex() {
-  const { opportunities, loaded } = useSyncExternalStore(
+  const { opportunities, loading, loaded, error } = useSyncExternalStore(
     opportunityStore.subscribe,
     opportunityStore.getSnapshot,
     opportunityStore.getSnapshot,
@@ -75,12 +75,27 @@ function DealCopilotIndex() {
       <section className="mt-8 rounded-xl border border-border bg-card p-6">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Saved opportunities</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Opportunities saved to your account.
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">Opportunities saved to your account.</p>
         </div>
 
-        {!loaded ? null : opportunities.length === 0 ? (
+        {!loaded || loading ? (
+          <p className="mt-6 rounded-lg border border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
+            Loading opportunities…
+          </p>
+        ) : error ? (
+          <div className="mt-6 space-y-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+            <p className="text-sm text-destructive">Could not load opportunities: {error}</p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                void opportunityStore.refresh();
+              }}
+            >
+              Retry
+            </Button>
+          </div>
+        ) : opportunities.length === 0 ? (
           <p className="mt-6 rounded-lg border border-dashed border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
             No opportunities saved yet. Create one from the Deal Copilot intake flow.
           </p>

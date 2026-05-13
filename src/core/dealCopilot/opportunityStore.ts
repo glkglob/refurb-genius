@@ -233,31 +233,35 @@ export function getDealOpportunityById(id: string): DealOpportunity | null {
   return opportunityStore.getById(id) ?? null;
 }
 
-export async function saveDealOpportunity(
-  opportunity: DealOpportunity,
-): Promise<DealOpportunity> {
+export async function saveDealOpportunity(opportunity: DealOpportunity): Promise<DealOpportunity> {
   return opportunityStore.save(opportunity);
 }
 
 export async function updateDealOpportunity(
   id: string,
-  updates: Partial<Omit<DealOpportunity, "id" | "createdAt">>,
+  updates: Partial<Omit<DealOpportunity, "id" | "createdAt" | "updatedAt">>,
 ): Promise<DealOpportunity | null> {
   try {
     return await opportunityStore.update(id, updates);
-  } catch (err) {
-    console.error("[deal-opportunities] update failed", { id, updates }, err);
-    return null;
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message.includes("JSON object requested, multiple (or no) rows returned") ||
+        error.message.includes("The result contains 0 rows"))
+    ) {
+      return null;
+    }
+    console.error("[deal-opportunities] update failed", { id, updates }, error);
+    throw error;
   }
 }
 
-export async function deleteDealOpportunity(id: string): Promise<boolean> {
+export async function deleteDealOpportunity(id: string): Promise<void> {
   try {
     await opportunityStore.delete(id);
-    return true;
-  } catch (err) {
-    console.error("[deal-opportunities] delete failed", { id }, err);
-    return false;
+  } catch (error) {
+    console.error("[deal-opportunities] delete failed", { id }, error);
+    throw error;
   }
 }
 
@@ -266,4 +270,3 @@ export function clearDealOpportunityStore(): void {
   loaded = false;
   notify();
 }
-
