@@ -118,20 +118,20 @@ function Hero() {
                 <a href="#workflow">See how it works</a>
               </Button>
             </div>
-            <div className="mt-8 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
-              <span className="flex items-center gap-1.5 rounded-lg border border-border bg-background/70 px-3 py-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-accent" /> 12 UK regions supported by
-                regional rate adjustments
-              </span>
-              <span className="flex items-center gap-1.5 rounded-lg border border-border bg-background/70 px-3 py-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-accent" /> Downloadable deal summary after
-                estimate generation
-              </span>
-              <span className="flex items-center gap-1.5 rounded-lg border border-border bg-background/70 px-3 py-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-accent" /> No payment card required to
-                create a free account
-              </span>
-            </div>
+            <ul className="mt-6 grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
+              {[
+                "12 UK regions supported by regional labour multipliers",
+                "No payment card required to create a free account",
+                "PDF/export available after an estimate is generated",
+              ].map((item) => (
+                <li
+                  key={item}
+                  className="rounded-lg border border-border bg-background/70 px-3 py-2"
+                >
+                  {item}
+                </li>
+              ))}
+            </ul>
           </div>
           <div className="relative">
             <div className="overflow-hidden rounded-2xl border border-border shadow-2xl">
