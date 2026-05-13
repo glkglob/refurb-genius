@@ -23,4 +23,5 @@ export {
   getDealOpportunityById,
   listDealOpportunities,
   saveDealOpportunity,
+  updateDealOpportunity,
 } from "./opportunityStore";
