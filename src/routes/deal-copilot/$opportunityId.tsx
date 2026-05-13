@@ -29,6 +29,24 @@ function toSafeExternalUrl(value: string | undefined) {
   return null;
 }
 
+function getSafeListingUrl(listingUrl: string | undefined): string | null {
+  if (!listingUrl) {
+    return null;
+  }
+
+  try {
+    const url = new URL(listingUrl);
+
+    if (url.protocol === "http:" || url.protocol === "https:") {
+      return url.href;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function DealOpportunityDetail() {
   const { opportunityId } = Route.useParams();
   const opportunity = getDealOpportunityById(opportunityId);
@@ -59,7 +77,7 @@ function DealOpportunityDetail() {
     );
   }
 
-  const safeListingUrl = toSafeExternalUrl(opportunity.listingUrl);
+  const safeListingUrl = getSafeListingUrl(opportunity.listingUrl);
 
   return (
     <AppLayout
