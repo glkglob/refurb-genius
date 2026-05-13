@@ -84,7 +84,7 @@ function DealCopilotIndex() {
           </p>
         ) : error ? (
           <div className="mt-6 space-y-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
-            <p className="text-sm text-destructive">Could not load opportunities: {error}</p>
+            <p className="text-sm text-destructive">Could not load your opportunities. Please try again.</p>
             <Button
               type="button"
               variant="outline"

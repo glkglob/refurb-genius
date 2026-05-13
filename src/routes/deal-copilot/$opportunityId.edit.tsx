@@ -78,7 +78,9 @@ function EditDealOpportunity() {
       >
         <Card>
           <CardContent className="p-6">
-            <p className="text-sm leading-6 text-destructive">Error: {loadError}</p>
+            <p className="text-sm leading-6 text-destructive">
+              This opportunity could not be loaded. Please try again.
+            </p>
           </CardContent>
         </Card>
       </AppLayout>

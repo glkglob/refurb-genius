@@ -88,7 +88,9 @@ function DealOpportunityDetail() {
       >
         <Card>
           <CardContent className="p-6">
-            <p className="text-sm leading-6 text-destructive">Error: {error}</p>
+            <p className="text-sm leading-6 text-destructive">
+              Your opportunities could not be loaded. Please try again.
+            </p>
           </CardContent>
         </Card>
       </AppLayout>
