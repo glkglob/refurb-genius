@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TradesRouteImport } from './routes/trades'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -25,6 +26,11 @@ import { Route as ProjectsIdEstimateRouteImport } from './routes/projects.$id.es
 import { Route as ProjectsIdAnalysisRouteImport } from './routes/projects.$id.analysis'
 import { Route as DealCopilotOpportunityIdEditRouteImport } from './routes/deal-copilot/$opportunityId.edit'
 
+const TradesRoute = TradesRouteImport.update({
+  id: '/trades',
+  path: '/trades',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/settings': typeof SettingsRoute
+  '/trades': typeof TradesRoute
   '/deal-copilot/$opportunityId': typeof DealCopilotOpportunityIdRouteWithChildren
   '/deal-copilot/new': typeof DealCopilotNewRoute
   '/projects/new': typeof ProjectsNewRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/settings': typeof SettingsRoute
+  '/trades': typeof TradesRoute
   '/deal-copilot/$opportunityId': typeof DealCopilotOpportunityIdRouteWithChildren
   '/deal-copilot/new': typeof DealCopilotNewRoute
   '/projects/new': typeof ProjectsNewRoute
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/settings': typeof SettingsRoute
+  '/trades': typeof TradesRoute
   '/deal-copilot/$opportunityId': typeof DealCopilotOpportunityIdRouteWithChildren
   '/deal-copilot/new': typeof DealCopilotNewRoute
   '/projects/new': typeof ProjectsNewRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/settings'
+    | '/trades'
     | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/settings'
+    | '/trades'
     | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/settings'
+    | '/trades'
     | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
@@ -215,6 +227,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DashboardRoute: typeof DashboardRoute
   SettingsRoute: typeof SettingsRoute
+  TradesRoute: typeof TradesRoute
   DealCopilotOpportunityIdRoute: typeof DealCopilotOpportunityIdRouteWithChildren
   DealCopilotNewRoute: typeof DealCopilotNewRoute
   ProjectsNewRoute: typeof ProjectsNewRoute
@@ -228,6 +241,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/trades': {
+      id: '/trades'
+      path: '/trades'
+      fullPath: '/trades'
+      preLoaderRoute: typeof TradesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -356,6 +376,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DashboardRoute: DashboardRoute,
   SettingsRoute: SettingsRoute,
+  TradesRoute: TradesRoute,
   DealCopilotOpportunityIdRoute: DealCopilotOpportunityIdRouteWithChildren,
   DealCopilotNewRoute: DealCopilotNewRoute,
   ProjectsNewRoute: ProjectsNewRoute,
