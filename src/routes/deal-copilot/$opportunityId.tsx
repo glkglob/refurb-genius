@@ -41,7 +41,6 @@ function toSafeExternalUrl(value: string | undefined) {
 function DealOpportunityDetail() {
   const { opportunityId } = Route.useParams();
   const opportunity = getDealOpportunityById(opportunityId);
-  const safeListingUrl = toSafeExternalUrl(opportunity?.listingUrl);
 
   if (!opportunity) {
     return (
@@ -69,19 +68,7 @@ function DealOpportunityDetail() {
     );
   }
 
-  let safeListingUrl: string | null = null;
-
-  if (opportunity.listingUrl) {
-    try {
-      const listingUrl = new URL(opportunity.listingUrl);
-
-      if (listingUrl.protocol === "http:" || listingUrl.protocol === "https:") {
-        safeListingUrl = listingUrl.href;
-      }
-    } catch {
-      safeListingUrl = null;
-    }
-  }
+  const safeListingUrl = toSafeExternalUrl(opportunity.listingUrl);
 
   return (
     <AppLayout
