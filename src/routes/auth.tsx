@@ -10,12 +10,16 @@ import { Loader2, AlertCircle } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Sign in — Refurb Genius" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    mode: search.mode === "signup" ? ("signup" as const) : ("signin" as const),
+  }),
   component: AuthPage,
 });
 
 function AuthPage() {
+  const { mode: initialMode } = Route.useSearch();
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -113,8 +117,12 @@ function AuthPage() {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {loading
-                  ? mode === "signin" ? "Signing in…" : "Creating account…"
-                  : mode === "signin" ? "Sign in" : "Create account"}
+                  ? mode === "signin"
+                    ? "Signing in…"
+                    : "Creating account…"
+                  : mode === "signin"
+                    ? "Sign in"
+                    : "Create account"}
               </Button>
             </form>
 
@@ -152,7 +160,9 @@ function AuthPage() {
               </button>
             </p>
             <p className="mt-4 text-center text-xs text-muted-foreground">
-              <Link to="/" className="hover:underline">← Back to home</Link>
+              <Link to="/" className="hover:underline">
+                ← Back to home
+              </Link>
             </p>
           </CardContent>
         </Card>
