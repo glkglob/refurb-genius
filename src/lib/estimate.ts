@@ -6,7 +6,6 @@ import {
   runPricingEngine,
   type PricingEstimateItem,
 } from "@/core/pricing/pricingEngine";
-import { formatGBP as formatGBPUtil } from "./utils";
 
 export {
   CATEGORY_BASE,
@@ -68,4 +67,4 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResult {
   };
 }
 
-export const formatGBP = formatGBPUtil;
+export { formatGBP } from "./utils";
