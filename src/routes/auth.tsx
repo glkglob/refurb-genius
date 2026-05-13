@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { auth } from "@/lib/auth";
 import { Loader2, AlertCircle } from "lucide-react";
 import { z } from "zod";
@@ -14,13 +14,8 @@ const authSearchSchema = z.object({
 });
 
 export const Route = createFileRoute("/auth")({
-  head: ({ search }) => ({
-    meta: [
-      {
-        title:
-          search.mode === "signup" ? "Create account — Refurb Genius" : "Sign in — Refurb Genius",
-      },
-    ],
+  head: () => ({
+    meta: [{ title: "Sign in — Refurb Genius" }],
   }),
   validateSearch: authSearchSchema,
   component: AuthPage,
@@ -34,6 +29,11 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    document.title =
+      mode === "signup" ? "Create account — Refurb Genius" : "Sign in — Refurb Genius";
+  }, [mode]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
