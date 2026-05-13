@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { ArrowLeft, ExternalLink, Pencil } from "lucide-react";
 
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -84,12 +84,20 @@ function DealOpportunityDetail() {
       title={opportunity.title}
       subtitle="Deal Copilot opportunity detail. This is the underwriting bridge before project conversion."
       actions={
-        <Button asChild variant="outline">
-          <Link to="/deal-copilot">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Deal Copilot
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link to="/deal-copilot">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Deal Copilot
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link to="/deal-copilot/$opportunityId/edit" params={{ opportunityId }}>
+              <Pencil className="h-4 w-4" />
+              Edit opportunity
+            </Link>
+          </Button>
+        </div>
       }
     >
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
