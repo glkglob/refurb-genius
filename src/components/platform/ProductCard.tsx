@@ -1,3 +1,5 @@
+import { Link } from "@tanstack/react-router";
+
 import type { ProductDefinition } from "@/core/platform";
 
 type ProductCardProps = {
@@ -11,11 +13,10 @@ export function ProductCard({
   eyebrow = "Platform module",
   ctaLabel = "Open",
 }: ProductCardProps) {
-  return (
-    <a
-      href={product.href}
-      className="block rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-    >
+  const isExternalHref = /^https?:\/\//.test(product.href);
+
+  const content = (
+    <>
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
         {eyebrow}
       </p>
@@ -28,6 +29,23 @@ export function ProductCard({
           {ctaLabel}
         </span>
       </div>
-    </a>
+    </>
+  );
+
+  const className =
+    "block rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-sm transition hover:-translate-y-0.5 hover:shadow-md";
+
+  if (isExternalHref) {
+    return (
+      <a href={product.href} className={className}>
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <Link to={product.href} className={className}>
+      {content}
+    </Link>
   );
 }
