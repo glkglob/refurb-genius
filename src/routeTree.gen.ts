@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DealCopilotIndexRouteImport } from './routes/deal-copilot/index'
 import { Route as ProjectsNewRouteImport } from './routes/projects.new'
 import { Route as DealCopilotNewRouteImport } from './routes/deal-copilot/new'
+import { Route as DealCopilotOpportunityIdRouteImport } from './routes/deal-copilot/$opportunityId'
 import { Route as ProjectsIdIndexRouteImport } from './routes/projects.$id.index'
 import { Route as ProjectsIdUploadRouteImport } from './routes/projects.$id.upload'
 import { Route as ProjectsIdReportRouteImport } from './routes/projects.$id.report'
@@ -57,6 +58,12 @@ const DealCopilotNewRoute = DealCopilotNewRouteImport.update({
   path: '/deal-copilot/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DealCopilotOpportunityIdRoute =
+  DealCopilotOpportunityIdRouteImport.update({
+    id: '/deal-copilot/$opportunityId',
+    path: '/deal-copilot/$opportunityId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ProjectsIdIndexRoute = ProjectsIdIndexRouteImport.update({
   id: '/projects/$id/',
   path: '/projects/$id/',
@@ -88,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/settings': typeof SettingsRoute
+  '/deal-copilot/$opportunityId': typeof DealCopilotOpportunityIdRoute
   '/deal-copilot/new': typeof DealCopilotNewRoute
   '/projects/new': typeof ProjectsNewRoute
   '/deal-copilot/': typeof DealCopilotIndexRoute
@@ -102,6 +110,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/settings': typeof SettingsRoute
+  '/deal-copilot/$opportunityId': typeof DealCopilotOpportunityIdRoute
   '/deal-copilot/new': typeof DealCopilotNewRoute
   '/projects/new': typeof ProjectsNewRoute
   '/deal-copilot': typeof DealCopilotIndexRoute
@@ -117,6 +126,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRoute
   '/settings': typeof SettingsRoute
+  '/deal-copilot/$opportunityId': typeof DealCopilotOpportunityIdRoute
   '/deal-copilot/new': typeof DealCopilotNewRoute
   '/projects/new': typeof ProjectsNewRoute
   '/deal-copilot/': typeof DealCopilotIndexRoute
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/settings'
+    | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
     | '/deal-copilot/'
@@ -147,6 +158,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/settings'
+    | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
     | '/deal-copilot'
@@ -161,6 +173,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/settings'
+    | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
     | '/deal-copilot/'
@@ -176,6 +189,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   DashboardRoute: typeof DashboardRoute
   SettingsRoute: typeof SettingsRoute
+  DealCopilotOpportunityIdRoute: typeof DealCopilotOpportunityIdRoute
   DealCopilotNewRoute: typeof DealCopilotNewRoute
   ProjectsNewRoute: typeof ProjectsNewRoute
   DealCopilotIndexRoute: typeof DealCopilotIndexRoute
@@ -237,6 +251,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DealCopilotNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/deal-copilot/$opportunityId': {
+      id: '/deal-copilot/$opportunityId'
+      path: '/deal-copilot/$opportunityId'
+      fullPath: '/deal-copilot/$opportunityId'
+      preLoaderRoute: typeof DealCopilotOpportunityIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/$id/': {
       id: '/projects/$id/'
       path: '/projects/$id'
@@ -280,6 +301,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   DashboardRoute: DashboardRoute,
   SettingsRoute: SettingsRoute,
+  DealCopilotOpportunityIdRoute: DealCopilotOpportunityIdRoute,
   DealCopilotNewRoute: DealCopilotNewRoute,
   ProjectsNewRoute: ProjectsNewRoute,
   DealCopilotIndexRoute: DealCopilotIndexRoute,
