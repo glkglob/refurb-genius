@@ -77,6 +77,19 @@ function formatPercent(value: number | null | undefined) {
   return value == null ? "—" : `${value.toFixed(1)}%`;
 }
 
+function hasSameDealOpportunityInputs(first: DealOpportunity | null, second: DealOpportunity) {
+  return Boolean(
+    first &&
+    first.title === second.title &&
+    first.listingUrl === second.listingUrl &&
+    first.postcode === second.postcode &&
+    first.purchasePrice === second.purchasePrice &&
+    first.estimatedGdv === second.estimatedGdv &&
+    first.expectedMonthlyRent === second.expectedMonthlyRent &&
+    first.refurbBudget === second.refurbBudget,
+  );
+}
+
 export function DealIntakeForm() {
   const [form, setForm] = useState<DealFormState>(initialState);
   const [savedOpportunity, setSavedOpportunity] = useState<DealOpportunity | null>(null);
@@ -113,6 +126,10 @@ export function DealIntakeForm() {
       expectedMonthlyRent: scoreInput.expectedMonthlyRent,
       refurbBudget: scoreInput.refurbBudget,
     });
+
+    if (hasSameDealOpportunityInputs(savedOpportunity, opportunity)) {
+      return;
+    }
 
     saveDealOpportunity(opportunity);
     setSavedOpportunity(opportunity);
