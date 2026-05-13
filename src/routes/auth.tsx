@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, useEffect } from "react";
 import { auth } from "@/lib/auth";
 import { Loader2, AlertCircle } from "lucide-react";
 
@@ -15,7 +15,17 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+
+  function readModeFromSearch(): "signin" | "signup" {
+    if (typeof window === "undefined") return "signin";
+    const params = new URLSearchParams(window.location.search);
+    return params.get("mode") === "signup" ? "signup" : "signin";
+  }
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+
+  useEffect(() => {
+    setMode(readModeFromSearch());
+  }, []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -113,8 +123,12 @@ function AuthPage() {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {loading
-                  ? mode === "signin" ? "Signing in…" : "Creating account…"
-                  : mode === "signin" ? "Sign in" : "Create account"}
+                  ? mode === "signin"
+                    ? "Signing in…"
+                    : "Creating account…"
+                  : mode === "signin"
+                    ? "Sign in"
+                    : "Create account"}
               </Button>
             </form>
 
@@ -152,7 +166,9 @@ function AuthPage() {
               </button>
             </p>
             <p className="mt-4 text-center text-xs text-muted-foreground">
-              <Link to="/" className="hover:underline">← Back to home</Link>
+              <Link to="/" className="hover:underline">
+                ← Back to home
+              </Link>
             </p>
           </CardContent>
         </Card>
