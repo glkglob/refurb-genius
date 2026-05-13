@@ -29,11 +29,15 @@ export function scoreDealOpportunity(input: DealScoreInput): DealScoreResult {
     };
   }
 
+  const expectedAnnualRent =
+    input.expectedMonthlyRent === undefined ? undefined : input.expectedMonthlyRent * 12;
+
   const roiResult = runRoiEngine({
     purchase_price: input.purchasePrice!,
     refurb_budget: input.refurbBudget!,
     estimated_gdv: input.estimatedGdv!,
-    rental_income: (input.expectedMonthlyRent ?? 0) * 12,
+    rental_income: 0,
+    projected_rental_income: expectedAnnualRent,
     holding_costs: input.holdingCosts ?? 0,
     region: input.region,
     property_condition: input.propertyCondition,
