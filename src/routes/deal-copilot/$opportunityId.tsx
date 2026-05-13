@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getDealOpportunityById } from "@/core/dealCopilot";
+import { formatGBP } from "@/lib/utils";
 
 export const Route = createFileRoute("/deal-copilot/$opportunityId")({
   head: () => ({
@@ -12,16 +13,6 @@ export const Route = createFileRoute("/deal-copilot/$opportunityId")({
   }),
   component: DealOpportunityDetail,
 });
-
-const moneyFormatter = new Intl.NumberFormat("en-GB", {
-  style: "currency",
-  currency: "GBP",
-  maximumFractionDigits: 0,
-});
-
-function formatMoney(value: number | null | undefined) {
-  return value == null ? "—" : moneyFormatter.format(value);
-}
 
 function toSafeExternalUrl(value: string | undefined) {
   if (!value) return null;
@@ -103,12 +94,12 @@ function DealOpportunityDetail() {
             </div>
 
             <dl className="mt-6 grid gap-4 text-sm md:grid-cols-2">
-              <Metric label="Purchase price" value={formatMoney(opportunity.purchasePrice)} />
-              <Metric label="Estimated GDV" value={formatMoney(opportunity.estimatedGdv)} />
-              <Metric label="Refurb budget" value={formatMoney(opportunity.refurbBudget)} />
+              <Metric label="Purchase price" value={formatGBP(opportunity.purchasePrice)} />
+              <Metric label="Estimated GDV" value={formatGBP(opportunity.estimatedGdv)} />
+              <Metric label="Refurb budget" value={formatGBP(opportunity.refurbBudget)} />
               <Metric
                 label="Expected monthly rent"
-                value={formatMoney(opportunity.expectedMonthlyRent)}
+                value={formatGBP(opportunity.expectedMonthlyRent)}
               />
               <Metric
                 label="Created"
