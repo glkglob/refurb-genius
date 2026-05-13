@@ -50,7 +50,7 @@ function getSafeListingUrl(listingUrl: string | undefined): string | null {
 
 function DealOpportunityDetail() {
   const { opportunityId } = Route.useParams();
-  const { opportunities, loaded } = useSyncExternalStore(
+  const { opportunities, loaded, error } = useSyncExternalStore(
     opportunityStore.subscribe,
     opportunityStore.getSnapshot,
     opportunityStore.getSnapshot,
@@ -63,6 +63,32 @@ function DealOpportunityDetail() {
         <Card>
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground">Loading opportunity…</p>
+          </CardContent>
+        </Card>
+      </AppLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppLayout
+        title="Unable to load opportunity"
+        subtitle="There was a problem loading your saved opportunities."
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              void opportunityStore.refresh();
+            }}
+          >
+            Retry
+          </Button>
+        }
+      >
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-sm leading-6 text-destructive">Error: {error}</p>
           </CardContent>
         </Card>
       </AppLayout>

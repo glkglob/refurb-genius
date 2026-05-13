@@ -84,6 +84,8 @@ function hasSameDealOpportunityInputs(first: DealOpportunity | null, second: Dea
 export function DealIntakeForm() {
   const [form, setForm] = useState<DealFormState>(initialState);
   const [savedOpportunity, setSavedOpportunity] = useState<DealOpportunity | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const scoreInput = useMemo<DealScoreInput>(
     () => ({
@@ -104,7 +106,7 @@ export function DealIntakeForm() {
   const score = useMemo<DealScoreResult>(() => scoreDealOpportunity(scoreInput), [scoreInput]);
 
   async function handleSaveOpportunity() {
-    if (!score.ready) {
+    if (!score.ready || isSaving) {
       return;
     }
 
@@ -122,11 +124,18 @@ export function DealIntakeForm() {
       return;
     }
 
+    setSaveError(null);
+    setIsSaving(true);
     try {
       const saved = await saveDealOpportunity(opportunity);
       setSavedOpportunity(saved);
+      setSaveError(null);
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to save opportunity.";
+      setSaveError(message);
       console.error("[deal-intake] save failed", err);
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -223,6 +232,8 @@ export function DealIntakeForm() {
       <DealScorePanel
         score={score}
         savedOpportunity={savedOpportunity}
+        saveError={saveError}
+        isSaving={isSaving}
         onSaveOpportunity={handleSaveOpportunity}
       />
     </div>
@@ -232,10 +243,14 @@ export function DealIntakeForm() {
 function DealScorePanel({
   score,
   savedOpportunity,
+  saveError,
+  isSaving,
   onSaveOpportunity,
 }: {
   score: DealScoreResult;
   savedOpportunity: DealOpportunity | null;
+  saveError: string | null;
+  isSaving: boolean;
   onSaveOpportunity: () => Promise<void>;
 }) {
   const result = score.roiResult;
@@ -285,14 +300,20 @@ function DealScorePanel({
 
         <button
           type="button"
-          disabled={!score.ready}
+          disabled={!score.ready || isSaving}
           onClick={() => {
             void onSaveOpportunity();
           }}
           className="mt-6 w-full rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Save opportunity
+          {isSaving ? "Saving…" : "Save opportunity"}
         </button>
+
+        {saveError ? (
+          <p className="mt-3 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {saveError}
+          </p>
+        ) : null}
 
         {savedOpportunity ? (
           <p className="mt-3 rounded-lg border border-border bg-secondary/30 px-3 py-2 text-sm text-muted-foreground">

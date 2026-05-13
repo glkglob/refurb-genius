@@ -28,7 +28,11 @@ const editableStatuses: DealOpportunityStatus[] = [
 function EditDealOpportunity() {
   const navigate = useNavigate();
   const { opportunityId } = Route.useParams();
-  const { opportunities, loaded } = useSyncExternalStore(
+  const {
+    opportunities,
+    loaded,
+    error: loadError,
+  } = useSyncExternalStore(
     opportunityStore.subscribe,
     opportunityStore.getSnapshot,
     opportunityStore.getSnapshot,
@@ -39,7 +43,7 @@ function EditDealOpportunity() {
 
   useEffect(() => {
     if (opportunity) setStatus(opportunity.status);
-  }, [opportunity?.id, opportunity?.status]);
+  }, [opportunity]);
 
   if (!loaded) {
     return (
@@ -47,6 +51,32 @@ function EditDealOpportunity() {
         <Card>
           <CardContent className="p-6">
             <p className="text-sm text-muted-foreground">Loading opportunity…</p>
+          </CardContent>
+        </Card>
+      </AppLayout>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <AppLayout
+        title="Unable to load opportunity"
+        subtitle="There was a problem loading your saved opportunities."
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => {
+              void opportunityStore.refresh();
+            }}
+          >
+            Retry
+          </Button>
+        }
+      >
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-sm leading-6 text-destructive">Error: {loadError}</p>
           </CardContent>
         </Card>
       </AppLayout>
@@ -84,7 +114,7 @@ function EditDealOpportunity() {
     try {
       const updated = await updateDealOpportunity(opportunityId, { status });
       if (!updated) {
-        setError("Unable to update this opportunity.");
+        setError("This opportunity no longer exists.");
         return;
       }
       await navigate({
