@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DealCopilotIndexRouteImport } from './routes/deal-copilot/index'
+import { Route as TradesProfileRouteImport } from './routes/trades.profile'
 import { Route as TradesNewRouteImport } from './routes/trades.new'
 import { Route as TradesJobIdRouteImport } from './routes/trades.$jobId'
 import { Route as ProjectsNewRouteImport } from './routes/projects.new'
@@ -63,6 +64,11 @@ const DealCopilotIndexRoute = DealCopilotIndexRouteImport.update({
   id: '/deal-copilot/',
   path: '/deal-copilot/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const TradesProfileRoute = TradesProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => TradesRoute,
 } as any)
 const TradesNewRoute = TradesNewRouteImport.update({
   id: '/new',
@@ -139,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/projects/new': typeof ProjectsNewRoute
   '/trades/$jobId': typeof TradesJobIdRouteWithChildren
   '/trades/new': typeof TradesNewRoute
+  '/trades/profile': typeof TradesProfileRoute
   '/deal-copilot/': typeof DealCopilotIndexRoute
   '/deal-copilot/$opportunityId/edit': typeof DealCopilotOpportunityIdEditRoute
   '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
@@ -160,6 +167,7 @@ export interface FileRoutesByTo {
   '/projects/new': typeof ProjectsNewRoute
   '/trades/$jobId': typeof TradesJobIdRouteWithChildren
   '/trades/new': typeof TradesNewRoute
+  '/trades/profile': typeof TradesProfileRoute
   '/deal-copilot': typeof DealCopilotIndexRoute
   '/deal-copilot/$opportunityId/edit': typeof DealCopilotOpportunityIdEditRoute
   '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
@@ -182,6 +190,7 @@ export interface FileRoutesById {
   '/projects/new': typeof ProjectsNewRoute
   '/trades/$jobId': typeof TradesJobIdRouteWithChildren
   '/trades/new': typeof TradesNewRoute
+  '/trades/profile': typeof TradesProfileRoute
   '/deal-copilot/': typeof DealCopilotIndexRoute
   '/deal-copilot/$opportunityId/edit': typeof DealCopilotOpportunityIdEditRoute
   '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
@@ -205,6 +214,7 @@ export interface FileRouteTypes {
     | '/projects/new'
     | '/trades/$jobId'
     | '/trades/new'
+    | '/trades/profile'
     | '/deal-copilot/'
     | '/deal-copilot/$opportunityId/edit'
     | '/projects/$id/analysis'
@@ -226,6 +236,7 @@ export interface FileRouteTypes {
     | '/projects/new'
     | '/trades/$jobId'
     | '/trades/new'
+    | '/trades/profile'
     | '/deal-copilot'
     | '/deal-copilot/$opportunityId/edit'
     | '/projects/$id/analysis'
@@ -247,6 +258,7 @@ export interface FileRouteTypes {
     | '/projects/new'
     | '/trades/$jobId'
     | '/trades/new'
+    | '/trades/profile'
     | '/deal-copilot/'
     | '/deal-copilot/$opportunityId/edit'
     | '/projects/$id/analysis'
@@ -325,6 +337,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/deal-copilot/'
       preLoaderRoute: typeof DealCopilotIndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/trades/profile': {
+      id: '/trades/profile'
+      path: '/profile'
+      fullPath: '/trades/profile'
+      preLoaderRoute: typeof TradesProfileRouteImport
+      parentRoute: typeof TradesRoute
     }
     '/trades/new': {
       id: '/trades/new'
@@ -428,11 +447,13 @@ const TradesJobIdRouteWithChildren = TradesJobIdRoute._addFileChildren(
 interface TradesRouteChildren {
   TradesJobIdRoute: typeof TradesJobIdRouteWithChildren
   TradesNewRoute: typeof TradesNewRoute
+  TradesProfileRoute: typeof TradesProfileRoute
 }
 
 const TradesRouteChildren: TradesRouteChildren = {
   TradesJobIdRoute: TradesJobIdRouteWithChildren,
   TradesNewRoute: TradesNewRoute,
+  TradesProfileRoute: TradesProfileRoute,
 }
 
 const TradesRouteWithChildren =

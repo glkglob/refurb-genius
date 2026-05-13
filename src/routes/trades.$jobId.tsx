@@ -19,7 +19,7 @@ import {
   X,
   Pencil,
 } from "lucide-react";
-import type { TradesJob, TradesJobInterest } from "@/core/trades";
+import type { TradesJob, TradesJobInterest, TradeProfile } from "@/core/trades";
 import {
   formatCategoryLabel,
   formatStatus,
@@ -33,6 +33,7 @@ import {
   listJobInterests,
   updateTradesJobInterestStatus,
 } from "@/services/trades/tradesJobInterestStore";
+import { getTradeProfileByUserId } from "@/services/trades/tradeProfileStore";
 import { useAuth } from "@/hooks/useAuth";
 import { PlatformNavButtons } from "@/components/PlatformNavButtons";
 
@@ -320,6 +321,19 @@ const statusBadgeClass: Record<string, string> = {
 function OwnerInterestsSection({ jobId }: { jobId: string }) {
   const { state, updateStatus } = useJobInterests(jobId);
   const [actioning, setActioning] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<Map<string, TradeProfile | null>>(new Map());
+
+  useEffect(() => {
+    if (state.status !== "loaded") return;
+    const uniqueIds = [...new Set(state.interests.map((i) => i.userId))];
+    Promise.all(
+      uniqueIds.map((uid) =>
+        getTradeProfileByUserId(uid).then((p) => [uid, p] as [string, TradeProfile | null]),
+      ),
+    ).then((entries) => {
+      setProfiles(new Map(entries));
+    });
+  }, [state]);
 
   async function handleAction(interestId: string, status: "accepted" | "rejected") {
     setActioning(interestId);
@@ -329,6 +343,12 @@ function OwnerInterestsSection({ jobId }: { jobId: string }) {
       setActioning(null);
     }
   }
+
+  const insuranceBadge: Record<string, string> = {
+    insured: "bg-emerald-100 text-emerald-800",
+    not_insured: "bg-red-100 text-red-800",
+    unknown: "bg-muted text-muted-foreground",
+  };
 
   return (
     <Card>
@@ -359,70 +379,104 @@ function OwnerInterestsSection({ jobId }: { jobId: string }) {
 
         {state.status === "loaded" && state.interests.length > 0 && (
           <ul className="divide-y divide-border">
-            {state.interests.map((interest) => (
-              <li key={interest.id} className="py-4 first:pt-0 last:pb-0">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground">
-                        Applicant ID:
-                      </span>
-                      <span className="truncate text-xs text-foreground font-mono">
-                        {interest.userId}
-                      </span>
+            {state.interests.map((interest) => {
+              const profile = profiles.get(interest.userId);
+              return (
+                <li key={interest.id} className="py-4 first:pt-0 last:pb-0">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="space-y-1 min-w-0">
+                      {profile ? (
+                        <>
+                          <p className="font-medium text-foreground text-sm">{profile.businessName}</p>
+                          <p className="text-xs text-muted-foreground">{profile.contactName}</p>
+                          {profile.postcode && (
+                            <p className="text-xs text-muted-foreground">📍 {profile.postcode}</p>
+                          )}
+                          {profile.tradeCategories.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {profile.tradeCategories.map((cat) => (
+                                <span
+                                  key={cat}
+                                  className="inline-flex items-center rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent"
+                                >
+                                  {cat}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${insuranceBadge[profile.insuranceStatus] ?? "bg-muted text-muted-foreground"}`}
+                          >
+                            {profile.insuranceStatus === "insured"
+                              ? "✓ Insured"
+                              : profile.insuranceStatus === "not_insured"
+                                ? "Not insured"
+                                : "Insurance unknown"}
+                          </span>
+                        </>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Applicant:
+                          </span>
+                          <span className="truncate text-xs text-foreground font-mono">
+                            {interest.userId}
+                          </span>
+                        </div>
+                      )}
+                      {interest.message && (
+                        <p className="text-sm text-foreground whitespace-pre-wrap mt-1">
+                          {interest.message}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass[interest.status] ?? "bg-muted text-muted-foreground"}`}
+                        >
+                          {interest.status}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatShortDate(interest.createdAt)}
+                        </span>
+                      </div>
                     </div>
-                    {interest.message && (
-                      <p className="text-sm text-foreground whitespace-pre-wrap">
-                        {interest.message}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass[interest.status] ?? "bg-muted text-muted-foreground"}`}
-                      >
-                        {interest.status}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatShortDate(interest.createdAt)}
-                      </span>
-                    </div>
-                  </div>
 
-                  {interest.status === "pending" && (
-                    <div className="flex shrink-0 gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-emerald-500 text-emerald-700 hover:bg-emerald-50"
-                        disabled={actioning === interest.id}
-                        onClick={() => handleAction(interest.id, "accepted")}
-                      >
-                        {actioning === interest.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <Check className="h-3.5 w-3.5" />
-                        )}
-                        Accept
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="border-red-400 text-red-700 hover:bg-red-50"
-                        disabled={actioning === interest.id}
-                        onClick={() => handleAction(interest.id, "rejected")}
-                      >
-                        {actioning === interest.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <X className="h-3.5 w-3.5" />
-                        )}
-                        Reject
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </li>
-            ))}
+                    {interest.status === "pending" && (
+                      <div className="flex shrink-0 gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-emerald-500 text-emerald-700 hover:bg-emerald-50"
+                          disabled={actioning === interest.id}
+                          onClick={() => handleAction(interest.id, "accepted")}
+                        >
+                          {actioning === interest.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Check className="h-3.5 w-3.5" />
+                          )}
+                          Accept
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-red-400 text-red-700 hover:bg-red-50"
+                          disabled={actioning === interest.id}
+                          onClick={() => handleAction(interest.id, "rejected")}
+                        >
+                          {actioning === interest.id ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <X className="h-3.5 w-3.5" />
+                          )}
+                          Reject
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </CardContent>

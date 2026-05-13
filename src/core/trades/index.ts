@@ -12,6 +12,8 @@ export type {
   CreateTradesJobInterestInput,
 } from "./tradesJobInterest.types";
 
+export type { InsuranceStatus, TradeProfile, UpsertTradeProfileInput } from "./tradeProfile.types";
+
 export const TRADES_JOB_CATEGORIES: {
   value: import("./tradesJob.types").TradesJobCategory;
   label: string;
