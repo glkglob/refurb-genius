@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { ProductCard } from "@/components/platform";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { listDealOpportunities } from "@/core/dealCopilot";
 import { PRODUCT_DEFINITIONS } from "@/core/platform";
 
 export const Route = createFileRoute("/deal-copilot/")({
@@ -15,6 +16,8 @@ export const Route = createFileRoute("/deal-copilot/")({
 });
 
 function DealCopilotIndex() {
+  const opportunities = listDealOpportunities();
+
   return (
     <AppLayout
       title="Deal Copilot"
@@ -63,6 +66,64 @@ function DealCopilotIndex() {
           </CardContent>
         </Card>
       </div>
+
+      <section className="mt-8 rounded-xl border border-border bg-card p-6">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Saved opportunities</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            In-memory opportunities created during this session.
+          </p>
+        </div>
+
+        {opportunities.length === 0 ? (
+          <p className="mt-6 rounded-lg border border-dashed border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
+            No opportunities saved yet. Create one from the Deal Copilot intake flow.
+          </p>
+        ) : (
+          <div className="mt-6 grid gap-4">
+            {opportunities.map((opportunity) => (
+              <article key={opportunity.id} className="rounded-lg border border-border p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-medium text-foreground">{opportunity.title}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {opportunity.postcode ?? "No postcode added"}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
+                    {opportunity.status}
+                  </span>
+                </div>
+
+                <dl className="mt-4 grid gap-3 text-sm md:grid-cols-3">
+                  <div>
+                    <dt className="text-muted-foreground">Purchase price</dt>
+                    <dd className="font-medium text-foreground">
+                      {opportunity.purchasePrice
+                        ? `£${opportunity.purchasePrice.toLocaleString("en-GB")}`
+                        : "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Refurb budget</dt>
+                    <dd className="font-medium text-foreground">
+                      {opportunity.refurbBudget
+                        ? `£${opportunity.refurbBudget.toLocaleString("en-GB")}`
+                        : "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Created</dt>
+                    <dd className="font-medium text-foreground">
+                      {new Date(opportunity.createdAt).toLocaleDateString("en-GB")}
+                    </dd>
+                  </div>
+                </dl>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <ProductCard
