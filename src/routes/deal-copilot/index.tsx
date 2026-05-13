@@ -17,7 +17,7 @@ export const Route = createFileRoute("/deal-copilot/")({
 });
 
 function DealCopilotIndex() {
-  const { opportunities } = useSyncExternalStore(
+  const { opportunities, loaded } = useSyncExternalStore(
     opportunityStore.subscribe,
     opportunityStore.getSnapshot,
     opportunityStore.getSnapshot,
@@ -80,7 +80,7 @@ function DealCopilotIndex() {
           </p>
         </div>
 
-        {opportunities.length === 0 ? (
+        {!loaded ? null : opportunities.length === 0 ? (
           <p className="mt-6 rounded-lg border border-dashed border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
             No opportunities saved yet. Create one from the Deal Copilot intake flow.
           </p>
