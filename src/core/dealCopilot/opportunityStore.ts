@@ -164,7 +164,7 @@ export const opportunityStore = {
   },
   async update(
     id: string,
-    updates: Partial<Omit<DealOpportunity, "id" | "createdAt">>,
+    updates: Partial<Omit<DealOpportunity, "id" | "createdAt" | "updatedAt">>,
   ): Promise<DealOpportunity> {
     const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (updates.title !== undefined) patch.title = updates.title;
