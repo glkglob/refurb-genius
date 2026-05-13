@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,15 +14,21 @@ const authSearchSchema = z.object({
 });
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Sign in — Refurb Genius" }] }),
+  head: ({ search }) => ({
+    meta: [
+      {
+        title:
+          search.mode === "signup" ? "Create account — Refurb Genius" : "Sign in — Refurb Genius",
+      },
+    ],
+  }),
   validateSearch: authSearchSchema,
   component: AuthPage,
 });
 
 function AuthPage() {
+  const { mode } = Route.useSearch();
   const navigate = useNavigate();
-  const { mode: searchMode } = useSearch({ from: "/auth" });
-  const [mode, setMode] = useState<"signin" | "signup">(searchMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -49,7 +55,7 @@ function AuthPage() {
 
   const toggle = () => {
     setError(null);
-    setMode(mode === "signin" ? "signup" : "signin");
+    navigate({ to: "/auth", search: { mode: mode === "signin" ? "signup" : "signin" } });
   };
 
   return (
