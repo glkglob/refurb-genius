@@ -43,7 +43,21 @@ const moneyFormatter = new Intl.NumberFormat("en-GB", {
 });
 
 function parseMoney(value: string): number | undefined {
-  const parsed = Number(value.replace(/[^0-9.]/g, ""));
+  const trimmed = value.trim();
+  const firstMinus = trimmed.indexOf("-");
+
+  if (firstMinus > 0 || trimmed.indexOf("-", firstMinus + 1) !== -1) {
+    return undefined;
+  }
+
+  const sign = firstMinus === 0 ? "-" : "";
+  const normalised = sign + trimmed.replace(/[^0-9.]/g, "");
+
+  if ((normalised.match(/\./g) ?? []).length > 1) {
+    return undefined;
+  }
+
+  const parsed = Number(normalised);
 
   if (!Number.isFinite(parsed) || parsed <= 0) {
     return undefined;
