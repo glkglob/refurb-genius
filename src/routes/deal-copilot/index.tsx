@@ -82,7 +82,12 @@ function DealCopilotIndex() {
         ) : (
           <div className="mt-6 grid gap-4">
             {opportunities.map((opportunity) => (
-              <article key={opportunity.id} className="rounded-lg border border-border p-4">
+              <Link
+                key={opportunity.id}
+                to="/deal-copilot/$opportunityId"
+                params={{ opportunityId: opportunity.id }}
+                className="block rounded-lg border border-border p-4 transition hover:border-accent/60 hover:bg-secondary/20"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h3 className="font-medium text-foreground">{opportunity.title}</h3>
@@ -119,7 +124,7 @@ function DealCopilotIndex() {
                     </dd>
                   </div>
                 </dl>
-              </article>
+              </Link>
             ))}
           </div>
         )}
