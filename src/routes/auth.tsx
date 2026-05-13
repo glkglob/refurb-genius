@@ -1,31 +1,28 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { useState, type FormEvent, useEffect } from "react";
+import { useState, type FormEvent } from "react";
 import { auth } from "@/lib/auth";
 import { Loader2, AlertCircle } from "lucide-react";
+import { z } from "zod";
+
+const authSearchSchema = z.object({
+  mode: z.enum(["signin", "signup"]).default("signin").catch("signin"),
+});
 
 export const Route = createFileRoute("/auth")({
   head: () => ({ meta: [{ title: "Sign in — Refurb Genius" }] }),
+  validateSearch: authSearchSchema,
   component: AuthPage,
 });
 
 function AuthPage() {
   const navigate = useNavigate();
-
-  function readModeFromSearch(): "signin" | "signup" {
-    if (typeof window === "undefined") return "signin";
-    const params = new URLSearchParams(window.location.search);
-    return params.get("mode") === "signup" ? "signup" : "signin";
-  }
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-
-  useEffect(() => {
-    setMode(readModeFromSearch());
-  }, []);
+  const { mode: searchMode } = useSearch({ from: "/auth" });
+  const [mode, setMode] = useState<"signin" | "signup">(searchMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
