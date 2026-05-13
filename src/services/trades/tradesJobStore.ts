@@ -48,8 +48,37 @@ function rowToJob(r: TradesJobRow): TradesJob {
   };
 }
 
+export async function listCurrentUserTradesJobs(): Promise<TradesJob[]> {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData?.user) return [];
+  const { data, error } = await table()
+    .select("*")
+    .eq("user_id", userData.user.id)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data as TradesJobRow[]).map(rowToJob);
+}
+
+export async function getTradesJobById(id: string): Promise<TradesJob | null> {
+  const { data, error } = await table().select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return rowToJob(data as TradesJobRow);
+}
+
 export async function listTradesJobs(): Promise<TradesJob[]> {
   const { data, error } = await table().select("*").order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data as TradesJobRow[]).map(rowToJob);
+}
+
+export async function listPostedTradesJobs(category?: string): Promise<TradesJob[]> {
+  let query = table()
+    .select("*")
+    .eq("status", "posted")
+    .order("created_at", { ascending: false });
+  if (category) query = query.eq("job_category", category);
+  const { data, error } = await query;
   if (error) throw new Error(error.message);
   return (data as TradesJobRow[]).map(rowToJob);
 }

@@ -1,5 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
+import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,9 +13,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, type FormEvent } from "react";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Lock } from "lucide-react";
 import { TRADES_JOB_CATEGORIES, type TradesJobCategory } from "@/core/trades";
 import { createTradesJob } from "@/services/trades/tradesJobStore";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/trades/new")({
   head: () => ({ meta: [{ title: "Post a job — Trades Marketplace" }] }),
@@ -31,9 +33,41 @@ const PROPERTY_TYPE_OPTIONS = [
 ];
 
 function TradesNewPage() {
+  const { user, hydrated } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Wait for auth to hydrate
+  if (!hydrated) {
+    return (
+      <AppLayout title="Post a refurbishment job">
+        <div className="flex items-center justify-center py-24 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Guard: must be signed in
+  if (!user) {
+    return (
+      <AppLayout title="Post a refurbishment job">
+        <EmptyState
+          icon={Lock}
+          title="Sign in required"
+          description="You need to be signed in to post a job."
+          action={
+            <Button asChild>
+              <Link to="/auth" search={{ mode: "signin" }}>
+                Sign in
+              </Link>
+            </Button>
+          }
+        />
+      </AppLayout>
+    );
+  }
 
   const [title, setTitle] = useState("");
   const [propertyAddress, setPropertyAddress] = useState("");

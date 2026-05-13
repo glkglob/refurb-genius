@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Building2, LogOut, Plus } from "lucide-react";
+import { Building2, LogOut, Plus, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
 
@@ -21,6 +21,11 @@ export function MobileTopBar() {
         </span>
       </Link>
       <div className="flex items-center gap-1">
+        <Button asChild size="icon" variant="ghost">
+          <Link to="/trades" aria-label="Trades marketplace">
+            <Briefcase className="h-4 w-4" />
+          </Link>
+        </Button>
         <Button asChild size="icon" variant="ghost">
           <Link to="/projects/new" aria-label="New project">
             <Plus className="h-4 w-4" />

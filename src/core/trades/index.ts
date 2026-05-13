@@ -6,6 +6,12 @@ export type {
   UpdateTradesJobInput,
 } from "./tradesJob.types";
 
+export type {
+  TradesJobInterestStatus,
+  TradesJobInterest,
+  CreateTradesJobInterestInput,
+} from "./tradesJobInterest.types";
+
 export const TRADES_JOB_CATEGORIES: {
   value: import("./tradesJob.types").TradesJobCategory;
   label: string;
