@@ -5,7 +5,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { CONDITION_LEVELS, type ConditionLevel } from "@/lib/analysis";
 import { UK_REGIONS, type UKRegion } from "@/lib/projects";
 import {
+  createDealOpportunity,
+  saveDealOpportunity,
   scoreDealOpportunity,
+  type DealOpportunity,
   type DealScoreInput,
   type DealScoreResult,
 } from "@/core/dealCopilot";
@@ -74,8 +77,22 @@ function formatPercent(value: number | null | undefined) {
   return value == null ? "—" : `${value.toFixed(1)}%`;
 }
 
+function hasSameDealOpportunityInputs(first: DealOpportunity | null, second: DealOpportunity) {
+  return Boolean(
+    first &&
+    first.title === second.title &&
+    first.listingUrl === second.listingUrl &&
+    first.postcode === second.postcode &&
+    first.purchasePrice === second.purchasePrice &&
+    first.estimatedGdv === second.estimatedGdv &&
+    first.expectedMonthlyRent === second.expectedMonthlyRent &&
+    first.refurbBudget === second.refurbBudget,
+  );
+}
+
 export function DealIntakeForm() {
   const [form, setForm] = useState<DealFormState>(initialState);
+  const [savedOpportunity, setSavedOpportunity] = useState<DealOpportunity | null>(null);
 
   const scoreInput = useMemo<DealScoreInput>(
     () => ({
@@ -94,6 +111,29 @@ export function DealIntakeForm() {
   );
 
   const score = useMemo<DealScoreResult>(() => scoreDealOpportunity(scoreInput), [scoreInput]);
+
+  function handleSaveOpportunity() {
+    if (!score.ready) {
+      return;
+    }
+
+    const opportunity = createDealOpportunity({
+      title: scoreInput.title,
+      listingUrl: scoreInput.listingUrl,
+      postcode: scoreInput.postcode,
+      purchasePrice: scoreInput.purchasePrice,
+      estimatedGdv: scoreInput.estimatedGdv,
+      expectedMonthlyRent: scoreInput.expectedMonthlyRent,
+      refurbBudget: scoreInput.refurbBudget,
+    });
+
+    if (hasSameDealOpportunityInputs(savedOpportunity, opportunity)) {
+      return;
+    }
+
+    saveDealOpportunity(opportunity);
+    setSavedOpportunity(opportunity);
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
@@ -185,12 +225,24 @@ export function DealIntakeForm() {
         </CardContent>
       </Card>
 
-      <DealScorePanel score={score} />
+      <DealScorePanel
+        score={score}
+        savedOpportunity={savedOpportunity}
+        onSaveOpportunity={handleSaveOpportunity}
+      />
     </div>
   );
 }
 
-function DealScorePanel({ score }: { score: DealScoreResult }) {
+function DealScorePanel({
+  score,
+  savedOpportunity,
+  onSaveOpportunity,
+}: {
+  score: DealScoreResult;
+  savedOpportunity: DealOpportunity | null;
+  onSaveOpportunity: () => void;
+}) {
   const result = score.roiResult;
 
   return (
@@ -235,6 +287,21 @@ function DealScorePanel({ score }: { score: DealScoreResult }) {
           />
           <MetricRow label="Risk level" value={result?.risk_level ?? "—"} />
         </div>
+
+        <button
+          type="button"
+          disabled={!score.ready}
+          onClick={onSaveOpportunity}
+          className="mt-6 w-full rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Save opportunity
+        </button>
+
+        {savedOpportunity ? (
+          <p className="mt-3 rounded-lg border border-border bg-secondary/30 px-3 py-2 text-sm text-muted-foreground">
+            Saved opportunity: {savedOpportunity.title}
+          </p>
+        ) : null}
 
         <div className="mt-6 rounded-xl border border-border bg-secondary/30 p-4 text-sm leading-6 text-muted-foreground">
           <Calculator className="mb-3 h-4 w-4 text-accent" />
