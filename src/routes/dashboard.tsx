@@ -19,6 +19,7 @@ import {
   BookMarked,
   Lock,
   HandshakeIcon,
+  UserCircle,
 } from "lucide-react";
 import type { TradesJob, TradesJobStatus } from "@/core/trades";
 import {
@@ -170,6 +171,12 @@ function Dashboard() {
             <Link to="/trades/new">
               <Briefcase className="h-4 w-4" />
               Post a Trades Job
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/trades/profile">
+              <UserCircle className="h-4 w-4" />
+              Trade Profile
             </Link>
           </Button>
         </div>
