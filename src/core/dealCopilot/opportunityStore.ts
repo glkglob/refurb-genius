@@ -166,7 +166,21 @@ export const opportunityStore = {
     id: string,
     updates: Partial<Omit<DealOpportunity, "id" | "createdAt" | "updatedAt">>,
   ): Promise<DealOpportunity> {
-    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    type DealOppUpdate = {
+      title?: string;
+      listing_url?: string | null;
+      postcode?: string | null;
+      property_type?: string | null;
+      bedrooms?: number | null;
+      purchase_price?: number | null;
+      estimated_gdv?: number | null;
+      expected_monthly_rent?: number | null;
+      refurb_budget?: number | null;
+      target_exit_strategy?: string | null;
+      status?: string;
+      updated_at?: string;
+    };
+    const patch: DealOppUpdate = { updated_at: new Date().toISOString() };
     if (updates.title !== undefined) patch.title = updates.title;
     if (updates.listingUrl !== undefined) patch.listing_url = updates.listingUrl;
     if (updates.postcode !== undefined) patch.postcode = updates.postcode;
