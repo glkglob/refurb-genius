@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      deal_opportunities: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          listing_url: string | null
+          postcode: string | null
+          property_type: string | null
+          bedrooms: number | null
+          purchase_price: number | null
+          estimated_gdv: number | null
+          expected_monthly_rent: number | null
+          refurb_budget: number | null
+          target_exit_strategy: string | null
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          listing_url?: string | null
+          postcode?: string | null
+          property_type?: string | null
+          bedrooms?: number | null
+          purchase_price?: number | null
+          estimated_gdv?: number | null
+          expected_monthly_rent?: number | null
+          refurb_budget?: number | null
+          target_exit_strategy?: string | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          listing_url?: string | null
+          postcode?: string | null
+          property_type?: string | null
+          bedrooms?: number | null
+          purchase_price?: number | null
+          estimated_gdv?: number | null
+          expected_monthly_rent?: number | null
+          refurb_budget?: number | null
+          target_exit_strategy?: string | null
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       estimate_items: {
         Row: {
           category: string
