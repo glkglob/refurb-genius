@@ -10,7 +10,8 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "admin:bootstrap": "tsx scripts/bootstrap-admin.ts"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
@@ -82,8 +83,10 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
-    "prettier": "^3.7.3",
     "nitro": "^3.0.260429-beta",
+    "postgres": "^3.4.9",
+    "prettier": "^3.7.3",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^7.3.1"
