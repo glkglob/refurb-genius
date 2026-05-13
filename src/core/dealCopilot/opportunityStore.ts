@@ -3,8 +3,10 @@
 // subscribers when async fetches complete.
 import { supabase } from "@/integrations/supabase/client";
 import { auth } from "@/lib/auth";
+import type { Tables } from "@/integrations/supabase/types";
 
-import type { DealOpportunity, DealOpportunityStatus } from "./opportunity";
+import type { DealOpportunity, DealOpportunityStatus, DealExitStrategy } from "./opportunity";
+import type { PropertyType } from "@/core/property";
 
 export type OpportunityStoreSnapshot = {
   opportunities: DealOpportunity[];
@@ -27,21 +29,20 @@ let snapshot: OpportunityStoreSnapshot = {
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function rowToOpportunity(r: any): DealOpportunity {
+function rowToOpportunity(r: Tables<"deal_opportunities">): DealOpportunity {
   return {
     id: r.id,
     title: r.title,
     listingUrl: r.listing_url ?? undefined,
     postcode: r.postcode ?? undefined,
-    propertyType: r.property_type ?? undefined,
+    propertyType: (r.property_type ?? undefined) as PropertyType | undefined,
     bedrooms: r.bedrooms != null ? Number(r.bedrooms) : undefined,
     purchasePrice: r.purchase_price != null ? Number(r.purchase_price) : undefined,
     estimatedGdv: r.estimated_gdv != null ? Number(r.estimated_gdv) : undefined,
     expectedMonthlyRent:
       r.expected_monthly_rent != null ? Number(r.expected_monthly_rent) : undefined,
     refurbBudget: r.refurb_budget != null ? Number(r.refurb_budget) : undefined,
-    targetExitStrategy: r.target_exit_strategy ?? undefined,
+    targetExitStrategy: (r.target_exit_strategy ?? undefined) as DealExitStrategy | undefined,
     status: r.status as DealOpportunityStatus,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
