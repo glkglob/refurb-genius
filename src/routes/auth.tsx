@@ -14,7 +14,14 @@ const authSearchSchema = z.object({
 });
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Sign in — Refurb Genius" }] }),
+  head: ({ search }) => ({
+    meta: [
+      {
+        title:
+          search.mode === "signup" ? "Create account — Refurb Genius" : "Sign in — Refurb Genius",
+      },
+    ],
+  }),
   validateSearch: authSearchSchema,
   component: AuthPage,
 });
