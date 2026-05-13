@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderPlus, Settings, Building2, LogOut } from "lucide-react";
+import { LayoutDashboard, FolderPlus, Settings, Building2, LogOut, LineChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/auth";
 import { useAuth } from "@/hooks/useAuth";
@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 const items = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/projects/new", label: "New Project", icon: FolderPlus },
+  { to: "/deal-copilot", label: "Deal Copilot", icon: LineChart },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -32,7 +33,8 @@ export function Sidebar() {
       </div>
       <nav className="flex-1 space-y-1 p-3">
         {items.map((item) => {
-          const active = pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
+          const active =
+            pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
           return (
             <Link
               key={item.to}
@@ -54,7 +56,9 @@ export function Sidebar() {
         {user && (
           <div className="mb-2 px-3 py-2">
             <p className="truncate text-xs text-muted-foreground">Signed in as</p>
-            <p className="truncate text-sm font-medium text-foreground">{user.fullName ?? user.email}</p>
+            <p className="truncate text-sm font-medium text-foreground">
+              {user.fullName ?? user.email}
+            </p>
           </div>
         )}
         <button

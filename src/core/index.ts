@@ -9,9 +9,11 @@
 // public API. Reserved namespace lives at `@/core/refurbIq` — see
 // `./refurbIq/README.md` for the planned surface and rules.
 
+export * as platform from "./platform";
+export * as property from "./property";
 export * as projects from "./projects";
 export * as pricing from "./pricing";
 export * as roi from "./roi";
 export * as reports from "./reports";
+export * as refurbGenius from "./refurbGenius";
 export * as ai from "./ai";
-
