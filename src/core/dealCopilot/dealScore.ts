@@ -54,7 +54,7 @@ export function scoreDealOpportunity(input: DealScoreInput): DealScoreResult {
 export function getMissingDealFields(input: DealScoreInput): string[] {
   const missing: string[] = [];
 
-  if (!input.title) missing.push("Title");
+  if (!input.title?.trim()) missing.push("Title");
   if (!input.purchasePrice) missing.push("Purchase price");
   if (!input.estimatedGdv) missing.push("Estimated GDV");
   if (!input.refurbBudget) missing.push("Refurb budget");
