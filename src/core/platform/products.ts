@@ -11,6 +11,7 @@ export type ProductDefinition = {
   shortName: string;
   description: string;
   href: string;
+  comingSoon?: boolean;
 };
 
 export const PRODUCT_DEFINITIONS: Record<ProductKey, ProductDefinition> = {
@@ -41,6 +42,7 @@ export const PRODUCT_DEFINITIONS: Record<ProductKey, ProductDefinition> = {
     shortName: "IQ",
     description: "Professional BOQ, cost planning, and specification layer.",
     href: "/refurb-iq",
+    comingSoon: true,
   },
   "agent-tools": {
     key: "agent-tools",
@@ -48,6 +50,7 @@ export const PRODUCT_DEFINITIONS: Record<ProductKey, ProductDefinition> = {
     shortName: "Agents",
     description: "AI listing, pre-sale, and rental-readiness tools.",
     href: "/agent-tools",
+    comingSoon: true,
   },
 };
 
