@@ -328,7 +328,7 @@ function EditForm({
         <Textarea
           id="description"
           placeholder="Describe the work needed, current condition, access, any special requirements…"
-          rows={5}
+          rows={7}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />

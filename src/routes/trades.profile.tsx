@@ -281,7 +281,7 @@ function TradeProfileForm() {
               id="bio"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              rows={4}
+              rows={6}
               placeholder="Briefly describe your experience, specialisms, and working area..."
             />
           </div>

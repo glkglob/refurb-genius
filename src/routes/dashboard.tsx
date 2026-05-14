@@ -280,7 +280,14 @@ function TradesJobsTable({
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        {/* Mobile card list */}
+        <div className="divide-y divide-border sm:hidden">
+          {state.jobs.map((job) => (
+            <TradesJobCard key={job.id} job={job} onUpdate={onUpdate} />
+          ))}
+        </div>
+        {/* Desktop table */}
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-secondary/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -362,6 +369,51 @@ function TradesJobRow({ job, onUpdate }: { job: TradesJob; onUpdate: (job: Trade
   );
 }
 
+function TradesJobCard({ job, onUpdate }: { job: TradesJob; onUpdate: (job: TradesJob) => void }) {
+  const [closing, setClosing] = useState(false);
+
+  async function handleClose() {
+    if (closing) return;
+    setClosing(true);
+    try {
+      const updated = await updateTradesJob(job.id, { status: "closed" });
+      onUpdate(updated);
+    } finally {
+      setClosing(false);
+    }
+  }
+
+  return (
+    <div className="flex items-start justify-between gap-3 p-4">
+      <div className="min-w-0 flex-1 space-y-1">
+        <p className="truncate font-medium text-foreground">{job.title}</p>
+        <p className="text-xs text-muted-foreground">{formatCategoryLabel(job.jobCategory)} · {formatShortDate(job.createdAt)}</p>
+        <div className="flex items-center gap-2">
+          <StatusBadge tone={statusTone(job.status)}>{statusLabel(job.status)}</StatusBadge>
+          <span className="text-xs text-muted-foreground">{formatBudgetRange(job)}</span>
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/trades/$jobId" params={{ jobId: job.id }}><Eye className="h-4 w-4" /></Link>
+        </Button>
+        <Button asChild variant="ghost" size="sm" disabled={job.status === "closed"}>
+          <Link to="/trades/$jobId/edit" params={{ jobId: job.id }}><Pencil className="h-4 w-4" /></Link>
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={job.status === "closed" || closing}
+          onClick={handleClose}
+          className="text-destructive hover:text-destructive"
+        >
+          {closing ? <Loader2 className="h-4 w-4 animate-spin" /> : <XCircle className="h-4 w-4" />}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function MyInterestsTable({ state }: { state: InterestsState }) {
   if (state.status === "loading") {
     return (
@@ -403,7 +455,34 @@ function MyInterestsTable({ state }: { state: InterestsState }) {
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        {/* Mobile card list */}
+        <div className="divide-y divide-border sm:hidden">
+          {state.interests.map((interest) => (
+            <div key={interest.id} className="flex items-start justify-between gap-3 p-4">
+              <div className="min-w-0 flex-1 space-y-1">
+                <p className="truncate font-medium text-foreground">{interest.jobTitle}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatCategoryLabel(interest.jobCategory)} · {interest.jobPostcode ?? "—"} · {formatShortDate(interest.createdAt)}
+                </p>
+                <div className="flex items-center gap-2">
+                  <StatusBadge tone={interestStatusBadge[interest.status] ?? "muted"}>
+                    {interest.status}
+                  </StatusBadge>
+                  {interest.message && (
+                    <span className="max-w-[160px] truncate text-xs text-muted-foreground">{interest.message}</span>
+                  )}
+                </div>
+              </div>
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/trades/$jobId" params={{ jobId: interest.jobId }}>
+                  <Eye className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          ))}
+        </div>
+        {/* Desktop table */}
+        <div className="hidden overflow-x-auto sm:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-secondary/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">

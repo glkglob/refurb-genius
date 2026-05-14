@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, type FormEvent } from "react";
-import { Loader2, AlertCircle, Lock, ArrowLeft } from "lucide-react";
+import { Loader2, AlertCircle, Lock, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { TRADES_JOB_CATEGORIES, type TradesJobCategory } from "@/core/trades";
 import { createTradesJob } from "@/services/trades/tradesJobStore";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,6 +48,7 @@ function TradesNewPageContent() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [posted, setPosted] = useState(false);
 
   // Wait for auth to hydrate
   if (!hydrated) {
@@ -111,7 +112,7 @@ function TradesNewPageContent() {
         budgetMax: budgetMax ? Number(budgetMax) : undefined,
         desiredStartDate: desiredStartDate || undefined,
       });
-      navigate({ to: "/trades" });
+      setPosted(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -132,6 +133,22 @@ function TradesNewPageContent() {
       }
     >
       <PlatformNavButtons exclude={["/trades/new"]} className="mb-8" />
+
+      {posted ? (
+        <div className="mx-auto max-w-2xl space-y-4 rounded-lg border border-emerald-200 bg-emerald-50 p-8 text-center">
+          <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
+          <h2 className="text-xl font-semibold text-emerald-800">Job posted!</h2>
+          <p className="text-sm text-emerald-700">Your job is now live on the Trades Marketplace.</p>
+          <div className="flex justify-center gap-3 pt-2">
+            <Button asChild variant="outline">
+              <Link to="/trades/new" onClick={() => setPosted(false)}>Post another</Link>
+            </Button>
+            <Button asChild>
+              <Link to="/trades">View marketplace</Link>
+            </Button>
+          </div>
+        </div>
+      ) : (
       <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-6">
         {error && (
           <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
@@ -171,7 +188,7 @@ function TradesNewPageContent() {
           <Textarea
             id="description"
             placeholder="Describe the work needed, current condition, access, any special requirements…"
-            rows={5}
+            rows={7}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
@@ -260,6 +277,7 @@ function TradesNewPageContent() {
           )}
         </Button>
       </form>
+      )}
     </AppLayout>
   );
 }

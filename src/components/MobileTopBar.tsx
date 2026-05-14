@@ -21,18 +21,21 @@ export function MobileTopBar() {
         </span>
       </Link>
       <div className="flex items-center gap-1">
-        <Button asChild size="icon" variant="ghost">
+        <Button asChild size="sm" variant="ghost" className="flex h-auto flex-col gap-0.5 px-2 py-1.5 text-[10px] leading-none">
           <Link to="/trades" aria-label="Trades marketplace">
             <Briefcase className="h-4 w-4" />
+            <span>Trades</span>
           </Link>
         </Button>
-        <Button asChild size="icon" variant="ghost">
+        <Button asChild size="sm" variant="ghost" className="flex h-auto flex-col gap-0.5 px-2 py-1.5 text-[10px] leading-none">
           <Link to="/projects/new" aria-label="New project">
             <Plus className="h-4 w-4" />
+            <span>New</span>
           </Link>
         </Button>
-        <Button size="icon" variant="ghost" onClick={handleLogout} aria-label="Sign out">
+        <Button size="sm" variant="ghost" onClick={handleLogout} aria-label="Sign out" className="flex h-auto flex-col gap-0.5 px-2 py-1.5 text-[10px] leading-none">
           <LogOut className="h-4 w-4" />
+          <span>Out</span>
         </Button>
       </div>
     </header>

@@ -28,6 +28,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -123,7 +124,7 @@ function AuthPage() {
                 </div>
               )}
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full" disabled={loading || oauthLoading}>
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {loading
                   ? mode === "signin"
@@ -144,17 +145,20 @@ function AuthPage() {
               type="button"
               variant="outline"
               className="w-full"
-              disabled={loading}
+              disabled={loading || oauthLoading}
               onClick={async () => {
                 setError(null);
+                setOauthLoading(true);
                 try {
                   await auth.signInWithGoogle();
                 } catch (err) {
                   setError(err instanceof Error ? err.message : "Google sign-in failed.");
+                  setOauthLoading(false);
                 }
               }}
             >
-              Continue with Google
+              {oauthLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {oauthLoading ? "Redirecting…" : "Continue with Google"}
             </Button>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
