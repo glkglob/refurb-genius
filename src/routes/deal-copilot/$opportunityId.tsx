@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { opportunityStore } from "@/core/dealCopilot";
 import { formatGBP } from "@/lib/utils";
-import { BuilderOnlyGuard } from "@/components/BuilderOnlyGuard";
+
 
 export const Route = createFileRoute("/deal-copilot/$opportunityId")({
   head: () => ({
@@ -50,12 +50,7 @@ function getSafeListingUrl(listingUrl: string | undefined): string | null {
 }
 
 function DealOpportunityDetail() {
-  // TODO: Remove builder-only guard before beta launch
-  return (
-    <BuilderOnlyGuard>
-      <DealOpportunityDetailContent />
-    </BuilderOnlyGuard>
-  );
+  return <DealOpportunityDetailContent />;
 }
 
 function DealOpportunityDetailContent() {

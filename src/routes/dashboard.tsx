@@ -29,7 +29,7 @@ import {
 } from "@/core/trades/tradesJob.selectors";
 import { listCurrentUserTradesJobs, updateTradesJob } from "@/services/trades/tradesJobStore";
 import { PlatformNavButtons } from "@/components/PlatformNavButtons";
-import { BuilderOnlyGuard } from "@/components/BuilderOnlyGuard";
+
 import {
   listCurrentUserInterestsWithJobs,
   type TradesJobInterestWithJob,
@@ -135,12 +135,7 @@ function statusLabel(status: TradesJobStatus): string {
 // ---------------------------------------------------------------------------
 
 function Dashboard() {
-  // TODO: Remove builder-only guard before beta launch
-  return (
-    <BuilderOnlyGuard>
-      <DashboardContent />
-    </BuilderOnlyGuard>
-  );
+  return <DashboardContent />;
 }
 
 function DashboardContent() {
