@@ -4,6 +4,8 @@ import { ArrowRight, BrainCircuit, LineChart, ShieldAlert } from "lucide-react";
 
 import { AppLayout } from "@/components/AppLayout";
 import { ProductCard } from "@/components/platform";
+import { EmptyState } from "@/components/EmptyState";
+import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { opportunityStore } from "@/core/dealCopilot";
@@ -89,9 +91,9 @@ function DealCopilotIndexContent() {
         </div>
 
         {!loaded || loading ? (
-          <p className="mt-6 rounded-lg border border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
-            Loading opportunities…
-          </p>
+          <div className="mt-6">
+            <LoadingState label="Loading opportunities…" />
+          </div>
         ) : error ? (
           <div className="mt-6 space-y-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
             <p className="text-sm text-destructive">
@@ -108,9 +110,20 @@ function DealCopilotIndexContent() {
             </Button>
           </div>
         ) : opportunities.length === 0 ? (
-          <p className="mt-6 rounded-lg border border-dashed border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
-            No opportunities saved yet. Create one from the Deal Copilot intake flow.
-          </p>
+          <div className="mt-6">
+            <EmptyState
+              icon={BrainCircuit}
+              title="No saved opportunities yet"
+              description="Create one from the Deal Copilot intake flow to start tracking your deals."
+              action={
+                <Button asChild>
+                  <Link to="/deal-copilot/new">
+                    Analyse a deal <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              }
+            />
+          </div>
         ) : (
           <div className="mt-6 grid gap-4">
             {opportunities.map((opportunity) => (
@@ -127,7 +140,13 @@ function DealCopilotIndexContent() {
                       {opportunity.postcode ?? "No postcode added"}
                     </p>
                   </div>
-                  <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
+                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${
+                    opportunity.status === "won"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : opportunity.status === "offer"
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-secondary text-muted-foreground"
+                  }`}>
                     {opportunity.status}
                   </span>
                 </div>
