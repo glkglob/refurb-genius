@@ -18,6 +18,7 @@ import { TRADES_JOB_CATEGORIES, type TradesJobCategory } from "@/core/trades";
 import { createTradesJob } from "@/services/trades/tradesJobStore";
 import { useAuth } from "@/hooks/useAuth";
 import { PlatformNavButtons } from "@/components/PlatformNavButtons";
+import { BuilderOnlyGuard } from "@/components/BuilderOnlyGuard";
 
 export const Route = createFileRoute("/trades/new")({
   head: () => ({ meta: [{ title: "Post a job — Trades Marketplace" }] }),
@@ -34,6 +35,15 @@ const PROPERTY_TYPE_OPTIONS = [
 ];
 
 function TradesNewPage() {
+  // TODO: Remove builder-only guard before beta launch
+  return (
+    <BuilderOnlyGuard>
+      <TradesNewPageContent />
+    </BuilderOnlyGuard>
+  );
+}
+
+function TradesNewPageContent() {
   const { user, hydrated } = useAuth();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);

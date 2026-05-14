@@ -19,6 +19,7 @@ import type { TradesJob } from "@/core/trades";
 import { getTradesJobById, updateTradesJob } from "@/services/trades/tradesJobStore";
 import { useAuth } from "@/hooks/useAuth";
 import { PlatformNavButtons } from "@/components/PlatformNavButtons";
+import { BuilderOnlyGuard } from "@/components/BuilderOnlyGuard";
 
 export const Route = createFileRoute("/trades/$jobId/edit")({
   head: () => ({ meta: [{ title: "Edit job — Trades Marketplace" }] }),
@@ -108,6 +109,15 @@ function useJobForEdit(
 // ---------------------------------------------------------------------------
 
 function TradesJobEditPage() {
+  // TODO: Remove builder-only guard before beta launch
+  return (
+    <BuilderOnlyGuard>
+      <TradesJobEditPageContent />
+    </BuilderOnlyGuard>
+  );
+}
+
+function TradesJobEditPageContent() {
   const { jobId } = Route.useParams();
   const { user, hydrated } = useAuth();
   const state = useJobForEdit(jobId, user?.id ?? null, hydrated);

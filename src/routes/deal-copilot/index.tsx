@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { opportunityStore } from "@/core/dealCopilot";
 import { PRODUCT_DEFINITIONS } from "@/core/platform";
+import { BuilderOnlyGuard } from "@/components/BuilderOnlyGuard";
 
 export const Route = createFileRoute("/deal-copilot/")({
   head: () => ({
@@ -17,6 +18,15 @@ export const Route = createFileRoute("/deal-copilot/")({
 });
 
 function DealCopilotIndex() {
+  // TODO: Remove builder-only guard before beta launch
+  return (
+    <BuilderOnlyGuard>
+      <DealCopilotIndexContent />
+    </BuilderOnlyGuard>
+  );
+}
+
+function DealCopilotIndexContent() {
   const { opportunities, loading, loaded, error } = useSyncExternalStore(
     opportunityStore.subscribe,
     opportunityStore.getSnapshot,
@@ -84,7 +94,9 @@ function DealCopilotIndex() {
           </p>
         ) : error ? (
           <div className="mt-6 space-y-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
-            <p className="text-sm text-destructive">Could not load your opportunities. Please try again.</p>
+            <p className="text-sm text-destructive">
+              Could not load your opportunities. Please try again.
+            </p>
             <Button
               type="button"
               variant="outline"
