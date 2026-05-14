@@ -9,7 +9,7 @@ import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { opportunityStore } from "@/core/dealCopilot";
-import { PRODUCT_DEFINITIONS } from "@/core/platform";
+import { PRODUCTS } from "@/core/platform";
 
 
 export const Route = createFileRoute("/deal-copilot/")({
@@ -178,12 +178,12 @@ function DealCopilotIndexContent() {
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         <ProductCard
-          product={PRODUCT_DEFINITIONS["refurb-genius"]}
+          product={PRODUCTS["refurb-genius"]}
           eyebrow="Connected module"
           ctaLabel="Estimate"
         />
         <ProductCard
-          product={PRODUCT_DEFINITIONS["refurb-iq"]}
+          product={PRODUCTS["refurb-iq"]}
           eyebrow="Future downstream module"
           ctaLabel="BOQ"
         />

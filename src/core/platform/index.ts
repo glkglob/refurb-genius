@@ -1,3 +1,3 @@
-export { PRODUCT_DEFINITIONS, PRODUCT_LIST, getProductDefinition } from "./products";
+export { PRODUCT_IDS, PRODUCTS, getProductConfig, isProductId, getLiveProducts } from "./products";
 
-export type { ProductDefinition, ProductKey } from "./products";
+export type { ProductId, ProductStatus, ProductConfig } from "./products";
