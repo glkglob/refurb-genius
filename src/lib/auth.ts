@@ -77,7 +77,7 @@ export const auth = {
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     if (error) throw new Error(error.message);
@@ -87,7 +87,7 @@ export const auth = {
   },
   async signInWithGoogle(): Promise<void> {
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/dashboard",
+      redirect_uri: window.location.origin + "/auth/callback",
     });
     if (result.error) throw new Error(result.error.message ?? "Google sign-in failed.");
   },
@@ -95,6 +95,16 @@ export const auth = {
     await supabase.auth.signOut();
     currentUser = null;
     notify();
+  },
+  async resetPasswordForEmail(email: string): Promise<void> {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+    });
+    if (error) throw new Error(error.message);
+  },
+  async updatePassword(password: string): Promise<void> {
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) throw new Error(error.message);
   },
   onChange(listener: Listener): () => void {
     ensureInitialized();

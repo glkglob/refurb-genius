@@ -22,6 +22,7 @@ import { Route as TradesJobIdRouteImport } from './routes/trades.$jobId'
 import { Route as ProjectsNewRouteImport } from './routes/projects.new'
 import { Route as DealCopilotNewRouteImport } from './routes/deal-copilot/new'
 import { Route as DealCopilotOpportunityIdRouteImport } from './routes/deal-copilot/$opportunityId'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ProjectsIdIndexRouteImport } from './routes/projects.$id.index'
 import { Route as TradesJobIdEditRouteImport } from './routes/trades.$jobId.edit'
 import { Route as ProjectsIdUploadRouteImport } from './routes/projects.$id.upload'
@@ -96,6 +97,11 @@ const DealCopilotOpportunityIdRoute =
     path: '/deal-copilot/$opportunityId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/callback',
+  path: '/callback',
+  getParentRoute: () => AuthRoute,
+} as any)
 const ProjectsIdIndexRoute = ProjectsIdIndexRouteImport.update({
   id: '/projects/$id/',
   path: '/projects/$id/',
@@ -136,10 +142,11 @@ const DealCopilotOpportunityIdEditRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/settings': typeof SettingsRoute
   '/trades': typeof TradesRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
   '/deal-copilot/$opportunityId': typeof DealCopilotOpportunityIdRouteWithChildren
   '/deal-copilot/new': typeof DealCopilotNewRoute
   '/projects/new': typeof ProjectsNewRoute
@@ -158,10 +165,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/settings': typeof SettingsRoute
   '/trades': typeof TradesRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
   '/deal-copilot/$opportunityId': typeof DealCopilotOpportunityIdRouteWithChildren
   '/deal-copilot/new': typeof DealCopilotNewRoute
   '/projects/new': typeof ProjectsNewRoute
@@ -181,10 +189,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/auth': typeof AuthRoute
+  '/auth': typeof AuthRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/settings': typeof SettingsRoute
   '/trades': typeof TradesRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
   '/deal-copilot/$opportunityId': typeof DealCopilotOpportunityIdRouteWithChildren
   '/deal-copilot/new': typeof DealCopilotNewRoute
   '/projects/new': typeof ProjectsNewRoute
@@ -209,6 +218,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/settings'
     | '/trades'
+    | '/auth/callback'
     | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/settings'
     | '/trades'
+    | '/auth/callback'
     | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
@@ -253,6 +264,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/settings'
     | '/trades'
+    | '/auth/callback'
     | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
@@ -272,7 +284,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
-  AuthRoute: typeof AuthRoute
+  AuthRoute: typeof AuthRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   SettingsRoute: typeof SettingsRoute
   TradesRoute: typeof TradesRouteWithChildren
@@ -380,6 +392,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DealCopilotOpportunityIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/projects/$id/': {
       id: '/projects/$id/'
       path: '/projects/$id'
@@ -432,6 +451,16 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthRouteChildren {
+  AuthCallbackRoute: typeof AuthCallbackRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthCallbackRoute: AuthCallbackRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 interface TradesJobIdRouteChildren {
   TradesJobIdEditRoute: typeof TradesJobIdEditRoute
 }
@@ -476,7 +505,7 @@ const DealCopilotOpportunityIdRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
-  AuthRoute: AuthRoute,
+  AuthRoute: AuthRouteWithChildren,
   DashboardRoute: DashboardRoute,
   SettingsRoute: SettingsRoute,
   TradesRoute: TradesRouteWithChildren,
