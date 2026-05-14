@@ -16,6 +16,7 @@ const listeners = new Set<Listener>();
 
 let currentUser: AuthUser | null = null;
 let initialized = false;
+let sessionHydrated = false;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fromSupabaseUser(
@@ -41,12 +42,14 @@ function ensureInitialized() {
   // 1. Bind the listener BEFORE getSession to avoid races.
   supabase.auth.onAuthStateChange((_event, session) => {
     currentUser = fromSupabaseUser(session?.user);
+    if (!sessionHydrated) sessionHydrated = true;
     notify();
   });
 
   // 2. Restore any persisted session.
   supabase.auth.getSession().then(({ data }) => {
     currentUser = fromSupabaseUser(data.session?.user);
+    if (!sessionHydrated) sessionHydrated = true;
     notify();
   });
 }
@@ -55,6 +58,10 @@ export const auth = {
   getUser(): AuthUser | null {
     ensureInitialized();
     return currentUser;
+  },
+  isHydrated(): boolean {
+    ensureInitialized();
+    return sessionHydrated;
   },
   isAuthenticated(): boolean {
     return currentUser !== null;

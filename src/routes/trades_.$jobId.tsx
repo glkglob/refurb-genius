@@ -37,7 +37,7 @@ import { getTradeProfileByUserId } from "@/services/trades/tradeProfileStore";
 import { useAuth } from "@/hooks/useAuth";
 import { PlatformNavButtons } from "@/components/PlatformNavButtons";
 
-export const Route = createFileRoute("/trades/$jobId")({
+export const Route = createFileRoute("/trades_/$jobId")({
   head: () => ({ meta: [{ title: "Job detail — Trades Marketplace" }] }),
   component: TradesJobDetailPage,
 });

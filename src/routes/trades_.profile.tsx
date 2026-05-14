@@ -24,7 +24,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 
 
-export const Route = createFileRoute("/trades/profile")({
+export const Route = createFileRoute("/trades_/profile")({
   head: () => ({ meta: [{ title: "Trade Profile — Refurb Genius" }] }),
   component: TradeProfilePage,
 });

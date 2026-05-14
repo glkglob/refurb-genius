@@ -21,7 +21,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { PlatformNavButtons } from "@/components/PlatformNavButtons";
 
 
-export const Route = createFileRoute("/trades/$jobId/edit")({
+export const Route = createFileRoute("/trades_/$jobId_/edit")({
   head: () => ({ meta: [{ title: "Edit job — Trades Marketplace" }] }),
   component: TradesJobEditPage,
 });
