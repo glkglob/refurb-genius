@@ -10,7 +10,7 @@ import {
   updateDealOpportunity,
   type DealOpportunityStatus,
 } from "@/core/dealCopilot";
-import { BuilderOnlyGuard } from "@/components/BuilderOnlyGuard";
+
 
 export const Route = createFileRoute("/deal-copilot/$opportunityId/edit")({
   head: () => ({
@@ -27,12 +27,7 @@ const editableStatuses: DealOpportunityStatus[] = [
 ];
 
 function EditDealOpportunity() {
-  // TODO: Remove builder-only guard before beta launch
-  return (
-    <BuilderOnlyGuard>
-      <EditDealOpportunityContent />
-    </BuilderOnlyGuard>
-  );
+  return <EditDealOpportunityContent />;
 }
 
 function EditDealOpportunityContent() {

@@ -4,7 +4,7 @@ import { Calculator, FileText, Home, ShieldAlert } from "lucide-react";
 import { AppLayout } from "@/components/AppLayout";
 import { DealIntakeForm } from "@/components/deal-copilot";
 import { Card, CardContent } from "@/components/ui/card";
-import { BuilderOnlyGuard } from "@/components/BuilderOnlyGuard";
+
 
 export const Route = createFileRoute("/deal-copilot/new")({
   head: () => ({
@@ -14,12 +14,7 @@ export const Route = createFileRoute("/deal-copilot/new")({
 });
 
 function NewDealAnalysis() {
-  // TODO: Remove builder-only guard before beta launch
-  return (
-    <BuilderOnlyGuard>
-      <NewDealAnalysisContent />
-    </BuilderOnlyGuard>
-  );
+  return <NewDealAnalysisContent />;
 }
 
 function NewDealAnalysisContent() {

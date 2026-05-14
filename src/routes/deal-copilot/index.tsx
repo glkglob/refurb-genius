@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { opportunityStore } from "@/core/dealCopilot";
 import { PRODUCT_DEFINITIONS } from "@/core/platform";
-import { BuilderOnlyGuard } from "@/components/BuilderOnlyGuard";
+
 
 export const Route = createFileRoute("/deal-copilot/")({
   head: () => ({
@@ -20,12 +20,7 @@ export const Route = createFileRoute("/deal-copilot/")({
 });
 
 function DealCopilotIndex() {
-  // TODO: Remove builder-only guard before beta launch
-  return (
-    <BuilderOnlyGuard>
-      <DealCopilotIndexContent />
-    </BuilderOnlyGuard>
-  );
+  return <DealCopilotIndexContent />;
 }
 
 function DealCopilotIndexContent() {

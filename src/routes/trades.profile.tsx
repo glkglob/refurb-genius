@@ -22,7 +22,7 @@ import {
   upsertCurrentUserTradeProfile,
 } from "@/services/trades/tradeProfileStore";
 import { useAuth } from "@/hooks/useAuth";
-import { BuilderOnlyGuard } from "@/components/BuilderOnlyGuard";
+
 
 export const Route = createFileRoute("/trades/profile")({
   head: () => ({ meta: [{ title: "Trade Profile — Refurb Genius" }] }),
@@ -30,12 +30,7 @@ export const Route = createFileRoute("/trades/profile")({
 });
 
 function TradeProfilePage() {
-  // TODO: Remove builder-only guard before beta launch
-  return (
-    <BuilderOnlyGuard>
-      <TradeProfilePageContent />
-    </BuilderOnlyGuard>
-  );
+  return <TradeProfilePageContent />;
 }
 
 function TradeProfilePageContent() {
