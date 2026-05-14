@@ -11,7 +11,7 @@ const callbackSearchSchema = z.object({
   error_description: z.string().optional(),
 });
 
-export const Route = createFileRoute("/auth/callback")({
+export const Route = createFileRoute("/auth_/callback")({
   head: () => ({ meta: [{ title: "Signing in… — Refurb Genius" }] }),
   validateSearch: callbackSearchSchema,
   component: AuthCallback,
