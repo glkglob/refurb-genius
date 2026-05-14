@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
 
-import type { ProductDefinition } from "@/core/platform";
+import type { ProductConfig } from "@/core/platform";
 
 type ProductCardProps = {
-  product: ProductDefinition;
+  product: ProductConfig;
   eyebrow?: string;
   ctaLabel?: string;
 };
@@ -13,7 +13,8 @@ export function ProductCard({
   eyebrow = "Platform module",
   ctaLabel = "Open",
 }: ProductCardProps) {
-  const isExternalHref = /^https?:\/\//.test(product.href);
+  const isComingSoon = product.status !== "live";
+  const isExternalHref = /^https?:\/\//.test(product.basePath);
 
   const content = (
     <>
@@ -26,13 +27,13 @@ export function ProductCard({
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{product.description}</p>
         </div>
         <span className="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
-          {product.comingSoon ? "Coming soon" : ctaLabel}
+          {isComingSoon ? "Coming soon" : ctaLabel}
         </span>
       </div>
     </>
   );
 
-  if (product.comingSoon) {
+  if (isComingSoon) {
     return (
       <div
         className="block cursor-default rounded-2xl border border-border bg-card p-6 text-card-foreground opacity-60 shadow-sm"
@@ -49,14 +50,14 @@ export function ProductCard({
 
   if (isExternalHref) {
     return (
-      <a href={product.href} className={className}>
+      <a href={product.basePath} className={className}>
         {content}
       </a>
     );
   }
 
   return (
-    <Link to={product.href} className={className}>
+    <Link to={product.basePath} className={className}>
       {content}
     </Link>
   );

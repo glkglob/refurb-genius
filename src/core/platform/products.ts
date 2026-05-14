@@ -1,61 +1,68 @@
-export type ProductKey =
-  | "platform"
-  | "refurb-genius"
-  | "deal-copilot"
-  | "refurb-iq"
-  | "agent-tools";
+export const PRODUCT_IDS = [
+  "refurb-genius",
+  "deal-copilot",
+  "refurb-iq",
+  "trades-marketplace",
+] as const;
 
-export type ProductDefinition = {
-  key: ProductKey;
+export type ProductId = (typeof PRODUCT_IDS)[number];
+
+export type ProductStatus = "live" | "foundation" | "planned";
+
+export type ProductConfig = {
+  id: ProductId;
   name: string;
-  shortName: string;
   description: string;
-  href: string;
-  comingSoon?: boolean;
+  status: ProductStatus;
+  basePath: string;
+  isCorePlatform: boolean;
 };
 
-export const PRODUCT_DEFINITIONS: Record<ProductKey, ProductDefinition> = {
-  platform: {
-    key: "platform",
-    name: "AI Property Intelligence Ecosystem",
-    shortName: "Platform",
-    description: "Shared operating layer for property intelligence products.",
-    href: "/dashboard",
-  },
+export const PRODUCTS: Record<ProductId, ProductConfig> = {
   "refurb-genius": {
-    key: "refurb-genius",
+    id: "refurb-genius",
     name: "Refurb Genius",
-    shortName: "Refurbs",
-    description: "AI refurbishment estimator and investor report engine.",
-    href: "/dashboard",
+    description: "Main platform shell, dashboard, reports, and shared refurbishment intelligence.",
+    status: "live",
+    basePath: "/dashboard",
+    isCorePlatform: true,
   },
   "deal-copilot": {
-    key: "deal-copilot",
+    id: "deal-copilot",
     name: "Deal Copilot",
-    shortName: "Deals",
-    description: "AI acquisition assistant for property investors.",
-    href: "/deal-copilot",
+    description: "Opportunity analysis, deal persistence, and future deal-to-project conversion.",
+    status: "live",
+    basePath: "/deal-copilot",
+    isCorePlatform: false,
   },
   "refurb-iq": {
-    key: "refurb-iq",
+    id: "refurb-iq",
     name: "Refurb IQ",
-    shortName: "IQ",
-    description: "Professional BOQ, cost planning, and specification layer.",
-    href: "/refurb-iq",
-    comingSoon: true,
+    description: "BOQ, cost plans, specifications, and editable execution outputs.",
+    status: "planned",
+    basePath: "/refurb-iq",
+    isCorePlatform: false,
   },
-  "agent-tools": {
-    key: "agent-tools",
-    name: "Agent Tools",
-    shortName: "Agents",
-    description: "AI listing, pre-sale, and rental-readiness tools.",
-    href: "/agent-tools",
-    comingSoon: true,
+  "trades-marketplace": {
+    id: "trades-marketplace",
+    name: "Trades Marketplace",
+    description: "Public trade job marketplace, job interests, and trade profile onboarding.",
+    status: "live",
+    basePath: "/trades",
+    isCorePlatform: false,
   },
 };
 
-export function getProductDefinition(productKey: ProductKey): ProductDefinition {
-  return PRODUCT_DEFINITIONS[productKey];
+export function getProductConfig(productId: ProductId): ProductConfig {
+  return PRODUCTS[productId];
 }
 
-export const PRODUCT_LIST = Object.values(PRODUCT_DEFINITIONS);
+export function isProductId(value: string): value is ProductId {
+  return PRODUCT_IDS.includes(value as ProductId);
+}
+
+export function getLiveProducts(): ProductConfig[] {
+  return PRODUCT_IDS.map((productId) => PRODUCTS[productId]).filter(
+    (product) => product.status === "live",
+  );
+}
