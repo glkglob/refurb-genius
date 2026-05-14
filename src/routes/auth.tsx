@@ -10,7 +10,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { z } from "zod";
 
 const authSearchSchema = z.object({
-  mode: z.enum(["signin", "signup"]).default("signin").catch("signin"),
+  mode: z.enum(["signin", "signup", "forgot", "reset"]).default("signin").catch("signin"),
 });
 
 export const Route = createFileRoute("/auth")({
@@ -26,27 +26,43 @@ function AuthPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title =
-      mode === "signup" ? "Create account — Refurb Genius" : "Sign in — Refurb Genius";
+    const titles: Record<string, string> = {
+      signin: "Sign in — Refurb Genius",
+      signup: "Create account — Refurb Genius",
+      forgot: "Reset password — Refurb Genius",
+      reset: "Set new password — Refurb Genius",
+    };
+    document.title = titles[mode] ?? "Sign in — Refurb Genius";
   }, [mode]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     setLoading(true);
     try {
       if (mode === "signin") {
         await auth.signIn(email.trim(), password);
-      } else {
+        navigate({ to: "/dashboard" });
+      } else if (mode === "signup") {
         await auth.signUp(email.trim(), password, fullName.trim());
+        navigate({ to: "/dashboard" });
+      } else if (mode === "forgot") {
+        await auth.resetPasswordForEmail(email.trim());
+        setSuccess("Check your inbox — we've sent a password reset link.");
+      } else if (mode === "reset") {
+        if (password !== confirmPassword) throw new Error("Passwords do not match.");
+        await auth.updatePassword(password);
+        navigate({ to: "/dashboard" });
       }
-      navigate({ to: "/dashboard" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -56,9 +72,134 @@ function AuthPage() {
 
   const toggle = () => {
     setError(null);
+    setSuccess(null);
     navigate({ to: "/auth", search: { mode: mode === "signin" ? "signup" : "signin" } });
   };
 
+  // ── Reset password mode ──────────────────────────────────────────────────
+  if (mode === "reset") {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="mx-auto flex max-w-md flex-col px-6 py-16">
+          <Card>
+            <CardContent className="p-8">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                Set new password
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Choose a new password for your account.
+              </p>
+              <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
+                <div className="space-y-1.5">
+                  <Label htmlFor="password">New password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder="At least 6 characters"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                    minLength={6}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="confirmPassword">Confirm password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    placeholder="Repeat your new password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                    minLength={6}
+                  />
+                </div>
+                {error && (
+                  <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {loading ? "Updating…" : "Update password"}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Forgot password mode ─────────────────────────────────────────────────
+  if (mode === "forgot") {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="mx-auto flex max-w-md flex-col px-6 py-16">
+          <Card>
+            <CardContent className="p-8">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                Reset your password
+              </h1>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Enter your email and we'll send a reset link.
+              </p>
+              <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
+                <div className="space-y-1.5">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@company.co.uk"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading || !!success}
+                    required
+                  />
+                </div>
+                {error && (
+                  <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{error}</span>
+                  </div>
+                )}
+                {success && (
+                  <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                    {success}
+                  </div>
+                )}
+                {!success && (
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {loading ? "Sending…" : "Send reset link"}
+                  </Button>
+                )}
+              </form>
+              <p className="mt-6 text-center text-sm text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => navigate({ to: "/auth", search: { mode: "signin" } })}
+                  className="font-medium text-accent hover:underline"
+                >
+                  ← Back to sign in
+                </button>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Sign in / Sign up ────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -103,7 +244,18 @@ function AuthPage() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="password">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  {mode === "signin" && (
+                    <button
+                      type="button"
+                      onClick={() => navigate({ to: "/auth", search: { mode: "forgot" } })}
+                      className="text-xs text-muted-foreground hover:text-accent hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
                 <Input
                   id="password"
                   type="password"
