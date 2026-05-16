@@ -3,7 +3,6 @@
 // to change. Google sign-in is exposed via signInWithGoogle().
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import { isSupabaseConfigured } from "./supabase-config";
 
 export type AuthUser = {
   id: string;
@@ -16,6 +15,7 @@ const listeners = new Set<Listener>();
 
 let currentUser: AuthUser | null = null;
 let initialized = false;
+let initializing = false;
 let sessionHydrated = false;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,41 +34,51 @@ function notify() {
   listeners.forEach((l) => l(currentUser));
 }
 
-function ensureInitialized() {
-  if (initialized || typeof window === "undefined") return;
-  if (!isSupabaseConfigured()) return;
-  initialized = true;
+async function ensureInitialized(): Promise<void> {
+  if (initialized || initializing || typeof window === "undefined") return;
+  initializing = true;
 
-  // 1. Bind the listener BEFORE getSession to avoid races.
-  supabase.auth.onAuthStateChange((_event, session) => {
+  console.log("[auth] ensureInitialized:start");
+
+  try {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+
+    if (error) console.error("[auth] getSession failed", error);
+
     currentUser = fromSupabaseUser(session?.user);
-    if (!sessionHydrated) sessionHydrated = true;
-    notify();
-  });
 
-  // 2. Restore any persisted session.
-  // The .catch ensures hydration always completes even when storage is blocked.
-  supabase.auth.getSession()
-    .then(({ data }) => {
-      currentUser = fromSupabaseUser(data.session?.user);
-    })
-    .catch((err: unknown) => {
-      console.error("[Auth] getSession failed, treating as signed out:", err);
-      currentUser = null;
-    })
-    .finally(() => {
-      if (!sessionHydrated) sessionHydrated = true;
+    supabase.auth.onAuthStateChange((_event, newSession) => {
+      currentUser = fromSupabaseUser(newSession?.user);
+      sessionHydrated = true;
       notify();
     });
+
+    initialized = true;
+  } catch (err) {
+    console.error("[auth] ensureInitialized failed", err);
+    currentUser = null;
+    initialized = true;
+  } finally {
+    sessionHydrated = true;
+    initializing = false;
+    console.log("[auth] ensureInitialized:hydrated", {
+      hasUser: Boolean(currentUser),
+      sessionHydrated,
+    });
+    notify();
+  }
 }
 
 export const auth = {
   getUser(): AuthUser | null {
-    ensureInitialized();
+    void ensureInitialized();
     return currentUser;
   },
   isHydrated(): boolean {
-    ensureInitialized();
+    void ensureInitialized();
     return sessionHydrated;
   },
   isAuthenticated(): boolean {
@@ -122,7 +132,7 @@ export const auth = {
     if (error) throw new Error(error.message);
   },
   onChange(listener: Listener): () => void {
-    ensureInitialized();
+    void ensureInitialized();
     listeners.add(listener);
     return () => {
       listeners.delete(listener);

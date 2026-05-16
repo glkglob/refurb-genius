@@ -12,15 +12,17 @@ export { supabase };
 export { auth } from "@/lib/auth";
 export type { AuthUser } from "@/lib/auth";
 
-/** True when Supabase URL + publishable key are present at build time. */
+/** True when Supabase URL + key are present at build time. Accepts both the
+ *  standard Supabase name (ANON_KEY) and the Lovable alias (PUBLISHABLE_KEY). */
 export function isSupabaseConfigured(): boolean {
   try {
-    const env = (import.meta as { env?: Record<string, string | undefined> }).env;
     const url =
-      env?.VITE_SUPABASE_URL ??
+      import.meta.env.VITE_SUPABASE_URL ||
       (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
     const key =
-      env?.VITE_SUPABASE_PUBLISHABLE_KEY ??
+      import.meta.env.VITE_SUPABASE_ANON_KEY ||
+      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+      (typeof process !== "undefined" ? process.env?.SUPABASE_ANON_KEY : undefined) ||
       (typeof process !== "undefined" ? process.env?.SUPABASE_PUBLISHABLE_KEY : undefined);
     return Boolean(url && key);
   } catch {
