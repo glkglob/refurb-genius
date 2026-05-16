@@ -1,7 +1,11 @@
 // Quick env-availability check so the UI can render a setup message
 // instead of crashing when Lovable Cloud is not connected.
 type ImportMetaEnv = {
-  env?: { VITE_SUPABASE_URL?: string; VITE_SUPABASE_PUBLISHABLE_KEY?: string };
+  env?: {
+    VITE_SUPABASE_URL?: string;
+    VITE_SUPABASE_PUBLISHABLE_KEY?: string;
+    VITE_SUPABASE_ANON_KEY?: string;
+  };
 };
 export function isSupabaseConfigured(): boolean {
   try {
@@ -11,7 +15,9 @@ export function isSupabaseConfigured(): boolean {
       (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
     const key =
       meta.env?.VITE_SUPABASE_PUBLISHABLE_KEY ||
-      (typeof process !== "undefined" ? process.env?.SUPABASE_PUBLISHABLE_KEY : undefined);
+      meta.env?.VITE_SUPABASE_ANON_KEY ||
+      (typeof process !== "undefined" ? process.env?.SUPABASE_PUBLISHABLE_KEY : undefined) ||
+      (typeof process !== "undefined" ? process.env?.SUPABASE_ANON_KEY : undefined);
     return Boolean(url && key);
   } catch {
     return false;

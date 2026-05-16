@@ -38,7 +38,7 @@ export async function getCurrentUserTradeProfile(): Promise<TradeProfile | null>
 
   const { data, error } = await table().select("*").eq("user_id", userData.user.id).maybeSingle();
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(`getCurrentUserTradeProfile: ${error.message}`);
   return data ? rowToProfile(data as TradeProfileRow) : null;
 }
 
@@ -72,6 +72,6 @@ export async function upsertCurrentUserTradeProfile(
     .select("*")
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(`upsertCurrentUserTradeProfile: ${error.message}`);
   return rowToProfile(data as TradeProfileRow);
 }

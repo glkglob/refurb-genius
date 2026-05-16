@@ -7,8 +7,15 @@ function createSupabaseClient() {
   // Fall back to process.env for SSR (server-side rendering)
   const _processEnv = typeof process !== "undefined" ? process.env : {};
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || _processEnv.SUPABASE_URL;
+  // Accept both Lovable-style (PUBLISHABLE_KEY) and standard Supabase (ANON_KEY) names
+  // so Vercel env vars set as VITE_SUPABASE_ANON_KEY work without code changes.
   const SUPABASE_PUBLISHABLE_KEY =
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || _processEnv.SUPABASE_PUBLISHABLE_KEY;
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    import.meta.env.VITE_SUPABASE_ANON_KEY ||
+    _processEnv.SUPABASE_PUBLISHABLE_KEY ||
+    _processEnv.SUPABASE_ANON_KEY;
+
+  console.log("[Supabase] init:", { urlSet: Boolean(SUPABASE_URL), keySet: Boolean(SUPABASE_PUBLISHABLE_KEY) });
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     const missing = [

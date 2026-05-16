@@ -55,7 +55,7 @@ export async function listCurrentUserTradesJobs(): Promise<TradesJob[]> {
     .select("*")
     .eq("user_id", userData.user.id)
     .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(`listCurrentUserTradesJobs: ${error.message}`);
   return (data as TradesJobRow[]).map(rowToJob);
 }
 
@@ -76,7 +76,7 @@ export async function listPostedTradesJobs(category?: string): Promise<TradesJob
   let query = table().select("*").eq("status", "posted").order("created_at", { ascending: false });
   if (category) query = query.eq("job_category", category);
   const { data, error } = await query;
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(`listPostedTradesJobs: ${error.message}`);
   return (data as TradesJobRow[]).map(rowToJob);
 }
 
