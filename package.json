@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "typecheck": "tsc --noEmit",
     "admin:bootstrap": "tsx scripts/bootstrap-admin.ts"
   },
   "dependencies": {
