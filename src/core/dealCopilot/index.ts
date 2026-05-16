@@ -8,14 +8,14 @@ export { getMissingDealFields, scoreDealOpportunity } from "./dealScore";
 
 export type { DealScoreInput, DealScoreResult } from "./dealScore";
 
-export { createDealOpportunity, isDealReadyForUnderwriting } from "./opportunity";
+export { createDealOpportunity, isDealReadyForUnderwriting } from "@repo/types";
 
 export type {
   DealExitStrategy,
   DealOpportunity,
   DealOpportunityInput,
   DealOpportunityStatus,
-} from "./opportunity";
+} from "@repo/types";
 
 export {
   clearDealOpportunityStore,

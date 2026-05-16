@@ -37,6 +37,14 @@ export type {
 } from "./deal";
 export { createDealMetadata } from "./deal";
 
+export type {
+  DealOpportunity,
+  DealOpportunityInput,
+  DealOpportunityStatus,
+  DealExitStrategy,
+} from "./opportunity";
+export { createDealOpportunity, isDealReadyForUnderwriting } from "./opportunity";
+
 // Risk types
 export type { RiskCategory, RiskItem, RiskSourceProductId, RiskSummary } from "./risk";
 export { createEmptyRiskSummary, summariseRisks } from "./risk";

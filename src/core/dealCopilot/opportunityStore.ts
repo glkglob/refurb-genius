@@ -5,8 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { auth } from "@/lib/auth";
 import type { Tables } from "@/integrations/supabase/types";
 
-import type { DealOpportunity, DealOpportunityStatus, DealExitStrategy } from "./opportunity";
-import type { PropertyType } from "@/core/property";
+import type { DealOpportunity, DealOpportunityStatus, DealExitStrategy } from "@repo/types";
+import type { PropertyType } from "@/lib/projects";
 
 export type OpportunityStoreSnapshot = {
   opportunities: DealOpportunity[];
