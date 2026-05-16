@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 
 import { Toaster } from "@/components/ui/sonner";
+import { captureException } from "@/lib/sentry";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -35,6 +36,7 @@ function NotFoundComponent() {
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
+  captureException(error);
   const router = useRouter();
 
   return (
