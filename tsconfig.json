@@ -23,7 +23,8 @@
     "noUncheckedSideEffectImports": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@repo/types": ["packages/types/src"]
+      "@repo/types": ["packages/types/src"],
+      "@repo/core": ["packages/core/src"]
     }
   }
 }

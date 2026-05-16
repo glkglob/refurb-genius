@@ -9,5 +9,5 @@ export {
   CONDITION_MULTIPLIERS,
   FINISH_MULTIPLIERS,
   CATEGORY_BASE,
-} from "@/core/pricing/pricingData";
-export type { FinishLevel, EstimateCategory } from "@/core/pricing/pricingData";
+} from "../utilities/pricingData";
+export type { FinishLevel, EstimateCategory } from "../utilities/pricingData";
