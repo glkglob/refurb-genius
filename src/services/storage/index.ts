@@ -13,9 +13,7 @@ export const PROJECT_PHOTOS_BUCKET = "project-photos";
 
 /** Public URL for a stored object in the project-photos bucket. */
 export function getPublicPhotoUrl(storagePath: string): string {
-  const { data } = supabase.storage
-    .from(PROJECT_PHOTOS_BUCKET)
-    .getPublicUrl(storagePath);
+  const { data } = supabase.storage.from(PROJECT_PHOTOS_BUCKET).getPublicUrl(storagePath);
   return data.publicUrl;
 }
 

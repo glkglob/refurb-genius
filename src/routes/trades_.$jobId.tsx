@@ -387,7 +387,9 @@ function OwnerInterestsSection({ jobId }: { jobId: string }) {
                     <div className="space-y-1 min-w-0">
                       {profile ? (
                         <>
-                          <p className="font-medium text-foreground text-sm">{profile.businessName}</p>
+                          <p className="font-medium text-foreground text-sm">
+                            {profile.businessName}
+                          </p>
                           <p className="text-xs text-muted-foreground">{profile.contactName}</p>
                           {profile.postcode && (
                             <p className="text-xs text-muted-foreground">📍 {profile.postcode}</p>
@@ -509,7 +511,10 @@ function RegisterInterestSection({ jobId }: { jobId: string }) {
     setSubmitError(null);
     setSubmitting(true);
     try {
-      const interest = await createTradesJobInterest({ jobId, message: message.trim() || undefined });
+      const interest = await createTradesJobInterest({
+        jobId,
+        message: message.trim() || undefined,
+      });
       setSubmitted(interest);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
@@ -589,7 +594,9 @@ function RegisterInterestSection({ jobId }: { jobId: string }) {
 
         <div className="mt-5 space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="interest-message">Message <span className="text-muted-foreground">(optional)</span></Label>
+            <Label htmlFor="interest-message">
+              Message <span className="text-muted-foreground">(optional)</span>
+            </Label>
             <Textarea
               id="interest-message"
               placeholder="Briefly describe your experience, availability and approach…"

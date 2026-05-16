@@ -1,6 +1,8 @@
 // Quick env-availability check so the UI can render a setup message
 // instead of crashing when Lovable Cloud is not connected.
-type ImportMetaEnv = { env?: { VITE_SUPABASE_URL?: string; VITE_SUPABASE_PUBLISHABLE_KEY?: string } };
+type ImportMetaEnv = {
+  env?: { VITE_SUPABASE_URL?: string; VITE_SUPABASE_PUBLISHABLE_KEY?: string };
+};
 export function isSupabaseConfigured(): boolean {
   try {
     const meta = import.meta as unknown as ImportMetaEnv;

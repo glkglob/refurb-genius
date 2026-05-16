@@ -8,7 +8,6 @@
 // TODO(refurb-iq): contractor workflows (tender, valuation, snagging) live
 // as sibling tables keyed by `project_id`. No parallel "job" entity.
 
-
 export { projectStore } from "./projectStore";
 export {
   createProject,

@@ -91,11 +91,7 @@ const TEMPLATES: Array<Omit<RoomAnalysis, "id" | "photo_url" | "photo_name">> = 
     room_type: "Living Room",
     condition_level: "Average",
     refurbishment_level: "Light",
-    visible_issues: [
-      "Tired paintwork",
-      "Worn carpet",
-      "Dated pendant lighting",
-    ],
+    visible_issues: ["Tired paintwork", "Worn carpet", "Dated pendant lighting"],
     recommended_works: [
       "Repaint walls and ceilings in neutral palette",
       "Sand and refinish original floorboards",

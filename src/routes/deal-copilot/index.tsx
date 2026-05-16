@@ -11,7 +11,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { opportunityStore } from "@/core/dealCopilot";
 import { PRODUCTS } from "@/core/platform";
 
-
 export const Route = createFileRoute("/deal-copilot/")({
   head: () => ({
     meta: [{ title: "Deal Copilot — Refurb Genius" }],
@@ -135,13 +134,15 @@ function DealCopilotIndexContent() {
                       {opportunity.postcode ?? "No postcode added"}
                     </p>
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-                    opportunity.status === "won"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : opportunity.status === "offer"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-secondary text-muted-foreground"
-                  }`}>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-medium ${
+                      opportunity.status === "won"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : opportunity.status === "offer"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-secondary text-muted-foreground"
+                    }`}
+                  >
                     {opportunity.status}
                   </span>
                 </div>

@@ -1,5 +1,13 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, FolderPlus, Settings, Building2, LogOut, LineChart, Briefcase } from "lucide-react";
+import {
+  LayoutDashboard,
+  FolderPlus,
+  Settings,
+  Building2,
+  LogOut,
+  LineChart,
+  Briefcase,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/auth";
 import { useAuth } from "@/hooks/useAuth";

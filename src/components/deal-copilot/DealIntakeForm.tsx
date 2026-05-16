@@ -133,7 +133,9 @@ export function DealIntakeForm() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to save opportunity.";
       setSaveError(
-        message.startsWith("Unable to save") ? message : "Unable to save opportunity. Please try again.",
+        message.startsWith("Unable to save")
+          ? message
+          : "Unable to save opportunity. Please try again.",
       );
       console.error("[deal-intake] save failed", err);
     } finally {

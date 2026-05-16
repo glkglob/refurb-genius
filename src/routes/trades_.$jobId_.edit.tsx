@@ -20,7 +20,6 @@ import { getTradesJobById, updateTradesJob } from "@/services/trades/tradesJobSt
 import { useAuth } from "@/hooks/useAuth";
 import { PlatformNavButtons } from "@/components/PlatformNavButtons";
 
-
 export const Route = createFileRoute("/trades_/$jobId_/edit")({
   head: () => ({ meta: [{ title: "Edit job — Trades Marketplace" }] }),
   component: TradesJobEditPage,
@@ -57,11 +56,7 @@ const STATUS_OPTIONS: { value: TradesJobStatus; label: string }[] = [
 // Data hook
 // ---------------------------------------------------------------------------
 
-function useJobForEdit(
-  jobId: string,
-  userId: string | null,
-  hydrated: boolean,
-): PageState {
+function useJobForEdit(jobId: string, userId: string | null, hydrated: boolean): PageState {
   const [state, setState] = useState<PageState>({ status: "loading" });
 
   useEffect(() => {
@@ -231,15 +226,7 @@ function TradesJobEditPageContent() {
 // Form component
 // ---------------------------------------------------------------------------
 
-function EditForm({
-  job,
-  onSaved,
-  jobId,
-}: {
-  job: TradesJob;
-  onSaved: () => void;
-  jobId: string;
-}) {
+function EditForm({ job, onSaved, jobId }: { job: TradesJob; onSaved: () => void; jobId: string }) {
   const [title, setTitle] = useState(job.title);
   const [propertyAddress, setPropertyAddress] = useState(job.propertyAddress ?? "");
   const [postcode, setPostcode] = useState(job.postcode ?? "");

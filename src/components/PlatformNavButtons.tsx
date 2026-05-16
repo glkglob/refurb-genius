@@ -57,7 +57,17 @@ export function PlatformNavButtons({ exclude = [], className }: PlatformNavButto
   if (entries.length === 0) return null;
 
   return (
-    <div className={cn("grid gap-3", entries.length === 4 ? "sm:grid-cols-4" : entries.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2", className)}>
+    <div
+      className={cn(
+        "grid gap-3",
+        entries.length === 4
+          ? "sm:grid-cols-4"
+          : entries.length === 3
+            ? "sm:grid-cols-3"
+            : "sm:grid-cols-2",
+        className,
+      )}
+    >
       {entries.map((entry) => (
         <Link
           key={entry.to}

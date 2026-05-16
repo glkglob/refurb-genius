@@ -23,7 +23,6 @@ import {
 } from "@/services/trades/tradeProfileStore";
 import { useAuth } from "@/hooks/useAuth";
 
-
 export const Route = createFileRoute("/trades_/profile")({
   head: () => ({ meta: [{ title: "Trade Profile — Refurb Genius" }] }),
   component: TradeProfilePage,

@@ -9,12 +9,7 @@
 // pricing, ROI, or financial numbers — those live in the pricing/ROI
 // engines and are deterministic.
 import { analysisStore } from "@/lib/analysis";
-import type {
-  RoomAnalysis,
-  RoomType,
-  ConditionLevel,
-  RefurbLevel,
-} from "@/lib/analysis";
+import type { RoomAnalysis, RoomType, ConditionLevel, RefurbLevel } from "@/lib/analysis";
 
 export type PhotoAnalysisInput = {
   projectId: string;

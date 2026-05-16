@@ -73,10 +73,7 @@ export async function listTradesJobs(): Promise<TradesJob[]> {
 }
 
 export async function listPostedTradesJobs(category?: string): Promise<TradesJob[]> {
-  let query = table()
-    .select("*")
-    .eq("status", "posted")
-    .order("created_at", { ascending: false });
+  let query = table().select("*").eq("status", "posted").order("created_at", { ascending: false });
   if (category) query = query.eq("job_category", category);
   const { data, error } = await query;
   if (error) throw new Error(error.message);
