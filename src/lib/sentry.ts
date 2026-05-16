@@ -16,11 +16,10 @@ const enabled = Boolean(dsn && import.meta.env.PROD && typeof window !== "undefi
 if (enabled) {
   Sentry.init({
     dsn,
-    // Captures: unhandled exceptions, unhandled promise rejections, React render errors.
-    // Default integrations include globalHandlersIntegration and browserApiErrorsIntegration.
+    // Default integrations capture unhandled exceptions, unhandled promise
+    // rejections (globalHandlersIntegration) and browser API errors.
     tracesSampleRate: 0, // no performance tracing
-    replaysSessionSampleRate: 0, // no session replay
-    replaysOnErrorSampleRate: 0,
+    // No replayIntegration added — session replay is disabled.
   });
 }
 
