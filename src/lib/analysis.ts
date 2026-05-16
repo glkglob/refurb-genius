@@ -91,11 +91,7 @@ const TEMPLATES: Array<Omit<RoomAnalysis, "id" | "photo_url" | "photo_name">> = 
     room_type: "Living Room",
     condition_level: "Average",
     refurbishment_level: "Light",
-    visible_issues: [
-      "Tired paintwork",
-      "Worn carpet",
-      "Dated pendant lighting",
-    ],
+    visible_issues: ["Tired paintwork", "Worn carpet", "Dated pendant lighting"],
     recommended_works: [
       "Repaint walls and ceilings in neutral palette",
       "Sand and refinish original floorboards",
@@ -188,6 +184,14 @@ export const analysisStore = {
     return cache.get(projectId);
   },
   async run(projectId: string): Promise<RoomAnalysis[]> {
+    if (import.meta.env.VITE_OPENAI_API_KEY) {
+      // Delegate to real Vision provider. Dynamic import avoids circular module refs.
+      const { openAiVisionPhotoAnalysisProvider } = await import("@/core/ai/openAiVisionProvider");
+      const result = await openAiVisionPhotoAnalysisProvider.run({ projectId });
+      cache.set(projectId, result);
+      notify();
+      return result;
+    }
     await delay();
     const result = buildFromPhotos(projectId);
     cache.set(projectId, result);
