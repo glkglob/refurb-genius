@@ -47,11 +47,19 @@ function ensureInitialized() {
   });
 
   // 2. Restore any persisted session.
-  supabase.auth.getSession().then(({ data }) => {
-    currentUser = fromSupabaseUser(data.session?.user);
-    if (!sessionHydrated) sessionHydrated = true;
-    notify();
-  });
+  // The .catch ensures hydration always completes even when storage is blocked.
+  supabase.auth.getSession()
+    .then(({ data }) => {
+      currentUser = fromSupabaseUser(data.session?.user);
+    })
+    .catch((err: unknown) => {
+      console.error("[Auth] getSession failed, treating as signed out:", err);
+      currentUser = null;
+    })
+    .finally(() => {
+      if (!sessionHydrated) sessionHydrated = true;
+      notify();
+    });
 }
 
 export const auth = {
