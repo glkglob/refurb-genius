@@ -57,13 +57,15 @@ function AnalysisPage() {
       // Kick off redesign concept generation (real AI when key present).
       if (import.meta.env.VITE_OPENAI_API_KEY) {
         setConceptsLoading(true);
-        generateRedesignConcepts({ projectId: id }).then((generated) => {
-          if (cancelled) return;
-          setConcepts(generated);
-          setConceptsLoading(false);
-        }).catch(() => {
-          if (!cancelled) setConceptsLoading(false);
-        });
+        generateRedesignConcepts({ projectId: id })
+          .then((generated) => {
+            if (cancelled) return;
+            setConcepts(generated);
+            setConceptsLoading(false);
+          })
+          .catch(() => {
+            if (!cancelled) setConceptsLoading(false);
+          });
       }
     };
 
@@ -107,7 +109,13 @@ function AnalysisPage() {
   if (loading) {
     return (
       <AppLayout title="AI analysis" subtitle="Analysing your photos…">
-        <LoadingState label={import.meta.env.VITE_OPENAI_API_KEY ? "Running AI analysis on your photos…" : "Running mock AI analysis on your photos"} />
+        <LoadingState
+          label={
+            import.meta.env.VITE_OPENAI_API_KEY
+              ? "Running AI analysis on your photos…"
+              : "Running mock AI analysis on your photos"
+          }
+        />
       </AppLayout>
     );
   }
