@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import {
   Building2,
   Printer,
   Download,
+  Loader2,
   Sparkles,
   Calendar,
   ShieldCheck,
@@ -46,6 +47,23 @@ function ReportPage() {
   const [savedEstimate, setSavedEstimate] = useState<PersistedProjectEstimate | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(true);
   const [estimateLoadError, setEstimateLoadError] = useState<Error | null>(null);
+  const [pdfExporting, setPdfExporting] = useState(false);
+
+  const handleExportPdf = useCallback(async () => {
+    if (pdfExporting) return;
+    setPdfExporting(true);
+    try {
+      const { exportReportPdf } = await import("@/lib/exportPdf");
+      const safeFilename = project
+        ? `refurb-genius-${project.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
+        : "refurb-genius-report";
+      await exportReportPdf({ filename: safeFilename });
+    } catch (err) {
+      console.error("[pdf] export failed", err);
+    } finally {
+      setPdfExporting(false);
+    }
+  }, [pdfExporting, project]);
 
   useEffect(() => {
     let cancelled = false;
@@ -249,8 +267,13 @@ function ReportPage() {
               <Button variant="outline" size="sm" onClick={() => window.print()}>
                 <Printer className="h-4 w-4" /> Print
               </Button>
-              <Button size="sm" onClick={() => window.print()}>
-                <Download className="h-4 w-4" /> Export PDF
+              <Button size="sm" onClick={handleExportPdf} disabled={pdfExporting}>
+                {pdfExporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
+                {pdfExporting ? "Exporting…" : "Export PDF"}
               </Button>
             </div>
           </div>
@@ -394,7 +417,18 @@ function ReportPage() {
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {concepts.map((c) => (
                   <div key={c.style} className="overflow-hidden rounded-md border border-border">
-                    <div className="aspect-4/3" style={{ background: c.afterGradient }} />
+                    <div
+                      className="relative aspect-4/3"
+                      style={c.afterImageUrl ? undefined : { background: c.afterGradient }}
+                    >
+                      {c.afterImageUrl && (
+                        <img
+                          src={c.afterImageUrl}
+                          alt={`${c.style} AI render`}
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                    </div>
                     <div className="p-3">
                       <div className="flex items-center gap-2">
                         <Sparkles className="h-3.5 w-3.5 text-primary" />
