@@ -4,7 +4,12 @@ import { DISCLAIMER } from "@/core/reports";
 import { RequireAuth } from "./RequireAuth";
 import { MobileTopBar } from "./MobileTopBar";
 
-export function AppLayout({ children, title, subtitle, actions }: {
+export function AppLayout({
+  children,
+  title,
+  subtitle,
+  actions,
+}: {
   children: ReactNode;
   title?: string;
   subtitle?: string;
@@ -21,7 +26,11 @@ export function AppLayout({ children, title, subtitle, actions }: {
               {(title || actions) && (
                 <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    {title && <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">{title}</h1>}
+                    {title && (
+                      <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+                        {title}
+                      </h1>
+                    )}
                     {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
                   </div>
                   {actions && <div className="flex flex-wrap gap-2">{actions}</div>}

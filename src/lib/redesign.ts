@@ -36,8 +36,7 @@ export const REDESIGN_CONCEPTS: RedesignConcept[] = [
     flooring: "Wide-plank engineered oak in a matte natural finish.",
     lighting: "Recessed downlights with a sculptural matte black pendant.",
     furniture: "Low-profile sofa, oak coffee table, brass-accent shelving.",
-    afterGradient:
-      "linear-gradient(135deg, #F5F5F2 0%, #E4DED2 45%, #B08D57 100%)",
+    afterGradient: "linear-gradient(135deg, #F5F5F2 0%, #E4DED2 45%, #B08D57 100%)",
   },
   {
     style: "Luxury",
@@ -51,8 +50,7 @@ export const REDESIGN_CONCEPTS: RedesignConcept[] = [
     flooring: "Large-format polished porcelain with veined marble effect.",
     lighting: "Crystal chandelier centrepiece with concealed cove lighting.",
     furniture: "Velvet upholstery, brushed brass detailing, marble-top tables.",
-    afterGradient:
-      "linear-gradient(135deg, #1B2230 0%, #4B2E48 55%, #C9A96E 100%)",
+    afterGradient: "linear-gradient(135deg, #1B2230 0%, #4B2E48 55%, #C9A96E 100%)",
   },
   {
     style: "Scandinavian",
@@ -66,8 +64,7 @@ export const REDESIGN_CONCEPTS: RedesignConcept[] = [
     flooring: "Whitewashed oak boards with soft wool rugs.",
     lighting: "Paper pendant shades and warm 2700K LED strips.",
     furniture: "Light oak dining set, linen sofa, woven storage.",
-    afterGradient:
-      "linear-gradient(135deg, #FAFAF7 0%, #E6D8C3 55%, #B7C4B0 100%)",
+    afterGradient: "linear-gradient(135deg, #FAFAF7 0%, #E6D8C3 55%, #B7C4B0 100%)",
   },
   {
     style: "Airbnb",
@@ -81,8 +78,7 @@ export const REDESIGN_CONCEPTS: RedesignConcept[] = [
     flooring: "LVT herringbone in light oak — durable and on-camera.",
     lighting: "Layered: dimmable pendants, table lamps, smart bulbs.",
     furniture: "Bouclé chairs, rattan accents, statement art wall.",
-    afterGradient:
-      "linear-gradient(135deg, #F2EBDD 0%, #C9A77B 50%, #C97B5A 100%)",
+    afterGradient: "linear-gradient(135deg, #F2EBDD 0%, #C9A77B 50%, #C97B5A 100%)",
   },
   {
     style: "Rental Standard",
@@ -96,8 +92,7 @@ export const REDESIGN_CONCEPTS: RedesignConcept[] = [
     flooring: "Hard-wearing LVT throughout, grey carpet to bedrooms.",
     lighting: "Simple flush ceiling lights with LED bulbs.",
     furniture: "Grey fabric sofa, oak-effect units, neutral bedding.",
-    afterGradient:
-      "linear-gradient(135deg, #F2EFE6 0%, #A6A6A1 55%, #5A6068 100%)",
+    afterGradient: "linear-gradient(135deg, #F2EFE6 0%, #A6A6A1 55%, #5A6068 100%)",
   },
   {
     style: "Contemporary",
@@ -111,7 +106,6 @@ export const REDESIGN_CONCEPTS: RedesignConcept[] = [
     flooring: "Micro-cement floors with underfloor heating.",
     lighting: "Linear LED profiles and curved alabaster wall sconces.",
     furniture: "Curved sofa, sculptural lounge chair, organic timber slab table.",
-    afterGradient:
-      "linear-gradient(135deg, #EFE9DD 0%, #B68A6E 50%, #3F5141 100%)",
+    afterGradient: "linear-gradient(135deg, #EFE9DD 0%, #B68A6E 50%, #3F5141 100%)",
   },
 ];

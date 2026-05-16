@@ -11,7 +11,6 @@ import {
   type DealOpportunityStatus,
 } from "@/core/dealCopilot";
 
-
 export const Route = createFileRoute("/deal-copilot/$opportunityId/edit")({
   head: () => ({
     meta: [{ title: "Edit Deal Opportunity - Deal Copilot" }],

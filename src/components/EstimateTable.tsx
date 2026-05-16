@@ -33,9 +33,7 @@ export function EstimateTable({
   emptyLabel = "Select at least one category to generate an estimate.",
 }: EstimateTableProps) {
   if (items.length === 0) {
-    return (
-      <div className="p-10 text-center text-sm text-muted-foreground">{emptyLabel}</div>
-    );
+    return <div className="p-10 text-center text-sm text-muted-foreground">{emptyLabel}</div>;
   }
 
   const totalsColspan = showWeeks ? 4 : 3;

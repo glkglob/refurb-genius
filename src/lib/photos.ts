@@ -118,7 +118,10 @@ export const photoStore = {
       if (insErr) {
         console.error("[photos] metadata insert failed", insErr);
         // Roll back the storage upload to keep things consistent.
-        await supabase.storage.from(BUCKET).remove([path]).catch(() => {});
+        await supabase.storage
+          .from(BUCKET)
+          .remove([path])
+          .catch(() => {});
         throw new Error(insErr.message);
       }
       created.push(rowToPhoto(row));
@@ -132,10 +135,16 @@ export const photoStore = {
   async remove(projectId: string, photoId: string): Promise<void> {
     const list = cacheByProject.get(projectId) ?? [];
     const target = list.find((p) => p.id === photoId);
-    cacheByProject.set(projectId, list.filter((p) => p.id !== photoId));
+    cacheByProject.set(
+      projectId,
+      list.filter((p) => p.id !== photoId),
+    );
     notify();
     if (target?.storagePath) {
-      await supabase.storage.from("project-photos").remove([target.storagePath]).catch(() => {});
+      await supabase.storage
+        .from("project-photos")
+        .remove([target.storagePath])
+        .catch(() => {});
     }
     const { error } = await supabase.from("photos").delete().eq("id", photoId);
     if (error) console.error("[photos] delete failed", error);

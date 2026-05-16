@@ -5,7 +5,6 @@ import { AppLayout } from "@/components/AppLayout";
 import { DealIntakeForm } from "@/components/deal-copilot";
 import { Card, CardContent } from "@/components/ui/card";
 
-
 export const Route = createFileRoute("/deal-copilot/new")({
   head: () => ({
     meta: [{ title: "New Deal Analysis — Deal Copilot" }],

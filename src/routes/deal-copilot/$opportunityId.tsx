@@ -8,7 +8,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { opportunityStore } from "@/core/dealCopilot";
 import { formatGBP } from "@/lib/utils";
 
-
 export const Route = createFileRoute("/deal-copilot/$opportunityId")({
   head: () => ({
     meta: [{ title: "Deal Opportunity — Deal Copilot" }],

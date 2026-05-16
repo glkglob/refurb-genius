@@ -8,11 +8,7 @@
 // valuation certificate) extend `buildReport` with extra `ReportSection`s
 // and a Refurb IQ branding profile. Same builder, different sections.
 
-
-export {
-  buildReport,
-  REPORT_SECTION_ORDER,
-} from "./reportEngine";
+export { buildReport, REPORT_SECTION_ORDER } from "./reportEngine";
 export type {
   Report,
   ReportBranding,

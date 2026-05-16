@@ -20,7 +20,10 @@ export function RedesignCard({ concept: c, beforePhotoUrl }: RedesignCardProps) 
               className="h-full w-full object-cover"
             />
           ) : null}
-          <Badge variant="secondary" className="absolute left-2 top-2 bg-background/85 backdrop-blur">
+          <Badge
+            variant="secondary"
+            className="absolute left-2 top-2 bg-background/85 backdrop-blur"
+          >
             Before
           </Badge>
         </div>

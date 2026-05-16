@@ -13,8 +13,6 @@
 // descriptions extend this module via new providers. AI writes prose;
 // quantities, rates, and totals stay deterministic in `@/core/pricing`.
 
-
-
 export {
   photoAnalysisProvider,
   mockPhotoAnalysisProvider,
@@ -22,10 +20,7 @@ export {
   runPhotoAnalysis,
   subscribePhotoAnalysis,
 } from "./photoAnalysis";
-export type {
-  PhotoAnalysisProvider,
-  PhotoAnalysisInput,
-} from "./photoAnalysis";
+export type { PhotoAnalysisProvider, PhotoAnalysisInput } from "./photoAnalysis";
 
 export {
   redesignProvider,
@@ -47,18 +42,8 @@ export type { AiSummariesProvider, ProjectSummaryInput } from "./aiSummaries";
 
 // Legacy exports — pages currently import these directly. New code should
 // prefer the provider helpers above.
-export {
-  analysisStore,
-  ROOM_TYPES,
-  CONDITION_LEVELS,
-  REFURB_LEVELS,
-} from "@/lib/analysis";
-export type {
-  RoomAnalysis,
-  RoomType,
-  ConditionLevel,
-  RefurbLevel,
-} from "@/lib/analysis";
+export { analysisStore, ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/lib/analysis";
+export type { RoomAnalysis, RoomType, ConditionLevel, RefurbLevel } from "@/lib/analysis";
 
 export { REDESIGN_CONCEPTS, REDESIGN_STYLES } from "@/lib/redesign";
 export type { RedesignConcept, RedesignStyle } from "@/lib/redesign";
