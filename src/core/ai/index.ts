@@ -29,6 +29,7 @@ export {
   listRedesignConcepts,
   generateRedesignConcepts,
 } from "./redesignConcepts";
+export { openAiRedesignProvider } from "./openAiRedesignProvider";
 export type { RedesignProvider, RedesignInput } from "./redesignConcepts";
 
 export {
