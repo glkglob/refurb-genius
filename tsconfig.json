@@ -24,7 +24,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@repo/types": ["packages/types/src"],
-      "@repo/core": ["packages/core/src"]
+      "@repo/core": ["packages/core/src"],
+      "@repo/ui": ["packages/ui/src"]
     }
   }
 }
