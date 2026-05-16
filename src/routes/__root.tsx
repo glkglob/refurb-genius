@@ -73,14 +73,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Refurb Genius — Property Refurbishment Analysis" },
+      {
+        name: "description",
+        content:
+          "AI-powered refurbishment analysis for UK property investors. Upload photos, get estimates, model ROI.",
+      },
+      { name: "author", content: "Refurb Genius" },
+      { property: "og:title", content: "Refurb Genius — Property Refurbishment Analysis" },
+      {
+        property: "og:description",
+        content: "AI-powered refurbishment analysis for UK property investors.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
