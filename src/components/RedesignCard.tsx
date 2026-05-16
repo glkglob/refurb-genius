@@ -29,8 +29,15 @@ export function RedesignCard({ concept: c, beforePhotoUrl }: RedesignCardProps) 
         </div>
         <div
           className="relative aspect-[4/5] overflow-hidden"
-          style={{ background: c.afterGradient }}
+          style={c.afterImageUrl ? undefined : { background: c.afterGradient }}
         >
+          {c.afterImageUrl ? (
+            <img
+              src={c.afterImageUrl}
+              alt={`${c.style} AI render`}
+              className="h-full w-full object-cover"
+            />
+          ) : null}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.35),transparent_60%)]" />
           <Badge className="absolute left-2 top-2 bg-foreground/85 text-background backdrop-blur">
             <Sparkles className="mr-1 h-3 w-3" /> AI render
