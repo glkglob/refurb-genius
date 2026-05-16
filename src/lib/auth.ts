@@ -18,8 +18,8 @@ let initialized = false;
 let initializing = false;
 let sessionHydrated = false;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function fromSupabaseUser(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   u: { id: string; email?: string | null; user_metadata?: any } | null | undefined,
 ): AuthUser | null {
   if (!u) return null;
