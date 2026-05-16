@@ -1,4 +1,4 @@
-import type { ProductId } from "../platform/products";
+import type { ProductId } from "./products";
 import type { RiskItem } from "./risk";
 
 export type ScenarioId = string;

@@ -1,6 +1,7 @@
 {
   "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts", "eslint.config.js"],
   "compilerOptions": {
+    "baseUrl": ".",
     "target": "ES2022",
     "jsx": "react-jsx",
     "module": "ESNext",
@@ -21,7 +22,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@repo/types": ["packages/types/src"]
     }
   }
 }

@@ -1,4 +1,4 @@
-import type { TradesJob, TradesJobCategory, TradesJobStatus } from "./tradesJob.types";
+import type { TradesJob, TradesJobCategory, TradesJobStatus } from "@repo/types";
 import { TRADES_JOB_CATEGORIES } from "./index";
 
 export function formatCategoryLabel(category: TradesJobCategory): string {
