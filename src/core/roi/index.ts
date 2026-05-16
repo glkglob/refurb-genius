@@ -7,8 +7,3 @@
 
 export { runRoiEngine, projectedAnnualRent } from "./roiEngine";
 export type { RoiEngineInputs, RoiEngineResult, RoiRiskLevel } from "./roiEngine";
-export type { InvestorMetrics, RiskLevel } from "@/lib/metrics";
-
-// Canonical runtime ROI comes from `runRoiEngine` above. The export below is
-// a legacy compatibility helper and should not be used by new code.
-export { calculateInvestorMetrics } from "@/lib/metrics";
