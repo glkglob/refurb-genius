@@ -21,6 +21,8 @@ export type RedesignConcept = {
   furniture: string;
   // CSS gradient used as a polished "AI render" placeholder.
   afterGradient: string;
+  // Real AI-generated render URL (DALL-E 3). When present, rendered instead of afterGradient.
+  afterImageUrl?: string;
 };
 
 export const REDESIGN_CONCEPTS: RedesignConcept[] = [

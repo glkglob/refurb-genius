@@ -20,6 +20,7 @@ export {
   runPhotoAnalysis,
   subscribePhotoAnalysis,
 } from "./photoAnalysis";
+export { openAiVisionPhotoAnalysisProvider } from "./openAiVisionProvider";
 export type { PhotoAnalysisProvider, PhotoAnalysisInput } from "./photoAnalysis";
 
 export {
@@ -28,6 +29,7 @@ export {
   listRedesignConcepts,
   generateRedesignConcepts,
 } from "./redesignConcepts";
+export { openAiRedesignProvider } from "./openAiRedesignProvider";
 export type { RedesignProvider, RedesignInput } from "./redesignConcepts";
 
 export {
