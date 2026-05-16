@@ -9,12 +9,7 @@
 // pricing, ROI, or financial numbers — those live in the pricing/ROI
 // engines and are deterministic.
 import { analysisStore } from "@/lib/analysis";
-import type {
-  RoomAnalysis,
-  RoomType,
-  ConditionLevel,
-  RefurbLevel,
-} from "@/lib/analysis";
+import type { RoomAnalysis, RoomType, ConditionLevel, RefurbLevel } from "@/lib/analysis";
 
 export type PhotoAnalysisInput = {
   projectId: string;
@@ -46,10 +41,13 @@ export const mockPhotoAnalysisProvider: PhotoAnalysisProvider = {
   },
 };
 
-// Active provider used by the app. Swap to an OpenAI-Vision-backed provider
-// here when wiring real analysis — UI/components stay untouched.
-// TODO: introduce `openAiVisionPhotoAnalysisProvider` and toggle via env.
-export const photoAnalysisProvider: PhotoAnalysisProvider = mockPhotoAnalysisProvider;
+// Active provider used by the app. Toggles to the real OpenAI Vision provider
+// when VITE_OPENAI_API_KEY is present; falls back to mock otherwise.
+import { openAiVisionPhotoAnalysisProvider } from "./openAiVisionProvider";
+
+export const photoAnalysisProvider: PhotoAnalysisProvider = import.meta.env.VITE_OPENAI_API_KEY
+  ? openAiVisionPhotoAnalysisProvider
+  : mockPhotoAnalysisProvider;
 
 // Convenience helpers so consumers don't need to know about providers.
 export function getPhotoAnalysis(projectId: string): RoomAnalysis[] | undefined {
