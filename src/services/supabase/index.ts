@@ -5,6 +5,7 @@
 // future swaps (mocked tests, alternate backends) and gives us one place
 // to surface a setup warning when env vars are missing.
 import { supabase } from "@/integrations/supabase/client";
+import { env } from "@/core/config/env";
 export { supabase };
 
 // Re-export the auth wrapper so the auth surface lives behind the service
@@ -12,22 +13,9 @@ export { supabase };
 export { auth } from "@/lib/auth";
 export type { AuthUser } from "@/lib/auth";
 
-/** True when Supabase URL + key are present at build time. Accepts both the
- *  standard Supabase name (ANON_KEY) and the Lovable alias (PUBLISHABLE_KEY). */
+/** True when Supabase URL + key are present at build time. */
 export function isSupabaseConfigured(): boolean {
-  try {
-    const url =
-      import.meta.env.VITE_SUPABASE_URL ||
-      (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
-    const key =
-      import.meta.env.VITE_SUPABASE_ANON_KEY ||
-      import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-      (typeof process !== "undefined" ? process.env?.SUPABASE_ANON_KEY : undefined) ||
-      (typeof process !== "undefined" ? process.env?.SUPABASE_PUBLISHABLE_KEY : undefined);
-    return Boolean(url && key);
-  } catch {
-    return false;
-  }
+  return env.isSupabaseConfigured;
 }
 
 /**
@@ -36,7 +24,7 @@ export function isSupabaseConfigured(): boolean {
  * crashing the app.
  */
 export function getSupabaseSetupWarning(): { title: string; description: string } | null {
-  if (isSupabaseConfigured()) return null;
+  if (env.isSupabaseConfigured) return null;
   return {
     title: "Backend not connected",
     description:

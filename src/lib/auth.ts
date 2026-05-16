@@ -17,6 +17,7 @@ let currentUser: AuthUser | null = null;
 let initialized = false;
 let initializing = false;
 let sessionHydrated = false;
+let authSubscription: { unsubscribe: () => void } | null = null;
 
 function fromSupabaseUser(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,11 +51,21 @@ async function ensureInitialized(): Promise<void> {
 
     currentUser = fromSupabaseUser(session?.user);
 
-    supabase.auth.onAuthStateChange((_event, newSession) => {
-      currentUser = fromSupabaseUser(newSession?.user);
-      sessionHydrated = true;
-      notify();
-    });
+    if (!authSubscription) {
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, newSession) => {
+        currentUser = fromSupabaseUser(newSession?.user);
+        sessionHydrated = true;
+        console.log("[auth] state changed", {
+          hasSession: Boolean(newSession),
+          hasUser: Boolean(currentUser),
+          sessionHydrated,
+        });
+        notify();
+      });
+      authSubscription = subscription;
+    }
 
     initialized = true;
   } catch (err) {
