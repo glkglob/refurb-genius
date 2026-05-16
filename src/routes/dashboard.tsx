@@ -382,7 +382,9 @@ function TradesJobCard({ job, onUpdate }: { job: TradesJob; onUpdate: (job: Trad
     <div className="flex items-start justify-between gap-3 p-4">
       <div className="min-w-0 flex-1 space-y-1">
         <p className="truncate font-medium text-foreground">{job.title}</p>
-        <p className="text-xs text-muted-foreground">{formatCategoryLabel(job.jobCategory)} · {formatShortDate(job.createdAt)}</p>
+        <p className="text-xs text-muted-foreground">
+          {formatCategoryLabel(job.jobCategory)} · {formatShortDate(job.createdAt)}
+        </p>
         <div className="flex items-center gap-2">
           <StatusBadge tone={statusTone(job.status)}>{statusLabel(job.status)}</StatusBadge>
           <span className="text-xs text-muted-foreground">{formatBudgetRange(job)}</span>
@@ -390,10 +392,14 @@ function TradesJobCard({ job, onUpdate }: { job: TradesJob; onUpdate: (job: Trad
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <Button asChild variant="ghost" size="sm">
-          <Link to="/trades/$jobId" params={{ jobId: job.id }}><Eye className="h-4 w-4" /></Link>
+          <Link to="/trades/$jobId" params={{ jobId: job.id }}>
+            <Eye className="h-4 w-4" />
+          </Link>
         </Button>
         <Button asChild variant="ghost" size="sm" disabled={job.status === "closed"}>
-          <Link to="/trades/$jobId/edit" params={{ jobId: job.id }}><Pencil className="h-4 w-4" /></Link>
+          <Link to="/trades/$jobId/edit" params={{ jobId: job.id }}>
+            <Pencil className="h-4 w-4" />
+          </Link>
         </Button>
         <Button
           variant="ghost"
@@ -420,7 +426,11 @@ function MyInterestsTable({ state }: { state: InterestsState }) {
 
   if (state.status === "error") {
     return (
-      <EmptyState icon={HandshakeIcon} title="Could not load interests" description={state.message} />
+      <EmptyState
+        icon={HandshakeIcon}
+        title="Could not load interests"
+        description={state.message}
+      />
     );
   }
 
@@ -457,14 +467,17 @@ function MyInterestsTable({ state }: { state: InterestsState }) {
               <div className="min-w-0 flex-1 space-y-1">
                 <p className="truncate font-medium text-foreground">{interest.jobTitle}</p>
                 <p className="text-xs text-muted-foreground">
-                  {formatCategoryLabel(interest.jobCategory)} · {interest.jobPostcode ?? "—"} · {formatShortDate(interest.createdAt)}
+                  {formatCategoryLabel(interest.jobCategory)} · {interest.jobPostcode ?? "—"} ·{" "}
+                  {formatShortDate(interest.createdAt)}
                 </p>
                 <div className="flex items-center gap-2">
                   <StatusBadge tone={interestStatusBadge[interest.status] ?? "muted"}>
                     {interest.status}
                   </StatusBadge>
                   {interest.message && (
-                    <span className="max-w-[160px] truncate text-xs text-muted-foreground">{interest.message}</span>
+                    <span className="max-w-[160px] truncate text-xs text-muted-foreground">
+                      {interest.message}
+                    </span>
                   )}
                 </div>
               </div>
@@ -499,9 +512,7 @@ function MyInterestsTable({ state }: { state: InterestsState }) {
                   <td className="px-4 py-3 text-muted-foreground">
                     {formatCategoryLabel(interest.jobCategory)}
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {interest.jobPostcode ?? "—"}
-                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">{interest.jobPostcode ?? "—"}</td>
                   <td className="px-4 py-3">
                     <StatusBadge tone={interestStatusBadge[interest.status] ?? "muted"}>
                       {interest.status}

@@ -109,11 +109,7 @@ export async function updateTradesJobInterestStatus(
   interestId: string,
   status: TradesJobInterestStatus,
 ): Promise<TradesJobInterest> {
-  const { data, error } = await table()
-    .update({ status })
-    .eq("id", interestId)
-    .select()
-    .single();
+  const { data, error } = await table().update({ status }).eq("id", interestId).select().single();
   if (error) throw new Error(error.message);
   return rowToInterest(data as TradesJobInterestRow);
 }

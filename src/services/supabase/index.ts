@@ -21,9 +21,7 @@ export function isSupabaseConfigured(): boolean {
       (typeof process !== "undefined" ? process.env?.SUPABASE_URL : undefined);
     const key =
       env?.VITE_SUPABASE_PUBLISHABLE_KEY ??
-      (typeof process !== "undefined"
-        ? process.env?.SUPABASE_PUBLISHABLE_KEY
-        : undefined);
+      (typeof process !== "undefined" ? process.env?.SUPABASE_PUBLISHABLE_KEY : undefined);
     return Boolean(url && key);
   } catch {
     return false;

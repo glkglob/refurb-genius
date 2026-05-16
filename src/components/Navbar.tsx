@@ -37,17 +37,23 @@ export function Navbar() {
           ))}
           <div className="mx-2 h-4 w-px bg-border" />
           <Button asChild variant="ghost" size="sm">
-            <Link to="/auth" search={{ mode: "signin" }}>Sign in</Link>
+            <Link to="/auth" search={{ mode: "signin" }}>
+              Sign in
+            </Link>
           </Button>
           <Button asChild size="sm">
-            <Link to="/auth" search={{ mode: "signup" }}>Get started free</Link>
+            <Link to="/auth" search={{ mode: "signup" }}>
+              Get started free
+            </Link>
           </Button>
         </nav>
 
         {/* Mobile: auth buttons + hamburger */}
         <div className="flex items-center gap-2 md:hidden">
           <Button asChild variant="ghost" size="sm">
-            <Link to="/auth" search={{ mode: "signin" }}>Sign in</Link>
+            <Link to="/auth" search={{ mode: "signin" }}>
+              Sign in
+            </Link>
           </Button>
           <button
             onClick={() => setMenuOpen((o) => !o)}

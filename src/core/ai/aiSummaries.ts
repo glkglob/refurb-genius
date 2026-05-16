@@ -61,9 +61,7 @@ export const mockAiSummariesProvider: AiSummariesProvider = {
     }
     if (light.length) {
       parts.push(
-        `cosmetic refresh across the ${joinList(
-          light.map((r) => r.room_type.toLowerCase()),
-        )}`,
+        `cosmetic refresh across the ${joinList(light.map((r) => r.room_type.toLowerCase()))}`,
       );
     }
     return `${parts.join("; ")}. Pricing, ROI, and yield are calculated separately by the deterministic estimate engine.`;
@@ -74,9 +72,7 @@ export const mockAiSummariesProvider: AiSummariesProvider = {
   },
 
   recommendedWorks(rooms) {
-    const all = rooms.flatMap((r) =>
-      r.recommended_works.map((w) => `${r.room_type}: ${w}`),
-    );
+    const all = rooms.flatMap((r) => r.recommended_works.map((w) => `${r.room_type}: ${w}`));
     // Dedupe while preserving order.
     return Array.from(new Set(all));
   },
@@ -92,7 +88,6 @@ export const reportHeadline = (input: ProjectSummaryInput) =>
   aiSummariesProvider.reportHeadline(input);
 export const executiveSummary = (input: ProjectSummaryInput) =>
   aiSummariesProvider.executiveSummary(input);
-export const roomSummary = (room: RoomAnalysis) =>
-  aiSummariesProvider.roomSummary(room);
+export const roomSummary = (room: RoomAnalysis) => aiSummariesProvider.roomSummary(room);
 export const recommendedWorks = (rooms: RoomAnalysis[]) =>
   aiSummariesProvider.recommendedWorks(rooms);

@@ -14,12 +14,12 @@ Deal Copilot and Refurb IQ are source-asset products that will be integrated int
 
 ## Product roles
 
-| Product | Role |
-| --- | --- |
-| Refurb Genius | Refurbishment estimate, investor analysis, project reports |
-| Deal Copilot | Acquisition intelligence, deal scoring, investor underwriting |
-| Refurb IQ | BOQ, cost planning, specifications, contractor-grade outputs |
-| Agent Tools | Estate-agent advice, pre-sale improvements, rental readiness |
+| Product       | Role                                                          |
+| ------------- | ------------------------------------------------------------- |
+| Refurb Genius | Refurbishment estimate, investor analysis, project reports    |
+| Deal Copilot  | Acquisition intelligence, deal scoring, investor underwriting |
+| Refurb IQ     | BOQ, cost planning, specifications, contractor-grade outputs  |
+| Agent Tools   | Estate-agent advice, pre-sale improvements, rental readiness  |
 
 ## Integration order
 

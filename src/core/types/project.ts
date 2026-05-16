@@ -15,9 +15,4 @@ export type Project = DbProject & {
   updated_at?: string;
 };
 
-export type {
-  NewProjectInput,
-  ProjectStage,
-  PropertyType,
-  UKRegion,
-} from "@/lib/projects";
+export type { NewProjectInput, ProjectStage, PropertyType, UKRegion } from "@/lib/projects";

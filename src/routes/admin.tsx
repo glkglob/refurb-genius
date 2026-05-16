@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RequireAuth } from "@/components/RequireAuth";
 import { RequireAdmin } from "@/components/RequireAdmin";
 
-
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [{ title: "Admin — Refurb Genius" }],
