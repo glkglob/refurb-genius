@@ -9,7 +9,8 @@ import { AnalysisCard } from "@/components/AnalysisCard";
 import { RedesignCard } from "@/components/RedesignCard";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Sparkles, ArrowRight, AlertCircle } from "lucide-react";
-import { analysisStore, type RoomAnalysis } from "@/core/ai";
+import { analysisStore, type RoomAnalysis, generateRedesignConcepts } from "@/core/ai";
+import type { RedesignConcept } from "@/core/ai";
 import { projectStore } from "@/core/projects";
 import { DISCLAIMER } from "@/core/reports";
 import { REDESIGN_CONCEPTS } from "@/core/ai";
@@ -29,6 +30,8 @@ function AnalysisPage() {
   const project = snapshot.projects.find((p) => p.id === id);
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<RoomAnalysis[]>([]);
+  const [concepts, setConcepts] = useState<RedesignConcept[]>(REDESIGN_CONCEPTS);
+  const [conceptsLoading, setConceptsLoading] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,24 +44,37 @@ function AnalysisPage() {
 
     setResults([]);
     setLoading(true);
+    setConcepts(REDESIGN_CONCEPTS);
 
     const cached = analysisStore.get(id);
 
-    if (cached?.length) {
-      setResults(cached);
+    const afterAnalysis = (r: RoomAnalysis[]) => {
+      if (cancelled) return;
+      setResults(r);
       setLoading(false);
+      projectStore.setStage(id, "analysis", true);
+
+      // Kick off redesign concept generation (real AI when key present).
+      if (import.meta.env.VITE_OPENAI_API_KEY) {
+        setConceptsLoading(true);
+        generateRedesignConcepts({ projectId: id }).then((generated) => {
+          if (cancelled) return;
+          setConcepts(generated);
+          setConceptsLoading(false);
+        }).catch(() => {
+          if (!cancelled) setConceptsLoading(false);
+        });
+      }
+    };
+
+    if (cached?.length) {
+      afterAnalysis(cached);
       return () => {
         cancelled = true;
       };
     }
 
-    analysisStore.run(id).then((r) => {
-      if (cancelled) return;
-
-      setResults(r);
-      setLoading(false);
-      projectStore.setStage(id, "analysis", true);
-    });
+    analysisStore.run(id).then(afterAnalysis);
 
     return () => {
       cancelled = true;
@@ -91,7 +107,7 @@ function AnalysisPage() {
   if (loading) {
     return (
       <AppLayout title="AI analysis" subtitle="Analysing your photos…">
-        <LoadingState label="Running mock AI analysis on your photos" />
+        <LoadingState label={import.meta.env.VITE_OPENAI_API_KEY ? "Running AI analysis on your photos…" : "Running mock AI analysis on your photos"} />
       </AppLayout>
     );
   }
@@ -126,12 +142,13 @@ function AnalysisPage() {
             </p>
           </div>
           <Badge variant="outline" className="hidden sm:inline-flex">
-            <Sparkles className="mr-1 h-3 w-3 text-accent" /> Concept previews
+            <Sparkles className="mr-1 h-3 w-3 text-accent" />
+            {conceptsLoading ? "Generating…" : "Concept previews"}
           </Badge>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {REDESIGN_CONCEPTS.map((c) => (
+          {concepts.map((c) => (
             <RedesignCard key={c.style} concept={c} beforePhotoUrl={results[0]?.photo_url} />
           ))}
         </div>

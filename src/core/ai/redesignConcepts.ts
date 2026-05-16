@@ -43,7 +43,11 @@ export const mockRedesignProvider: RedesignProvider = {
   },
 };
 
-export const redesignProvider: RedesignProvider = mockRedesignProvider;
+import { openAiRedesignProvider } from "./openAiRedesignProvider";
+
+export const redesignProvider: RedesignProvider = import.meta.env.VITE_OPENAI_API_KEY
+  ? openAiRedesignProvider
+  : mockRedesignProvider;
 
 export function listRedesignConcepts(input?: RedesignInput): RedesignConcept[] {
   return redesignProvider.list(input);
