@@ -56,7 +56,7 @@ function ProjectDetail() {
             <div>
               <p className="text-sm font-medium text-foreground">Failed to load project details.</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {snapshot.error instanceof Error ? snapshot.error.message : "Please try again."}
+                {snapshot.error ?? "Please try again."}
               </p>
             </div>
             <div>
