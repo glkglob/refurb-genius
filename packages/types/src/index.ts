@@ -85,3 +85,6 @@ export type {
   TradesJobInterestStatus,
   CreateTradesJobInterestInput,
 } from "./tradesJobInterest.types";
+
+// Deal Copilot orchestration types
+export type { ParsedDealFormData, DealAnalysisResult } from "./deal-copilot";

@@ -1,5 +1,4 @@
-import type { ConditionLevel, UKRegion } from "@repo/types";
-import type { ParsedDealFormData } from "@/types/deal-copilot";
+import type { ConditionLevel, ParsedDealFormData, UKRegion } from "@repo/types";
 
 /**
  * Parse currency string to number with strict validation.

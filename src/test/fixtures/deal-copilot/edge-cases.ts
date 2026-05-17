@@ -1,7 +1,7 @@
 /**
  * Edge case scenarios for regression testing.
  */
-import type { ParsedDealFormData } from "@/types/deal-copilot";
+import type { ParsedDealFormData } from "@repo/types";
 
 /**
  * Heavy refurbishment scenario.

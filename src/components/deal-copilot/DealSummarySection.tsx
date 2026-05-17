@@ -1,4 +1,4 @@
-import type { DealAnalysisResult } from "@/types/deal-copilot";
+import type { DealAnalysisResult } from "@repo/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   formatCurrency,

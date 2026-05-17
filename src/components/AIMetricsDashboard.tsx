@@ -167,7 +167,13 @@ export function AIMetricsDashboard() {
 
       {/* Recommendations */}
       {recommendations.length > 0 && (
-        <Card className={recommendations.some((r) => r.includes("Critical")) ? "border-red-200" : "border-yellow-200"}>
+        <Card
+          className={
+            recommendations.some((r) => r.includes("Critical"))
+              ? "border-red-200"
+              : "border-yellow-200"
+          }
+        >
           <CardHeader>
             <CardTitle className="text-sm">Operational Recommendations</CardTitle>
           </CardHeader>

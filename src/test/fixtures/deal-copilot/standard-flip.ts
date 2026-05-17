@@ -2,7 +2,7 @@
  * Standard house flip scenario.
  * Used for regression testing to detect calculation drift.
  */
-import type { ParsedDealFormData, DealAnalysisResult } from "@/types/deal-copilot";
+import type { ParsedDealFormData, DealAnalysisResult } from "@repo/types";
 
 export const standardFlipInput: ParsedDealFormData = {
   title: "3-bed terrace, Croydon",

@@ -36,19 +36,22 @@ export function analyzeProviderHealth(): ProviderHealthSummary {
     counters.vision_rate_limit +
     counters.vision_fallback_used;
 
-  const visionStats = visionTotal > 0 ? {
-    successRate: (counters.vision_success / visionTotal) * 100,
-    timeoutRate: (counters.vision_timeout / visionTotal) * 100,
-    parseFailureRate: (counters.vision_parse_failure / visionTotal) * 100,
-    fallbackRate: (counters.vision_fallback_used / visionTotal) * 100,
-    totalOperations: visionTotal,
-  } : {
-    successRate: 0,
-    timeoutRate: 0,
-    parseFailureRate: 0,
-    fallbackRate: 0,
-    totalOperations: 0,
-  };
+  const visionStats =
+    visionTotal > 0
+      ? {
+          successRate: (counters.vision_success / visionTotal) * 100,
+          timeoutRate: (counters.vision_timeout / visionTotal) * 100,
+          parseFailureRate: (counters.vision_parse_failure / visionTotal) * 100,
+          fallbackRate: (counters.vision_fallback_used / visionTotal) * 100,
+          totalOperations: visionTotal,
+        }
+      : {
+          successRate: 0,
+          timeoutRate: 0,
+          parseFailureRate: 0,
+          fallbackRate: 0,
+          totalOperations: 0,
+        };
 
   // Determine vision health status
   let visionHealth: "healthy" | "degraded" | "critical" = "healthy";
@@ -65,19 +68,22 @@ export function analyzeProviderHealth(): ProviderHealthSummary {
     counters.redesign_parse_failure +
     counters.redesign_fallback_used;
 
-  const redesignStats = redesignTotal > 0 ? {
-    successRate: (counters.redesign_success / redesignTotal) * 100,
-    timeoutRate: (counters.redesign_timeout / redesignTotal) * 100,
-    parseFailureRate: (counters.redesign_parse_failure / redesignTotal) * 100,
-    fallbackRate: (counters.redesign_fallback_used / redesignTotal) * 100,
-    totalOperations: redesignTotal,
-  } : {
-    successRate: 0,
-    timeoutRate: 0,
-    parseFailureRate: 0,
-    fallbackRate: 0,
-    totalOperations: 0,
-  };
+  const redesignStats =
+    redesignTotal > 0
+      ? {
+          successRate: (counters.redesign_success / redesignTotal) * 100,
+          timeoutRate: (counters.redesign_timeout / redesignTotal) * 100,
+          parseFailureRate: (counters.redesign_parse_failure / redesignTotal) * 100,
+          fallbackRate: (counters.redesign_fallback_used / redesignTotal) * 100,
+          totalOperations: redesignTotal,
+        }
+      : {
+          successRate: 0,
+          timeoutRate: 0,
+          parseFailureRate: 0,
+          fallbackRate: 0,
+          totalOperations: 0,
+        };
 
   // Determine redesign health status
   let redesignHealth: "healthy" | "degraded" | "critical" = "healthy";
@@ -159,7 +165,9 @@ export function formatHealthReport(health: ProviderHealthSummary): string {
   lines.push(`   Parse Failures: ${health.vision.parseFailureRate.toFixed(1)}%`);
   lines.push(`   Fallback Usage: ${health.vision.fallbackRate.toFixed(1)}%`);
   lines.push(`   Total Operations: ${health.vision.totalOperations}`);
-  lines.push(`   Status: ${getHealthIcon(health.vision.healthStatus)} ${health.vision.healthStatus.toUpperCase()}`);
+  lines.push(
+    `   Status: ${getHealthIcon(health.vision.healthStatus)} ${health.vision.healthStatus.toUpperCase()}`,
+  );
 
   // Redesign
   lines.push("\n🎨 Redesign Generation:");
@@ -168,7 +176,9 @@ export function formatHealthReport(health: ProviderHealthSummary): string {
   lines.push(`   Parse Failures: ${health.redesign.parseFailureRate.toFixed(1)}%`);
   lines.push(`   Fallback Usage: ${health.redesign.fallbackRate.toFixed(1)}%`);
   lines.push(`   Total Operations: ${health.redesign.totalOperations}`);
-  lines.push(`   Status: ${getHealthIcon(health.redesign.healthStatus)} ${health.redesign.healthStatus.toUpperCase()}`);
+  lines.push(
+    `   Status: ${getHealthIcon(health.redesign.healthStatus)} ${health.redesign.healthStatus.toUpperCase()}`,
+  );
 
   // Recommendations
   const recommendations = getFailureRecommendations(health);

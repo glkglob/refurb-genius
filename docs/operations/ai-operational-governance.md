@@ -15,12 +15,14 @@ This document outlines operational procedures for monitoring, debugging, and imp
 AI provider health is monitored via diagnostic counters, available in the admin dashboard:
 
 **Vision Analysis:**
+
 - Success Rate: Target >80%
 - Timeout Rate: Alert if >10%, escalate if >15%
 - Parse Failure Rate: Alert if >5%
 - Fallback Usage: Alert if >15%
 
 **Redesign Generation:**
+
 - Success Rate: Target >85%
 - Timeout Rate: Alert if >15%, escalate if >20%
 - Parse Failure Rate: Alert if >3%
@@ -48,11 +50,13 @@ AI provider health is monitored via diagnostic counters, available in the admin 
 Users and admins can mark AI outputs as accurate/useful during controlled beta:
 
 **Vision Feedback Options:**
+
 - ✓ Accurate
 - ~ Partially accurate
 - ✗ Inaccurate
 
 **Redesign Feedback Options:**
+
 - ✓ Useful
 - ~ Generic
 - ✗ Unrealistic
@@ -74,8 +78,22 @@ Feedback is persisted to `ai_quality_feedback` table for operational analysis.
 import { getFeedbackSummary } from "@/lib/ai-quality-feedback";
 
 const summary = await getFeedbackSummary();
-console.log("Vision: accurate", summary.visionAccurate, "partial", summary.visionPartial, "inaccurate", summary.visionInaccurate);
-console.log("Redesign: useful", summary.redesignUseful, "generic", summary.redesignGeneric, "unrealistic", summary.redesignUnrealistic);
+console.log(
+  "Vision: accurate",
+  summary.visionAccurate,
+  "partial",
+  summary.visionPartial,
+  "inaccurate",
+  summary.visionInaccurate,
+);
+console.log(
+  "Redesign: useful",
+  summary.redesignUseful,
+  "generic",
+  summary.redesignGeneric,
+  "unrealistic",
+  summary.redesignUnrealistic,
+);
 ```
 
 ---
@@ -85,11 +103,13 @@ console.log("Redesign: useful", summary.redesignUseful, "generic", summary.redes
 ### Timeout Failures
 
 **Detection:**
+
 - Automatic timeout after 60s (Vision) or 30s (Redesign)
 - Tracked in `vision_timeout` or `redesign_timeout` counter
 - Triggers automatic fallback to mock provider
 
 **Response:**
+
 1. Check OpenAI API status page for outages
 2. If healthy: monitor timeout rate over next 1 hour
 3. If rate >15% (Vision) or >20% (Redesign): Escalate to ops
@@ -98,11 +118,13 @@ console.log("Redesign: useful", summary.redesignUseful, "generic", summary.redes
 ### Parse Failure Escalation
 
 **Detection:**
+
 - JSON response cannot be parsed (malformed or unexpected structure)
 - Tracked in `vision_parse_failure` or `redesign_parse_failure` counter
 - Indicates prompt drift or OpenAI model behavior change
 
 **Response:**
+
 1. Increment parse failure counter is automatic
 2. If parse failure >5% (Vision) or >3% (Redesign): Investigate
 3. Review Sentry breadcrumbs under `ai:gpt4o:analyze:fallback` or `ai:gpt4o:redesign:batch`
@@ -112,11 +134,13 @@ console.log("Redesign: useful", summary.redesignUseful, "generic", summary.redes
 ### Rate Limiting (429)
 
 **Detection:**
+
 - OpenAI returns 429 status code
 - Tracked in `vision_rate_limit` counter
 - Automatic fallback to mock provider
 
 **Response:**
+
 1. Check OpenAI account usage and quota
 2. If near quota: Upgrade account or reduce request volume
 3. If quota sufficient: OpenAI may be rate-limiting this API key globally
@@ -141,11 +165,13 @@ console.log(formatAuditReport([...audit.visionFindings, ...audit.redesignFinding
 ### Common Issues Detected
 
 **Vision Issues:**
+
 - Generic photo names (test, sample, placeholder) indicating non-real data
 - Very short photo names
 - Patterns consistent with debugging or development data
 
 **Redesign Issues:**
+
 - High "unrealistic" feedback rate (>20%)
 - High "generic" feedback rate (>30%)
 - Low "useful" feedback rate (<50%)
@@ -182,6 +208,7 @@ Vision outputs include `confidence_score` (0-1) indicating model certainty:
 ### When Fallback Activates
 
 Fallback to mock providers occurs when:
+
 1. VITE_OPENAI_API_KEY is missing or empty
 2. OpenAI API call times out
 3. OpenAI returns parse error
@@ -199,6 +226,7 @@ Fallback to mock providers occurs when:
 Check `vision_fallback_used` and `redesign_fallback_used` counters in admin dashboard.
 
 If fallback rate exceeds thresholds:
+
 1. Verify OpenAI API key is configured (check .env)
 2. Check OpenAI API status page
 3. Review Sentry for error patterns
@@ -324,18 +352,21 @@ console.log(formatAuditReport([...audit.visionFindings, ...audit.redesignFinding
 ### Handling Analysis Issues
 
 **User reports: "Room classification is wrong"**
+
 1. Ask for photo (if consent given)
 2. Check confidence_score in analysis
 3. If confidence <0.7: Explain it's advisory, recommend manual review
 4. Collect feedback via widget: "Feedback → Inaccurate"
 
 **User reports: "Vision keeps timing out"**
+
 1. Check admin dashboard for timeout rate
 2. If timeout rate high: System-level issue, likely OpenAI outage
 3. If isolated to user: Likely poor network or large image
 4. Suggest retry or smaller photo
 
 **User reports: "Redesign concept is generic"**
+
 1. Collect feedback via widget: "Feedback → Generic"
 2. Explain that concepts are context-dependent
 3. If >30% generic feedback: Known issue, engineering will improve
@@ -345,24 +376,28 @@ console.log(formatAuditReport([...audit.visionFindings, ...audit.redesignFinding
 ## Next Operational Phases
 
 ### Phase 1 (Weeks 1-2): Observability & Feedback
+
 - ✓ Deploy monitoring dashboard
 - ✓ Enable quality feedback capture
 - ✓ Run initial audit on real data
 - Monitor metrics, collect user feedback
 
 ### Phase 2 (Weeks 3-4): Validation & Tuning
+
 - Review feedback patterns
 - Run audit weekly
 - Adjust prompts if drift detected
 - Maintain fallback confidence
 
 ### Phase 3 (Months 2-3): Confidence Building
+
 - Expand to wider beta user group
 - Monitor confidence scores
 - Document common issues
 - Build runbooks for support team
 
 ### Phase 4 (Month 4+): Public Release Readiness
+
 - Backend proxy for API key (replace browser-exposed key)
 - Request queuing / rate-limit buffering
 - Advanced cache invalidation
@@ -379,5 +414,5 @@ console.log(formatAuditReport([...audit.visionFindings, ...audit.redesignFinding
 
 ---
 
-*Last updated: 2026-05-17*
-*Document version: 1.0 (Controlled-Beta Phase)*
+_Last updated: 2026-05-17_
+_Document version: 1.0 (Controlled-Beta Phase)_
