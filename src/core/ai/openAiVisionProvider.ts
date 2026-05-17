@@ -11,6 +11,11 @@ import type { RoomAnalysis, RoomType, ConditionLevel, RefurbLevel } from "@/lib/
 import type { PhotoAnalysisInput, PhotoAnalysisProvider } from "./photoAnalysis";
 import { captureAiError, addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
+import { timeoutPromise, TimeoutError, isTimeoutError } from "@/lib/timeout";
+
+// Timeout configuration: 60s per photo analysis
+// (OpenAI can take 30-45s for complex images)
+const AI_ANALYSIS_TIMEOUT_MS = 60_000;
 
 // Valid enum values — duplicated here to avoid importing from lib/analysis at runtime.
 const VALID_ROOM_TYPES: RoomType[] = [
@@ -99,29 +104,35 @@ async function analysePhoto(client: OpenAI, photo: ProjectPhoto): Promise<RoomAn
     addDiagnosticBreadcrumb("ai:gpt4o:analyze:start", {
       photo: photo.name,
       size: photo.size,
+      timeout: AI_ANALYSIS_TIMEOUT_MS,
     });
 
-    const response = await client.chat.completions.create({
-      model: "gpt-4o",
-      max_tokens: 512,
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: [
-            {
-              type: "image_url",
-              image_url: { url: photo.url, detail: "low" },
-            },
-            {
-              type: "text",
-              text: `Analyse this property photo (filename: ${photo.name}).`,
-            },
-          ],
-        },
-      ],
-    });
+    // Wrap OpenAI call with timeout protection
+    const response = await timeoutPromise(
+      client.chat.completions.create({
+        model: "gpt-4o",
+        max_tokens: 512,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: photo.url, detail: "low" },
+              },
+              {
+                type: "text",
+                text: `Analyse this property photo (filename: ${photo.name}).`,
+              },
+            ],
+          },
+        ],
+      }),
+      AI_ANALYSIS_TIMEOUT_MS,
+      `GPT-4o analysis for ${photo.name}`,
+    );
 
     const raw = response.choices[0]?.message?.content ?? "";
     const parsed = parseGptJson(raw);
@@ -144,12 +155,17 @@ async function analysePhoto(client: OpenAI, photo: ProjectPhoto): Promise<RoomAn
       confidence_score: coerceScore(parsed.confidence_score),
     };
   } catch (err) {
-    const reason =
-      err instanceof Error && err.message.includes("timeout")
-        ? "timeout"
-        : err instanceof Error && err.message.includes("rate_limit")
-          ? "rate_limit"
-          : "parse_error";
+    // Categorize error type for better handling
+    let reason: "timeout" | "rate_limit" | "parse_error" | "api_error" = "api_error";
+    if (isTimeoutError(err)) {
+      reason = "timeout";
+    } else if (err instanceof Error) {
+      if (err.message.includes("rate_limit") || err.message.includes("429")) {
+        reason = "rate_limit";
+      } else if (err.message.includes("parse") || err.message.includes("JSON")) {
+        reason = "parse_error";
+      }
+    }
 
     logger.warn("[openAiVisionProvider] Failed to analyse photo", {
       photo: photo.name,
@@ -192,29 +208,38 @@ export const openAiVisionPhotoAnalysisProvider: PhotoAnalysisProvider = {
       return [];
     }
 
+    const startTime = Date.now();
     addDiagnosticBreadcrumb("ai:gpt4o:batch:start", {
       projectId,
       photoCount: photos.length,
+      timeoutPerPhotoMs: AI_ANALYSIS_TIMEOUT_MS,
     });
 
     try {
       const results = await Promise.all(photos.map((photo) => analysePhoto(client, photo)));
 
       const successCount = results.filter((r) => r.confidence_score > 0).length;
+      const timeoutCount = results.filter((r) => r.confidence_score === 0).length;
+      const durationMs = Date.now() - startTime;
+
       addDiagnosticBreadcrumb("ai:gpt4o:batch:complete", {
         projectId,
         photoCount: photos.length,
         successCount,
-        fallbackCount: results.length - successCount,
+        fallbackCount: timeoutCount,
+        durationMs,
+        avgPerPhotoMs: Math.round(durationMs / photos.length),
       });
 
       cache.set(projectId, results);
       notify();
       return results;
     } catch (err) {
+      const durationMs = Date.now() - startTime;
       logger.error("[openAiVisionProvider] batch analysis failed", {
         projectId,
         photoCount: photos.length,
+        durationMs,
         error: String(err),
       });
 
@@ -223,6 +248,12 @@ export const openAiVisionPhotoAnalysisProvider: PhotoAnalysisProvider = {
         projectId,
         photoCount: photos.length,
         reason: "api_error",
+      });
+
+      addDiagnosticBreadcrumb("ai:gpt4o:batch:error", {
+        projectId,
+        photoCount: photos.length,
+        durationMs,
       });
 
       throw err;
