@@ -29,12 +29,13 @@ export function analyzeProviderHealth(): ProviderHealthSummary {
   const counters = getCounters();
 
   // Vision analysis
+  // Note: vision_fallback_used is NOT added to visionTotal because it's incremented
+  // alongside failure counters (timeout, rate_limit, parse_failure), not as a separate operation.
   const visionTotal =
     counters.vision_success +
     counters.vision_timeout +
     counters.vision_parse_failure +
-    counters.vision_rate_limit +
-    counters.vision_fallback_used;
+    counters.vision_rate_limit;
 
   const visionStats =
     visionTotal > 0
@@ -62,11 +63,12 @@ export function analyzeProviderHealth(): ProviderHealthSummary {
   }
 
   // Redesign analysis
+  // Note: redesign_fallback_used is NOT added to redesignTotal because it's incremented
+  // alongside failure counters (timeout, parse_failure), not as a separate operation.
   const redesignTotal =
     counters.redesign_success +
     counters.redesign_timeout +
-    counters.redesign_parse_failure +
-    counters.redesign_fallback_used;
+    counters.redesign_parse_failure;
 
   const redesignStats =
     redesignTotal > 0
