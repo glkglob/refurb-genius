@@ -31,4 +31,14 @@ export default defineConfig({
       "@": "/src",
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Don't hash entry file so HTML reference /assets/client.js matches the actual file
+        entryFileNames: "assets/client.js",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash][extname]",
+      },
+    },
+  },
 });
