@@ -42,7 +42,7 @@ export function validateEnvironment(): void {
 
   // Validate format (basic checks)
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-  if (!supabaseUrl.startsWith("https://")) {
+  if (supabaseUrl && !supabaseUrl.startsWith("https://")) {
     const msg = "VITE_SUPABASE_URL must be HTTPS";
     console.warn("⚠️ ENV FORMAT WARNING:", msg);
   }
