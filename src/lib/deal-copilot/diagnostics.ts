@@ -1,3 +1,5 @@
+import { formatGBP } from "@/lib/utils";
+
 /**
  * Structured logging for Deal Copilot Lite
  *
@@ -197,11 +199,7 @@ export function safeFormatCurrency(value: unknown): string {
   }
 
   try {
-    return new Intl.NumberFormat("en-GB", {
-      style: "currency",
-      currency: "GBP",
-      maximumFractionDigits: 0,
-    }).format(value as number);
+    return formatGBP(value as number);
   } catch (e) {
     dealCopilotDiagnostics.renderInvalidValue("currency", value);
     return "—";
