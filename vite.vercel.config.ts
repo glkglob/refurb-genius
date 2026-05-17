@@ -1,12 +1,34 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import tsconfigPaths from "vite-tsconfig-paths";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { nitro } from "nitro/vite";
-import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
-// Vercel build path: keep Lovable's bundled TanStack/Vite plugins,
-// disable the Cloudflare worker adapter, and let Nitro emit Vercel output.
+// Vercel build path: standard Vite/TanStack plugins with Nitro for Vercel output.
 export default defineConfig({
-  cloudflare: false,
-  plugins: [nitro({ preset: "vercel" })],
-  tanstackStart: {
-    server: { entry: "server" },
+  plugins: [
+    tanstackStart({
+      server: {
+        entry: "./src/server.ts",
+      },
+    }),
+    react(),
+    tailwindcss(),
+    tsconfigPaths(),
+    nitro({ preset: "vercel" }),
+  ],
+  define: {
+    "import.meta.env.NEXT_PUBLIC_SUPABASE_URL": JSON.stringify(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+    ),
+    "import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY": JSON.stringify(
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    ),
+  },
+  resolve: {
+    alias: {
+      "@": "/src",
+    },
   },
 });

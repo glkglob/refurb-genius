@@ -28,6 +28,6 @@ export function getSupabaseSetupWarning(): { title: string; description: string 
   return {
     title: "Backend not connected",
     description:
-      "Lovable Cloud isn't connected yet, so sign-in and saving data are disabled. Connect Lovable Cloud in the project settings to enable the backend.",
+      "Supabase is not configured. Please set the SUPABASE_URL and SUPABASE_ANON_KEY environment variables to enable the backend.",
   };
 }

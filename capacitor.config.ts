@@ -1,11 +1,11 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: 'com.refurbgenius.app',
-  appName: 'Refurb Genius',
-  webDir: 'dist/client',
+  appId: "com.refurbgenius.app",
+  appName: "Refurb Genius",
+  webDir: "dist/client",
   ios: {
-    preferredScheme: 'dark',
+    preferredScheme: "dark",
   },
   server: {
     // For local development: connect to localhost:3000 running the Nitro server
