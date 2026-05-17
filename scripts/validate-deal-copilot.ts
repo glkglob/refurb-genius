@@ -30,6 +30,9 @@ async function loadModules() {
     smallProjectInput,
     largeProjectInput,
   } = await import(path.join(projectRoot, "src/test/fixtures/deal-copilot/edge-cases.ts"));
+  const { runAllInvariantTests } = await import(
+    path.join(projectRoot, "src/test/fixtures/deal-copilot/invariant-protection.ts")
+  );
 
   return {
     analyzeDeal,
@@ -42,6 +45,7 @@ async function loadModules() {
     negativeProfitInput,
     smallProjectInput,
     largeProjectInput,
+    runAllInvariantTests,
   };
 }
 
@@ -72,6 +76,7 @@ async function main() {
       negativeProfitInput,
       smallProjectInput,
       largeProjectInput,
+      runAllInvariantTests,
     } = await loadModules();
 
     const results: ValidationResult[] = [];
@@ -200,6 +205,29 @@ async function main() {
       duration: largeProjectDuration,
     });
 
+    // ============================================================
+    // INVARIANT PROTECTION TESTS
+    // ============================================================
+    // These tests verify that the pricing → ROI financial invariant
+    // cannot be regressed. They detect specific attack vectors that
+    // could weaken financial authority boundaries.
+    // ============================================================
+
+    console.log("\n🔒 Running Invariant Protection Tests...\n");
+
+    const startInvariantTests = Date.now();
+    const invariantTestResults = runAllInvariantTests(analyzeDeal);
+    const invariantTestsDuration = Date.now() - startInvariantTests;
+
+    invariantTestResults.tests.forEach((test) => {
+      results.push({
+        name: test.name,
+        status: test.valid ? "PASS" : "FAIL",
+        errors: test.errors,
+        duration: 0,
+      });
+    });
+
     // Print results
     console.log("📋 Results:\n");
     console.log("┌─────────────────────────────────┬──────────┬─────────────────────────────────┐");
@@ -239,8 +267,28 @@ async function main() {
       console.log();
     }
 
+    // Invariant Protection Report
+    const invariantPassed = invariantTestResults.allPassed;
+    console.log("\n" + "=".repeat(70));
+    console.log("🔒 INVARIANT PROTECTION STATUS");
+    console.log("=".repeat(70));
+    if (invariantPassed) {
+      console.log("✅ All invariant tests passed — pricing → ROI boundary is protected");
+    } else {
+      console.log("❌ Invariant tests failed — financial authority boundary at risk");
+      invariantTestResults.tests.forEach((test) => {
+        if (!test.valid) {
+          console.log(`\n⚠️  ${test.name}`);
+          test.errors.forEach((error) => {
+            console.log(`     ${error}`);
+          });
+        }
+      });
+    }
+    console.log("=".repeat(70) + "\n");
+
     // Exit status
-    const allPassed = results.every((r) => r.status === "PASS");
+    const allPassed = results.every((r) => r.status === "PASS") && invariantPassed;
     process.exit(allPassed ? 0 : 1);
   } catch (error) {
     console.error("❌ Validation runner error:", error);
