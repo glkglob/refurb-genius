@@ -4,6 +4,7 @@ import beforeImg from "@/assets/before.jpg";
 import afterImg from "@/assets/after.jpg";
 import heroImg from "@/assets/hero-after.jpg";
 import { ProjectPhoto, photoStore } from "./photos";
+import { auth } from "./auth";
 
 export const ROOM_TYPES = [
   "Kitchen",
@@ -184,14 +185,8 @@ export const analysisStore = {
     return cache.get(projectId);
   },
   async run(projectId: string): Promise<RoomAnalysis[]> {
-    if (import.meta.env.VITE_OPENAI_API_KEY) {
-      // Delegate to real Vision provider. Dynamic import avoids circular module refs.
-      const { openAiVisionPhotoAnalysisProvider } = await import("@/core/ai/openAiVisionProvider");
-      const result = await openAiVisionPhotoAnalysisProvider.run({ projectId });
-      cache.set(projectId, result);
-      notify();
-      return result;
-    }
+    // Mock fallback: build analyses from photos using templates.
+    // This is the local implementation used when no real AI provider is active.
     await delay();
     const result = buildFromPhotos(projectId);
     cache.set(projectId, result);
@@ -203,3 +198,11 @@ export const analysisStore = {
     return () => listeners.delete(fn);
   },
 };
+
+// Clear cache on auth change to prevent stale analysis from previous user
+if (typeof window !== "undefined") {
+  auth.onChange(() => {
+    cache.clear();
+    notify();
+  });
+}

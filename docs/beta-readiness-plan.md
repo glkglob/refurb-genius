@@ -31,6 +31,7 @@ Full codebase audit covering: TypeScript type-check, ESLint/Prettier, React rule
 **File:** `src/routes/__root.tsx`  
 **Issue:** Root `<head>` contained Lovable scaffold defaults: title `"Lovable App"`, description `"Lovable Generated Project"`, author `"Lovable"`. These would appear in browser tabs, search results, and social previews for beta testers.  
 **Fix:** Updated to Refurb Genius branding:
+
 - `title`: "Refurb Genius — Property Refurbishment Analysis"
 - `description`: "AI-powered refurbishment analysis for UK property investors. Upload photos, get estimates, model ROI."
 - `author`: "Refurb Genius"
@@ -56,6 +57,7 @@ npm run lint       → formatting errors resolved; 7 fast-refresh warnings remai
 ## 4. What Is Ready for Beta
 
 ### Auth
+
 - Email sign-up / sign-in / sign-out working
 - Forgot password + reset password flow
 - Google OAuth via Lovable Cloud
@@ -63,6 +65,7 @@ npm run lint       → formatting errors resolved; 7 fast-refresh warnings remai
 - `RequireAuth` and `RequireAdmin` guards both correct
 
 ### Projects (Core Flow)
+
 - Create project with full UK property details + postcode validation
 - Photo upload to Supabase Storage
 - AI photo analysis (mock provider — returns structured data ready for OpenAI Vision swap)
@@ -73,6 +76,7 @@ npm run lint       → formatting errors resolved; 7 fast-refresh warnings remai
 - All project stages tracked and progress shown on project detail page
 
 ### Trades Marketplace
+
 - Public job browsing at `/trades` (no auth required)
 - Category filtering
 - Job detail page at `/trades/$jobId`
@@ -85,17 +89,20 @@ npm run lint       → formatting errors resolved; 7 fast-refresh warnings remai
 - All three tables (`trades_jobs`, `trades_job_interests`, `trade_profiles`) have RLS enabled
 
 ### Deal Copilot
+
 - Opportunity list, create, detail, edit flows at `/deal-copilot/*`
 - Deal scoring engine (`src/core/dealCopilot/dealScore.ts`)
 - Opportunity store backed by Supabase `deal_opportunities` table
 
 ### Dashboard
+
 - Cross-product workspace
 - Projects panel
 - Trades jobs + interests panels
 - Deal Copilot opportunities panel
 
 ### Navigation + Layout
+
 - `AppLayout` with `Sidebar` (desktop) and `MobileTopBar` (mobile)
 - All route filenames use correct TanStack underscore convention
 - 404 and error boundary components wired in root route
@@ -104,14 +111,14 @@ npm run lint       → formatting errors resolved; 7 fast-refresh warnings remai
 
 ## 5. Known Limitations for Beta (Not Blocking)
 
-| Item | Status | Notes |
-|------|--------|-------|
-| AI photo analysis | Mock | Returns structured mock data. Wire `openAiVisionPhotoAnalysisProvider` in `src/core/ai/photoAnalysis.ts` to go live |
-| AI redesign concepts | Mock | Same pattern — one-file swap in `src/core/ai/redesignConcepts.ts` |
-| PDF export | Print-to-PDF only | Full download from browser print dialog. Native PDF generation not yet implemented |
-| Email notifications | None | No email on new interest, accept/reject, etc. |
-| Admin panel | Minimal | `RequireAdmin` guard works; admin page exists but has limited content |
-| Fast-refresh warnings | 7 warnings | ESLint warns about non-component exports in component files. Cosmetic only — does not affect runtime |
+| Item                  | Status            | Notes                                                                                                               |
+| --------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------- |
+| AI photo analysis     | Mock              | Returns structured mock data. Wire `openAiVisionPhotoAnalysisProvider` in `src/core/ai/photoAnalysis.ts` to go live |
+| AI redesign concepts  | Mock              | Same pattern — one-file swap in `src/core/ai/redesignConcepts.ts`                                                   |
+| PDF export            | Print-to-PDF only | Full download from browser print dialog. Native PDF generation not yet implemented                                  |
+| Email notifications   | None              | No email on new interest, accept/reject, etc.                                                                       |
+| Admin panel           | Minimal           | `RequireAdmin` guard works; admin page exists but has limited content                                               |
+| Fast-refresh warnings | 7 warnings        | ESLint warns about non-component exports in component files. Cosmetic only — does not affect runtime                |
 
 ---
 
@@ -133,20 +140,24 @@ npm run lint       → formatting errors resolved; 7 fast-refresh warnings remai
 ## 7. Deployment Checklist
 
 ### Environment Variables (Vercel / Cloudflare)
+
 ```
 VITE_SUPABASE_URL=<your project URL>
 VITE_SUPABASE_PUBLISHABLE_KEY=<your publishable key>
 SUPABASE_URL=<same>
 SUPABASE_PUBLISHABLE_KEY=<same>
 ```
+
 Do NOT add `SUPABASE_SERVICE_ROLE_KEY` to Vercel — it is only needed for the local bootstrap script.
 
 ### Build Command
+
 ```bash
 npm run build:vercel   # Uses vite.vercel.config.ts
 ```
 
 ### Supabase Migrations
+
 Run `supabase db push` (or apply migrations manually via Supabase Dashboard SQL editor) to ensure all tables and RLS policies are up to date before pointing beta users at the live instance.
 
 ---

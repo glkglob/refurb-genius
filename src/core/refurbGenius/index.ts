@@ -1,14 +1,4 @@
-export type RefurbGeniusCapability =
-  | "refurb_estimate"
-  | "photo_analysis"
-  | "investor_report"
-  | "scenario_comparison"
-  | "project_report";
+// Backwards compatibility shim. Capabilities have been extracted to @repo/core.
+// Use @repo/core directly for new code.
 
-export const REFURB_GENIUS_CAPABILITIES: RefurbGeniusCapability[] = [
-  "refurb_estimate",
-  "photo_analysis",
-  "investor_report",
-  "scenario_comparison",
-  "project_report",
-];
+export * from "@repo/core";

@@ -1,28 +1,29 @@
-// Shared cross-product type registry. Pages and components import from here
-// instead of defining inline interfaces.
-export type { Profile } from "./profile";
+// Backwards compatibility re-exports. Types have been extracted to @repo/types.
+// Use @repo/types directly for new code.
+
 export type {
+  Profile,
   Project,
   ProjectStatus,
   NewProjectInput,
   ProjectStage,
   PropertyType,
   UKRegion,
-} from "./project";
-export type { Photo } from "./photo";
-export type { AnalysisResult, RoomType, ConditionLevel, RefurbLevel } from "./analysis";
-export type { RedesignConcept, RedesignStyle } from "./redesign";
-export type {
+  Photo,
+  AnalysisResult,
+  RoomType,
+  ConditionLevel,
+  RefurbLevel,
+  RedesignConcept,
+  RedesignStyle,
   Estimate,
   EstimateItem,
   EstimateInputs,
   EstimateCategory,
   FinishLevel,
-} from "./estimate";
-export type { InvestmentMetrics, RiskLevel } from "./metrics";
-export type { Report } from "./report";
-
-export type {
+  InvestmentMetrics,
+  RiskLevel,
+  Report,
   DealAddress,
   DealFinancials,
   DealId,
@@ -31,15 +32,10 @@ export type {
   DealSource,
   DealStatus,
   DealSummary,
-} from "./deal";
-
-export { createDealMetadata } from "./deal";
-
-export type { RiskCategory, RiskItem, RiskSourceProductId, RiskSummary } from "./risk";
-
-export { createEmptyRiskSummary, summariseRisks } from "./risk";
-
-export type {
+  RiskCategory,
+  RiskItem,
+  RiskSourceProductId,
+  RiskSummary,
   Scenario,
   ScenarioFinancials,
   ScenarioId,
@@ -47,6 +43,12 @@ export type {
   ScenarioSet,
   ScenarioSourceProductId,
   ScenarioType,
-} from "./scenario";
+} from "@repo/types";
 
-export { getBaseScenario, getScenarioByType } from "./scenario";
+export {
+  createDealMetadata,
+  createEmptyRiskSummary,
+  summariseRisks,
+  getBaseScenario,
+  getScenarioByType,
+} from "@repo/types";

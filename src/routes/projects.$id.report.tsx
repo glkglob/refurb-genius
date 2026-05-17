@@ -1,5 +1,6 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import {
   ShieldCheck,
   AlertCircle,
 } from "lucide-react";
+import { addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { ReportSection as Section } from "@/components/ReportSection";
 import { EstimateTable } from "@/components/EstimateTable";
 import { projectStore, photoStore } from "@/core/projects";
@@ -48,18 +50,46 @@ function ReportPage() {
   const [estimateLoading, setEstimateLoading] = useState(true);
   const [estimateLoadError, setEstimateLoadError] = useState<Error | null>(null);
   const [pdfExporting, setPdfExporting] = useState(false);
+  const [pdfProgress, setPdfProgress] = useState<string | null>(null);
 
   const handleExportPdf = useCallback(async () => {
     if (pdfExporting) return;
     setPdfExporting(true);
+    setPdfProgress("Loading export tools...");
+    const toastId = toast.loading("Preparing PDF export...");
+
     try {
       const { exportReportPdf } = await import("@/lib/exportPdf");
       const safeFilename = project
         ? `refurb-genius-${project.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`
         : "refurb-genius-report";
-      await exportReportPdf({ filename: safeFilename });
+
+      await exportReportPdf({
+        filename: safeFilename,
+        onProgress(stage) {
+          setPdfProgress(
+            stage === "loading-libs"
+              ? "Loading export tools..."
+              : stage === "rendering-canvas"
+                ? "Rendering document..."
+                : stage === "generating-pdf"
+                  ? "Generating PDF..."
+                  : "Complete!",
+          );
+          if (stage === "rendering-canvas") {
+            toast.loading("Rendering document...", { id: toastId });
+          } else if (stage === "generating-pdf") {
+            toast.loading("Generating PDF...", { id: toastId });
+          }
+        },
+      });
+      toast.success("Report exported successfully!", { id: toastId });
+      setPdfProgress(null);
     } catch (err) {
-      console.error("[pdf] export failed", err);
+      const errorMsg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Export failed: ${errorMsg}`, { id: toastId, duration: 5000 });
+      addDiagnosticBreadcrumb("pdf:export:ui-error", { error: errorMsg });
+      setPdfProgress(null);
     } finally {
       setPdfExporting(false);
     }

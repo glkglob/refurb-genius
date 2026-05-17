@@ -4,6 +4,8 @@
 // complete.
 import { supabase } from "@/integrations/supabase/client";
 import { auth } from "./auth";
+import { captureApiError, addDiagnosticBreadcrumb } from "./sentry";
+import { logger } from "./logger";
 
 export const PROPERTY_TYPES = [
   "Flat",
@@ -116,21 +118,43 @@ async function fetchAll(): Promise<void> {
     notify();
     return;
   }
-  const { data, error: fetchError } = await supabase
-    .from("projects")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (fetchError) {
-    console.error("[projects] fetch failed", fetchError);
+
+  addDiagnosticBreadcrumb("projects:fetch:start");
+
+  try {
+    const { data, error: fetchError } = await supabase
+      .from("projects")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (fetchError) {
+      logger.error("[projects] fetch failed", { error: fetchError.message });
+      captureApiError(fetchError, {
+        table: "projects",
+        operation: "select",
+        context: "fetch_all_projects",
+      });
+      cache = [];
+      loaded = true;
+      waitingForAuth = false;
+      projectStoreError(fetchError.message);
+    } else {
+      cache = (data ?? []).map(rowToProject);
+      loaded = true;
+      waitingForAuth = false;
+      projectStoreError(null);
+      addDiagnosticBreadcrumb("projects:fetch:success", { count: cache.length });
+    }
+  } catch (err) {
+    logger.error("[projects] fetch exception", { error: String(err) });
+    captureApiError(err, {
+      table: "projects",
+      operation: "select",
+      context: "fetch_all_projects_exception",
+    });
     cache = [];
     loaded = true;
     waitingForAuth = false;
-    projectStoreError(fetchError.message);
-  } else {
-    cache = (data ?? []).map(rowToProject);
-    loaded = true;
-    waitingForAuth = false;
-    projectStoreError(null);
+    projectStoreError(String(err));
   }
   notify();
 }
@@ -206,30 +230,50 @@ export const projectStore = {
   async create(input: NewProjectInput): Promise<Project> {
     const user = auth.getUser();
     if (!user) throw new Error("You must be signed in.");
-    const { data, error } = await supabase
-      .from("projects")
-      .insert({
-        user_id: user.id,
-        name: input.name,
-        address: input.address,
-        postcode: input.postcode,
-        region: input.region,
-        property_type: input.property_type,
-        bedrooms: input.bedrooms,
-        bathrooms: input.bathrooms,
-        size_sqm: input.size_sqm,
-        purchase_price: input.purchase_price,
-        estimated_gdv: input.estimated_gdv,
-        notes: input.notes,
-        status: "Draft",
-      })
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    const project = rowToProject(data);
-    cache = [project, ...cache];
-    notify();
-    return project;
+    try {
+      addDiagnosticBreadcrumb("projects:create:start", { projectName: input.name });
+      const { data, error } = await supabase
+        .from("projects")
+        .insert({
+          user_id: user.id,
+          name: input.name,
+          address: input.address,
+          postcode: input.postcode,
+          region: input.region,
+          property_type: input.property_type,
+          bedrooms: input.bedrooms,
+          bathrooms: input.bathrooms,
+          size_sqm: input.size_sqm,
+          purchase_price: input.purchase_price,
+          estimated_gdv: input.estimated_gdv,
+          notes: input.notes,
+          status: "Draft",
+        })
+        .select()
+        .single();
+      if (error) {
+        logger.error("[projects] create failed", { projectName: input.name, error: error.message });
+        captureApiError(error, {
+          table: "projects",
+          operation: "insert",
+          context: "create_project",
+        });
+        throw new Error(error.message);
+      }
+      const project = rowToProject(data);
+      cache = [project, ...cache];
+      addDiagnosticBreadcrumb("projects:create:success", { projectId: project.id });
+      notify();
+      return project;
+    } catch (err) {
+      logger.error("[projects] create exception", { projectName: input.name, error: String(err) });
+      captureApiError(err, {
+        table: "projects",
+        operation: "insert",
+        context: "create_project_exception",
+      });
+      throw err;
+    }
   },
   getProgress(id: string): Record<ProjectStage, boolean> {
     const p = cache.find((x) => x.id === id);
@@ -255,12 +299,25 @@ export const projectStore = {
           : stage === "estimate"
             ? { estimate_done: value }
             : { report_done: value };
-    supabase
+    void supabase
       .from("projects")
       .update(patch)
       .eq("id", id)
       .then(({ error }) => {
-        if (error) console.error("[projects] setStage failed", error);
+        if (error) {
+          logger.error("[projects] setStage failed", {
+            projectId: id,
+            stage,
+            error: error.message,
+          });
+          captureApiError(error, {
+            table: "projects",
+            operation: "update",
+            context: `setStage_${stage}`,
+          });
+        } else {
+          addDiagnosticBreadcrumb("projects:stage:updated", { projectId: id, stage });
+        }
       });
   },
   subscribe(fn: () => void): () => void {

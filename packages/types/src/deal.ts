@@ -1,4 +1,4 @@
-import type { ProductId } from "../platform/products";
+import type { ProductId } from "./products";
 
 export type DealId = string;
 

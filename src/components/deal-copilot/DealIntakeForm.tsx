@@ -13,6 +13,12 @@ import {
   type DealScoreInput,
   type DealScoreResult,
 } from "@/core/dealCopilot";
+import { analyzeDeal } from "@/lib/deal-copilot/dealAnalysis";
+import { validateFormData } from "@/lib/deal-copilot/dealValidation";
+import { DealScoreCard } from "@/components/deal-copilot/DealScoreCard";
+import { DealMetricsGrid } from "@/components/deal-copilot/DealMetricsGrid";
+import { DealRiskFlags } from "@/components/deal-copilot/DealRiskFlags";
+import { DealEstimateSection } from "@/components/deal-copilot/DealEstimateSection";
 
 type DealFormState = {
   title: string;
@@ -105,8 +111,34 @@ export function DealIntakeForm() {
 
   const score = useMemo<DealScoreResult>(() => scoreDealOpportunity(scoreInput), [scoreInput]);
 
+  // Run full analysis through orchestration layer
+  const validationResult = useMemo(
+    () =>
+      validateFormData({
+        title: form.title,
+        purchasePrice: form.purchasePrice,
+        estimatedGdv: form.estimatedGdv,
+        expectedMonthlyRent: form.expectedMonthlyRent,
+        refurbBudget: form.refurbBudget,
+        region: form.region,
+        propertyCondition: form.propertyCondition,
+        holdingCosts: form.holdingCosts,
+      }),
+    [form],
+  );
+
+  const analysis = useMemo(() => {
+    if (!validationResult.valid) {
+      return null;
+    }
+    return analyzeDeal(validationResult.data);
+  }, [validationResult]);
+
   async function handleSaveOpportunity() {
     if (!score.ready || isSaving) {
+      if (isSaving) {
+        console.debug("[deal-intake] Save already in progress, ignoring duplicate click");
+      }
       return;
     }
 
@@ -121,125 +153,138 @@ export function DealIntakeForm() {
     });
 
     if (hasSameDealOpportunityInputs(savedOpportunity, opportunity)) {
+      console.debug("[deal-intake] Save skipped: identical to last saved opportunity");
       return;
     }
 
     setSaveError(null);
     setIsSaving(true);
+    console.info("[deal-intake] Starting save for opportunity:", opportunity.title);
     try {
       const saved = await saveDealOpportunity(opportunity);
       setSavedOpportunity(saved);
       setSaveError(null);
+      console.info("[deal-intake] Save successful, opportunity ID:", saved.id);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to save opportunity.";
-      setSaveError(
-        message.startsWith("Unable to save")
-          ? message
-          : "Unable to save opportunity. Please try again.",
-      );
-      console.error("[deal-intake] save failed", err);
+      const displayMessage = message.startsWith("Unable to save")
+        ? message
+        : "Unable to save opportunity. Please try again.";
+      setSaveError(displayMessage);
+      console.error("[deal-intake] Save failed:", { error: err, message, displayMessage });
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
-      <Card>
-        <CardContent className="p-6">
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-foreground">Deal assumptions</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Enter the minimum underwriting inputs. Deal Copilot uses the shared ROI engine for
-              score, profit, yield, and risk.
-            </p>
-          </div>
+    <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+        <Card>
+          <CardContent className="p-6">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-foreground">Deal assumptions</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Enter the minimum underwriting inputs. Deal Copilot uses the shared ROI engine for
+                score, profit, yield, and risk.
+              </p>
+            </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <TextInput
-              label="Deal title"
-              value={form.title}
-              onChange={(title) => setForm((current) => ({ ...current, title }))}
-              placeholder="3-bed terrace in Croydon"
-            />
+            <div className="grid gap-4 md:grid-cols-2">
+              <TextInput
+                label="Deal title"
+                value={form.title}
+                onChange={(title) => setForm((current) => ({ ...current, title }))}
+                placeholder="3-bed terrace in Croydon"
+              />
 
-            <TextInput
-              label="Listing URL"
-              value={form.listingUrl}
-              onChange={(listingUrl) => setForm((current) => ({ ...current, listingUrl }))}
-              placeholder="https://..."
-            />
+              <TextInput
+                label="Listing URL"
+                value={form.listingUrl}
+                onChange={(listingUrl) => setForm((current) => ({ ...current, listingUrl }))}
+                placeholder="https://..."
+              />
 
-            <TextInput
-              label="Postcode / area"
-              value={form.postcode}
-              onChange={(postcode) => setForm((current) => ({ ...current, postcode }))}
-              placeholder="CR0"
-            />
+              <TextInput
+                label="Postcode / area"
+                value={form.postcode}
+                onChange={(postcode) => setForm((current) => ({ ...current, postcode }))}
+                placeholder="CR0"
+              />
 
-            <SelectInput
-              label="Region"
-              value={form.region}
-              options={UK_REGIONS}
-              onChange={(region) => setForm((current) => ({ ...current, region }))}
-            />
+              <SelectInput
+                label="Region"
+                value={form.region}
+                options={UK_REGIONS}
+                onChange={(region) => setForm((current) => ({ ...current, region }))}
+              />
 
-            <MoneyInput
-              label="Purchase price"
-              value={form.purchasePrice}
-              onChange={(purchasePrice) => setForm((current) => ({ ...current, purchasePrice }))}
-              placeholder="350000"
-            />
+              <MoneyInput
+                label="Purchase price"
+                value={form.purchasePrice}
+                onChange={(purchasePrice) => setForm((current) => ({ ...current, purchasePrice }))}
+                placeholder="350000"
+              />
 
-            <MoneyInput
-              label="Estimated GDV"
-              value={form.estimatedGdv}
-              onChange={(estimatedGdv) => setForm((current) => ({ ...current, estimatedGdv }))}
-              placeholder="475000"
-            />
+              <MoneyInput
+                label="Estimated GDV"
+                value={form.estimatedGdv}
+                onChange={(estimatedGdv) => setForm((current) => ({ ...current, estimatedGdv }))}
+                placeholder="475000"
+              />
 
-            <MoneyInput
-              label="Refurb budget"
-              value={form.refurbBudget}
-              onChange={(refurbBudget) => setForm((current) => ({ ...current, refurbBudget }))}
-              placeholder="55000"
-            />
+              <MoneyInput
+                label="Refurb budget"
+                value={form.refurbBudget}
+                onChange={(refurbBudget) => setForm((current) => ({ ...current, refurbBudget }))}
+                placeholder="55000"
+              />
 
-            <MoneyInput
-              label="Expected monthly rent"
-              value={form.expectedMonthlyRent}
-              onChange={(expectedMonthlyRent) =>
-                setForm((current) => ({ ...current, expectedMonthlyRent }))
-              }
-              placeholder="2200"
-            />
+              <MoneyInput
+                label="Expected monthly rent"
+                value={form.expectedMonthlyRent}
+                onChange={(expectedMonthlyRent) =>
+                  setForm((current) => ({ ...current, expectedMonthlyRent }))
+                }
+                placeholder="2200"
+              />
 
-            <MoneyInput
-              label="Holding costs"
-              value={form.holdingCosts}
-              onChange={(holdingCosts) => setForm((current) => ({ ...current, holdingCosts }))}
-              placeholder="8000"
-            />
+              <MoneyInput
+                label="Holding costs"
+                value={form.holdingCosts}
+                onChange={(holdingCosts) => setForm((current) => ({ ...current, holdingCosts }))}
+                placeholder="8000"
+              />
 
-            <SelectInput
-              label="Property condition"
-              value={form.propertyCondition}
-              options={CONDITION_LEVELS}
-              onChange={(propertyCondition) =>
-                setForm((current) => ({ ...current, propertyCondition }))
-              }
-            />
-          </div>
-        </CardContent>
-      </Card>
+              <SelectInput
+                label="Property condition"
+                value={form.propertyCondition}
+                options={CONDITION_LEVELS}
+                onChange={(propertyCondition) =>
+                  setForm((current) => ({ ...current, propertyCondition }))
+                }
+              />
+            </div>
+          </CardContent>
+        </Card>
 
-      <DealScorePanel
-        score={score}
-        savedOpportunity={savedOpportunity}
-        saveError={saveError}
-        isSaving={isSaving}
-        onSaveOpportunity={handleSaveOpportunity}
-      />
+        <DealScorePanel
+          score={score}
+          savedOpportunity={savedOpportunity}
+          saveError={saveError}
+          isSaving={isSaving}
+          onSaveOpportunity={handleSaveOpportunity}
+        />
+      </div>
+
+      {/* Full analysis results below form */}
+      {analysis && analysis.ready && (
+        <div className="space-y-6">
+          <DealMetricsGrid roi={analysis.roi} />
+          <DealRiskFlags roi={analysis.roi} />
+          <DealEstimateSection pricing={analysis.pricing} />
+        </div>
+      )}
     </div>
   );
 }

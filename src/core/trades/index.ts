@@ -4,18 +4,18 @@ export type {
   TradesJob,
   CreateTradesJobInput,
   UpdateTradesJobInput,
-} from "./tradesJob.types";
+} from "@repo/types";
 
 export type {
   TradesJobInterestStatus,
   TradesJobInterest,
   CreateTradesJobInterestInput,
-} from "./tradesJobInterest.types";
+} from "@repo/types";
 
-export type { InsuranceStatus, TradeProfile, UpsertTradeProfileInput } from "./tradeProfile.types";
+export type { InsuranceStatus, TradeProfile, UpsertTradeProfileInput } from "@repo/types";
 
 export const TRADES_JOB_CATEGORIES: {
-  value: import("./tradesJob.types").TradesJobCategory;
+  value: import("@repo/types").TradesJobCategory;
   label: string;
 }[] = [
   { value: "general_building", label: "General Building" },

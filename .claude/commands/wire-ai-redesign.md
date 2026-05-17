@@ -5,6 +5,7 @@ Wire a real AI redesign concept generator to replace the mock static concepts.
 The redesign system uses a provider pattern identical to photo analysis.
 
 Active provider is set in `src/core/ai/redesignConcepts.ts`:
+
 ```ts
 export const redesignProvider: RedesignProvider = mockRedesignProvider;
 ```
@@ -18,6 +19,7 @@ The `RedesignConcept` type is in `src/lib/redesign.ts` — read it before starti
 ### Step 1 — Check env
 
 Read `src/lib/ai-config.ts`. If `/wire-openai-vision` has not been run yet, create `src/lib/ai-config.ts` with:
+
 - `isOpenAiConfigured(): boolean` — checks `import.meta.env.VITE_OPENAI_API_KEY`
 - `getOpenAiApiKey(): string` — returns key or throws
 
@@ -26,10 +28,11 @@ Read `src/lib/ai-config.ts`. If `/wire-openai-vision` has not been run yet, crea
 In `src/core/ai/redesignConcepts.ts`, add:
 
 ```ts
-export const openAiRedesignProvider: RedesignProvider
+export const openAiRedesignProvider: RedesignProvider;
 ```
 
 The `generate(input)` method must:
+
 1. Call OpenAI `gpt-4o` (text only — no image generation needed) with a prompt that asks for 3 redesign concept objects matching `RedesignConcept` fields:
    - `id` (generate a slug, e.g. `"modern-minimal-1"`)
    - `style` (one of the `RedesignStyle` values from `src/lib/redesign.ts`)
