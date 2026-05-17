@@ -1,4 +1,4 @@
-import { runRoiEngine, type RoiEngineResult } from "@repo/services";
+import { runRoiEngine, type RoiEngineResult } from "../roi";
 import type { ConditionLevel } from "@/lib/analysis";
 import type { UKRegion } from "@/lib/projects";
 import type { DealOpportunityInput } from "@repo/types";

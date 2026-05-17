@@ -69,8 +69,8 @@ function baseEstimateItems(inputs: PricingEngineInputs, multiplier: number): Pri
   const condition = CONDITION_MULTIPLIERS[inputs.property_condition];
   return inputs.selected_categories.map((category) => {
     const base = CATEGORY_BASE[category];
-    const labour = round10(base.labour * multiplier);
-    const materials = round10(base.materials * multiplier);
+    const labour = base.labour * multiplier;
+    const materials = base.materials * multiplier;
     return {
       category,
       labour,

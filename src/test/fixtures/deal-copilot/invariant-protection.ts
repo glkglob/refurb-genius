@@ -6,7 +6,7 @@
  * financial authority boundaries.
  */
 
-import type { ParsedDealFormData, DealAnalysisResult } from "@/types/deal-copilot";
+import type { ParsedDealFormData, DealAnalysisResult } from "@repo/types";
 
 /**
  * TEST 1: ROI BLOCKED IF PRICING FAILS
