@@ -9,6 +9,8 @@ import { photoStore } from "@/lib/photos";
 import type { ProjectPhoto } from "@/lib/photos";
 import type { RoomAnalysis, RoomType, ConditionLevel, RefurbLevel } from "@/lib/analysis";
 import type { PhotoAnalysisInput, PhotoAnalysisProvider } from "./photoAnalysis";
+import { captureAiError, addDiagnosticBreadcrumb } from "@/lib/sentry";
+import { logger } from "@/lib/logger";
 
 // Valid enum values — duplicated here to avoid importing from lib/analysis at runtime.
 const VALID_ROOM_TYPES: RoomType[] = [
@@ -94,6 +96,11 @@ function parseGptJson(text: string): any {
 
 async function analysePhoto(client: OpenAI, photo: ProjectPhoto): Promise<RoomAnalysis> {
   try {
+    addDiagnosticBreadcrumb("ai:gpt4o:analyze:start", {
+      photo: photo.name,
+      size: photo.size,
+    });
+
     const response = await client.chat.completions.create({
       model: "gpt-4o",
       max_tokens: 512,
@@ -119,6 +126,11 @@ async function analysePhoto(client: OpenAI, photo: ProjectPhoto): Promise<RoomAn
     const raw = response.choices[0]?.message?.content ?? "";
     const parsed = parseGptJson(raw);
 
+    addDiagnosticBreadcrumb("ai:gpt4o:analyze:success", {
+      photo: photo.name,
+      confidence: parsed.confidence_score,
+    });
+
     return {
       id: photo.id,
       photo_url: photo.url,
@@ -132,7 +144,30 @@ async function analysePhoto(client: OpenAI, photo: ProjectPhoto): Promise<RoomAn
       confidence_score: coerceScore(parsed.confidence_score),
     };
   } catch (err) {
-    console.warn("[openAiVisionProvider] Failed to analyse photo", photo.name, err);
+    const reason =
+      err instanceof Error && err.message.includes("timeout")
+        ? "timeout"
+        : err instanceof Error && err.message.includes("rate_limit")
+          ? "rate_limit"
+          : "parse_error";
+
+    logger.warn("[openAiVisionProvider] Failed to analyse photo", {
+      photo: photo.name,
+      reason,
+      error: String(err),
+    });
+
+    captureAiError(err, {
+      provider: "gpt-4o-vision",
+      photoName: photo.name,
+      reason,
+    });
+
+    addDiagnosticBreadcrumb("ai:gpt4o:analyze:fallback", {
+      photo: photo.name,
+      reason,
+    });
+
     return buildFallback(photo);
   }
 }
@@ -157,11 +192,41 @@ export const openAiVisionPhotoAnalysisProvider: PhotoAnalysisProvider = {
       return [];
     }
 
-    const results = await Promise.all(photos.map((photo) => analysePhoto(client, photo)));
+    addDiagnosticBreadcrumb("ai:gpt4o:batch:start", {
+      projectId,
+      photoCount: photos.length,
+    });
 
-    cache.set(projectId, results);
-    notify();
-    return results;
+    try {
+      const results = await Promise.all(photos.map((photo) => analysePhoto(client, photo)));
+
+      const successCount = results.filter((r) => r.confidence_score > 0).length;
+      addDiagnosticBreadcrumb("ai:gpt4o:batch:complete", {
+        projectId,
+        photoCount: photos.length,
+        successCount,
+        fallbackCount: results.length - successCount,
+      });
+
+      cache.set(projectId, results);
+      notify();
+      return results;
+    } catch (err) {
+      logger.error("[openAiVisionProvider] batch analysis failed", {
+        projectId,
+        photoCount: photos.length,
+        error: String(err),
+      });
+
+      captureAiError(err, {
+        provider: "gpt-4o-vision",
+        projectId,
+        photoCount: photos.length,
+        reason: "api_error",
+      });
+
+      throw err;
+    }
   },
 
   subscribe(fn) {

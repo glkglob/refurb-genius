@@ -4,6 +4,8 @@
 // the leading folder. Metadata is mirrored into the `photos` table.
 import { supabase } from "@/integrations/supabase/client";
 import { auth } from "./auth";
+import { captureUploadError, addDiagnosticBreadcrumb } from "./sentry";
+import { logger } from "./logger";
 
 export type ProjectPhoto = {
   id: string;
@@ -43,16 +45,24 @@ async function fetchProjectPhotos(projectId: string) {
     notify();
     return;
   }
-  const { data, error } = await supabase
-    .from("photos")
-    .select("*")
-    .eq("project_id", projectId)
-    .order("uploaded_at", { ascending: true });
-  if (error) {
-    console.error("[photos] fetch failed", error);
-    cacheByProject.set(projectId, []);
-  } else {
+  try {
+    addDiagnosticBreadcrumb("photos:fetch:start", { projectId });
+    const { data, error } = await supabase
+      .from("photos")
+      .select("*")
+      .eq("project_id", projectId)
+      .order("uploaded_at", { ascending: true });
+    if (error) {
+      logger.error("[photos] fetch failed", { projectId, error: error.message });
+      captureUploadError(error, { projectId, stage: "metadata" });
+    } else {
+      addDiagnosticBreadcrumb("photos:fetch:success", { projectId, count: data?.length });
+    }
     cacheByProject.set(projectId, (data ?? []).map(rowToPhoto));
+  } catch (err) {
+    logger.error("[photos] fetch exception", { projectId, error: String(err) });
+    captureUploadError(err, { projectId, stage: "metadata" });
+    cacheByProject.set(projectId, []);
   }
   loadedProjects.add(projectId);
   notify();
@@ -88,47 +98,95 @@ export const photoStore = {
   async upload(projectId: string, files: File[]): Promise<ProjectPhoto[]> {
     const user = auth.getUser();
     if (!user) throw new Error("You must be signed in to upload photos.");
+
+    addDiagnosticBreadcrumb("photos:upload:start", {
+      projectId,
+      fileCount: files.length,
+      totalSize: files.reduce((sum, f) => sum + f.size, 0),
+    });
+
     const created: ProjectPhoto[] = [];
     for (const file of files) {
       if (!file.type.startsWith("image/")) continue;
       const id = crypto.randomUUID();
       const path = `${user.id}/${projectId}/${id}.${fileExt(file.name)}`;
-      const { error: upErr } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, file, { contentType: file.type, upsert: false });
-      if (upErr) {
-        console.error("[photos] upload failed", upErr);
-        throw new Error(upErr.message);
-      }
-      const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      const url = pub.publicUrl;
-      const { data: row, error: insErr } = await supabase
-        .from("photos")
-        .insert({
-          id,
-          project_id: projectId,
-          user_id: user.id,
-          storage_path: path,
-          url,
-          name: file.name,
+
+      try {
+        addDiagnosticBreadcrumb("photos:storage:upload", {
+          file: file.name,
           size: file.size,
-        })
-        .select()
-        .single();
-      if (insErr) {
-        console.error("[photos] metadata insert failed", insErr);
-        // Roll back the storage upload to keep things consistent.
-        await supabase.storage
+        });
+        const { error: upErr } = await supabase.storage
           .from(BUCKET)
-          .remove([path])
-          .catch(() => {});
-        throw new Error(insErr.message);
+          .upload(path, file, { contentType: file.type, upsert: false });
+        if (upErr) {
+          logger.error("[photos] upload failed", {
+            file: file.name,
+            error: upErr.message,
+          });
+          captureUploadError(upErr, {
+            projectId,
+            fileSizeMb: file.size / (1024 * 1024),
+            stage: "storage",
+          });
+          throw new Error(upErr.message);
+        }
+
+        addDiagnosticBreadcrumb("photos:metadata:insert", { file: file.name });
+        const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
+        const url = pub.publicUrl;
+        const { data: row, error: insErr } = await supabase
+          .from("photos")
+          .insert({
+            id,
+            project_id: projectId,
+            user_id: user.id,
+            storage_path: path,
+            url,
+            name: file.name,
+            size: file.size,
+          })
+          .select()
+          .single();
+        if (insErr) {
+          logger.error("[photos] metadata insert failed", {
+            file: file.name,
+            error: insErr.message,
+          });
+          captureUploadError(insErr, {
+            projectId,
+            fileSizeMb: file.size / (1024 * 1024),
+            stage: "metadata",
+          });
+          // Roll back the storage upload to keep things consistent.
+          await supabase.storage
+            .from(BUCKET)
+            .remove([path])
+            .catch(() => {
+              logger.error("[photos] rollback failed", { path });
+            });
+          throw new Error(insErr.message);
+        }
+        created.push(rowToPhoto(row));
+        addDiagnosticBreadcrumb("photos:upload:complete", { file: file.name });
+      } catch (err) {
+        // Continue with next file, but report the error
+        logger.error("[photos] file upload aborted", {
+          file: file.name,
+          error: String(err),
+        });
       }
-      created.push(rowToPhoto(row));
     }
-    const existing = cacheByProject.get(projectId) ?? [];
-    cacheByProject.set(projectId, [...existing, ...created]);
-    loadedProjects.add(projectId);
+
+    if (created.length > 0) {
+      const existing = cacheByProject.get(projectId) ?? [];
+      cacheByProject.set(projectId, [...existing, ...created]);
+      loadedProjects.add(projectId);
+      addDiagnosticBreadcrumb("photos:upload:success", {
+        projectId,
+        filesUploaded: created.length,
+      });
+    }
     notify();
     return created;
   },
