@@ -19,7 +19,7 @@ The print stylesheet class `no-print` hides the toolbar, and `print-area` wraps 
 
 ## What to build
 
-Use the browser's native `window.print()` with a programmatic filename via a hidden `<iframe>` approach, OR use the `@react-pdf/renderer` library. 
+Use the browser's native `window.print()` with a programmatic filename via a hidden `<iframe>` approach, OR use the `@react-pdf/renderer` library.
 
 **Preferred approach: `@react-pdf/renderer`** — generates a real downloadable `.pdf` file with the project name in the filename (e.g. `refurb-genius-14-baker-street-report.pdf`).
 
@@ -37,12 +37,14 @@ Note: `@react-pdf/renderer` has its own React renderer — do NOT mix its compon
 Create `src/components/ReportPdf.tsx`.
 
 It must accept the same props the report page already assembles:
+
 - `project: Project` (from `src/core/projects`)
 - `analysis: RoomAnalysis[]` (from `src/core/ai`)
 - `estimate: PersistedProjectEstimate | null` (from `src/lib/estimates`)
 - `report: ReturnType<typeof buildReport>` (from `src/core/reports`)
 
 Use `@react-pdf/renderer` Document/Page/View/Text/StyleSheet components to lay out:
+
 - Cover: project name, address, date
 - Executive summary text
 - Estimate table (category, labour, materials, total)

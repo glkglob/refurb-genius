@@ -52,18 +52,18 @@
 
 ## Technology Stack
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| **Framework** | TanStack Start | 1.167.50 |
-| **Bundler** | Vite | 7.3.1 |
-| **Runtime** | Node.js (Nitro SSR) | 24.x |
-| **React** | React 19 | 19.2.0 |
-| **Deployment** | Vercel (Nitro preset) | — |
-| **Database/Auth** | Supabase | — |
-| **Styling** | TailwindCSS | 4.2.1 |
-| **Package Manager** | pnpm | — |
-| **Build Orchestration** | Turbo | — |
-| **Type Checker** | TypeScript | 5.8 |
+| Layer                   | Technology            | Version  |
+| ----------------------- | --------------------- | -------- |
+| **Framework**           | TanStack Start        | 1.167.50 |
+| **Bundler**             | Vite                  | 7.3.1    |
+| **Runtime**             | Node.js (Nitro SSR)   | 24.x     |
+| **React**               | React 19              | 19.2.0   |
+| **Deployment**          | Vercel (Nitro preset) | —        |
+| **Database/Auth**       | Supabase              | —        |
+| **Styling**             | TailwindCSS           | 4.2.1    |
+| **Package Manager**     | pnpm                  | —        |
+| **Build Orchestration** | Turbo                 | —        |
+| **Type Checker**        | TypeScript            | 5.8      |
 
 **Note:** This is **not** Next.js. TanStack Start is a full-stack metaframework built on Vite + Nitro.
 
@@ -96,6 +96,7 @@ src/                    ← TanStack Start application (immovable)
 ### Why src/ Cannot Move
 
 TanStack Start's plugin architecture requires `src/` at the repository root:
+
 - Plugin resolution happens **before** Vite configuration applies
 - Route discovery requires `src/app/` and `src/routes/` to be discoverable
 - Attempted relocation in Phase 3 failed (documented in migration history)
@@ -119,12 +120,14 @@ root src/  (everything, orchestration)
 ```
 
 **Forbidden imports:**
+
 - ❌ `@repo/types` → any other package
 - ❌ `@repo/core` → `@repo/services`
 - ❌ `@repo/services` → `@repo/ui`
 - ❌ Any package → root app runtime code
 
 **Allowed imports:**
+
 - ✅ Root app → all packages
 - ✅ `@repo/services` → `@repo/core`
 - ✅ `@repo/core` → `@repo/types`
@@ -216,6 +219,7 @@ import { runPricingEngine } from "@repo/services";
 ## Monorepo Rules
 
 ### DO:
+
 - ✅ Import from packages via `@repo/*` aliases
 - ✅ Keep pure logic in `@repo/services`
 - ✅ Keep constants in `@repo/core`
@@ -225,6 +229,7 @@ import { runPricingEngine } from "@repo/services";
 - ✅ Follow existing patterns
 
 ### DO NOT:
+
 - ❌ Create circular imports between packages
 - ❌ Import services code into UI components
 - ❌ Move `src/` directory
@@ -236,13 +241,13 @@ import { runPricingEngine } from "@repo/services";
 
 ### Current State
 
-| Constraint | Impact | Status |
-|-----------|--------|--------|
-| `src/` immovable | Cannot split into `apps/` yet | Permanent |
-| Auth at root | Must stay coupled to bootstrap | By design |
-| pricingData duplication | Two copies exist (core + services) | Consolidate Phase 5 |
-| Packages share root build | Cannot build packages independently | Acceptable for SSR |
-| @repo/types imports @/lib | Blocks npm publish of types | Acceptable pragmatism |
+| Constraint                | Impact                              | Status                |
+| ------------------------- | ----------------------------------- | --------------------- |
+| `src/` immovable          | Cannot split into `apps/` yet       | Permanent             |
+| Auth at root              | Must stay coupled to bootstrap      | By design             |
+| pricingData duplication   | Two copies exist (core + services)  | Consolidate Phase 5   |
+| Packages share root build | Cannot build packages independently | Acceptable for SSR    |
+| @repo/types imports @/lib | Blocks npm publish of types         | Acceptable pragmatism |
 
 See [Platform Debt](docs/architecture/platform-debt.md) for detailed analysis.
 
@@ -279,10 +284,12 @@ When reviewing PRs, verify:
 ## Future Directions
 
 ### Phase 5: Consolidation (Next)
+
 - Consolidate pricingData.ts duplication
 - Harden @repo/types independence (optional)
 
 ### Phase 6: Multi-App Architecture (Post-Deal Copilot)
+
 - Deal Copilot app (separate TanStack Start bootstrap)
 - Refurb IQ app (separate TanStack Start bootstrap)
 - Shared `@repo/*` packages across apps
@@ -296,6 +303,7 @@ See [Future Roadmap](docs/architecture/future-roadmap.md) for full planning.
 **Cause**: Vite path alias not resolved. Usually a TypeScript issue.
 
 **Fix:**
+
 ```bash
 npm run typecheck   # Check for errors first
 npm run build:vercel  # Retry build
@@ -306,6 +314,7 @@ npm run build:vercel  # Retry build
 **Cause**: Type import from wrong location.
 
 **Fix**: Use correct import path:
+
 ```typescript
 // ❌ Wrong
 import type { Project } from "@/core/types";
@@ -325,6 +334,7 @@ import type { Project } from "@repo/types";
 **Cause**: Runtime code moved or env vars not set.
 
 **Fix**:
+
 - Do not move `src/`, `vite.config.ts`, or `package.json`
 - Verify Supabase env vars are set in Vercel
 - Check auth initialization in `src/lib/auth.ts`

@@ -3,6 +3,7 @@ Fix the 7 ESLint fast-refresh warnings in the shadcn/ui component files.
 ## Context
 
 Running `npm run lint` produces 7 warnings like:
+
 ```
 Fast refresh only works when a file only exports components.
 Use a new file to share constants or functions between components.
@@ -10,6 +11,7 @@ react-refresh/only-export-components
 ```
 
 The affected files are all generated shadcn/ui components:
+
 - `src/components/ui/badge.tsx` — exports `badgeVariants` (a `cva` variant function) alongside `Badge`
 - `src/components/ui/button.tsx` — exports `buttonVariants` alongside `Button`
 - `src/components/ui/form.tsx` — exports `FormField`, `FormItem`, etc. plus hook-like helpers

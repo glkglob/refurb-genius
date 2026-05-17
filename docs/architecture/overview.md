@@ -90,6 +90,7 @@ The root `src/` directory is not just application code—it is the **production 
 ## What Each Package Does
 
 ### @repo/types (525 LOC, 17 files)
+
 - Domain entity definitions (Project, Deal, Estimate, Analysis, etc.)
 - Type contracts for business objects
 - Zero runtime code
@@ -97,6 +98,7 @@ The root `src/` directory is not just application code—it is the **production 
 - **Responsibility**: Define the shape of data across the platform
 
 ### @repo/core (238 LOC, 13 files)
+
 - Constants: UK regions, property types, pricing tiers, capabilities
 - Formatting helpers: currency, date, status formatters
 - Mock data: demo datasets for testing/design
@@ -105,6 +107,7 @@ The root `src/` directory is not just application code—it is the **production 
 - **Responsibility**: Reusable primitives that appear in multiple contexts
 
 ### @repo/services (541 LOC, 10 files)
+
 - **Pricing engine**: deterministic refurbishment cost calculations (pure function)
 - **ROI engine**: deterministic investment metrics (pure function)
 - **Deal scoring**: acquisition opportunity intelligence (pure function)
@@ -113,6 +116,7 @@ The root `src/` directory is not just application code—it is the **production 
 - **Responsibility**: Pure business logic that can be tested, reasoned about, and potentially reused across future products
 
 ### @repo/ui (re-export layer, 51 LOC)
+
 - Facade re-exporting all components from `src/components/ui/`
 - Not a true isolated component library (components remain in root)
 - Provides convenient import path: `import { Button } from "@repo/ui"` vs. `import { Button } from "@/components/ui/button"`
@@ -120,6 +124,7 @@ The root `src/` directory is not just application code—it is the **production 
 - **Responsibility**: Provide ergonomic monorepo-friendly import path while keeping component implementation at root
 
 ### @repo/integrations (placeholder)
+
 - Reserved namespace for future Supabase and external API client extractions
 - Currently empty (integrations remain tightly coupled to root runtime)
 
@@ -137,6 +142,7 @@ npm run build:vercel
 ```
 
 **Build artifacts**:
+
 - Client bundle: `.vercel/output/static/`
 - Server bundle: `.vercel/output/functions/__server.func/`
 - Single deployment unit (all packages built together)
@@ -145,11 +151,11 @@ Packages do not have separate build outputs. This is intentional and appropriate
 
 ## Validation Pipeline
 
-| Check | Command | Status |
-|-------|---------|--------|
-| Type safety | `npm run typecheck` | ✅ Pass |
-| Linting | `npm run lint` | ✅ Pass (6 pre-existing warnings) |
-| Build | `npm run build:vercel` | ✅ Pass |
+| Check       | Command                | Status                            |
+| ----------- | ---------------------- | --------------------------------- |
+| Type safety | `npm run typecheck`    | ✅ Pass                           |
+| Linting     | `npm run lint`         | ✅ Pass (6 pre-existing warnings) |
+| Build       | `npm run build:vercel` | ✅ Pass                           |
 
 All checks pass without errors. The monorepo is production-ready.
 

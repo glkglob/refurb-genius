@@ -2,20 +2,21 @@
 
 ## Responsibility Matrix
 
-| Package | Owns | Imports From | Exports | Cannot Import |
-|---------|------|--------------|---------|---------------|
-| @repo/types | Domain types, contracts, DTOs | (nothing) | Types only | Services, core, UI, root app |
-| @repo/core | Constants, utilities, mock data | @repo/types, @/lib (types) | Constants, utils, types | Services, UI, root runtime logic |
-| @repo/services | Pure business logic | @repo/core, @repo/types, @/lib (types) | Business engines, helpers | UI, root stores, root integrations |
-| @repo/ui | UI component re-export facade | @/components/ui/*, @/lib/utils | Components | Services, core, types |
-| @repo/integrations | (Reserved) | (nothing yet) | (nothing yet) | (TBD) |
-| Root runtime | SSR, auth, routing, orchestration | All packages (@repo/*) | Fully integrated app | (none, top-level) |
+| Package            | Owns                              | Imports From                           | Exports                   | Cannot Import                      |
+| ------------------ | --------------------------------- | -------------------------------------- | ------------------------- | ---------------------------------- |
+| @repo/types        | Domain types, contracts, DTOs     | (nothing)                              | Types only                | Services, core, UI, root app       |
+| @repo/core         | Constants, utilities, mock data   | @repo/types, @/lib (types)             | Constants, utils, types   | Services, UI, root runtime logic   |
+| @repo/services     | Pure business logic               | @repo/core, @repo/types, @/lib (types) | Business engines, helpers | UI, root stores, root integrations |
+| @repo/ui           | UI component re-export facade     | @/components/ui/\*, @/lib/utils        | Components                | Services, core, types              |
+| @repo/integrations | (Reserved)                        | (nothing yet)                          | (nothing yet)             | (TBD)                              |
+| Root runtime       | SSR, auth, routing, orchestration | All packages (@repo/\*)                | Fully integrated app      | (none, top-level)                  |
 
 ## What Belongs Where?
 
 ### ✅ @repo/types
 
 **Include:**
+
 - Type definitions: `Profile`, `Project`, `Deal`, `Estimate`
 - Type aliases: `ProjectStatus = "Draft" | "Analysing" | ...`
 - DTOs: input/output contracts
@@ -23,6 +24,7 @@
 - Entity creation functions: pure, deterministic (e.g., `createDealMetadata`)
 
 **Exclude:**
+
 - React components
 - Hooks
 - Loaders
@@ -34,6 +36,7 @@
 ### ✅ @repo/core
 
 **Include:**
+
 - Constants: `UK_REGIONS`, `PROPERTY_TYPES`, `DISCLAIMER`, capability lists
 - Formatting helpers: `formatGBP`, date formatters, status strings
 - Lookup tables: region multipliers, property condition mappings
@@ -42,6 +45,7 @@
 - Type selectors: functions that pull data from types
 
 **Exclude:**
+
 - React components
 - Hooks
 - Business logic calculations (use services)
@@ -51,6 +55,7 @@
 - Runtime stores
 
 **Example of misplaced code:**
+
 ```typescript
 // ❌ WRONG: belongs in @repo/services
 export function calculateDealScore(opportunity) {
@@ -69,6 +74,7 @@ export const CAPABILITY_FLAGS = {
 ### ✅ @repo/services
 
 **Include:**
+
 - Deterministic calculation engines: `runPricingEngine`, `runRoiEngine`
 - Pure business logic: `scoreDealOpportunity`, `getMissingDealFields`
 - AI helper wording: `reportHeadline`, `executiveSummary`, `recommendedWorks`
@@ -76,6 +82,7 @@ export const CAPABILITY_FLAGS = {
 - Any pure function that could theoretically be tested without React
 
 **Exclude:**
+
 - React components
 - Hooks (useCallback, useState, etc.)
 - Supabase clients or queries
@@ -87,11 +94,14 @@ export const CAPABILITY_FLAGS = {
 - Server-side orchestration logic
 
 **Example of misplaced code:**
+
 ```typescript
 // ❌ WRONG: uses React hook, belongs in root component
 export function useDealScore(opportunity) {
   const [score, setScore] = useState(null);
-  useEffect(() => { setScore(scoreDealOpportunity(opportunity)); }, []);
+  useEffect(() => {
+    setScore(scoreDealOpportunity(opportunity));
+  }, []);
   return score;
 }
 
@@ -106,17 +116,20 @@ export function scoreDealOpportunity(input) {
 ### ✅ @repo/ui
 
 **Include:**
+
 - Re-exports from `src/components/ui/` (Radix UI wrappers, custom components)
 - Utility re-export: `cn` from `src/lib/utils`
 - **Nothing else** — this is a facade layer
 
 **Exclude:**
+
 - New component implementations (keep at root)
 - Business logic
 - Hooks that require app context
 - Styling that's app-specific
 
 **Valid import from @repo/ui:**
+
 ```typescript
 import { Button, Dialog, Input, cn } from "@repo/ui";
 ```
@@ -174,6 +187,7 @@ import { Button, Dialog, Input, cn } from "@repo/ui";
 ```
 
 **Forbidden imports** (will fail code review):
+
 - ❌ `@repo/types` importing from `@repo/core`
 - ❌ `@repo/core` importing from `@repo/services`
 - ❌ `@repo/services` importing from `@repo/ui`
@@ -181,6 +195,7 @@ import { Button, Dialog, Input, cn } from "@repo/ui";
 - ❌ Any package importing from root `src/` except types from `@/lib`
 
 **Allowed exceptions** (documented, minimal):
+
 - @repo/types imports types from `@/lib/projects` (types only, acceptable pragmatism)
 - @repo/core imports constant `TRADES_JOB_CATEGORIES` from `@/core/trades` (constant reuse, acceptable)
 - @repo/services imports types from `@/lib/analysis` (types only, acceptable)
@@ -188,6 +203,7 @@ import { Button, Dialog, Input, cn } from "@repo/ui";
 ## Testing Package Boundaries
 
 ### Detect violations:
+
 ```bash
 # Check for @/ imports in packages (should be types only)
 grep -r "^import [^t].*from.*['\"]@/" packages/*/src --include="*.ts"
@@ -198,6 +214,7 @@ grep -r "@repo/core\|@repo/services" packages/ui --include="*.ts"
 ```
 
 ### Type checking enforces hierarchy:
+
 ```bash
 npm run typecheck
 # Fails if circular imports detected
@@ -233,14 +250,18 @@ Does it touch auth, SSR, routing, or orchestration?
 Packages that do NOT exist yet but may be extracted later:
 
 ### @repo/integrations (placeholder)
+
 When ready to extract:
+
 - Supabase client initialization (if achievable)
 - OpenAI provider setup (if achievable)
 - External API clients
 - **Risk**: Auth hydration happens early; extraction is uncertain
 
 ### @repo/features (hypothetical)
+
 For multi-product separation:
+
 - Deal Copilot specific logic
 - Refurb IQ specific logic
 - Trades Marketplace specific logic

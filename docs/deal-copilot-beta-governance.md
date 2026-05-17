@@ -12,6 +12,7 @@
 Deal Copilot Lite is a lightweight deal analysis module that consumes three deterministic financial engines (`pricingEngine`, `roiEngine`, `dealScore`) from the shared `@repo/services` library. It is **not** an AI system and produces **zero AI-generated financial outputs**. All metrics (ROI%, yield%, profit, investment score, cost breakdown) are deterministic calculations based on property inputs.
 
 **Scope**:
+
 - Single-deal analysis (not portfolio-level)
 - Route-level module (no platform-wide architecture changes)
 - Synchronous analysis (no async workflows, background jobs, or queues)
@@ -23,16 +24,16 @@ Deal Copilot Lite is a lightweight deal analysis module that consumes three dete
 
 ## Accepted Risks & Mitigations
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|-----------|
-| **Calculation drift across deployments** | Low | High | Deterministic validation runner (`scripts/validate-deal-copilot.ts`) runs before every deployment; compares against golden-path fixture. Non-zero exit code blocks merges. |
-| **Stale/invalid UI rendering** | Low | Medium | Production safety checks (`src/lib/deal-copilot/safety.ts`) validate all values before render; fallback to "—" for NaN/Infinity/undefined. |
-| **Form input edge cases** | Low | Medium | Strict money parser rejects negatives, multiple decimals, extreme values. UI disables save until all required fields valid. |
-| **Supabase save failures** | Medium | Low | Existing `opportunityStore` error handling preserved; user sees error message and can retry. Form state not lost. |
-| **Regional/condition lookup failures** | Low | Low | Engines guard against missing lookups; default to conservative assumptions (national average). No thrown errors. |
-| **Performance regression** | Low | Low | Memoization throughout (form → scoreInput → analysis). Synchronous analysis <100ms typical case. No polling or useEffect loops. |
-| **Memory leaks in long sessions** | Low | Low | All state is local `useState`; no external subscriptions except read-only opportunityStore snapshot. No setInterval/setTimeout. |
-| **Long-lived form state corruption** | Low | Low | Form state only contains strings and enums; immutable updates via `setForm()`. No shared mutable state. |
+| Risk                                     | Likelihood | Impact | Mitigation                                                                                                                                                                 |
+| ---------------------------------------- | ---------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Calculation drift across deployments** | Low        | High   | Deterministic validation runner (`scripts/validate-deal-copilot.ts`) runs before every deployment; compares against golden-path fixture. Non-zero exit code blocks merges. |
+| **Stale/invalid UI rendering**           | Low        | Medium | Production safety checks (`src/lib/deal-copilot/safety.ts`) validate all values before render; fallback to "—" for NaN/Infinity/undefined.                                 |
+| **Form input edge cases**                | Low        | Medium | Strict money parser rejects negatives, multiple decimals, extreme values. UI disables save until all required fields valid.                                                |
+| **Supabase save failures**               | Medium     | Low    | Existing `opportunityStore` error handling preserved; user sees error message and can retry. Form state not lost.                                                          |
+| **Regional/condition lookup failures**   | Low        | Low    | Engines guard against missing lookups; default to conservative assumptions (national average). No thrown errors.                                                           |
+| **Performance regression**               | Low        | Low    | Memoization throughout (form → scoreInput → analysis). Synchronous analysis <100ms typical case. No polling or useEffect loops.                                            |
+| **Memory leaks in long sessions**        | Low        | Low    | All state is local `useState`; no external subscriptions except read-only opportunityStore snapshot. No setInterval/setTimeout.                                            |
+| **Long-lived form state corruption**     | Low        | Low    | Form state only contains strings and enums; immutable updates via `setForm()`. No shared mutable state.                                                                    |
 
 ---
 
@@ -41,6 +42,7 @@ Deal Copilot Lite is a lightweight deal analysis module that consumes three dete
 ### What IS Included
 
 ✅ **In Scope**:
+
 - Single-property analysis (purchase price, refurb budget, rental income, region, condition)
 - Financial metrics (ROI%, yield%, profit, investment score, cost breakdown, timeline)
 - Deal recommendation (Strong/Consider/Watch/Reject)
@@ -55,6 +57,7 @@ Deal Copilot Lite is a lightweight deal analysis module that consumes three dete
 ### What Is NOT Included
 
 ❌ **Out of Scope**:
+
 - **Portfolio analysis**: Comparison of multiple deals, portfolio-level ROI aggregation
 - **AI summary generation**: No LLM/Claude integration; only deterministic template text
 - **Refinancing scenarios**: Single deal, single strategy; no scenario branching
@@ -102,17 +105,20 @@ Deal Copilot Lite is a lightweight deal analysis module that consumes three dete
 ### Validation Checkpoints
 
 **Form Validation** (before engine calls):
+
 - Required fields: title (non-empty), purchase price, GDV, monthly rent, refurb budget, region, condition
 - Money parsing: rejects negatives, multiple decimals, NaN
 - Enum validation: region ∈ UK_REGIONS, condition ∈ CONDITION_LEVELS
 
 **Pre-Render Validation** (after engine calls):
+
 - All numeric fields must be `Number.isFinite()`
 - ROI result recommendation ∈ ["Strong", "Consider", "Watch", "Reject"]
 - Pricing result estimate_items array must be valid objects
 - If any breach: logged as error, value rendered as "—" (fallback)
 
 **Runtime Diagnostics** (ongoing):
+
 - Calculation anomalies logged (drift detection)
 - Invalid values flagged with field name + type
 - Save failures categorized (network vs. validation)
@@ -187,6 +193,7 @@ Deal Copilot Lite is a lightweight deal analysis module that consumes three dete
 ### Customer Reporting an Issue
 
 **Scenario 1: "My deal score seems too optimistic"**
+
 1. Collect: property inputs (purchase price, refurb budget, region, condition, rental income)
 2. Reproduce: Run same inputs through Deal Copilot Lite
 3. Validate: Check against golden-path fixture to confirm engine behavior is deterministic
@@ -194,18 +201,21 @@ Deal Copilot Lite is a lightweight deal analysis module that consumes three dete
 5. Response: Explain assumptions; offer guidance on overrides or manual review
 
 **Scenario 2: "Pricing estimate doesn't match my quotes"**
+
 1. Collect: breakdown (labour/materials/contingency/VAT from Deal Copilot)
 2. Validate: Confirm regional multipliers applied correctly (check `pricingEngine` configuration)
 3. Root cause: Likely legitimate difference (market variation, finish level assumption, category scope)
 4. Response: Explain pricing engine assumptions; recommend manual line-item review for final estimates
 
 **Scenario 3: "Analysis won't save to opportunities"**
+
 1. Collect: browser console logs (search for `[deal-intake] Save failed`)
 2. Check: Supabase status page; verify user has create_opportunity permission
 3. If network issue: Retry; if persistent, escalate to database team with full error message
 4. If permission issue: Add user to deal-copilot-beta group in Supabase auth
 
 **Scenario 4: "I got NaN / — / 'undefined' values"**
+
 1. Collect: property inputs and screenshot
 2. Validate: Check `safety.ts` validation logs to confirm pre-render safety caught issue
 3. Root cause: Likely invalid input (negative value, extreme outlier)
@@ -215,6 +225,7 @@ Deal Copilot Lite is a lightweight deal analysis module that consumes three dete
 ### On-Call Runbook
 
 **If Deterministic Validation Fails**:
+
 ```bash
 # 1. Check last deploy
 git log --oneline -5
@@ -237,6 +248,7 @@ git revert HEAD  # or git reset --hard origin/main
 ```
 
 **If Save Workflow Fails Silently**:
+
 ```bash
 # 1. Check Supabase status
 # Visit https://supabase.com/dashboard → check incidents
@@ -252,6 +264,7 @@ supabase auth update <user-id> --role deal-copilot-beta
 ```
 
 **If Performance Degrades**:
+
 ```bash
 # 1. Profile React component
 # In browser DevTools Profiler, record a single analysis
@@ -325,12 +338,14 @@ grep -n "useMemo.*\[" src/components/deal-copilot/DealIntakeForm.tsx
 ### Feedback Form: "Was This Analysis Useful?"
 
 **If Yes (✓)**:
+
 - User found deal score credible
 - Pricing estimate aligned with expectations
 - Recommendation matched user's intuition
 - **Action**: Log metric; track trend (target >60%)
 
 **If No (✗)**:
+
 - User found score too optimistic or pessimistic
 - Pricing estimate misaligned with market
 - Recommendation seemed incorrect
@@ -341,6 +356,7 @@ grep -n "useMemo.*\[" src/components/deal-copilot/DealIntakeForm.tsx
   - "Recommendation didn't match my gut" → Weighting factors may need review
 
 **If No Feedback Provided**:
+
 - User either: (a) didn't care to submit, (b) didn't understand question, (c) rushed through
 - **Action**: No action needed; not a blocker
 
@@ -365,6 +381,7 @@ Beta is **READY FOR GA** when:
 ## Sunset & Archive Plan
 
 **If Deal Copilot Lite is Deprecated**:
+
 1. Announce 30-day notice in #deal-copilot-beta
 2. Migrate saved opportunities to portfolio (if applicable)
 3. Archive route component (move to `/routes/_deprecated/`)
@@ -375,15 +392,16 @@ Beta is **READY FOR GA** when:
 
 ## Contact & Escalation
 
-| Issue | Tier | Owner | SLA |
-|-------|------|-------|-----|
-| **Calculation drift** | P1 | Engineering | 1 hour |
-| **Save failures (>10%)** | P1 | Database team | 1 hour |
-| **Performance degradation (>10×)** | P1 | Engineering | 2 hours |
-| **User UX confusion** | P2 | Product | 4 hours |
-| **Feature request** | P3 | Product | 1 sprint |
+| Issue                              | Tier | Owner         | SLA      |
+| ---------------------------------- | ---- | ------------- | -------- |
+| **Calculation drift**              | P1   | Engineering   | 1 hour   |
+| **Save failures (>10%)**           | P1   | Database team | 1 hour   |
+| **Performance degradation (>10×)** | P1   | Engineering   | 2 hours  |
+| **User UX confusion**              | P2   | Product       | 4 hours  |
+| **Feature request**                | P3   | Product       | 1 sprint |
 
 **Slack channels**:
+
 - `#deal-copilot-beta` — Announcements, status updates, feedback
 - `#deal-copilot-oncall` — On-call coordination, incidents
 - `#eng-platform` — Architecture/dependency questions

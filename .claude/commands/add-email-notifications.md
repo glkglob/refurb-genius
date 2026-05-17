@@ -3,11 +3,13 @@ Add email notifications for Trades Marketplace events: new interest registered, 
 ## Context
 
 The Trades Marketplace stores data in three Supabase tables:
+
 - `trades_jobs` — jobs posted by clients
 - `trades_job_interests` — interests submitted by tradespeople
 - `trade_profiles` — tradesperson profiles
 
 Key service files:
+
 - `src/services/trades/tradesJobInterestStore.ts` — `registerInterest()`, `updateInterestStatus()`
 - `src/services/trades/tradesJobStore.ts` — `listPostedTradesJobs()`, `createTradesJob()`
 
@@ -22,6 +24,7 @@ Email sending should use **Supabase Edge Functions** calling **Resend** (https:/
 Create `supabase/functions/send-notification-email/index.ts`.
 
 The function must:
+
 1. Accept a POST request with JSON body:
    ```ts
    {
@@ -48,6 +51,7 @@ Add `RESEND_API_KEY=` to `.env.example`.
 In `src/services/trades/tradesJobInterestStore.ts`:
 
 After a successful `registerInterest()` call, invoke the edge function:
+
 ```ts
 supabase.functions.invoke("send-notification-email", {
   body: {
@@ -56,8 +60,8 @@ supabase.functions.invoke("send-notification-email", {
     jobOwnerEmail,
     tradePersonEmail,
     message,
-  }
-})
+  },
+});
 ```
 
 You will need to fetch the job owner's email. Query `trades_jobs` for the job, then query `auth.users` — but client code cannot query `auth.users` directly. Instead: add a `profiles` table query or use the job owner's `user_id` to look up a `profiles` table if one exists. If no profiles table exists, skip the owner email lookup for now and log a TODO comment.
@@ -71,6 +75,7 @@ Edge function invocations must NOT block the UI. Fire-and-forget is acceptable �
 ### Step 4 — Local testing note
 
 Add a comment at the top of the edge function explaining how to test locally:
+
 ```
 # supabase functions serve send-notification-email --env-file .env
 # Then POST to http://localhost:54321/functions/v1/send-notification-email

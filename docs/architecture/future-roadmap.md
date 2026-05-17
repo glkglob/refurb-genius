@@ -15,6 +15,7 @@
 **Duration**: 1-2 weeks
 
 **Objectives:**
+
 1. Validate production stability with new monorepo structure
 2. Monitor for regressions or performance issues
 3. Document package contracts and boundaries
@@ -33,12 +34,14 @@
 - [ ] Documentation complete and accessible
 
 **Team sync:**
+
 - Review monorepo structure with team
 - Explain import rules and boundaries
 - Establish code review guidelines
 - Document any project-specific patterns
 
 **Metrics to measure:**
+
 - Build time (compare before/after)
 - Bundle size (client vs. server)
 - SSR rendering time
@@ -46,6 +49,7 @@
 - Error rate in production
 
 **Go/No-go decision point**: Proceed to Phase 5 only if:
+
 - ✅ No production regressions detected
 - ✅ Team understands package structure
 - ✅ All tests passing consistently
@@ -62,11 +66,13 @@
 ### Option A: Consolidate pricingData Duplication (Recommended)
 
 **Problem:**
+
 - pricingData.ts exists in both @repo/core and @repo/services
 - Created during Phase 4 due to Vite build path resolution issues
 - Risk: Future updates to one copy miss the other
 
 **Solution:**
+
 - Keep only @repo/core/src/utilities/pricingData.ts (source of truth)
 - Update @repo/services/src/pricing/pricingEngine.ts to import from @repo/core
 - Fix Vite path resolution (or accept cross-package import if it works)
@@ -84,11 +90,13 @@
 ### Option B: Harden @repo/types Independence (Optional)
 
 **Problem:**
+
 - @repo/types imports some types from `@/lib/projects`, etc.
 - Blocks publishing types to npm (not needed for internal use, but best practice)
 - Creates coupling between types layer and root app
 
 **Solution:**
+
 - Extract root `@/lib` type definitions to `packages/types/` or separate package
 - Make @repo/types have zero external dependencies (except TypeScript)
 - Document as "types layer truly independent" architectural milestone
@@ -104,10 +112,12 @@
 ### Option C: Extract @repo/integrations Facade (Uncertain)
 
 **Problem:**
+
 - Supabase and OpenAI initialization remain at root
 - Integration layer could benefit from organization
 
 **Possible solution:**
+
 - Create @repo/integrations as re-export facade (like @repo/ui)
 - Keep actual client initialization at root
 - Provide convenient import path for integration clients
@@ -151,12 +161,14 @@ packages/
 ```
 
 **Each app has:**
+
 - Own TanStack Start bootstrap (own `src/server.ts`, vite config)
 - Own route tree
 - Own UI components (can use @repo/ui primitives)
 - Own providers and stores
 
 **Shared packages:**
+
 - @repo/types (domain contracts)
 - @repo/core (constants, utilities)
 - @repo/services (business logic)
@@ -180,6 +192,7 @@ packages/
 **Current state**: All packages build together to single .vercel/output/
 
 **Would require:**
+
 - Per-package build scripts
 - Per-package tsconfig.json
 - TypeScript declaration files (.d.ts)
@@ -222,6 +235,7 @@ Do we need per-package builds?
 ## Success Criteria
 
 **After Phase 4.5 (Stabilization)**:
+
 - ✅ Zero production incidents related to monorepo
 - ✅ Team shipping code confidently with new import paths
 - ✅ Build times same or faster than before
@@ -229,12 +243,14 @@ Do we need per-package builds?
 - ✅ Documentation complete and team-reviewed
 
 **After Phase 5 (Consolidation)**:
+
 - ✅ pricingData duplication resolved
 - ✅ No new regressions from consolidation
 - ✅ Type imports cleaner (if Option B done)
 - ✅ Team comfortable with package hygiene
 
 **After Phase 6 (Multi-App, if done)**:
+
 - ✅ Deal Copilot and Refurb Genius can be deployed independently
 - ✅ Shared packages used by both apps
 - ✅ Zero duplication between app-specific code
@@ -244,15 +260,15 @@ Do we need per-package builds?
 
 ## Anti-Patterns to Avoid
 
-| Anti-Pattern | Why Bad | Prevention |
-|--------------|---------|-----------|
-| Extract too much too fast | Increases risk of regression | Phase 4.5 stabilization required before Phase 5 |
-| Create circular dependencies | Breaks type checking, causes runtime errors | Strict code review of imports |
-| Move src/ again | TanStack Start plugin will fail | Document as permanent constraint |
-| Leave pricingData duplicated forever | Maintenance burden grows | Consolidate in Phase 5 |
-| Extract auth/routing/providers | SSR breaks | Keep at root (documented boundary) |
-| Create per-package build outputs prematurely | Extra complexity, maintenance burden | Wait for clear npm publishing requirement |
-| Forget backward compatibility | Breaks existing code | Keep shims at old locations |
+| Anti-Pattern                                 | Why Bad                                     | Prevention                                      |
+| -------------------------------------------- | ------------------------------------------- | ----------------------------------------------- |
+| Extract too much too fast                    | Increases risk of regression                | Phase 4.5 stabilization required before Phase 5 |
+| Create circular dependencies                 | Breaks type checking, causes runtime errors | Strict code review of imports                   |
+| Move src/ again                              | TanStack Start plugin will fail             | Document as permanent constraint                |
+| Leave pricingData duplicated forever         | Maintenance burden grows                    | Consolidate in Phase 5                          |
+| Extract auth/routing/providers               | SSR breaks                                  | Keep at root (documented boundary)              |
+| Create per-package build outputs prematurely | Extra complexity, maintenance burden        | Wait for clear npm publishing requirement       |
+| Forget backward compatibility                | Breaks existing code                        | Keep shims at old locations                     |
 
 ---
 
@@ -266,6 +282,7 @@ Do we need per-package builds?
 - **@repo/permissions**: Access control logic
 
 **Rule**: Only extract after:
+
 1. Stabilization phase complete
 2. Multi-app architecture decided
 3. Clear requirement to reuse across apps
@@ -278,17 +295,20 @@ Do not extract "just in case."
 ## Communication Plan
 
 **Tell team:**
+
 - Monorepo structure is now stable
 - Import rules are documented
 - Code review will enforce boundaries
 - Future phases depend on requirements (Deal Copilot, Refurb IQ)
 
 **Share documentation:**
+
 - All team members review `docs/architecture/`
 - Code review template updated with import rules
 - Slack channel pinned with link to docs
 
 **Regular sync:**
+
 - Bi-weekly sync to discuss any boundary violations
 - Monthly review of monorepo health (build times, errors, etc.)
 - Plan Phase 5 kick-off after stabilization metrics confirm readiness

@@ -11,6 +11,7 @@
 Refurb Genius platform has been stress-tested through code inspection across 8 critical scenarios:
 
 **Runtime Strengths:**
+
 - ✅ Upload concurrency properly limited (4 simultaneous max)
 - ✅ All long-running operations have timeout protection (60s)
 - ✅ Store listeners properly cleanup on unsubscribe (no listener leaks)
@@ -21,6 +22,7 @@ Refurb Genius platform has been stress-tested through code inspection across 8 c
 - ✅ No URL.createObjectURL orphans detected
 
 **Remaining Operational Risks:**
+
 - 🟡 HIGH: Store caches (analysis, projects, photos) grow unbounded in long sessions
 - 🟡 HIGH: No cache eviction for unviewed projects after route changes
 - 🟡 MEDIUM: Auth subscription never unsubscribed (minor leak on logout)
@@ -37,6 +39,7 @@ Refurb Genius platform has been stress-tested through code inspection across 8 c
 **Test:** User uploads 40 photos (250MB total) to single project
 
 **Code Path Validation:**
+
 - Upload limiting: `uploadLimiter = new ConcurrencyLimiter(4)` ✅
   - Max 4 concurrent Supabase upload calls
   - Remaining 36 queued, processed as slots free
@@ -60,6 +63,7 @@ Stress threshold: 40 files successfully uploaded with predictable resource usage
 **Test:** User opens project in Tab A, uploads photos, opens different project in Tab B, views analysis in Tab A
 
 **Code Path Validation:**
+
 - Auth state: Single Supabase session shared across tabs ✅
   - `onAuthStateChange()` fires in each tab independently
   - Each tab has own listener set, notifies independently
@@ -87,9 +91,11 @@ Multi-tab state is properly isolated. No synchronization issues detected.
 **Memory Accumulation Risks:**
 
 1. **Analysis Cache (RISK IDENTIFIED)** 🟡
+
    ```typescript
    const cache = new Map<string, RoomAnalysis[]>();
    ```
+
    - Grows indefinitely: each `analysisStore.run(projectId)` adds entry
    - No eviction policy
    - After 20 projects analyzed: ~500KB-1MB cached
@@ -98,9 +104,11 @@ Multi-tab state is properly isolated. No synchronization issues detected.
    - **Mitigation needed:** Cache cleanup on auth change or route unmount
 
 2. **Projects Cache (RISK IDENTIFIED)** 🟡
+
    ```typescript
    let cache: Project[] = [];
    ```
+
    - Single array grows as projects created
    - Fetch only on first load (`if (!loaded)`)
    - After N projects created: N × ~500 bytes = ~5KB per project
@@ -109,9 +117,11 @@ Multi-tab state is properly isolated. No synchronization issues detected.
    - **OK:** Already has cleanup on logout
 
 3. **Photos Cache (ACCEPTABLE)** ✅
+
    ```typescript
    const cacheByProject = new Map<string, ProjectPhoto[]>();
    ```
+
    - Cleared on auth.onChange() ✅
    - Typically 5-20 photos per project = 10-40KB per entry
    - Risk of growth mitigated by auth cleanup
@@ -131,6 +141,7 @@ Platform survives 2+ hour sessions. Cache growth manageable but not optimal. Aut
 **Test:** User exports same report 5+ times in quick succession
 
 **Code Path Validation:**
+
 - Timeout protection: 60s per export ✅
   - Each export has independent timeout handle
   - Abort flag set at 60s
@@ -154,11 +165,13 @@ Platform survives 2+ hour sessions. Cache growth manageable but not optimal. Aut
 **Code Path Validation:**
 
 **Upload Flow:** ✅
+
 - Concurrency limit (4) prevents mobile browser thread starvation
 - Timeout (60s) prevents indefinite network hangs
 - Lazy-loaded preview images (loading="lazy") reduce memory
 
 **PDF Export Flow:** 🟡 UNTESTED
+
 - `html2canvas()` on iOS requires significant memory
 - Canvas scaling (scale: 2) doubles memory usage
 - Large reports (50+ photos embedded) may exceed iOS 512MB sandbox
@@ -167,6 +180,7 @@ Platform survives 2+ hour sessions. Cache growth manageable but not optimal. Aut
 - **Not addressable:** iOS memory constraints are OS-level
 
 **Analysis Page:** ✅
+
 - Lazy-loaded images (loading="lazy") defer off-screen image loads
 - Grid layout (4 columns on iPad) keeps ~4-6 visible
 - Memoized components prevent re-render storms
@@ -181,6 +195,7 @@ Uploads and analysis safe. PDF export has OS-level memory risk on iOS with large
 **Test:** Network drops during 40-file upload at 50% complete
 
 **Code Path Validation:**
+
 - Concurrency limiter: Handles dropped connections ✅
   - In-flight uploads: `uploadLimiter.run()` rejects on error
   - Failed upload added to `errors[]` array
@@ -204,11 +219,14 @@ Network failures handled gracefully. Partial uploads preserved, failed files rep
 **Test:** User starts AI analysis (10 photos), refreshes browser at 5s (photos queued)
 
 **Code Path Validation:**
+
 - Analysis state: Cancellation flag ✅
   ```typescript
   let cancelled = false;
   // ... analysisStore.run(id).then((r) => { if (cancelled) return; ... })
-  return () => { cancelled = true; }
+  return () => {
+    cancelled = true;
+  };
   ```
 - Cache recovery: Survives refresh ✅
   - If analysis completed: cached result displayed immediately on re-load
@@ -228,6 +246,7 @@ Refresh-during-analysis handled safely. No data loss. Analysis restarts cleanly.
 **Test:** User's Supabase session expires mid-upload (token refresh fails)
 
 **Code Path Validation:**
+
 - Token refresh: Automatic via Supabase client ✅
   - Supabase SDK handles refresh behind the scenes
   - New token obtained transparently
@@ -250,24 +269,24 @@ Token expiry handled by Supabase. Upload failures graceful. User informed of aut
 
 ### Memory Hotspots Identified
 
-| Component | Memory Usage | Growth | Risk | Mitigation |
-|-----------|--------------|--------|------|-----------|
-| Analysis cache | 500KB-2.5MB | Linear per project | 🟡 HIGH | No eviction |
-| Projects cache | 50KB per 100 | Linear | 🟠 LOW | Cleaned on logout |
-| Photos cache | 10-40KB per project | Per project | ✅ SAFE | Cleaned on logout |
-| Listeners | ~1KB per component | O(1) | ✅ SAFE | Properly unsubscribed |
-| PDF export | 1-50MB temporary | Temporary | 🟡 MEDIUM | Depends on report size |
-| Image lazy-load | Deferred | On-demand | ✅ SAFE | Browser-managed |
+| Component       | Memory Usage        | Growth             | Risk      | Mitigation             |
+| --------------- | ------------------- | ------------------ | --------- | ---------------------- |
+| Analysis cache  | 500KB-2.5MB         | Linear per project | 🟡 HIGH   | No eviction            |
+| Projects cache  | 50KB per 100        | Linear             | 🟠 LOW    | Cleaned on logout      |
+| Photos cache    | 10-40KB per project | Per project        | ✅ SAFE   | Cleaned on logout      |
+| Listeners       | ~1KB per component  | O(1)               | ✅ SAFE   | Properly unsubscribed  |
+| PDF export      | 1-50MB temporary    | Temporary          | 🟡 MEDIUM | Depends on report size |
+| Image lazy-load | Deferred            | On-demand          | ✅ SAFE   | Browser-managed        |
 
 ### Performance Optimizations Verified
 
-| Optimization | Status | Verified |
-|--------------|--------|----------|
-| Image lazy-loading | ✅ Implemented | AnalysisCard, UploadPage |
+| Optimization          | Status         | Verified                              |
+| --------------------- | -------------- | ------------------------------------- |
+| Image lazy-loading    | ✅ Implemented | AnalysisCard, UploadPage              |
 | Component memoization | ✅ Implemented | AnalysisCard, MetricCard, ProjectCard |
-| Concurrency limiting | ✅ Implemented | 4 max concurrent uploads |
-| Timeout protection | ✅ Implemented | 60s for all long operations |
-| PDF memory ceiling | ✅ Implemented | 100MB reject threshold |
+| Concurrency limiting  | ✅ Implemented | 4 max concurrent uploads              |
+| Timeout protection    | ✅ Implemented | 60s for all long operations           |
+| PDF memory ceiling    | ✅ Implemented | 100MB reject threshold                |
 
 ---
 
@@ -276,6 +295,7 @@ Token expiry handled by Supabase. Upload failures graceful. User informed of aut
 ### Breadcrumb Coverage
 
 **Current Coverage:**
+
 - ✅ Upload operations: file count, total size, timeout settings
 - ✅ PDF export: stage (loading libs, rendering, generating), page count, duration, memory estimate
 - ✅ AI analysis: photo count, timeout per photo, success/fallback counts
@@ -283,6 +303,7 @@ Token expiry handled by Supabase. Upload failures graceful. User informed of aut
 - ✅ Timeout events: operation name, timeout duration, stage
 
 **Gaps Identified:**
+
 - 🟡 No cache size diagnostics (would help with monitoring growth)
 - 🟡 No route load timing (would help identify slow routes)
 - 🟡 No image memory cleanup diagnostics
@@ -293,13 +314,13 @@ Token expiry handled by Supabase. Upload failures graceful. User informed of aut
 
 ## Mobile-Specific Risks
 
-| Platform | Risk | Severity | Mitigation |
-|----------|------|----------|-----------|
-| iOS Safari | PDF canvas memory limit (512MB sandbox) | 🟡 MEDIUM | Error message + reject >100MB |
-| iOS Safari | Lazy loading may not work in WebKit | 🟠 LOW | Graceful degradation (images load anyway) |
-| iOS Safari | Touch targets tight on small screens | 🠔 LOW | Buttons are 40-44px (safe) |
-| Android Chrome | Large image grids (30+ photos) may freeze scroll | 🟠 LOW | Lazy loading helps; not validated |
-| Android Chrome | PDF export memory pressure | 🟡 MEDIUM | Same as iOS |
+| Platform       | Risk                                             | Severity  | Mitigation                                |
+| -------------- | ------------------------------------------------ | --------- | ----------------------------------------- |
+| iOS Safari     | PDF canvas memory limit (512MB sandbox)          | 🟡 MEDIUM | Error message + reject >100MB             |
+| iOS Safari     | Lazy loading may not work in WebKit              | 🟠 LOW    | Graceful degradation (images load anyway) |
+| iOS Safari     | Touch targets tight on small screens             | 🠔 LOW     | Buttons are 40-44px (safe)                |
+| Android Chrome | Large image grids (30+ photos) may freeze scroll | 🟠 LOW    | Lazy loading helps; not validated         |
+| Android Chrome | PDF export memory pressure                       | 🟡 MEDIUM | Same as iOS                               |
 
 ---
 
@@ -310,14 +331,14 @@ Token expiry handled by Supabase. Upload failures graceful. User informed of aut
 ```typescript
 // projectStore
 auth.onChange(() => {
-  cacheByProject.clear();      // ✅ Clears analysis cache
-  loadedProjects.clear();      // ✅ Clears loaded projects set
-  notify();                     // ✅ Notifies subscribers
+  cacheByProject.clear(); // ✅ Clears analysis cache
+  loadedProjects.clear(); // ✅ Clears loaded projects set
+  notify(); // ✅ Notifies subscribers
 });
 
 // photoStore
 auth.onChange(() => {
-  cache.clear();               // ✅ Clears photo cache
+  cache.clear(); // ✅ Clears photo cache
   // loadedProjects not cleared in original audit, but analysis cache IS cleared
 });
 
@@ -327,7 +348,8 @@ auth.onChange(() => {
 
 **Gap Identified:** `analysisStore` does not clear cache on auth.onChange(). When user logs out and logs back in, old analysis from previous user may be stale in cache.
 
-**Risk Level:** 🟡 MEDIUM  
+**Risk Level:** 🟡 MEDIUM
+
 - Only affects if same browser user logs in/out repeatedly
 - Analysis regenerated on demand anyway
 - Privacy risk: Minimal (analysis is computed data, not personal data)
@@ -339,47 +361,48 @@ auth.onChange(() => {
 
 ## Upload Edge Cases
 
-| Scenario | Behavior | Risk | Notes |
-|----------|----------|------|-------|
-| 0 files selected | User sees "No images uploaded" | ✅ SAFE | Handled |
-| File >10MB | Rejected with clear error | ✅ SAFE | Validated before upload |
-| File is not image | Rejected with clear error | ✅ SAFE | MIME type checked |
-| Network drops at 50% | File marked failed, others continue | ✅ SAFE | Partial success preserved |
-| Browser tab closes mid-upload | Supabase cleans up on timeout | ✅ SAFE | Eventually consistent |
-| Metadata insert fails | Storage file rolled back | ✅ SAFE | Rollback implemented |
-| Same file uploaded twice | Second creates new DB entry with same storage path | 🟡 ACCEPTABLE | Storage overwrites, DB creates duplicate record (low impact, not user-visible error) |
+| Scenario                      | Behavior                                           | Risk          | Notes                                                                                |
+| ----------------------------- | -------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------ |
+| 0 files selected              | User sees "No images uploaded"                     | ✅ SAFE       | Handled                                                                              |
+| File >10MB                    | Rejected with clear error                          | ✅ SAFE       | Validated before upload                                                              |
+| File is not image             | Rejected with clear error                          | ✅ SAFE       | MIME type checked                                                                    |
+| Network drops at 50%          | File marked failed, others continue                | ✅ SAFE       | Partial success preserved                                                            |
+| Browser tab closes mid-upload | Supabase cleans up on timeout                      | ✅ SAFE       | Eventually consistent                                                                |
+| Metadata insert fails         | Storage file rolled back                           | ✅ SAFE       | Rollback implemented                                                                 |
+| Same file uploaded twice      | Second creates new DB entry with same storage path | 🟡 ACCEPTABLE | Storage overwrites, DB creates duplicate record (low impact, not user-visible error) |
 
 ---
 
 ## AI Analysis Edge Cases
 
-| Scenario | Behavior | Risk | Notes |
-|----------|----------|------|-------|
-| 50 photos analyzed | Each wrapped in timeoutPromise(60s) | ✅ SAFE | Cumulative time reasonable |
-| 1 of 50 times out | Returns fallback (confidence_score: 0) | ✅ SAFE | Partial success preserved |
-| All 50 time out | Returns 50 fallback analyses | ✅ SAFE | User sees "Analysis unavailable" but analysis completes |
-| Network drops mid-analysis | Current photo abandoned, next starts | ✅ SAFE | No accumulated state |
-| User refreshes page | Analysis restarts, cache checked | ✅ SAFE | Results preserved if completed |
-| OpenAI API 429 error | Treated as error, returns fallback | 🟡 MEDIUM | All photos may fail if rate-limited; no backoff |
-| OpenAI API 401 error | Treated as error, returns fallback | ✅ SAFE | User notified via fallback |
+| Scenario                   | Behavior                               | Risk      | Notes                                                   |
+| -------------------------- | -------------------------------------- | --------- | ------------------------------------------------------- |
+| 50 photos analyzed         | Each wrapped in timeoutPromise(60s)    | ✅ SAFE   | Cumulative time reasonable                              |
+| 1 of 50 times out          | Returns fallback (confidence_score: 0) | ✅ SAFE   | Partial success preserved                               |
+| All 50 time out            | Returns 50 fallback analyses           | ✅ SAFE   | User sees "Analysis unavailable" but analysis completes |
+| Network drops mid-analysis | Current photo abandoned, next starts   | ✅ SAFE   | No accumulated state                                    |
+| User refreshes page        | Analysis restarts, cache checked       | ✅ SAFE   | Results preserved if completed                          |
+| OpenAI API 429 error       | Treated as error, returns fallback     | 🟡 MEDIUM | All photos may fail if rate-limited; no backoff         |
+| OpenAI API 401 error       | Treated as error, returns fallback     | ✅ SAFE   | User notified via fallback                              |
 
 ---
 
 ## Intentionally Accepted Risks
 
-| Risk | Reason | Impact | Future Mitigation |
-|------|--------|--------|-------------------|
-| Analysis cache unbounded | No eviction policy | ~2.5MB per 50 projects | Implement cache eviction policy in Phase 6 |
-| PDF on iOS untested | OS sandbox constraint | May fail on large reports | Test with real devices or document limitation |
-| Android scroll freeze on large grids | No virtual scrolling | UI lag if 50+ photos visible | Consider virtualization in Phase 6 if needed |
-| No store size monitoring | Observability gap | Can't detect accumulation | Add Sentry breadcrumb on logout (Phase 6) |
-| OpenAI rate limiting no backoff | No built-in retry | All photos fail if rate-limited | Implement exponential backoff queue (Phase 6) |
+| Risk                                 | Reason                | Impact                          | Future Mitigation                             |
+| ------------------------------------ | --------------------- | ------------------------------- | --------------------------------------------- |
+| Analysis cache unbounded             | No eviction policy    | ~2.5MB per 50 projects          | Implement cache eviction policy in Phase 6    |
+| PDF on iOS untested                  | OS sandbox constraint | May fail on large reports       | Test with real devices or document limitation |
+| Android scroll freeze on large grids | No virtual scrolling  | UI lag if 50+ photos visible    | Consider virtualization in Phase 6 if needed  |
+| No store size monitoring             | Observability gap     | Can't detect accumulation       | Add Sentry breadcrumb on logout (Phase 6)     |
+| OpenAI rate limiting no backoff      | No built-in retry     | All photos fail if rate-limited | Implement exponential backoff queue (Phase 6) |
 
 ---
 
 ## Operational Readiness Assessment
 
 ### Green Lights ✅
+
 - Concurrency limiting prevents browser overload
 - Timeout protection prevents indefinite hangs
 - Partial success preserved in all operations
@@ -389,12 +412,14 @@ auth.onChange(() => {
 - Observability breadcrumbs provide context
 
 ### Yellow Lights 🟡
+
 - Store caches grow unbounded (manageable, monitored later)
 - PDF on iOS untested (known limitation, documented)
 - Analysis cache not cleared on auth change (low impact, Phase 6 fix)
 - No automatic retry on transient failures (by design, Phase 6 feature)
 
 ### Red Lights 🔴
+
 - None detected
 
 ---
@@ -402,6 +427,7 @@ auth.onChange(() => {
 ## Recommendations for Phase 6
 
 ### High Priority (Performance)
+
 1. **Cache eviction policy** for analysisStore
    - Effort: 2-3 hours
    - Impact: Prevents unbounded growth in long sessions
@@ -413,6 +439,7 @@ auth.onChange(() => {
    - Implementation: Queue + exponential backoff
 
 ### Medium Priority (Observability)
+
 3. **Store size diagnostics**
    - Effort: 1-2 hours
    - Impact: Enables monitoring of cache growth
@@ -424,6 +451,7 @@ auth.onChange(() => {
    - Implementation: Manual testing on real devices
 
 ### Low Priority (Future)
+
 5. **Virtual scrolling for large analysis grids**
    - Effort: 6-8 hours
    - Impact: Prevents scroll jank on 50+ photo analyses
@@ -438,6 +466,7 @@ auth.onChange(() => {
 **Stress Test Results:** Platform survives all 8 simulated scenarios without data loss, data corruption, or critical failures.
 
 **Remaining Risks:** All identified risks are either:
+
 - Manageable within current architecture (cache growth in long sessions)
 - OS-level constraints (iOS PDF memory limits)
 - Low-impact future optimizations (cache eviction, rate limiting)
@@ -449,6 +478,7 @@ auth.onChange(() => {
 ## Appendix: Code Inspection Summary
 
 **Files Inspected:** 15
+
 - src/lib/photos.ts (upload flow)
 - src/lib/projects.ts (project cache)
 - src/lib/analysis.ts (analysis cache)

@@ -11,22 +11,26 @@ Extract shared code from a monolithic TanStack Start application into reusable w
 **Objective**: Move all pure domain types to a shared layer.
 
 **Extracted:**
+
 - Domain types: Profile, Project, Deal, Estimate, Analysis, Redesign, etc.
 - DTOs and contracts
 - Type aliases and enums
 - Result: 525 LOC, 17 files
 
 **Files moved:**
+
 - `src/core/types/*` → `packages/types/src/`
 - `src/core/platform/*` (types) → `packages/types/src/`
 - `src/core/trades/*` (types) → `packages/types/src/`
 
 **Backward compatibility:**
+
 - Created shims at `src/core/types/index.ts` re-exporting from `@repo/types`
 - Old imports `import { Profile } from "@/core/types"` still work
 - New imports `import { Profile } from "@repo/types"` encouraged
 
 **Challenges:**
+
 - Fixed relative import paths within moved files (e.g., `../platform/products` → `./products`)
 - Root `tsconfig.json` updated with `@repo/types` path alias
 - Added `baseUrl: "."` to allow TypeScript path resolution
@@ -40,21 +44,25 @@ Extract shared code from a monolithic TanStack Start application into reusable w
 **Objective**: Move framework-agnostic constants, utilities, and mock data.
 
 **Extracted:**
+
 - Constants: UK_REGIONS, PROPERTY_TYPES, DISCLAIMER, pricing tiers, capabilities
 - Utilities: pricingData lookup tables, pure formatters
 - Mock data: demo projects, analysis samples
 - Result: 238 LOC, 13 files
 
 **Files moved:**
+
 - `src/core/constants/*` → `packages/core/src/constants/`
 - `src/core/pricing/pricingData.ts` → `packages/core/src/utilities/`
 - Utilities and mock data → `packages/core/src/`
 
 **Backward compatibility:**
+
 - Created shims at old locations re-exporting from `@repo/core`
 - Imports like `import { UK_REGIONS } from "@/core/constants"` still work
 
 **Challenges:**
+
 - pricingEngine.ts imports from pricingData.ts (both extracted, but in different packages)
 - Fixed with import redirect: pricingEngine → pricingData (local to same package)
 - Prettier formatting violations fixed with `eslint --fix`
@@ -68,6 +76,7 @@ Extract shared code from a monolithic TanStack Start application into reusable w
 **Objective**: Provide ergonomic monorepo import path for UI components.
 
 **Initial approach (FAILED):**
+
 - Attempted to move 45 component files from `src/components/ui/` to `packages/ui/src/`
 - Created shim files with `export * from "@repo/ui"`
 - **Error**: TypeScript path alias resolution failed
@@ -75,12 +84,14 @@ Extract shared code from a monolithic TanStack Start application into reusable w
 - **Root cause**: Circular reference risk (src/components/ui → packages/ui → src/components/ui)
 
 **Corrective action:**
+
 - Reverted all file movements
 - Changed strategy: Keep components at root, create re-export facade
 - Components belong in root (app-specific), not in package
 - Design is re-export layer, not isolation barrier
 
 **Final implementation:**
+
 - Components remain at `src/components/ui/` (source of truth)
 - Created `packages/ui/src/index.ts` as re-export barrel
 - 45 star exports: `export * from "@/components/ui/button"`, etc.
@@ -95,6 +106,7 @@ Extract shared code from a monolithic TanStack Start application into reusable w
 **Objective**: Move pure business logic engines to reusable package.
 
 **Extracted:**
+
 - Pricing engine: deterministic refurbishment cost calculations
 - ROI engine: deterministic investment metrics
 - Deal scoring: acquisition opportunity intelligence
@@ -102,26 +114,31 @@ Extract shared code from a monolithic TanStack Start application into reusable w
 - Result: 541 LOC, 10 files
 
 **Files moved:**
+
 - `src/core/pricing/pricingEngine.ts` → `packages/services/src/pricing/`
 - `src/core/roi/roiEngine.ts` → `packages/services/src/roi/`
 - `src/core/dealCopilot/dealScore.ts` → `packages/services/src/deal-analysis/`
 - `src/core/ai/aiSummaries.ts` → `packages/services/src/ai/`
 
 **Entity moved:**
+
 - `src/core/dealCopilot/opportunity.ts` → `packages/types/src/opportunity.ts`
 - Reason: Entity types belong in @repo/types (domain layer), not services
 
 **Key decision:**
+
 - pricingData.ts was copied (not moved) to `packages/services/src/pricing/`
 - Reason: Vite build path resolution couldn't handle @repo/services importing @repo/core
 - Created two copies of pricingData (duplication risk, see Future)
 - Alternative: Would have required Vite config changes that broke build
 
 **Backward compatibility:**
+
 - Shims at original locations re-export from `@repo/services` and `@repo/types`
 - Old import paths still work
 
 **Build challenges:**
+
 - Initial build failed: Rollup couldn't resolve @repo/core path alias
 - Fixed by using local pricingData copy instead of cross-package import
 - Trade-off: Duplication vs. working build
@@ -139,6 +156,7 @@ Extract shared code from a monolithic TanStack Start application into reusable w
 **Objective**: Isolate the main application from shared packages.
 
 **What we tried:**
+
 1. Created `apps/main/` directory
 2. Moved all of `src/` contents to `apps/main/src/`
 3. Updated Vite config to point to new location
@@ -160,12 +178,14 @@ Route tree generation aborted
 4. **Vite bundler starts**: After plugin completes (or fails)
 
 When we moved `src/` to `apps/main/src/`, the plugin couldn't find routes because:
+
 - Plugin initialization happens BEFORE Vite's root option takes effect
 - Plugin looks in hardcoded location based on project structure
 - By the time Vite config could redirect, it was too late
 - Circular: Plugin needs routes to initialize, but can't find them
 
 **Why reverting was correct:**
+
 - Plugin is immutable and non-relocatable
 - TanStack Start's architecture requires `src/` at repository root
 - No Vite configuration change could fix this
@@ -182,17 +202,20 @@ When we moved `src/` to `apps/main/src/`, the plugin couldn't find routes becaus
 ### ✅ What Works
 
 **Extraction by pure logic type:**
+
 - Pure types → @repo/types (100% safe)
 - Constants/utilities → @repo/core (100% safe)
 - Pure business logic → @repo/services (100% safe)
 - UI components → @repo/ui facade (100% safe, if kept as re-export)
 
 **Backward compatibility:**
+
 - Shim files at old locations work perfectly
 - No breaking changes to existing code
 - Gradual migration path enabled
 
 **Build orchestration:**
+
 - Turbo correctly tracks dependencies
 - TypeScript path aliases work across packages
 - Type checking validates entire workspace
@@ -200,17 +223,20 @@ When we moved `src/` to `apps/main/src/`, the plugin couldn't find routes becaus
 ### ❌ What Doesn't Work
 
 **Relocating the runtime shell:**
+
 - Cannot move `src/` (TanStack Start plugin limitation)
 - Cannot move `vite.config.ts` (build entry point)
 - Cannot move `package.json` (workspace root)
 - Cannot isolate auth system (couples to runtime)
 
 **Isolating integrations:**
+
 - Cannot move Supabase client init (depends on bootstrap)
 - Cannot move OpenAI client init (depends on env vars)
 - Cannot defer these initializations
 
 **Splitting too aggressively:**
+
 - Cannot extract components too early
 - Cannot separate auth/routing/providers
 - These need to stay coordinated
@@ -241,15 +267,15 @@ When we moved `src/` to `apps/main/src/`, the plugin couldn't find routes becaus
 
 ## Migration By The Numbers
 
-| Phase | Scope | Files | LOC | Status |
-|-------|-------|-------|-----|--------|
-| 1 | Types extraction | 15 | 525 | ✅ |
-| 2 | Core extraction | 8 | 238 | ✅ |
-| 3 | UI facade | 45 | 51 | ✅ |
-| 4 | Services extraction | 10 | 541 | ✅ |
-| **Total** | **Extracted** | **~78** | **~1,355** | **✅** |
-| - | Root app (src/) | 152 | 17,295 | - |
-| - | **Grand total** | **~230** | **~18,650** | - |
+| Phase     | Scope               | Files    | LOC         | Status |
+| --------- | ------------------- | -------- | ----------- | ------ |
+| 1         | Types extraction    | 15       | 525         | ✅     |
+| 2         | Core extraction     | 8        | 238         | ✅     |
+| 3         | UI facade           | 45       | 51          | ✅     |
+| 4         | Services extraction | 10       | 541         | ✅     |
+| **Total** | **Extracted**       | **~78**  | **~1,355**  | **✅** |
+| -         | Root app (src/)     | 152      | 17,295      | -      |
+| -         | **Grand total**     | **~230** | **~18,650** | -      |
 
 **Distribution:** 7.1% extracted to packages, 92.9% remains in root (correct for SSR app).
 
@@ -257,16 +283,16 @@ When we moved `src/` to `apps/main/src/`, the plugin couldn't find routes becaus
 
 ## Validation Across All Phases
 
-| Check | Status |
-|-------|--------|
-| TypeScript compilation | ✅ Pass |
-| ESLint | ✅ Pass (6 pre-existing warnings) |
-| Vite build | ✅ Pass |
-| Nitro SSR | ✅ Pass |
-| Route discovery | ✅ Pass |
-| Auth initialization | ✅ Pass |
-| Package imports | ✅ Pass (all hierarchy rules followed) |
-| Circular dependencies | ✅ None detected |
+| Check                  | Status                                 |
+| ---------------------- | -------------------------------------- |
+| TypeScript compilation | ✅ Pass                                |
+| ESLint                 | ✅ Pass (6 pre-existing warnings)      |
+| Vite build             | ✅ Pass                                |
+| Nitro SSR              | ✅ Pass                                |
+| Route discovery        | ✅ Pass                                |
+| Auth initialization    | ✅ Pass                                |
+| Package imports        | ✅ Pass (all hierarchy rules followed) |
+| Circular dependencies  | ✅ None detected                       |
 
 **Conclusion:** Monorepo is production-ready.
 

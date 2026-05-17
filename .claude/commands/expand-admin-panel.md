@@ -3,6 +3,7 @@ Build out the admin panel with user management and platform stats.
 ## Context
 
 The admin route is `src/routes/admin.tsx`. Currently it contains only:
+
 ```tsx
 <h1>Admin</h1>
 <p>Platform administration panel.</p>
@@ -13,6 +14,7 @@ The `RequireAuth` and `RequireAdmin` guards are already correct — only admins 
 Admin role is managed via `src/lib/role.ts` and `src/hooks/useRole.ts`.
 
 Supabase tables in scope (from `src/integrations/supabase/types.ts`):
+
 - `profiles` — user profiles (check if it exists in the types file)
 - `projects` — refurbishment projects
 - `trades_jobs` — posted trade jobs
@@ -28,6 +30,7 @@ Since client code only has the anon key, scope the stats to queries that work wi
 ### Section 1 — Platform Stats
 
 A row of `MetricCard` components (already exists at `src/components/MetricCard.tsx`) showing:
+
 - Total projects (count of `projects` table rows the current admin user can read)
 - Total trades jobs (count of `trades_jobs`)
 - Total interests (count of `trades_job_interests`)
@@ -52,6 +55,7 @@ If the `profiles` table does not exist or is not readable, render a card that sa
 Wrap all sections in `AppLayout` (already used by other authenticated pages). Use `title="Admin"` and `subtitle="Platform overview and user management."`.
 
 Structure:
+
 ```
 <AppLayout title="Admin" subtitle="...">
   <div className="space-y-8">
