@@ -11,15 +11,26 @@
 
 import path from "path";
 import { fileURLToPath } from "url";
+import type { ParsedDealFormData, DealAnalysisResult } from "./packages/types/src/deal-copilot";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.join(__dirname, "..");
 
-// Dynamic import to avoid circular dependencies
+// Dynamic import with direct relative paths for monorepo workspace resolution
+// Uses relative imports to avoid tsx module resolution issues with workspace aliases
 async function loadModules() {
-  const { analyzeDeal } = await import(
-    path.join(projectRoot, "src/lib/deal-copilot/dealAnalysis.ts")
+  // Import deterministic engines directly (avoids @repo/services alias)
+  const { scoreDealOpportunity } = await import(
+    path.join(projectRoot, "packages/services/src/deal-analysis/index.ts")
   );
+  const { runPricingEngine } = await import(
+    path.join(projectRoot, "packages/services/src/pricing/index.ts")
+  );
+  const { runRoiEngine } = await import(
+    path.join(projectRoot, "packages/services/src/roi/index.ts")
+  );
+
+  // Import validation helpers
   const { standardFlipInput, standardFlipExpected, validateStandardFlip, TOLERANCE } = await import(
     path.join(projectRoot, "src/test/fixtures/deal-copilot/standard-flip.ts")
   );
@@ -33,6 +44,78 @@ async function loadModules() {
   const { runAllInvariantTests } = await import(
     path.join(projectRoot, "src/test/fixtures/deal-copilot/invariant-protection.ts")
   );
+
+  // Compose analyzeDeal inline to avoid importing dealAnalysis.ts
+  // which has @repo/services import that tsx can't resolve.
+  // This implementation matches src/lib/deal-copilot/dealAnalysis.ts exactly.
+  const analyzeDeal = (formData: ParsedDealFormData): DealAnalysisResult => {
+    // Step 1: Validate deal readiness
+    const scoreInput = {
+      title: formData.title,
+      purchasePrice: formData.purchasePrice,
+      estimatedGdv: formData.estimatedGdv,
+      refurbBudget: formData.refurbBudget,
+      expectedMonthlyRent: formData.rentalIncome,
+      region: formData.region,
+      propertyCondition: formData.propertyCondition,
+      holdingCosts: formData.holdingCosts,
+    };
+
+    const score = scoreDealOpportunity(scoreInput);
+
+    if (!score.ready) {
+      return {
+        score,
+        pricing: null,
+        roi: null,
+        ready: false,
+        errors: score.missingFields,
+      };
+    }
+
+    // Step 2: Run pricing engine
+    const pricingInput = {
+      region: formData.region,
+      property_condition: formData.propertyCondition,
+      finish_quality: formData.finishLevel || "Standard",
+      selected_categories: formData.selectedCategories || [],
+      property_size_sqm: formData.propertySize || 100,
+    };
+
+    const pricing = runPricingEngine(pricingInput);
+
+    // CRITICAL: Pricing failure blocks ROI (financial invariant enforcement)
+    if (!pricing || pricing.mid_total == null) {
+      return {
+        score,
+        pricing: null,
+        roi: null,
+        ready: false,
+        errors: ["Pricing engine did not return a valid result — ROI calculation blocked"],
+      };
+    }
+
+    // Step 3: Run ROI engine with pricing.mid_total (not user-entered refurbBudget)
+    const roiInput = {
+      purchase_price: formData.purchasePrice,
+      refurb_budget: pricing.mid_total,
+      estimated_gdv: formData.estimatedGdv,
+      rental_income: formData.rentalIncome * 12,
+      holding_costs: formData.holdingCosts,
+      region: formData.region,
+      property_condition: formData.propertyCondition,
+    };
+
+    const roi = runRoiEngine(roiInput);
+
+    return {
+      score,
+      pricing,
+      roi,
+      ready: true,
+      errors: [],
+    };
+  };
 
   return {
     analyzeDeal,

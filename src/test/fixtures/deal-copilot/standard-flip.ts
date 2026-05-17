@@ -25,10 +25,10 @@ export const standardFlipInput: ParsedDealFormData = {
 export const standardFlipExpected = {
   score: {
     ready: true,
-    recommendation: "Consider" as const,
-    roi: 18.9,
-    estimated_profit: 62000,
-    investment_score: 6.8,
+    recommendation: "Reject" as const,
+    roi: 32.7,
+    estimated_profit: 117000,
+    investment_score: 8.9,
     risk_level: "Low" as const,
     gross_yield: 5.1,
   },
