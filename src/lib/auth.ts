@@ -2,7 +2,6 @@
 // (signIn / signUp / signOut / getUser / onChange) so consumers don't need
 // to change. Google sign-in is exposed via signInWithGoogle().
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { captureAuthError, addDiagnosticBreadcrumb } from "./sentry";
 import { logger } from "./logger";
 
@@ -155,10 +154,13 @@ export const auth = {
   async signInWithGoogle(): Promise<void> {
     try {
       addDiagnosticBreadcrumb("auth:google_signin:attempt");
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin + "/auth/callback",
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin + "/auth/callback",
+        },
       });
-      if (result.error) throw new Error(result.error.message ?? "Google sign-in failed.");
+      if (error) throw new Error(error.message ?? "Google sign-in failed.");
       addDiagnosticBreadcrumb("auth:google_signin:success");
     } catch (err) {
       logger.error("[auth] signInWithGoogle failed", { error: String(err) });

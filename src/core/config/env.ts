@@ -1,9 +1,9 @@
 // Canonical Supabase environment configuration.
 //
-// Single source of truth for env var names. Both the Lovable alias
+// Single source of truth for env var names. Both the VITE_ prefix
 // (VITE_SUPABASE_PUBLISHABLE_KEY) and the standard Supabase name
-// (VITE_SUPABASE_ANON_KEY) are accepted so production Vercel deployments
-// work without renaming variables.
+// (VITE_SUPABASE_ANON_KEY / NEXT_PUBLIC_SUPABASE_ANON_KEY) are accepted
+// so production Vercel deployments work without renaming variables.
 //
 // SSR note: import.meta.env.VITE_* values are embedded at Vite build time
 // in both client and server bundles. process.env fallbacks cover the Nitro
