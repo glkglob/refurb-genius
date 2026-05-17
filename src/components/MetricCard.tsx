@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
 
@@ -10,7 +11,7 @@ type Props = {
   tone?: "default" | "accent";
 };
 
-export function MetricCard({ label, value, hint, icon: Icon, tone = "default" }: Props) {
+function MetricCardComponent({ label, value, hint, icon: Icon, tone = "default" }: Props) {
   return (
     <Card className="overflow-hidden">
       <CardContent className="p-5">
@@ -37,3 +38,5 @@ export function MetricCard({ label, value, hint, icon: Icon, tone = "default" }:
     </Card>
   );
 }
+
+export const MetricCard = memo(MetricCardComponent);

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Card, CardContent } from "@/components/ui/card";
+import { memo } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ArrowRight, MapPin } from "lucide-react";
 import type { Project } from "@/core/projects";
@@ -9,7 +10,7 @@ export type ProjectCardProps = {
   project: Project;
 };
 
-export function ProjectCard({ project }: ProjectCardProps) {
+function ProjectCardComponent({ project }: ProjectCardProps) {
   return (
     <Link to="/projects/$id" params={{ id: project.id }} className="group">
       <Card className="h-full overflow-hidden transition-shadow hover:shadow-md">
@@ -37,3 +38,5 @@ export function ProjectCard({ project }: ProjectCardProps) {
     </Link>
   );
 }
+
+export const ProjectCard = memo(ProjectCardComponent);

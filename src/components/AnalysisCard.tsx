@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
+import { memo } from "react";
 import { Sparkles, AlertTriangle, Wrench } from "lucide-react";
 import type { RoomAnalysis, ConditionLevel } from "@/core/ai";
 
@@ -16,11 +17,17 @@ export type AnalysisCardProps = {
   analysis: RoomAnalysis;
 };
 
-export function AnalysisCard({ analysis: r }: AnalysisCardProps) {
+function AnalysisCardComponent({ analysis: r }: AnalysisCardProps) {
   return (
     <Card className="overflow-hidden">
       <div className="relative aspect-[16/10] w-full bg-muted">
-        <img src={r.photo_url} alt={r.room_type} className="h-full w-full object-cover" />
+        <img
+          src={r.photo_url}
+          alt={r.room_type}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          decoding="async"
+        />
         <div className="absolute left-3 top-3 flex gap-2">
           <Badge variant="secondary" className="bg-background/85 backdrop-blur">
             {r.room_type}
@@ -81,3 +88,5 @@ function IssueList({
     </div>
   );
 }
+
+export const AnalysisCard = memo(AnalysisCardComponent);

@@ -111,6 +111,56 @@ export function captureApiError(
 }
 
 /**
+ * Capture PDF export failures with timing and memory info.
+ * Tracks export stage and size for debugging large report issues.
+ */
+export function capturePdfError(
+  error: unknown,
+  metadata?: {
+    filename?: string;
+    stage?: "loading-libs" | "rendering-canvas" | "generating-pdf";
+    durationMs?: number;
+    memoryMbEstimate?: number;
+  },
+): void {
+  if (!enabled) return;
+  Sentry.captureException(error, {
+    tags: { domain: "pdf", stage: metadata?.stage ?? "unknown" },
+    extra: { ...metadata, timestamp: new Date().toISOString() },
+  });
+}
+
+/**
+ * Capture image loading/memory issues and cleanup diagnostics.
+ */
+export function captureImageDiagnostic(message: string, metadata?: Record<string, unknown>): void {
+  if (!enabled) return;
+  Sentry.addBreadcrumb({
+    message: `[image] ${message}`,
+    data: metadata,
+    timestamp: Date.now() / 1000,
+    level: "info",
+  });
+}
+
+/**
+ * Capture route loading diagnostics (timeouts, state race conditions).
+ */
+export function captureRouteLoadDiagnostic(
+  routePath: string,
+  message: string,
+  metadata?: Record<string, unknown>,
+): void {
+  if (!enabled) return;
+  Sentry.addBreadcrumb({
+    message: `[route] ${routePath}: ${message}`,
+    data: metadata,
+    timestamp: Date.now() / 1000,
+    level: "info",
+  });
+}
+
+/**
  * Add a breadcrumb for context tracking (progress events, user actions, etc).
  * Helps trace the path to failures without cluttering error reports.
  */

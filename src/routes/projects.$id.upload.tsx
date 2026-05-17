@@ -161,7 +161,13 @@ function UploadPage() {
                   {photos.map((p) => (
                     <Card key={p.id} className="group relative overflow-hidden p-0">
                       <div className="relative aspect-square bg-secondary">
-                        <img src={p.url} alt={p.name} className="h-full w-full object-cover" />
+                        <img
+                          src={p.url}
+                          alt={p.name}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                        />
                         <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground backdrop-blur">
                           <Sparkles className="h-3 w-3 text-accent" /> Pending analysis
                         </span>
