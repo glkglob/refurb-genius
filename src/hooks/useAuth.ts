@@ -23,5 +23,10 @@ export function useAuth() {
     return () => off();
   }, []);
 
-  return { user, hydrated, isAuthenticated: !!user };
+  return {
+    user,
+    hydrated,
+    isAuthenticated: !!user,
+    signOut: () => auth.signOut(),
+  };
 }
