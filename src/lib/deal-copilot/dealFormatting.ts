@@ -3,13 +3,10 @@
  * Pure functions; no calculations or business logic.
  */
 
+import { formatGBP } from "@/lib/utils";
+
 export function formatCurrency(value: number | undefined): string {
-  if (value === undefined || value === null) return "—";
-  return new Intl.NumberFormat("en-GB", {
-    style: "currency",
-    currency: "GBP",
-    maximumFractionDigits: 0,
-  }).format(value);
+  return formatGBP(value ?? null);
 }
 
 export function formatPercent(value: number | undefined): string {

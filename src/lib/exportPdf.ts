@@ -45,40 +45,44 @@ export async function exportReportPdf(options: ExportPdfOptions = {}): Promise<v
   if (!element) throw new Error("No .print-area element found on page.");
 
   const startTime = Date.now();
-  let aborted = false;
-  const timeoutHandle = setTimeout(() => {
-    aborted = true;
-  }, PDF_TIMEOUT_MS);
+
+  // Create a timeout promise that rejects after PDF_TIMEOUT_MS
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new PdfTimeoutError("PDF export exceeded 60s timeout"));
+    }, PDF_TIMEOUT_MS);
+  });
 
   try {
     addDiagnosticBreadcrumb("pdf:export:start", { filename, scale });
     onProgress?.("loading-libs");
 
     // Dynamic imports keep these large libs out of the initial bundle.
-    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
-      import("html2canvas"),
-      import("jspdf"),
+    // Race against timeout to ensure we abort if loading takes too long.
+    const [{ default: html2canvas }, { default: jsPDF }] = await Promise.race([
+      Promise.all([import("html2canvas"), import("jspdf")]),
+      timeoutPromise,
     ]);
-
-    if (aborted) throw new PdfTimeoutError("PDF export exceeded 60s timeout (lib loading)");
 
     addDiagnosticBreadcrumb("pdf:export:rendering-canvas");
     onProgress?.("rendering-canvas");
 
-    const canvas = await html2canvas(element, {
-      scale,
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: "#ffffff",
-      onclone(clonedDoc) {
-        clonedDoc.querySelectorAll<HTMLElement>(".no-print").forEach((el) => {
-          el.style.display = "none";
-        });
-        clonedDoc.body.style.background = "#ffffff";
-      },
-    });
-
-    if (aborted) throw new PdfTimeoutError("PDF export exceeded 60s timeout (canvas rendering)");
+    // Race canvas rendering against timeout
+    const canvas = await Promise.race([
+      html2canvas(element, {
+        scale,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: "#ffffff",
+        onclone(clonedDoc) {
+          clonedDoc.querySelectorAll<HTMLElement>(".no-print").forEach((el) => {
+            el.style.display = "none";
+          });
+          clonedDoc.body.style.background = "#ffffff";
+        },
+      }),
+      timeoutPromise,
+    ]);
 
     const imgData = canvas.toDataURL("image/jpeg", 0.92);
     const imgWidthPx = canvas.width;
@@ -111,7 +115,6 @@ export async function exportReportPdf(options: ExportPdfOptions = {}): Promise<v
     let page = 0;
 
     while (yOffset < imgHeightMm) {
-      if (aborted) throw new PdfTimeoutError("PDF export exceeded 60s timeout (PDF generation)");
       if (page > 0) pdf.addPage();
 
       pdf.addImage(imgData, "JPEG", 0, -yOffset, A4_WIDTH_MM, imgHeightMm);
@@ -151,7 +154,5 @@ export async function exportReportPdf(options: ExportPdfOptions = {}): Promise<v
     });
 
     throw err;
-  } finally {
-    clearTimeout(timeoutHandle);
   }
 }

@@ -185,10 +185,10 @@ export const analysisStore = {
     return cache.get(projectId);
   },
   async run(projectId: string): Promise<RoomAnalysis[]> {
-    // Delegate to canonical photoAnalysisProvider selector (respects VITE_OPENAI_API_KEY).
-    // Dynamic import avoids circular module refs at startup.
-    const { photoAnalysisProvider } = await import("@/core/ai/photoAnalysis");
-    const result = await photoAnalysisProvider.run({ projectId });
+    // Mock fallback: build analyses from photos using templates.
+    // This is the local implementation used when no real AI provider is active.
+    await delay();
+    const result = buildFromPhotos(projectId);
     cache.set(projectId, result);
     notify();
     return result;

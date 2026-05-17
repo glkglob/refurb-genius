@@ -7,6 +7,21 @@ import type { ConditionLevel, ParsedDealFormData, UKRegion } from "@repo/types";
  */
 export function parseMoney(value: string): number | undefined {
   const trimmed = value.trim();
+
+  // Reject empty strings
+  if (!trimmed) {
+    return undefined;
+  }
+
+  // Validate against allowed currency pattern before parsing.
+  // Allowed: optional £ or $ prefix, digits, optional commas, optional single decimal point with digits.
+  // Examples: "1000", "1,000", "1000.50", "£1,000.50", "$1000"
+  const currencyPattern = /^[£$]?\d{1,3}(,?\d{3})*(\.\d{1,2})?$/;
+
+  if (!currencyPattern.test(trimmed)) {
+    return undefined;
+  }
+
   const firstMinus = trimmed.indexOf("-");
 
   // Reject if minus sign is not at the start or appears multiple times

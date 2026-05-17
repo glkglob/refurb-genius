@@ -66,9 +66,7 @@ export function analyzeProviderHealth(): ProviderHealthSummary {
   // Note: redesign_fallback_used is NOT added to redesignTotal because it's incremented
   // alongside failure counters (timeout, parse_failure), not as a separate operation.
   const redesignTotal =
-    counters.redesign_success +
-    counters.redesign_timeout +
-    counters.redesign_parse_failure;
+    counters.redesign_success + counters.redesign_timeout + counters.redesign_parse_failure;
 
   const redesignStats =
     redesignTotal > 0
