@@ -2,15 +2,17 @@
 
 **AI-first refurbishment analysis platform for UK property investors**, built on TanStack Start with a monorepo architecture.
 
-## Quick Links
+## Platform Status
 
-- **[Architecture Documentation](docs/architecture/)** — Comprehensive design overview
-  - [Overview & Rationale](docs/architecture/overview.md)
-  - [Package Boundaries](docs/architecture/package-boundaries.md)
-  - [Dependency Rules](docs/architecture/dependency-rules.md)
-  - [Runtime Boundaries](docs/architecture/runtime-boundaries.md)
-  - [Migration History](docs/architecture/migration-history.md)
-  - [Future Roadmap](docs/architecture/future-roadmap.md)
+**Phase:** Controlled-beta (Phase B: Mobile Hardening Complete)
+
+- ✅ Deterministic financial architecture hardened
+- ✅ PWA infrastructure ready (installable on iOS/Android)
+- ✅ Legal compliance pages (privacy, terms, support)
+- ✅ Mobile-first layouts validated
+- ✅ Auth/session stability verified
+
+See `docs/mobile-readiness.md` for mobile deployment details.
 
 ## Platform Architecture
 

@@ -1,5 +1,60 @@
 # Refurb Genius Architecture
 
+**Phase:** Controlled-beta (Phase B: Mobile Hardening Complete)
+
+---
+
+## 🎯 Core Principle: Deterministic Financial Authority
+
+**Critical Invariant (Protected):**
+
+The platform enforces a **single chain of financial authority**:
+
+```
+User Inputs (form fields)
+  ↓
+scoreDealOpportunity()
+  ↓ [Validation gate: blocks if incomplete]
+  ↓
+runPricingEngine()
+  ↓ [Deterministic cost estimation]
+  ↓
+pricing.mid_total [AUTHORITATIVE refurbishment budget]
+  ↓
+runRoiEngine(refurb_budget: pricing.mid_total)
+  ↓ [Deterministic ROI calculation]
+  ↓
+Results: ROI%, yield%, profit, score
+```
+
+### Why This Matters
+
+- **User-entered refurbBudget is NEVER used directly by ROI engine**
+- **Pricing engine is the ONLY source of truth for refurb budget**
+- **No fallback logic permitted** (`??`, `||` operators forbidden near refurb_budget)
+- **Protects financial authority** from accidental override or inference
+- **Auditable & repeatable** — same inputs always produce same outputs
+
+### Key Rules
+
+1. **Pricing Must Succeed Before ROI Runs**
+   - If pricing engine fails, ROI returns `ready: false`
+   - No partial results or degraded modes
+   - User sees "Incomplete" state with blocking error
+
+2. **ROI Consumes ONLY pricing.mid_total**
+   - Located in `src/lib/deal-copilot/dealAnalysis.ts` line 80
+   - Pattern: `refurb_budget: pricing.mid_total`
+   - Code review must verify this exact pattern
+
+3. **AI Remains Advisory**
+   - Photo analysis is descriptive only
+   - Design suggestions are informational only
+   - All financial outputs come from deterministic engines
+   - AI cannot modify, override, or influence ROI calculations
+
+---
+
 ## Current Stack
 
 Refurb Genius is a Vite + TanStack Router TypeScript application using:
@@ -241,3 +296,51 @@ Refurb Genius becomes the main platform.
 - Do not place UI-specific code in `src/core`.
 - Do not remove RLS-backed authorization.
 - Do not rely on client guards alone.
+- **DO NOT modify the pricing → ROI invariant chain.**
+- **DO NOT use user-entered refurbBudget in final ROI calculations.**
+- **DO NOT add fallback logic to ROI refurb_budget selection.**
+
+---
+
+## Phase B: Mobile Hardening (Complete)
+
+### What Was Delivered
+
+#### ✅ PWA Infrastructure
+- `public/manifest.json` — App metadata, icons, display mode
+- `public/icon-192.svg` — Branded app icon
+- Meta tags in `src/routes/__root.tsx` — Apple/Android PWA support
+- Result: App installable on iOS (Safari) and Android (Chrome)
+
+#### ✅ Legal Compliance
+- `/privacy` — Privacy policy with controlled-beta language
+- `/terms` — Terms of service with "no financial advice" disclaimer
+- `/support` — Help center & contact information
+- Account deletion flow in `/settings`
+
+#### ✅ Mobile Layouts
+- All routes verified responsive
+- Touch-friendly (44px+ tap targets)
+- No horizontal overflow
+- Proper safe-area support (iPhone notch)
+- Mobile-first design patterns throughout
+
+#### ✅ Auth Stability
+- Hydration loading state prevents flash-of-logout
+- Redirect guards stable (no loops)
+- Session persistence across backgrounding
+- Token refresh working
+
+#### ✅ Documentation
+- `README.md` updated with Phase B status
+- `docs/mobile-readiness.md` — Complete mobile strategy guide
+- `docs/architecture.md` — Financial invariant protection documented
+
+### Ready for Next Phase (Phase C: Capacitor)
+
+- PWA fully stable and installable
+- All mobile layouts responsive
+- Legal pages complete
+- Financial architecture protected
+- Ready for native wrapper (Capacitor → iOS/Android app)
+
