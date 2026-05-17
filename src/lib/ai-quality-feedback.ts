@@ -25,29 +25,9 @@ export async function submitVisionFeedback(
   accuracy: VisionAccuracy,
   notes?: string,
 ): Promise<boolean> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (supabase.from("ai_quality_feedback") as any).insert([
-      {
-        project_id: projectId,
-        photo_id: photoId,
-        feedback_type: "vision",
-        accuracy,
-        notes,
-        created_at: new Date().toISOString(),
-      },
-    ]);
-
-    if (result?.error) {
-      console.warn("[AI Quality] Vision feedback insert failed:", result.error.message);
-      return false;
-    }
-
-    return true;
-  } catch (err) {
-    console.warn("[AI Quality] Vision feedback error (table may not exist yet):", err);
-    return false;
-  }
+  // Controlled-beta stub: ai_quality_feedback table not in typed schema
+  console.info("[AI Quality] Vision feedback not persisted in controlled-beta (table unavailable)");
+  return false;
 }
 
 export async function submitRedesignFeedback(
@@ -56,29 +36,11 @@ export async function submitRedesignFeedback(
   usability: RedesignUsability,
   notes?: string,
 ): Promise<boolean> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (supabase.from("ai_quality_feedback") as any).insert([
-      {
-        project_id: projectId,
-        photo_id: photoId,
-        feedback_type: "redesign",
-        usability,
-        notes,
-        created_at: new Date().toISOString(),
-      },
-    ]);
-
-    if (result?.error) {
-      console.warn("[AI Quality] Redesign feedback insert failed:", result.error.message);
-      return false;
-    }
-
-    return true;
-  } catch (err) {
-    console.warn("[AI Quality] Redesign feedback error (table may not exist yet):", err);
-    return false;
-  }
+  // Controlled-beta stub: ai_quality_feedback table not in typed schema
+  console.info(
+    "[AI Quality] Redesign feedback not persisted in controlled-beta (table unavailable)",
+  );
+  return false;
 }
 
 export async function getFeedbackSummary(): Promise<{
@@ -89,58 +51,15 @@ export async function getFeedbackSummary(): Promise<{
   redesignGeneric: number;
   redesignUnrealistic: number;
 }> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (supabase.from("ai_quality_feedback") as any)
-      .select("*")
-      .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+  // Controlled-beta stub: ai_quality_feedback table not in typed schema
+  console.info("[AI Quality] Feedback summary unavailable in controlled-beta (table unavailable)");
 
-    const feedback = result?.data;
-    const error = result?.error;
-
-    if (error || !feedback) {
-      console.warn("[AI Quality] Could not load feedback summary (table may not exist):", error?.message);
-      return {
-        visionAccurate: 0,
-        visionPartial: 0,
-        visionInaccurate: 0,
-        redesignUseful: 0,
-        redesignGeneric: 0,
-        redesignUnrealistic: 0,
-      };
-    }
-
-    const summary = {
-      visionAccurate: 0,
-      visionPartial: 0,
-      visionInaccurate: 0,
-      redesignUseful: 0,
-      redesignGeneric: 0,
-      redesignUnrealistic: 0,
-    };
-
-    feedback?.forEach((item: Record<string, unknown>) => {
-      if (item.feedback_type === "vision") {
-        if (item.accuracy === "accurate") summary.visionAccurate++;
-        if (item.accuracy === "partial") summary.visionPartial++;
-        if (item.accuracy === "inaccurate") summary.visionInaccurate++;
-      } else if (item.feedback_type === "redesign") {
-        if (item.usability === "useful") summary.redesignUseful++;
-        if (item.usability === "generic") summary.redesignGeneric++;
-        if (item.usability === "unrealistic") summary.redesignUnrealistic++;
-      }
-    });
-
-    return summary;
-  } catch (err) {
-    console.warn("[AI Quality] Feedback summary error (table may not exist):", err);
-    return {
-      visionAccurate: 0,
-      visionPartial: 0,
-      visionInaccurate: 0,
-      redesignUseful: 0,
-      redesignGeneric: 0,
-      redesignUnrealistic: 0,
-    };
-  }
+  return {
+    visionAccurate: 0,
+    visionPartial: 0,
+    visionInaccurate: 0,
+    redesignUseful: 0,
+    redesignGeneric: 0,
+    redesignUnrealistic: 0,
+  };
 }
