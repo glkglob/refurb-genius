@@ -16,6 +16,7 @@ import type { RedesignConcept, RedesignStyle } from "@/lib/redesign";
 import type { RedesignInput, RedesignProvider } from "./redesignConcepts";
 import { captureAiError, addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
+import { incrementCounter } from "@/lib/provider-diagnostics";
 
 // Timeout for text generation
 const TEXT_GENERATION_TIMEOUT_MS = 30_000;
@@ -115,6 +116,9 @@ async function generateConceptText(
 
     // Validate and coerce parsed output
     const fallback = staticFallback(style);
+
+    incrementCounter("redesign_success");
+
     return {
       tagline: typeof parsed.tagline === "string" ? parsed.tagline : fallback.tagline,
       palette:
@@ -127,6 +131,15 @@ async function generateConceptText(
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
+
+    if (errorMsg.includes("Timeout")) {
+      incrementCounter("redesign_timeout");
+    } else if (errorMsg.includes("parse") || errorMsg.includes("JSON")) {
+      incrementCounter("redesign_parse_failure");
+    }
+
+    incrementCounter("redesign_fallback_used");
+
     logger.warn("[openAiRedesignProvider] GPT-4o text failed for", {
       style,
       error: errorMsg,

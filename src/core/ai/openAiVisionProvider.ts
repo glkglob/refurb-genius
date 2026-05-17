@@ -9,6 +9,7 @@ import type { RoomAnalysis, RoomType, ConditionLevel, RefurbLevel } from "@/lib/
 import type { PhotoAnalysisInput, PhotoAnalysisProvider } from "./photoAnalysis";
 import { captureAiError, addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
+import { incrementCounter } from "@/lib/provider-diagnostics";
 
 // Timeout configuration: 60s per photo analysis (OpenAI can take 30-45s for complex images)
 const AI_ANALYSIS_TIMEOUT_MS = 60_000;
@@ -163,6 +164,8 @@ async function analysePhoto(apiKey: string, photo: ProjectPhoto): Promise<RoomAn
       confidence: parsed.confidence_score,
     });
 
+    incrementCounter("vision_success");
+
     return {
       id: photo.id,
       photo_url: photo.url,
@@ -181,11 +184,16 @@ async function analysePhoto(apiKey: string, photo: ProjectPhoto): Promise<RoomAn
 
     if (errorMsg.includes("Timeout")) {
       reason = "timeout";
+      incrementCounter("vision_timeout");
     } else if (errorMsg.includes("rate_limit") || errorMsg.includes("429")) {
       reason = "rate_limit";
+      incrementCounter("vision_rate_limit");
     } else if (errorMsg.includes("parse") || errorMsg.includes("JSON")) {
       reason = "parse_error";
+      incrementCounter("vision_parse_failure");
     }
+
+    incrementCounter("vision_fallback_used");
 
     logger.warn("[openAiVisionProvider] Failed to analyse photo", {
       photo: photo.name,

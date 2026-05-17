@@ -185,16 +185,10 @@ export const analysisStore = {
     return cache.get(projectId);
   },
   async run(projectId: string): Promise<RoomAnalysis[]> {
-    if (import.meta.env.VITE_OPENAI_API_KEY) {
-      // Delegate to real Vision provider. Dynamic import avoids circular module refs.
-      const { openAiVisionPhotoAnalysisProvider } = await import("@/core/ai/openAiVisionProvider");
-      const result = await openAiVisionPhotoAnalysisProvider.run({ projectId });
-      cache.set(projectId, result);
-      notify();
-      return result;
-    }
-    await delay();
-    const result = buildFromPhotos(projectId);
+    // Delegate to canonical photoAnalysisProvider selector (respects VITE_OPENAI_API_KEY).
+    // Dynamic import avoids circular module refs at startup.
+    const { photoAnalysisProvider } = await import("@/core/ai/photoAnalysis");
+    const result = await photoAnalysisProvider.run({ projectId });
     cache.set(projectId, result);
     notify();
     return result;
