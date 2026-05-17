@@ -12,4 +12,15 @@ export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
+  vite: {
+    define: {
+      // Expose NEXT_PUBLIC_* env vars to client-side code (Vite only exposes VITE_* by default)
+      "import.meta.env.NEXT_PUBLIC_SUPABASE_URL": JSON.stringify(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+      ),
+      "import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY": JSON.stringify(
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      ),
+    },
+  },
 });

@@ -11,13 +11,19 @@
 
 const _proc = typeof process !== "undefined" ? process.env : {};
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || _proc.SUPABASE_URL;
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
+  _proc.SUPABASE_URL ||
+  _proc.NEXT_PUBLIC_SUPABASE_URL;
 
 const supabaseAnonKey =
   import.meta.env.VITE_SUPABASE_ANON_KEY ||
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   _proc.SUPABASE_ANON_KEY ||
-  _proc.SUPABASE_PUBLISHABLE_KEY;
+  _proc.SUPABASE_PUBLISHABLE_KEY ||
+  _proc.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const env = {
   supabaseUrl,
