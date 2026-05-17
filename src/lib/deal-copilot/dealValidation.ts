@@ -14,9 +14,9 @@ export function parseMoney(value: string): number | undefined {
   }
 
   // Validate against allowed currency pattern before parsing.
-  // Allowed: optional £ or $ prefix, digits, optional commas, optional single decimal point with digits.
-  // Examples: "1000", "1,000", "1000.50", "£1,000.50", "$1000"
-  const currencyPattern = /^[£$]?\d{1,3}(,?\d{3})*(\.\d{1,2})?$/;
+  // Allowed: optional £ or $ prefix, digits, optional commas (mandatory after first group if present), optional single decimal point with digits.
+  // Examples: "10", "1000", "1,000", "1000.50", "£1,000.50", "$1000"
+  const currencyPattern = /^[£$]?\d+(,\d{3})*(\.\d{1,2})?$/;
 
   if (!currencyPattern.test(trimmed)) {
     return undefined;

@@ -47,8 +47,9 @@ export async function exportReportPdf(options: ExportPdfOptions = {}): Promise<v
   const startTime = Date.now();
 
   // Create a timeout promise that rejects after PDF_TIMEOUT_MS
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
   const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => {
+    timeoutId = setTimeout(() => {
       reject(new PdfTimeoutError("PDF export exceeded 60s timeout"));
     }, PDF_TIMEOUT_MS);
   });
@@ -154,5 +155,10 @@ export async function exportReportPdf(options: ExportPdfOptions = {}): Promise<v
     });
 
     throw err;
+  } finally {
+    // Clear timeout to avoid unnecessary timer execution
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
   }
 }
