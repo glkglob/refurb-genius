@@ -17,7 +17,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.join(__dirname, "..");
 
 // Dynamic import with direct relative paths for monorepo workspace resolution
-// Uses relative imports to avoid tsx module resolution issues with workspace aliases
+/**
+ * Loads deterministic engine implementations and validation fixtures, and composes a local `analyzeDeal` function for deterministic deal validation.
+ *
+ * @returns An object with:
+ *  - `analyzeDeal` — a function that analyzes parsed deal form data and returns a `DealAnalysisResult` (performs scoring, pricing gating, and ROI calculation using pricing.mid_total as the refurb budget).
+ *  - `standardFlipInput`, `standardFlipExpected`, `validateStandardFlip`, `TOLERANCE` — golden-path fixture and validator for the standard flip scenario.
+ *  - `heavyRefurbInput`, `highYieldInput`, `negativeProfitInput`, `smallProjectInput`, `largeProjectInput` — edge-case fixture inputs.
+ *  - `runAllInvariantTests` — runner for invariant-protection tests.
+ */
 async function loadModules() {
   // Import deterministic engines directly (avoids @repo/services alias)
   const { scoreDealOpportunity } = await import(
