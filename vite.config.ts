@@ -29,48 +29,46 @@ export default defineConfig({
       "@": "/src",
     },
   },
-  vite: {
-    build: {
-      rollupOptions: {
-        output: {
-          // Manual chunk splitting: keep large PDF libraries and vendors in separate bundles
-          // so they lazy-load only when needed (e.g., when user clicks "Export PDF").
-          // This reduces main bundle size and improves initial startup performance.
-          manualChunks(id) {
-            // PDF export dependencies — loaded only on-demand via dynamic import
-            if (id.includes("node_modules/jspdf")) {
-              return "pdf-jspdf";
-            }
-            if (id.includes("node_modules/html2canvas")) {
-              return "pdf-html2canvas";
-            }
+  build: {
+    rollupOptions: {
+      output: {
+        // Manual chunk splitting: keep large PDF libraries and vendors in separate bundles
+        // so they lazy-load only when needed (e.g., when user clicks "Export PDF").
+        // This reduces main bundle size and improves initial startup performance.
+        manualChunks(id: string) {
+          // PDF export dependencies — loaded only on-demand via dynamic import
+          if (id.includes("node_modules/jspdf")) {
+            return "pdf-jspdf";
+          }
+          if (id.includes("node_modules/html2canvas")) {
+            return "pdf-html2canvas";
+          }
 
-            // Select.js (large UI library) — split to avoid bloating main bundle
-            if (id.includes("node_modules/select")) {
-              return "vendor-select";
-            }
+          // Select.js (large UI library) — split to avoid bloating main bundle
+          if (id.includes("node_modules/select")) {
+            return "vendor-select";
+          }
 
-            // React and ReactDOM core — high reuse, deserves dedicated chunk
-            if (id.includes("node_modules/react") && !id.includes("react-dom")) {
-              return "react-core";
-            }
-            if (id.includes("node_modules/react-dom")) {
-              return "react-dom";
-            }
+          // React and ReactDOM core — high reuse, deserves dedicated chunk
+          if (id.includes("node_modules/react") && !id.includes("react-dom")) {
+            return "react-core";
+          }
+          if (id.includes("node_modules/react-dom")) {
+            return "react-dom";
+          }
 
-            // TanStack router and query — commonly accessed, warrant separate chunks
-            if (id.includes("node_modules/@tanstack/react-router")) {
-              return "tanstack-router";
-            }
-            if (id.includes("node_modules/@tanstack/react-query")) {
-              return "tanstack-query";
-            }
+          // TanStack router and query — commonly accessed, warrant separate chunks
+          if (id.includes("node_modules/@tanstack/react-router")) {
+            return "tanstack-router";
+          }
+          if (id.includes("node_modules/@tanstack/react-query")) {
+            return "tanstack-query";
+          }
 
-            // Other node_modules bundled into generic vendor chunk
-            if (id.includes("node_modules")) {
-              return "vendor";
-            }
-          },
+          // Other node_modules bundled into generic vendor chunk
+          if (id.includes("node_modules")) {
+            return "vendor";
+          }
         },
       },
     },
