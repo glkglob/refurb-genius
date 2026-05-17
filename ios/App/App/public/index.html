@@ -31,16 +31,5 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- TanStack Start client entry - loads React app and connects to backend -->
-    <script type="module" src="/@vite/client"></script>
-    <script type="module">
-      // This is a bootstrap entry for Capacitor.
-      // The actual app routing/rendering is handled by TanStack Start.
-      import('./assets/client.js').catch((err) => {
-        console.error('Failed to load app:', err);
-        document.getElementById('root').innerHTML =
-          '<div style="padding: 20px; text-align: center;"><h1>App Load Error</h1><p>Please restart the app.</p></div>';
-      });
-    </script>
   </body>
 </html>
