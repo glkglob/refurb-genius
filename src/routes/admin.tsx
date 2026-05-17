@@ -4,6 +4,7 @@ import { RequireAdmin } from "@/components/RequireAdmin";
 import { MetricCard } from "@/components/MetricCard";
 import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
+import { AIMetricsDashboard } from "@/components/AIMetricsDashboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { Activity, BarChart3, Users, Folder } from "lucide-react";
@@ -188,6 +189,12 @@ function AdminPage() {
                 />
               </div>
             )}
+          </section>
+
+          {/* AI Provider Metrics */}
+          <section>
+            <h2 className="mb-4 text-lg font-semibold text-foreground">AI Operations</h2>
+            <AIMetricsDashboard />
           </section>
 
           {/* Recent Projects */}
