@@ -36,5 +36,97 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  // Monorepo boundary enforcement — @repo/services files
+  {
+    files: ["packages/services/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "warn",
+        {
+          paths: [
+            {
+              name: "@repo/ui",
+              message:
+                "@repo/services must not import UI components from @repo/ui. UI concerns belong in root app. See docs/architecture/dependency-rules.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // Monorepo boundary enforcement — @repo/core files
+  {
+    files: ["packages/core/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "warn",
+        {
+          paths: [
+            {
+              name: "@repo/services",
+              message:
+                "@repo/core must not import from @repo/services. Core is a dependency of services, not the reverse. See docs/architecture/dependency-rules.md",
+            },
+            {
+              name: "@repo/ui",
+              message:
+                "@repo/core must not import UI components from @repo/ui. Core provides data layer only. See docs/architecture/dependency-rules.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // Monorepo boundary enforcement — @repo/types files
+  {
+    files: ["packages/types/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "warn",
+        {
+          paths: [
+            {
+              name: "@repo/core",
+              message:
+                "@repo/types must not import from @repo/core. Types are the bottom layer. See docs/architecture/dependency-rules.md",
+            },
+            {
+              name: "@repo/services",
+              message:
+                "@repo/types must not import from @repo/services. Types are the bottom layer. See docs/architecture/dependency-rules.md",
+            },
+            {
+              name: "@repo/ui",
+              message:
+                "@repo/types must not import from @repo/ui. Types are the bottom layer. See docs/architecture/dependency-rules.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // Monorepo boundary enforcement — @repo/ui files
+  {
+    files: ["packages/ui/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "warn",
+        {
+          paths: [
+            {
+              name: "@repo/services",
+              message:
+                "@repo/ui must not import business logic from @repo/services. UI package is for component re-exports only. See docs/architecture/dependency-rules.md",
+            },
+            {
+              name: "@repo/core",
+              message:
+                "@repo/ui must not import constants from @repo/core. UI package is for component re-exports only. See docs/architecture/dependency-rules.md",
+            },
+          ],
+        },
+      ],
+    },
+  },
   eslintPluginPrettier,
 );
