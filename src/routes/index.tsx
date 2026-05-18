@@ -41,7 +41,7 @@ export const Route = createFileRoute("/")({
       },
       {
         property: "og:image",
-        content: "https://www.refurbgenius.site/og-image.png",
+        content: "https://www.refurbgenius.site/og-image.jpg",
       },
       {
         property: "og:site_name",
@@ -53,7 +53,7 @@ export const Route = createFileRoute("/")({
       },
       {
         name: "twitter:image",
-        content: "https://www.refurbgenius.site/og-image.png",
+        content: "https://www.refurbgenius.site/og-image.jpg",
       },
     ],
   }),
