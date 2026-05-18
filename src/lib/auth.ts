@@ -27,7 +27,10 @@ function userFromSupabase(
   if (!supabaseUser) return null;
   return {
     id: supabaseUser.id,
-    email: supabaseUser.email ?? "",
+    email:
+      supabaseUser.email ??
+      (supabaseUser.user_metadata?.["email"] as string | undefined) ??
+      "",
     fullName:
       (supabaseUser.user_metadata?.["full_name"] as string | undefined) ??
       (supabaseUser.user_metadata?.["name"] as string | undefined) ??
