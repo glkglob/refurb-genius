@@ -5,7 +5,16 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { nitro } from "nitro/vite";
 
-// Vercel build path: standard Vite/TanStack plugins with Nitro for Vercel output.
+// Vercel build config: TanStack Start + Nitro preset.
+//
+// NOTE: Do NOT add a `define` block for VITE_* environment variables here.
+// Vite automatically injects all VITE_* vars from the build environment into
+// import.meta.env at build time. Adding a manual `define` block would OVERRIDE
+// that injection — and if the env var is not present at build time, Vite would
+// inline the literal string "undefined", silently breaking the app at runtime.
+//
+// Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (and any other VITE_* vars)
+// directly in the Vercel project's Environment Variables settings.
 export default defineConfig({
   plugins: [
     tanstackStart({
@@ -18,19 +27,6 @@ export default defineConfig({
     tsconfigPaths(),
     nitro({ preset: "vercel" }),
   ],
-  define: {
-    "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(process.env.VITE_SUPABASE_URL),
-    "import.meta.env.VITE_SUPABASE_ANON_KEY": JSON.stringify(process.env.VITE_SUPABASE_ANON_KEY),
-    "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
-      process.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    ),
-    "import.meta.env.NEXT_PUBLIC_SUPABASE_URL": JSON.stringify(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-    ),
-    "import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY": JSON.stringify(
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    ),
-  },
   resolve: {
     alias: {
       "@": "/src",
