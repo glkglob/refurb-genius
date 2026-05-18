@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
-    "admin:bootstrap": "tsx scripts/bootstrap-admin.ts"
+    "admin:bootstrap": "tsx scripts/bootstrap-admin.ts",
+    "test:invariants": "TSX_TSCONFIG_PATH=./tsconfig.json tsx --test tests/invariants/*.test.ts"
   },
   "dependencies": {
     "@capacitor/cli": "^8.3.4",
@@ -63,6 +64,7 @@
     "jspdf": "^4.2.1",
     "lucide-react": "^0.575.0",
     "openai": "^6.38.0",
+    "posthog-js": "^1.374.2",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",
