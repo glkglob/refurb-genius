@@ -1,111 +1,237 @@
+// Supabase-backed auth. Keeps the same surface the app already uses
+// (signIn / signUp / signOut / getUser / onChange) so consumers don't need
+// to change. Google sign-in is exposed via signInWithGoogle().
 import { supabase } from "@/integrations/supabase/client";
+import { captureAuthError, addDiagnosticBreadcrumb } from "./sentry";
+import { logger } from "./logger";
 
 export type AuthUser = {
   id: string;
   email: string;
-  fullName: string | null;
+  fullName?: string;
 };
 
-type AuthChangeCallback = (user: AuthUser | null) => void;
+type Listener = (user: AuthUser | null) => void;
+const listeners = new Set<Listener>();
 
 let currentUser: AuthUser | null = null;
-let hydrated = false;
-const listeners = new Set<AuthChangeCallback>();
+let initialized = false;
+let initializing = false;
+let sessionHydrated = false;
+let authSubscription: { unsubscribe: () => void } | null = null;
 
-function notify(user: AuthUser | null) {
-  currentUser = user;
-  listeners.forEach((cb) => cb(user));
-}
+/** Maximum ms to wait for Supabase session check before declaring hydrated=true.
+ *  Prevents an infinite "Checking session…" spinner when Supabase is unreachable
+ *  or env vars are misconfigured. After the timeout, the user is treated as
+ *  unauthenticated and RequireAuth redirects to /auth normally. */
+const HYDRATION_TIMEOUT_MS = 5_000;
 
-function userFromSupabase(
-  supabaseUser: {
-    id: string;
-    email?: string | null;
-    user_metadata?: Record<string, unknown>;
-  } | null,
+function fromSupabaseUser(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  u: { id: string; email?: string | null; user_metadata?: any } | null | undefined,
 ): AuthUser | null {
-  if (!supabaseUser) return null;
+  if (!u) return null;
   return {
-    id: supabaseUser.id,
-    email:
-      supabaseUser.email ??
-      (supabaseUser.user_metadata?.["email"] as string | undefined) ??
-      "",
-    fullName:
-      (supabaseUser.user_metadata?.["full_name"] as string | undefined) ??
-      (supabaseUser.user_metadata?.["name"] as string | undefined) ??
-      null,
+    id: u.id,
+    email: u.email ?? "",
+    fullName: u.user_metadata?.full_name ?? u.user_metadata?.name ?? undefined,
   };
 }
 
-// Initialise: resolve the current session then start listening for changes.
-if (typeof window !== "undefined") {
-  supabase.auth.getSession().then(({ data }) => {
-    const user = userFromSupabase(data.session?.user ?? null);
-    currentUser = user;
-    hydrated = true;
-    listeners.forEach((cb) => cb(user));
-  });
+function notify() {
+  listeners.forEach((l) => l(currentUser));
+}
 
-  supabase.auth.onAuthStateChange((_event, session) => {
-    const user = userFromSupabase(session?.user ?? null);
-    hydrated = true;
-    notify(user);
-  });
+async function ensureInitialized(): Promise<void> {
+  if (initialized || initializing || typeof window === "undefined") return;
+  initializing = true;
+
+  logger.info("[auth] ensureInitialized:start");
+  addDiagnosticBreadcrumb("auth:session_check:start");
+
+  // Safety timeout: if Supabase never responds, unblock the app after HYDRATION_TIMEOUT_MS.
+  // This prevents an infinite "Checking session…" spinner on RequireAuth-guarded pages.
+  const hydrationTimer = setTimeout(() => {
+    if (!sessionHydrated) {
+      logger.warn("[auth] hydration timeout — treating user as unauthenticated");
+      sessionHydrated = true;
+      initialized = true;
+      initializing = false;
+      currentUser = null;
+      notify();
+    }
+  }, HYDRATION_TIMEOUT_MS);
+
+  try {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
+
+    if (error) {
+      logger.error("[auth] getSession failed", { error: error.message });
+      captureAuthError(error, "session_check", { code: error.code, message: error.message });
+    }
+
+    currentUser = fromSupabaseUser(session?.user);
+    addDiagnosticBreadcrumb("auth:session_check:complete", {
+      hasSession: Boolean(session),
+      hasUser: Boolean(currentUser),
+    });
+
+    if (!authSubscription) {
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, newSession) => {
+        currentUser = fromSupabaseUser(newSession?.user);
+        sessionHydrated = true;
+        logger.info("[auth] state changed", {
+          hasSession: Boolean(newSession),
+          hasUser: Boolean(currentUser),
+          sessionHydrated,
+        });
+        addDiagnosticBreadcrumb("auth:state_changed", {
+          event: _event,
+          hasSession: Boolean(newSession),
+        });
+        notify();
+      });
+      authSubscription = subscription;
+    }
+
+    initialized = true;
+  } catch (err) {
+    logger.error("[auth] ensureInitialized failed", { error: String(err) });
+    captureAuthError(err, "session_check", { fatal: true });
+    currentUser = null;
+    initialized = true;
+  } finally {
+    clearTimeout(hydrationTimer);
+    sessionHydrated = true;
+    initializing = false;
+    logger.info("[auth] ensureInitialized:hydrated", {
+      hasUser: Boolean(currentUser),
+      sessionHydrated,
+    });
+    notify();
+  }
 }
 
 export const auth = {
   getUser(): AuthUser | null {
+    void ensureInitialized();
     return currentUser;
   },
-
   isHydrated(): boolean {
-    return hydrated;
+    void ensureInitialized();
+    return sessionHydrated;
   },
-
-  onChange(callback: AuthChangeCallback): () => void {
-    listeners.add(callback);
-    return () => {
-      listeners.delete(callback);
-    };
+  isAuthenticated(): boolean {
+    return currentUser !== null;
   },
-
-  async signIn(email: string, password: string): Promise<void> {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(error.message);
+  async signIn(email: string, password: string): Promise<AuthUser> {
+    if (!email || !password) throw new Error("Email and password are required.");
+    try {
+      addDiagnosticBreadcrumb("auth:sign_in:attempt", { email });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw new Error(error.message);
+      const user = fromSupabaseUser(data.user);
+      if (!user) throw new Error("Sign in failed.");
+      currentUser = user;
+      addDiagnosticBreadcrumb("auth:sign_in:success", { userId: user.id });
+      listeners.forEach((listener) => listener(currentUser));
+      return currentUser;
+    } catch (err) {
+      logger.error("[auth] signIn failed", { email, error: String(err) });
+      captureAuthError(err, "login", { email });
+      throw err;
+    }
   },
-
-  async signUp(email: string, password: string, fullName: string): Promise<void> {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName } },
-    });
-    if (error) throw new Error(error.message);
+  async signUp(email: string, password: string, fullName: string): Promise<AuthUser> {
+    if (!email || !password || !fullName) throw new Error("All fields are required.");
+    if (password.length < 6) throw new Error("Password must be at least 6 characters.");
+    try {
+      addDiagnosticBreadcrumb("auth:sign_up:attempt", { email });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) throw new Error(error.message);
+      const user = fromSupabaseUser(data.user);
+      if (!user) throw new Error("Sign up failed.");
+      addDiagnosticBreadcrumb("auth:sign_up:success", { userId: user.id });
+      return user;
+    } catch (err) {
+      logger.error("[auth] signUp failed", { email, error: String(err) });
+      captureAuthError(err, "signup", { email });
+      throw err;
+    }
   },
-
-  async signOut(): Promise<void> {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw new Error(error.message);
-  },
-
-  async resetPasswordForEmail(email: string): Promise<void> {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth?mode=reset`,
-    });
-    if (error) throw new Error(error.message);
-  },
-
-  async updatePassword(password: string): Promise<void> {
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) throw new Error(error.message);
-  },
-
   async signInWithGoogle(): Promise<void> {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin },
-    });
-    if (error) throw new Error(error.message);
+    try {
+      addDiagnosticBreadcrumb("auth:google_signin:attempt");
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: window.location.origin + "/auth/callback",
+        },
+      });
+      if (error) throw new Error(error.message ?? "Google sign-in failed.");
+      addDiagnosticBreadcrumb("auth:google_signin:success");
+    } catch (err) {
+      logger.error("[auth] signInWithGoogle failed", { error: String(err) });
+      captureAuthError(err, "google_signin");
+      throw err;
+    }
+  },
+  async signOut(): Promise<void> {
+    try {
+      addDiagnosticBreadcrumb("auth:sign_out:attempt");
+      await supabase.auth.signOut();
+      currentUser = null;
+      addDiagnosticBreadcrumb("auth:sign_out:success");
+      notify();
+    } catch (err) {
+      logger.error("[auth] signOut failed", { error: String(err) });
+      captureAuthError(err, "logout");
+      throw err;
+    }
+  },
+  async resetPasswordForEmail(email: string): Promise<void> {
+    try {
+      addDiagnosticBreadcrumb("auth:reset_password:attempt", { email });
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+      });
+      if (error) throw new Error(error.message);
+      addDiagnosticBreadcrumb("auth:reset_password:success", { email });
+    } catch (err) {
+      logger.error("[auth] resetPasswordForEmail failed", { email, error: String(err) });
+      captureAuthError(err, "token_refresh", { email });
+      throw err;
+    }
+  },
+  async updatePassword(password: string): Promise<void> {
+    try {
+      addDiagnosticBreadcrumb("auth:update_password:attempt");
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) throw new Error(error.message);
+      addDiagnosticBreadcrumb("auth:update_password:success");
+    } catch (err) {
+      logger.error("[auth] updatePassword failed", { error: String(err) });
+      captureAuthError(err, "token_refresh");
+      throw err;
+    }
+  },
+  onChange(listener: Listener): () => void {
+    void ensureInitialized();
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
   },
 };
