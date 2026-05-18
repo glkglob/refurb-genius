@@ -39,6 +39,22 @@ export const Route = createFileRoute("/")({
         property: "og:description",
         content: "Upload a property and instantly see its future potential.",
       },
+      {
+        property: "og:image",
+        content: "https://www.refurbgenius.site/og-image.png",
+      },
+      {
+        property: "og:site_name",
+        content: "Refurb Genius",
+      },
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
+      {
+        name: "twitter:image",
+        content: "https://www.refurbgenius.site/og-image.png",
+      },
     ],
   }),
   component: Landing,
