@@ -9,20 +9,6 @@
   "theme_color": "#ffffff",
   "background_color": "#ffffff",
   "prefer_related_applications": false,
-  "screenshots": [
-    {
-      "src": "/icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any"
-    },
-    {
-      "src": "/maskable-icon.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "maskable"
-    }
-  ],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -46,16 +32,18 @@
   "categories": ["productivity", "business"],
   "screenshots": [
     {
-      "src": "/screenshot-540.png",
+      "src": "/icon-192.png",
       "type": "image/png",
-      "sizes": "540x720",
-      "form_factor": "narrow"
+      "sizes": "192x192",
+      "form_factor": "narrow",
+      "label": "Refurb Genius dashboard"
     },
     {
-      "src": "/screenshot-1280.png",
+      "src": "/icon-512.png",
       "type": "image/png",
-      "sizes": "1280x720",
-      "form_factor": "wide"
+      "sizes": "512x512",
+      "form_factor": "wide",
+      "label": "Refurb Genius property analysis"
     }
   ]
 }
