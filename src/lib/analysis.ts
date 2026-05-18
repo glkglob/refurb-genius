@@ -3,7 +3,7 @@
 import beforeImg from "@/assets/before.jpg";
 import afterImg from "@/assets/after.jpg";
 import heroImg from "@/assets/hero-after.jpg";
-import { ProjectPhoto, photoStore } from "./photos";
+import { type ProjectPhoto, photoStore } from "./photos";
 import { auth } from "./auth";
 
 export const ROOM_TYPES = [
