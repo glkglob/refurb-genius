@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import type {
   TradesJob,
   TradesJobCategory,
@@ -7,27 +8,9 @@ import type {
   UpdateTradesJobInput,
 } from "@/core/trades";
 
-// Local row type mirrors the DB schema. trades_jobs is a new table not yet
-// reflected in the generated supabase/types, so we cast the from() call.
-type TradesJobRow = {
-  id: string;
-  user_id: string;
-  title: string;
-  property_address: string | null;
-  postcode: string | null;
-  property_type: string | null;
-  job_category: string;
-  description: string;
-  budget_min: number | null;
-  budget_max: number | null;
-  desired_start_date: string | null;
-  status: string;
-  created_at: string;
-  updated_at: string;
-};
+type TradesJobRow = Tables<"trades_jobs">;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const table = () => (supabase as any).from("trades_jobs");
+const table = () => supabase.from("trades_jobs");
 
 function rowToJob(r: TradesJobRow): TradesJob {
   return {
