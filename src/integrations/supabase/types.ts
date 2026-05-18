@@ -340,6 +340,132 @@ export type Database = {
           },
         ];
       };
+      trade_profiles: {
+        Row: {
+          user_id: string;
+          business_name: string;
+          contact_name: string;
+          phone: string | null;
+          postcode: string | null;
+          trade_categories: string[];
+          bio: string | null;
+          insurance_status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          business_name: string;
+          contact_name: string;
+          phone?: string | null;
+          postcode?: string | null;
+          trade_categories?: string[];
+          bio?: string | null;
+          insurance_status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          business_name?: string;
+          contact_name?: string;
+          phone?: string | null;
+          postcode?: string | null;
+          trade_categories?: string[];
+          bio?: string | null;
+          insurance_status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      trades_job_interests: {
+        Row: {
+          id: string;
+          job_id: string;
+          user_id: string;
+          message: string | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_id: string;
+          user_id: string;
+          message?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          job_id?: string;
+          user_id?: string;
+          message?: string | null;
+          status?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "trades_job_interests_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "trades_jobs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      trades_jobs: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          property_address: string | null;
+          postcode: string | null;
+          property_type: string | null;
+          job_category: string;
+          description: string;
+          budget_min: number | null;
+          budget_max: number | null;
+          desired_start_date: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title: string;
+          property_address?: string | null;
+          postcode?: string | null;
+          property_type?: string | null;
+          job_category: string;
+          description: string;
+          budget_min?: number | null;
+          budget_max?: number | null;
+          desired_start_date?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          property_address?: string | null;
+          postcode?: string | null;
+          property_type?: string | null;
+          job_category?: string;
+          description?: string;
+          budget_min?: number | null;
+          budget_max?: number | null;
+          desired_start_date?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
     };
     Views: {
       [_ in never]: never;
