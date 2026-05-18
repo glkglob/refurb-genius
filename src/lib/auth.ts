@@ -20,6 +20,12 @@ let initializing = false;
 let sessionHydrated = false;
 let authSubscription: { unsubscribe: () => void } | null = null;
 
+/** Maximum ms to wait for Supabase session check before declaring hydrated=true.
+ *  Prevents an infinite "Checking session…" spinner when Supabase is unreachable
+ *  or env vars are misconfigured. After the timeout, the user is treated as
+ *  unauthenticated and RequireAuth redirects to /auth normally. */
+const HYDRATION_TIMEOUT_MS = 5_000;
+
 function fromSupabaseUser(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   u: { id: string; email?: string | null; user_metadata?: any } | null | undefined,
@@ -42,6 +48,19 @@ async function ensureInitialized(): Promise<void> {
 
   logger.info("[auth] ensureInitialized:start");
   addDiagnosticBreadcrumb("auth:session_check:start");
+
+  // Safety timeout: if Supabase never responds, unblock the app after HYDRATION_TIMEOUT_MS.
+  // This prevents an infinite "Checking session…" spinner on RequireAuth-guarded pages.
+  const hydrationTimer = setTimeout(() => {
+    if (!sessionHydrated) {
+      logger.warn("[auth] hydration timeout — treating user as unauthenticated");
+      sessionHydrated = true;
+      initialized = true;
+      initializing = false;
+      currentUser = null;
+      notify();
+    }
+  }, HYDRATION_TIMEOUT_MS);
 
   try {
     const {
@@ -87,6 +106,7 @@ async function ensureInitialized(): Promise<void> {
     currentUser = null;
     initialized = true;
   } finally {
+    clearTimeout(hydrationTimer);
     sessionHydrated = true;
     initializing = false;
     logger.info("[auth] ensureInitialized:hydrated", {
