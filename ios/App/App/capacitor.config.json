@@ -1,10 +1,10 @@
 {
-	"appId": "com.refurbgenius.app",
-	"appName": "Refurb Genius",
-	"webDir": "dist/client",
-	"ios": {
-		"preferredScheme": "dark"
-	},
-	"server": {},
-	"packageClassList": []
+  "appId": "com.refurbgenius.app",
+  "appName": "Refurb Genius",
+  "webDir": "dist/client",
+  "ios": {
+    "preferredScheme": "dark"
+  },
+  "server": {},
+  "packageClassList": []
 }

@@ -307,18 +307,21 @@ Refurb Genius becomes the main platform.
 ### What Was Delivered
 
 #### ✅ PWA Infrastructure
+
 - `public/manifest.json` — App metadata, icons, display mode
 - `public/icon-192.svg` — Branded app icon
 - Meta tags in `src/routes/__root.tsx` — Apple/Android PWA support
 - Result: App installable on iOS (Safari) and Android (Chrome)
 
 #### ✅ Legal Compliance
+
 - `/privacy` — Privacy policy with controlled-beta language
 - `/terms` — Terms of service with "no financial advice" disclaimer
 - `/support` — Help center & contact information
 - Account deletion flow in `/settings`
 
 #### ✅ Mobile Layouts
+
 - All routes verified responsive
 - Touch-friendly (44px+ tap targets)
 - No horizontal overflow
@@ -326,12 +329,14 @@ Refurb Genius becomes the main platform.
 - Mobile-first design patterns throughout
 
 #### ✅ Auth Stability
+
 - Hydration loading state prevents flash-of-logout
 - Redirect guards stable (no loops)
 - Session persistence across backgrounding
 - Token refresh working
 
 #### ✅ Documentation
+
 - `README.md` updated with Phase B status
 - `docs/mobile-readiness.md` — Complete mobile strategy guide
 - `docs/architecture.md` — Financial invariant protection documented
@@ -343,4 +348,3 @@ Refurb Genius becomes the main platform.
 - Legal pages complete
 - Financial architecture protected
 - Ready for native wrapper (Capacitor → iOS/Android app)
-

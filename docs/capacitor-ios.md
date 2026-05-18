@@ -5,6 +5,7 @@
 **Date:** May 17, 2026
 
 **Execution Status:**
+
 - ✅ Build validation: PASS
 - ✅ TypeScript strict mode: PASS
 - ✅ Deal Copilot invariant protection: PASS
@@ -66,14 +67,14 @@ Config was generated during Phase C setup:
 **File:** `capacitor.config.ts`
 
 ```typescript
-import type { CapacitorConfig } from '@capacitor/cli';
+import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: 'com.refurbgenius.app',
-  appName: 'Refurb Genius',
-  webDir: 'dist/client',
+  appId: "com.refurbgenius.app",
+  appName: "Refurb Genius",
+  webDir: "dist/client",
   ios: {
-    preferredScheme: 'dark',
+    preferredScheme: "dark",
   },
   server: {
     // Uncomment for local development with running backend:
@@ -459,6 +460,7 @@ npx cap open ios
 **Cause:** `npm run build` failed or `dist/client/` missing.
 
 **Fix:**
+
 ```bash
 npm run build
 ls dist/client/index.html  # Should exist
@@ -470,6 +472,7 @@ npx cap sync ios
 **Cause:** Xcode project bundle ID ≠ `com.refurbgenius.app`.
 
 **Fix:**
+
 1. Open Xcode
 2. Select **App** target
 3. Go to **Build Settings**
@@ -481,6 +484,7 @@ npx cap sync ios
 **Cause:** Web assets not synced or backend unreachable.
 
 **Fix:**
+
 ```bash
 npm run build && npx cap sync ios
 # If using local backend, ensure npm run dev is running

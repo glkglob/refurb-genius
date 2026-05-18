@@ -14,18 +14,21 @@ Refurb Genius is a fully-functional PWA, installable on iOS and Android devices.
 #### Installation Methods
 
 **iOS (Safari):**
+
 1. Open refurb-genius.app in Safari
 2. Tap Share button (bottom center)
 3. Select "Add to Home Screen"
 4. Confirm (app title pre-filled: "Refurb Genius")
 
 **Android (Chrome):**
+
 1. Open refurb-genius.app in Chrome
 2. Tap Menu (⋮ top right)
 3. Select "Install app"
 4. Confirm installation
 
 **Desktop:**
+
 1. Open in Chrome, Edge, or Firefox
 2. Click install icon in address bar (or Settings → Install App)
 
@@ -43,6 +46,7 @@ Refurb Genius is a fully-functional PWA, installable on iOS and Android devices.
 #### Standalone Display Mode
 
 When installed, the app displays in **standalone mode**:
+
 - No browser address bar
 - No browser navigation buttons
 - Full-screen app experience (except system status bar)
@@ -55,11 +59,13 @@ When installed, the app displays in **standalone mode**:
 ### Responsive Design Principles
 
 **Mobile-first approach:**
+
 - All layouts assume mobile (single-column, stacked)
 - Desktop features added via Tailwind breakpoints
 - No mobile "punishment" for desktop-first designs
 
 **Breakpoints:**
+
 - **Mobile:** < 768px (default Tailwind styling)
 - **Tablet/Desktop:** ≥ 768px (md: breakpoint)
 - **Large Desktop:** ≥ 1024px (lg: breakpoint)
@@ -81,15 +87,21 @@ When installed, the app displays in **standalone mode**:
 **Mobile table → Desktop table:**
 
 ```tsx
-{/* Mobile card list */}
+{
+  /* Mobile card list */
+}
 <div className="sm:hidden">
-  {items.map(item => <Card key={item.id} {...item} />)}
-</div>
+  {items.map((item) => (
+    <Card key={item.id} {...item} />
+  ))}
+</div>;
 
-{/* Desktop table */}
+{
+  /* Desktop table */
+}
 <div className="hidden sm:block overflow-x-auto">
   <table>...</table>
-</div>
+</div>;
 ```
 
 #### 3. Responsive Text
@@ -97,9 +109,7 @@ When installed, the app displays in **standalone mode**:
 **Mobile typography scales:**
 
 ```tsx
-<h1 className="text-2xl md:text-4xl lg:text-5xl">
-  {title}
-</h1>
+<h1 className="text-2xl md:text-4xl lg:text-5xl">{title}</h1>
 ```
 
 #### 4. Touch Ergonomics
@@ -107,7 +117,9 @@ When installed, the app displays in **standalone mode**:
 **Minimum 44px × 44px tap targets:**
 
 ```tsx
-<button className="p-3 rounded-md">  {/* 44px+ with padding */}
+<button className="p-3 rounded-md">
+  {" "}
+  {/* 44px+ with padding */}
   Action
 </button>
 ```
@@ -228,6 +240,7 @@ When installed, the app displays in **standalone mode**:
 ### What's Ready for App Stores
 
 ✅ **iOS App Store:**
+
 - PWA manifest with correct metadata
 - Apple touch icon for home screen
 - Splash screen color configuration
@@ -235,12 +248,14 @@ When installed, the app displays in **standalone mode**:
 - Safe area support (notch/home indicator)
 
 ✅ **Google Play Store:**
+
 - PWA manifest with Android-specific icons
 - Display mode: standalone
 - Theme colors
 - App orientation locked to portrait
 
 ✅ **Web Distribution:**
+
 - Live at https://refurb-genius.app
 - All meta tags present
 - Mobile viewport configured
@@ -249,12 +264,14 @@ When installed, the app displays in **standalone mode**:
 ### What's NOT Included Yet
 
 ❌ **Native Wrappers:**
+
 - Capacitor (deferred to Phase C)
 - Native plugins (not needed for web hardening)
 - iOS/Xcode build configuration
 - Android studio project
 
 ❌ **App Store Publishing:**
+
 - Apple Developer Program enrollment
 - Google Play Developer enrollment
 - App signing certificates
@@ -309,6 +326,7 @@ Use any device (phone/tablet) or simulator:
 ### Performance Testing
 
 **Monitor on mobile:**
+
 - Time to interactive: < 2s
 - Session restore: < 1s
 - Route transitions: < 300ms
@@ -319,6 +337,7 @@ Use any device (phone/tablet) or simulator:
 ## 📋 Phase B Completion Checklist
 
 ### Installability ✅
+
 - [x] PWA manifest created with icons
 - [x] Meta tags added to root route
 - [x] Apple touch icon configured
@@ -326,6 +345,7 @@ Use any device (phone/tablet) or simulator:
 - [x] Standalone display mode enabled
 
 ### Mobile Layouts ✅
+
 - [x] Deal Copilot form responsive
 - [x] Metrics grid responsive
 - [x] Estimate tables scrollable
@@ -336,6 +356,7 @@ Use any device (phone/tablet) or simulator:
 - [x] Legal pages responsive
 
 ### Auth/Session ✅
+
 - [x] Hydration loading state
 - [x] Redirect guard stable
 - [x] Session persistence
@@ -343,6 +364,7 @@ Use any device (phone/tablet) or simulator:
 - [x] Background/resume tested
 
 ### Legal Compliance ✅
+
 - [x] Privacy policy page
 - [x] Terms of service page
 - [x] Support page
@@ -350,12 +372,14 @@ Use any device (phone/tablet) or simulator:
 - [x] Controlled-beta disclaimers
 
 ### Documentation ✅
+
 - [x] README updated
 - [x] Architecture documented
 - [x] Mobile readiness guide
 - [x] Testing checklist
 
 ### Validation ✅
+
 - [x] TypeScript strict mode passes
 - [x] ESLint passes
 - [x] Build succeeds
@@ -375,6 +399,7 @@ Use any device (phone/tablet) or simulator:
 - Native plugins (camera, storage, etc.)
 
 **Why deferred?**
+
 - Web platform fully stable and installable
 - PWA covers 95% of use cases
 - Native wrapper adds complexity without benefit before web hardening
@@ -387,11 +412,13 @@ Use any device (phone/tablet) or simulator:
 ### Installation Issues
 
 **"App won't install on iOS"**
+
 - Ensure Safari on iOS 13+
 - Check that manifest.json is accessible
 - Try again after clearing Safari cache
 
 **"App won't install on Android"**
+
 - Ensure Chrome or Edge browser
 - Check internet connection
 - Verify app isn't already installed
@@ -399,11 +426,13 @@ Use any device (phone/tablet) or simulator:
 ### Session Issues
 
 **"Logged out when I reopen the app"**
+
 - Check browser localStorage isn't blocked
 - Verify Supabase session not expired
 - Try logging in again
 
 **"App freezes on startup"**
+
 - Check network connection
 - Verify Supabase credentials correct
 - Clear app cache and reload
@@ -411,6 +440,7 @@ Use any device (phone/tablet) or simulator:
 ### Layout Issues
 
 **"Text overlapping buttons on small screen"**
+
 - Check device at 375px width minimum
 - Verify responsive classes applied
 - Test on Chrome DevTools mobile emulation
