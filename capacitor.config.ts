@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: "Refurb Genius",
   webDir: "dist/client",
   ios: {
-    preferredScheme: "dark",
+    scheme: "dark",
   },
   server: {
     // For local development: connect to localhost:3000 running the Nitro server
