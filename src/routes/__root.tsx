@@ -74,6 +74,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
+// VITE_PUBLIC_URL must be set in Vercel project settings for both production and preview
+// environments (e.g. https://www.refurbgenius.site). Without it, og:image and og:url
+// fall back to the production domain so social cards still render on preview deployments.
+const SITE_URL =
+  (import.meta.env.VITE_PUBLIC_URL as string | undefined)?.replace(/\/$/, "") ??
+  "https://www.refurbgenius.site";
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
@@ -92,10 +99,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content: "AI-powered refurbishment analysis for UK property investors.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:image", content: "https://www.refurbgenius.site/og-image.jpg" },
+      { property: "og:url", content: SITE_URL },
+      { property: "og:image", content: `${SITE_URL}/og-image.jpg` },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:image:type", content: "image/jpeg" },
       { property: "og:site_name", content: "Refurb Genius" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:image", content: "https://www.refurbgenius.site/og-image.jpg" },
+      { name: "twitter:image", content: `${SITE_URL}/og-image.jpg` },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "theme-color", content: "#ffffff" },
