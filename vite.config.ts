@@ -46,6 +46,7 @@ export default defineConfig({
   },
   build: {
     sourcemap: true,
+    chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         // Manual chunk splitting: keep large PDF libraries and vendors in separate bundles
