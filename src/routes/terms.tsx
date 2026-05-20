@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
-import { AppLayout } from "@/components/AppLayout";
+import { Navbar } from "@/components/Navbar";
 
 export const Route = createFileRoute("/terms")({
   component: TermsPage,
@@ -20,8 +20,9 @@ export const Route = createFileRoute("/terms")({
 
 function TermsPage() {
   return (
-    <AppLayout>
-      <div className="min-h-screen bg-background py-8 px-4 sm:px-6 md:px-8">
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="py-8 px-4 sm:px-6 md:px-8">
         <div className="mx-auto max-w-4xl">
           {/* Header */}
           <div className="mb-8">
@@ -400,6 +401,6 @@ function TermsPage() {
         </div>
       </div>
       <Toaster />
-    </AppLayout>
+    </div>
   );
 }
