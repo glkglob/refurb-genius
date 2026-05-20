@@ -15,6 +15,14 @@
     "admin:bootstrap": "tsx scripts/bootstrap-admin.ts",
     "test:invariants": "TSX_TSCONFIG_PATH=./tsconfig.json tsx --test tests/invariants/*.test.ts"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "protobufjs",
+      "esbuild",
+      "@sentry/cli",
+      "canvas"
+    ]
+  },
   "dependencies": {
     "@capacitor/cli": "^8.3.4",
     "@capacitor/core": "^8.3.4",
