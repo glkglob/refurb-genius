@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import {
@@ -20,6 +21,7 @@ import {
   BookMarked,
   Lock,
   HandshakeIcon,
+  DollarSign,
 } from "lucide-react";
 import type { TradesJob, TradesJobStatus } from "@/core/trades";
 import {
@@ -117,16 +119,36 @@ function useMyInterests(): InterestsState {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function statusTone(status: TradesJobStatus): "accent" | "muted" | "destructive" {
-  if (status === "posted") return "accent";
-  if (status === "closed") return "destructive";
-  return "muted";
-}
-
 function statusLabel(status: TradesJobStatus): string {
   if (status === "posted") return "Posted";
   if (status === "closed") return "Closed";
   return "Draft";
+}
+
+function formatBudgetTotal(total: number | null, loading: boolean): string {
+  if (loading) return "…";
+  if (total === null || total === 0) return "—";
+  if (total >= 1_000_000) return `£${(total / 1_000_000).toFixed(1)}m`;
+  if (total >= 1_000) return `£${Math.round(total / 1_000)}k`;
+  return `£${total.toLocaleString()}`;
+}
+
+function JobStatusBadge({ status }: { status: TradesJobStatus }) {
+  const classes: Record<TradesJobStatus, string> = {
+    posted: "bg-green-100 text-green-700 border-green-200",
+    closed: "bg-slate-100 text-slate-600 border-slate-200",
+    draft: "bg-amber-100 text-amber-700 border-amber-200",
+  };
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-xs font-medium",
+        classes[status],
+      )}
+    >
+      {statusLabel(status)}
+    </span>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -145,6 +167,10 @@ function DashboardContent() {
   const jobCount =
     jobsState.status === "ready" ? jobsState.jobs.filter((j) => j.status !== "closed").length : 0;
   const interestCount = interestsState.status === "ready" ? interestsState.interests.length : 0;
+  const totalBudgetPosted =
+    jobsState.status === "ready"
+      ? jobsState.jobs.reduce((sum, j) => sum + (j.budgetMax ?? j.budgetMin ?? 0), 0)
+      : null;
   return (
     <AppLayout
       title="Dashboard"
@@ -155,12 +181,30 @@ function DashboardContent() {
         <StatCard
           label="Active trades jobs"
           value={jobsState.status === "loading" ? "…" : String(jobCount)}
+          accent="teal"
+          icon={Briefcase}
+          subLabel="open listings"
         />
-        <StatCard label="Projects" value="0" />
-        <StatCard label="Deal analyses" value="0" />
         <StatCard
           label="Saved opportunities"
           value={interestsState.status === "loading" ? "…" : String(interestCount)}
+          accent="emerald"
+          icon={HandshakeIcon}
+          subLabel="interests expressed"
+        />
+        <StatCard
+          label="Total budget posted"
+          value={formatBudgetTotal(totalBudgetPosted, jobsState.status === "loading")}
+          accent="blue"
+          icon={DollarSign}
+          subLabel="across all jobs"
+        />
+        <StatCard
+          label="Projects"
+          value="0"
+          accent="amber"
+          icon={FolderPlus}
+          subLabel="coming soon"
         />
       </div>
 
@@ -172,10 +216,13 @@ function DashboardContent() {
         <QuickActionCard icon={FolderPlus} label="Create Project" to="/projects/new" />
       </div>
 
-      {/* Section 2 — My Trades Jobs */}
+      {/* Section 3 — My Trades Jobs */}
       <section className="mb-10">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">My trades jobs</h2>
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+            <Briefcase className="h-4 w-4 text-teal-600" />
+            My trades jobs
+          </h2>
           <Link to="/trades/new" className="text-sm font-medium text-accent hover:underline">
             + Post new job
           </Link>
@@ -183,33 +230,38 @@ function DashboardContent() {
         <TradesJobsTable state={jobsState} onUpdate={applyUpdate} />
       </section>
 
-      {/* Section 3 — My Interests */}
+      {/* Section 4 — My Interests */}
       <section className="mb-10">
-        <h2 className="mb-4 text-lg font-semibold text-foreground">My interests</h2>
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
+          <HandshakeIcon className="h-4 w-4 text-teal-600" />
+          My interests
+        </h2>
         <MyInterestsTable state={interestsState} />
       </section>
 
-      {/* Section 4 — Roadmap placeholders */}
+      {/* Section 5 — Roadmap placeholders */}
       <section>
-        <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-gray-400">
-          Coming soon
-        </h2>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <RoadmapCard
-            icon={Calculator}
-            title="Refurb Estimates"
-            description="AI-generated line-item cost estimates across all UK regions, attached to your properties."
-          />
-          <RoadmapCard
-            icon={TrendingUp}
-            title="ROI Reports"
-            description="Full deal analysis with GDV, yield, ROI and investor-ready PDF export."
-          />
-          <RoadmapCard
-            icon={BookMarked}
-            title="Saved Feasibility Studies"
-            description="Store and revisit your feasibility studies. Share with lenders or JV partners."
-          />
+        <div className="rounded-2xl bg-slate-50 p-6">
+          <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-gray-400">
+            Coming soon
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <RoadmapCard
+              icon={Calculator}
+              title="Refurb Estimates"
+              description="AI-generated line-item cost estimates across all UK regions, attached to your properties."
+            />
+            <RoadmapCard
+              icon={TrendingUp}
+              title="ROI Reports"
+              description="Full deal analysis with GDV, yield, ROI and investor-ready PDF export."
+            />
+            <RoadmapCard
+              icon={BookMarked}
+              title="Saved Feasibility Studies"
+              description="Store and revisit your feasibility studies. Share with lenders or JV partners."
+            />
+          </div>
         </div>
       </section>
     </AppLayout>
@@ -305,11 +357,11 @@ function TradesJobRow({ job, onUpdate }: { job: TradesJob; onUpdate: (job: Trade
   }
 
   return (
-    <tr className="transition-colors hover:bg-secondary/30">
+    <tr className="transition-colors hover:bg-slate-50">
       <td className="max-w-[220px] truncate px-4 py-3 font-medium text-foreground">{job.title}</td>
       <td className="px-4 py-3 text-muted-foreground">{formatCategoryLabel(job.jobCategory)}</td>
       <td className="px-4 py-3">
-        <StatusBadge tone={statusTone(job.status)}>{statusLabel(job.status)}</StatusBadge>
+        <JobStatusBadge status={job.status} />
       </td>
       <td className="px-4 py-3 text-muted-foreground">{formatBudgetRange(job)}</td>
       <td className="px-4 py-3 text-muted-foreground">{formatShortDate(job.createdAt)}</td>
@@ -370,7 +422,7 @@ function TradesJobCard({ job, onUpdate }: { job: TradesJob; onUpdate: (job: Trad
           {formatCategoryLabel(job.jobCategory)} · {formatShortDate(job.createdAt)}
         </p>
         <div className="flex items-center gap-2">
-          <StatusBadge tone={statusTone(job.status)}>{statusLabel(job.status)}</StatusBadge>
+          <JobStatusBadge status={job.status} />
           <span className="text-xs text-muted-foreground">{formatBudgetRange(job)}</span>
         </div>
       </div>
@@ -425,9 +477,9 @@ function MyInterestsTable({ state }: { state: InterestsState }) {
         title="No interests yet"
         description="You have not registered interest in any jobs yet."
         action={
-          <Button asChild variant="outline">
+          <Button asChild className="bg-teal-600 text-white hover:bg-teal-700">
             <Link to="/trades">
-              <HardHat className="h-4 w-4" /> Browse Trades Marketplace
+              <HardHat className="h-4 w-4" /> Start exploring jobs near you
             </Link>
           </Button>
         }
@@ -526,11 +578,41 @@ function MyInterestsTable({ state }: { state: InterestsState }) {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function StatCard({
+  label,
+  value,
+  accent = "teal",
+  subLabel,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  accent?: "teal" | "emerald" | "blue" | "amber";
+  subLabel?: string;
+  icon?: typeof Calculator;
+}) {
+  const borderAccent = {
+    teal: "border-l-teal-500",
+    emerald: "border-l-emerald-500",
+    blue: "border-l-blue-500",
+    amber: "border-l-amber-500",
+  }[accent];
+
+  const iconColor = {
+    teal: "text-teal-500",
+    emerald: "text-emerald-500",
+    blue: "text-blue-500",
+    amber: "text-amber-500",
+  }[accent];
+
   return (
-    <div className="rounded-xl border bg-white p-5">
-      <p className="text-sm font-medium text-gray-500">{label}</p>
+    <div className={cn("rounded-xl border border-l-4 bg-white p-5 shadow-sm", borderAccent)}>
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-gray-500">{label}</p>
+        {Icon && <Icon className={cn("h-4 w-4", iconColor)} />}
+      </div>
       <p className="mt-2 text-3xl font-semibold text-gray-900">{value}</p>
+      {subLabel && <p className="mt-1 text-xs text-gray-400">{subLabel}</p>}
     </div>
   );
 }
@@ -547,10 +629,10 @@ function QuickActionCard({
   return (
     <Link
       to={to}
-      className="rounded-xl border bg-white p-5 text-sm font-medium text-foreground transition hover:border-teal-200 hover:shadow-sm"
+      className="flex min-h-[96px] flex-col justify-between rounded-xl border bg-white p-5 text-sm font-medium text-foreground transition hover:border-teal-200 hover:shadow-md"
     >
-      <Icon className="mb-3 h-5 w-5 text-teal-600" />
-      {label}
+      <Icon className="h-5 w-5 text-teal-600" />
+      <span className="mt-3">{label}</span>
     </Link>
   );
 }
