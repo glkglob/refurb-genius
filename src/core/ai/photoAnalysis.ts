@@ -1,8 +1,8 @@
 // AI photo analysis surface.
 //
 // Today this returns mock per-room analyses. The provider interface below is
-// the only thing UI code imports, so swapping in OpenAI Vision (or any
-// real model) later is a one-file change — no consumer changes required.
+// the only thing UI code imports. The browser talks only to an internal
+// server function; OpenAI stays behind that server boundary.
 //
 // AI is responsible for: room identification, condition, visible issues,
 // recommended works, and short summaries. AI is NOT responsible for any
@@ -10,6 +10,8 @@
 // engines and are deterministic.
 import { analysisStore } from "@/lib/analysis";
 import type { RoomAnalysis, RoomType, ConditionLevel, RefurbLevel } from "@/lib/analysis";
+import { photoStore } from "@/lib/photos";
+import { runPhotoAnalysisServerFn } from "./serverFns";
 
 export type PhotoAnalysisInput = {
   projectId: string;
@@ -41,13 +43,24 @@ export const mockPhotoAnalysisProvider: PhotoAnalysisProvider = {
   },
 };
 
-// Active provider used by the app. Toggles to the real OpenAI Vision provider
-// when VITE_OPENAI_API_KEY is present; falls back to mock otherwise.
-import { openAiVisionPhotoAnalysisProvider } from "./openAiVisionProvider";
+const serverPhotoAnalysisProvider: PhotoAnalysisProvider = {
+  get(projectId) {
+    return analysisStore.get(projectId);
+  },
+  async run({ projectId }) {
+    const photos = photoStore
+      .list(projectId)
+      .map(({ id, url, name, size }) => ({ id, url, name, size }));
+    const results = await runPhotoAnalysisServerFn({ data: { projectId, photos } });
+    analysisStore.set(projectId, results);
+    return results;
+  },
+  subscribe(fn) {
+    return analysisStore.subscribe(fn);
+  },
+};
 
-export const photoAnalysisProvider: PhotoAnalysisProvider = import.meta.env.VITE_OPENAI_API_KEY
-  ? openAiVisionPhotoAnalysisProvider
-  : mockPhotoAnalysisProvider;
+export const photoAnalysisProvider: PhotoAnalysisProvider = serverPhotoAnalysisProvider;
 
 // Convenience helpers so consumers don't need to know about providers.
 export function getPhotoAnalysis(projectId: string): RoomAnalysis[] | undefined {

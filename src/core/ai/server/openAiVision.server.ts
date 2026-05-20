@@ -1,20 +1,19 @@
-// Real OpenAI Vision provider for photo analysis.
-//
-// Uses GPT-4o vision model via direct fetch to OpenAI API.
-// Falls back gracefully per-photo if parsing fails.
-// No OpenAI SDK — direct fetch calls only.
-import { photoStore } from "@/lib/photos";
-import type { ProjectPhoto } from "@/lib/photos";
-import type { RoomAnalysis, RoomType, ConditionLevel, RefurbLevel } from "@/lib/analysis";
-import type { PhotoAnalysisInput, PhotoAnalysisProvider } from "./photoAnalysis";
+import "@tanstack/react-start/server-only";
+
+import type {
+  AnalysisPhotoSource,
+  RoomAnalysis,
+  RoomType,
+  ConditionLevel,
+  RefurbLevel,
+} from "../mockAnalysis";
+import { buildMockRoomAnalyses } from "../mockAnalysis";
 import { captureAiError, addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
 import { incrementCounter } from "@/lib/provider-diagnostics";
 
-// Timeout configuration: 60s per photo analysis (OpenAI can take 30-45s for complex images)
 const AI_ANALYSIS_TIMEOUT_MS = 60_000;
 
-// Valid enum values — duplicated here to avoid importing from lib/analysis at runtime.
 const VALID_ROOM_TYPES: RoomType[] = [
   "Kitchen",
   "Bathroom",
@@ -38,20 +37,26 @@ function coerceRoomType(v: unknown): RoomType {
   if (typeof v === "string" && (VALID_ROOM_TYPES as string[]).includes(v)) return v as RoomType;
   return "Other";
 }
+
 function coerceConditionLevel(v: unknown): ConditionLevel {
-  if (typeof v === "string" && (VALID_CONDITION_LEVELS as string[]).includes(v))
+  if (typeof v === "string" && (VALID_CONDITION_LEVELS as string[]).includes(v)) {
     return v as ConditionLevel;
+  }
   return "Average";
 }
+
 function coerceRefurbLevel(v: unknown): RefurbLevel {
-  if (typeof v === "string" && (VALID_REFURB_LEVELS as string[]).includes(v))
+  if (typeof v === "string" && (VALID_REFURB_LEVELS as string[]).includes(v)) {
     return v as RefurbLevel;
+  }
   return "Medium";
 }
+
 function coerceStringArray(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   return v.filter((x): x is string => typeof x === "string").slice(0, 6);
 }
+
 function coerceScore(v: unknown): number {
   const n = Number(v);
   if (Number.isFinite(n)) return Math.max(0, Math.min(1, n));
@@ -73,7 +78,7 @@ Analyse the provided property photo and return a JSON object with EXACTLY these 
 
 Use UK spelling and terminology. Be concise. Return ONLY the JSON object — no markdown, no explanation.`;
 
-function buildFallback(photo: ProjectPhoto): RoomAnalysis {
+function buildFallback(photo: AnalysisPhotoSource): RoomAnalysis {
   return {
     id: photo.id,
     photo_url: photo.url,
@@ -88,10 +93,8 @@ function buildFallback(photo: ProjectPhoto): RoomAnalysis {
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseGptJson(text: string): any {
+function parseGptJson(text: string): unknown {
   const trimmed = text.trim();
-  // Strip possible markdown code fences.
   const inner = trimmed.replace(/^```json?\n?/, "").replace(/\n?```$/, "");
   return JSON.parse(inner);
 }
@@ -105,7 +108,7 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): P
   ]);
 }
 
-async function analysePhoto(apiKey: string, photo: ProjectPhoto): Promise<RoomAnalysis> {
+async function analysePhoto(apiKey: string, photo: AnalysisPhotoSource): Promise<RoomAnalysis> {
   try {
     addDiagnosticBreadcrumb("ai:gpt4o:analyze:start", {
       photo: photo.name,
@@ -157,7 +160,7 @@ async function analysePhoto(apiKey: string, photo: ProjectPhoto): Promise<RoomAn
     const raw = data.choices?.[0]?.message?.content ?? "";
     if (!raw) throw new Error("Empty response from OpenAI");
 
-    const parsed = parseGptJson(raw);
+    const parsed = parseGptJson(raw) as Record<string, unknown>;
 
     addDiagnosticBreadcrumb("ai:gpt4o:analyze:success", {
       photo: photo.name,
@@ -195,7 +198,7 @@ async function analysePhoto(apiKey: string, photo: ProjectPhoto): Promise<RoomAn
 
     incrementCounter("vision_fallback_used");
 
-    logger.warn("[openAiVisionProvider] Failed to analyse photo", {
+    logger.warn("[ai-server] Failed to analyse photo", {
       photo: photo.name,
       reason,
       error: errorMsg,
@@ -216,84 +219,39 @@ async function analysePhoto(apiKey: string, photo: ProjectPhoto): Promise<RoomAn
   }
 }
 
-const cache = new Map<string, RoomAnalysis[]>();
-const listeners = new Set<() => void>();
-const notify = () => listeners.forEach((l) => l());
+export async function runSecurePhotoAnalysis(input: {
+  projectId: string;
+  photos: AnalysisPhotoSource[];
+}): Promise<RoomAnalysis[]> {
+  const photos = input.photos.length > 0 ? input.photos : undefined;
+  const apiKey = process.env.OPENAI_API_KEY;
 
-export const openAiVisionPhotoAnalysisProvider: PhotoAnalysisProvider = {
-  get(projectId) {
-    return cache.get(projectId);
-  },
+  if (!apiKey || !photos?.length) {
+    incrementCounter("vision_fallback_used");
+    return buildMockRoomAnalyses(photos);
+  }
 
-  async run({ projectId }: PhotoAnalysisInput) {
-    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
-    if (!apiKey) {
-      throw new Error(
-        "OpenAI API key not configured. Set VITE_OPENAI_API_KEY environment variable.",
-      );
-    }
+  const startTime = Date.now();
+  addDiagnosticBreadcrumb("ai:gpt4o:batch:start", {
+    projectId: input.projectId,
+    photoCount: photos.length,
+    timeoutPerPhotoMs: AI_ANALYSIS_TIMEOUT_MS,
+  });
 
-    const photos = photoStore.list(projectId);
-    if (photos.length === 0) {
-      cache.set(projectId, []);
-      notify();
-      return [];
-    }
+  const results = await Promise.all(photos.map((photo) => analysePhoto(apiKey, photo)));
 
-    const startTime = Date.now();
-    addDiagnosticBreadcrumb("ai:gpt4o:batch:start", {
-      projectId,
-      photoCount: photos.length,
-      timeoutPerPhotoMs: AI_ANALYSIS_TIMEOUT_MS,
-    });
+  const successCount = results.filter((r) => r.confidence_score > 0).length;
+  const fallbackCount = results.filter((r) => r.confidence_score === 0).length;
+  const durationMs = Date.now() - startTime;
 
-    try {
-      const results = await Promise.all(photos.map((photo) => analysePhoto(apiKey, photo)));
+  addDiagnosticBreadcrumb("ai:gpt4o:batch:complete", {
+    projectId: input.projectId,
+    photoCount: photos.length,
+    successCount,
+    fallbackCount,
+    durationMs,
+    avgPerPhotoMs: Math.round(durationMs / photos.length),
+  });
 
-      const successCount = results.filter((r) => r.confidence_score > 0).length;
-      const fallbackCount = results.filter((r) => r.confidence_score === 0).length;
-      const durationMs = Date.now() - startTime;
-
-      addDiagnosticBreadcrumb("ai:gpt4o:batch:complete", {
-        projectId,
-        photoCount: photos.length,
-        successCount,
-        fallbackCount,
-        durationMs,
-        avgPerPhotoMs: Math.round(durationMs / photos.length),
-      });
-
-      cache.set(projectId, results);
-      notify();
-      return results;
-    } catch (err) {
-      const durationMs = Date.now() - startTime;
-      logger.error("[openAiVisionProvider] batch analysis failed", {
-        projectId,
-        photoCount: photos.length,
-        durationMs,
-        error: err instanceof Error ? err.message : String(err),
-      });
-
-      captureAiError(err, {
-        provider: "gpt-4o-vision",
-        projectId,
-        photoCount: photos.length,
-        reason: "api_error",
-      });
-
-      addDiagnosticBreadcrumb("ai:gpt4o:batch:error", {
-        projectId,
-        photoCount: photos.length,
-        durationMs,
-      });
-
-      throw err;
-    }
-  },
-
-  subscribe(fn) {
-    listeners.add(fn);
-    return () => listeners.delete(fn);
-  },
-};
+  return results;
+}

@@ -22,7 +22,7 @@ import { addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { ReportSection as Section } from "@/components/ReportSection";
 import { EstimateTable } from "@/components/EstimateTable";
 import { projectStore, photoStore } from "@/core/projects";
-import { analysisStore, type RoomAnalysis } from "@/core/ai";
+import { getPhotoAnalysis, runPhotoAnalysis, type RoomAnalysis } from "@/core/ai";
 import { formatGBP } from "@/core/pricing";
 import { buildReport } from "@/core/reports";
 import {
@@ -44,7 +44,7 @@ function ReportPage() {
     projectStore.getSnapshot,
   );
   const project = snapshot.projects.find((p) => p.id === id);
-  const [analysis, setAnalysis] = useState<RoomAnalysis[]>(() => analysisStore.get(id) ?? []);
+  const [analysis, setAnalysis] = useState<RoomAnalysis[]>(() => getPhotoAnalysis(id) ?? []);
   const analysisProjectIdRef = useRef(id);
   const [savedEstimate, setSavedEstimate] = useState<PersistedProjectEstimate | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(true);
@@ -104,10 +104,10 @@ function ReportPage() {
       };
     }
 
-    const cachedAnalysis = analysisStore.get(id) ?? [];
+    const cachedAnalysis = getPhotoAnalysis(id) ?? [];
 
     const loadAnalysis = () => {
-      analysisStore.run(id).then((nextAnalysis) => {
+      runPhotoAnalysis({ projectId: id }).then((nextAnalysis) => {
         if (cancelled) return;
         setAnalysis(nextAnalysis);
       });

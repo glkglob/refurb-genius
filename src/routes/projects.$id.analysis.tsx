@@ -9,7 +9,12 @@ import { AnalysisCard } from "@/components/AnalysisCard";
 import { RedesignCard } from "@/components/RedesignCard";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Sparkles, ArrowRight, AlertCircle } from "lucide-react";
-import { analysisStore, type RoomAnalysis, generateRedesignConcepts } from "@/core/ai";
+import {
+  getPhotoAnalysis,
+  runPhotoAnalysis,
+  type RoomAnalysis,
+  generateRedesignConcepts,
+} from "@/core/ai";
 import type { RedesignConcept } from "@/core/ai";
 import { projectStore } from "@/core/projects";
 import { DISCLAIMER } from "@/core/reports";
@@ -46,7 +51,7 @@ function AnalysisPage() {
     setLoading(true);
     setConcepts(REDESIGN_CONCEPTS);
 
-    const cached = analysisStore.get(id);
+    const cached = getPhotoAnalysis(id);
 
     const afterAnalysis = (r: RoomAnalysis[]) => {
       if (cancelled) return;
@@ -54,19 +59,16 @@ function AnalysisPage() {
       setLoading(false);
       projectStore.setStage(id, "analysis", true);
 
-      // Kick off redesign concept generation (real AI when key present).
-      if (import.meta.env.VITE_OPENAI_API_KEY) {
-        setConceptsLoading(true);
-        generateRedesignConcepts({ projectId: id })
-          .then((generated) => {
-            if (cancelled) return;
-            setConcepts(generated);
-            setConceptsLoading(false);
-          })
-          .catch(() => {
-            if (!cancelled) setConceptsLoading(false);
-          });
-      }
+      setConceptsLoading(true);
+      generateRedesignConcepts({ projectId: id })
+        .then((generated) => {
+          if (cancelled) return;
+          setConcepts(generated);
+          setConceptsLoading(false);
+        })
+        .catch(() => {
+          if (!cancelled) setConceptsLoading(false);
+        });
     };
 
     if (cached?.length) {
@@ -76,7 +78,7 @@ function AnalysisPage() {
       };
     }
 
-    analysisStore.run(id).then(afterAnalysis);
+    runPhotoAnalysis({ projectId: id }).then(afterAnalysis);
 
     return () => {
       cancelled = true;
@@ -109,13 +111,7 @@ function AnalysisPage() {
   if (loading) {
     return (
       <AppLayout title="AI analysis" subtitle="Analysing your photos…">
-        <LoadingState
-          label={
-            import.meta.env.VITE_OPENAI_API_KEY
-              ? "Running AI analysis on your photos…"
-              : "Running mock AI analysis on your photos"
-          }
-        />
+        <LoadingState label="Running photo analysis on your photos…" />
       </AppLayout>
     );
   }

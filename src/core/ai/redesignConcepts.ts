@@ -2,14 +2,16 @@
 //
 // Today this returns curated mock concepts with CSS-gradient placeholders
 // in place of generated imagery. The provider interface below is the only
-// thing UI code imports, so swapping in real image generation (e.g. Nano
-// Banana / Gemini image preview) later is a one-file change.
+// thing UI code imports. The browser talks only to an internal server
+// function; OpenAI stays behind that server boundary.
 //
 // AI is responsible for: style direction, palette, materials, lighting,
 // furniture suggestions, and image placeholders. AI is NOT responsible
 // for any pricing, ROI, or financial numbers.
 import { REDESIGN_CONCEPTS, REDESIGN_STYLES } from "@/lib/redesign";
 import type { RedesignConcept, RedesignStyle } from "@/lib/redesign";
+import { analysisStore } from "@/lib/analysis";
+import { generateRedesignConceptsServerFn } from "./serverFns";
 
 export type RedesignInput = {
   projectId: string;
@@ -43,11 +45,33 @@ export const mockRedesignProvider: RedesignProvider = {
   },
 };
 
-import { openAiRedesignProvider } from "./openAiRedesignProvider";
+const cache = new Map<string, RedesignConcept[]>();
 
-export const redesignProvider: RedesignProvider = import.meta.env.VITE_OPENAI_API_KEY
-  ? openAiRedesignProvider
-  : mockRedesignProvider;
+export const redesignProvider: RedesignProvider = {
+  list(input = {} as RedesignInput) {
+    const cached = cache.get(input.projectId ?? "");
+    if (cached) {
+      const styles = input.styles?.length ? new Set(input.styles) : null;
+      return styles ? cached.filter((concept) => styles.has(concept.style)) : cached;
+    }
+    return mockRedesignProvider.list(input);
+  },
+  async generate(input) {
+    const cached = cache.get(input.projectId);
+    if (cached) return cached;
+
+    const concepts = await generateRedesignConceptsServerFn({
+      data: {
+        projectId: input.projectId,
+        styles: input.styles,
+        analyses: analysisStore.get(input.projectId) ?? [],
+      },
+    });
+
+    cache.set(input.projectId, concepts);
+    return concepts;
+  },
+};
 
 export function listRedesignConcepts(input?: RedesignInput): RedesignConcept[] {
   return redesignProvider.list(input);

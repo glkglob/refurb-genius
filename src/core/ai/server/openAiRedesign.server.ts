@@ -1,34 +1,28 @@
-// Real OpenAI redesign provider.
-//
-// Uses GPT-4o text model via direct fetch to generate property-specific
-// redesign concepts for each requested style.
-//
-// Each concept includes tailored tagline, palette, flooring, lighting,
-// furniture suggestions. Falls back to static concepts if generation fails.
-//
-// Note: afterGradient always used for now. afterImageUrl optional for future
-// DALL-E 3 integration. AI only touches language and visuals; pricing and ROI
-// stay in their engines.
-import { analysisStore } from "@/lib/analysis";
-import type { RoomAnalysis } from "@/lib/analysis";
+import "@tanstack/react-start/server-only";
+
+import type { RoomAnalysis } from "../mockAnalysis";
 import { REDESIGN_CONCEPTS, REDESIGN_STYLES } from "@/lib/redesign";
 import type { RedesignConcept, RedesignStyle } from "@/lib/redesign";
-import type { RedesignInput, RedesignProvider } from "./redesignConcepts";
 import { captureAiError, addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
 import { incrementCounter } from "@/lib/provider-diagnostics";
 
-// Timeout for text generation
 const TEXT_GENERATION_TIMEOUT_MS = 30_000;
 
 function staticFallback(style: RedesignStyle): RedesignConcept {
   return REDESIGN_CONCEPTS.find((c) => c.style === style) ?? REDESIGN_CONCEPTS[0];
 }
 
+function buildStaticConcepts(styles?: RedesignStyle[]): RedesignConcept[] {
+  if (!styles?.length) return REDESIGN_CONCEPTS;
+  const requested = new Set(styles);
+  return REDESIGN_CONCEPTS.filter((concept) => requested.has(concept.style));
+}
+
 function buildAnalysisContext(analyses: RoomAnalysis[]): string {
   if (!analyses.length) return "No specific room analyses available.";
   return analyses
-    .slice(0, 4) // limit tokens
+    .slice(0, 4)
     .map(
       (a) =>
         `${a.room_type}: condition=${a.condition_level}, refurb=${a.refurbishment_level}, issues=${a.visible_issues.slice(0, 2).join("; ")}`,
@@ -53,8 +47,7 @@ Return ONLY a JSON object with these exact fields:
 }
 Use UK English. Be specific and professional. Return ONLY the JSON.`;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function parseGptJson(text: string): any {
+function parseGptJson(text: string): unknown {
   const trimmed = text.trim();
   const inner = trimmed.replace(/^```json?\n?/, "").replace(/\n?```$/, "");
   return JSON.parse(inner);
@@ -112,9 +105,7 @@ async function generateConceptText(
     const raw = data.choices?.[0]?.message?.content ?? "";
     if (!raw) throw new Error("Empty response from OpenAI");
 
-    const parsed = parseGptJson(raw);
-
-    // Validate and coerce parsed output
+    const parsed = parseGptJson(raw) as Record<string, unknown>;
     const fallback = staticFallback(style);
 
     incrementCounter("redesign_success");
@@ -123,7 +114,7 @@ async function generateConceptText(
       tagline: typeof parsed.tagline === "string" ? parsed.tagline : fallback.tagline,
       palette:
         Array.isArray(parsed.palette) && parsed.palette.length > 0
-          ? parsed.palette
+          ? (parsed.palette as RedesignConcept["palette"])
           : fallback.palette,
       flooring: typeof parsed.flooring === "string" ? parsed.flooring : fallback.flooring,
       lighting: typeof parsed.lighting === "string" ? parsed.lighting : fallback.lighting,
@@ -140,7 +131,7 @@ async function generateConceptText(
 
     incrementCounter("redesign_fallback_used");
 
-    logger.warn("[openAiRedesignProvider] GPT-4o text failed for", {
+    logger.warn("[ai-server] GPT-4o redesign generation failed", {
       style,
       error: errorMsg,
     });
@@ -154,16 +145,19 @@ async function generateConceptText(
   }
 }
 
-const cache = new Map<string, RedesignConcept[]>();
+export async function runSecureRedesignGeneration(input: {
+  projectId: string;
+  styles?: RedesignStyle[];
+  analyses?: RoomAnalysis[];
+}): Promise<RedesignConcept[]> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  const styles = input.styles?.length ? input.styles : [...REDESIGN_STYLES];
+  const analyses = input.analyses ?? [];
 
-async function buildConcepts(input: RedesignInput): Promise<RedesignConcept[]> {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error("OpenAI API key not configured. Set VITE_OPENAI_API_KEY environment variable.");
+    incrementCounter("redesign_fallback_used");
+    return buildStaticConcepts(styles);
   }
-
-  const styles: RedesignStyle[] = input.styles?.length ? input.styles : [...REDESIGN_STYLES];
-  const analyses = analysisStore.get(input.projectId) ?? [];
 
   addDiagnosticBreadcrumb("ai:gpt4o:redesign:batch:start", {
     projectId: input.projectId,
@@ -195,31 +189,5 @@ async function buildConcepts(input: RedesignInput): Promise<RedesignConcept[]> {
     conceptCount: concepts.length,
   });
 
-  cache.set(input.projectId, concepts);
   return concepts;
 }
-
-export const openAiRedesignProvider: RedesignProvider = {
-  list(input = {} as RedesignInput) {
-    const cached = cache.get(input.projectId ?? "");
-    if (cached) {
-      const styles = input.styles?.length ? new Set(input.styles) : null;
-      return styles ? cached.filter((c) => styles.has(c.style)) : cached;
-    }
-    // Fall through to static while async generate is pending.
-    const fallbackProvider = {
-      list: (i?: RedesignInput) => {
-        if (!i?.styles?.length) return REDESIGN_CONCEPTS;
-        const s = new Set(i.styles);
-        return REDESIGN_CONCEPTS.filter((c) => s.has(c.style));
-      },
-    };
-    return fallbackProvider.list(input);
-  },
-
-  async generate(input) {
-    const cached = cache.get(input.projectId);
-    if (cached) return cached;
-    return buildConcepts(input);
-  },
-};
