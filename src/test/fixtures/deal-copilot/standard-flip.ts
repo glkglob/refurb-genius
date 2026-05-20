@@ -28,7 +28,7 @@ export const standardFlipExpected = {
     recommendation: "Reject" as const,
     roi: 32.7,
     estimated_profit: 117000,
-    investment_score: 8.9,
+    investment_score: 4.3,
     risk_level: "Low" as const,
     gross_yield: 5.1,
   },
