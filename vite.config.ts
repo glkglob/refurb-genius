@@ -3,6 +3,12 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
+
+const sentryEnabled =
+  Boolean(process.env.SENTRY_AUTH_TOKEN) &&
+  Boolean(process.env.SENTRY_ORG) &&
+  Boolean(process.env.SENTRY_PROJECT);
 
 export default defineConfig({
   plugins: [
@@ -14,6 +20,19 @@ export default defineConfig({
     react(),
     tailwindcss(),
     tsconfigPaths(),
+    ...(sentryEnabled
+      ? [
+          sentryVitePlugin({
+            org: process.env.SENTRY_ORG,
+            project: process.env.SENTRY_PROJECT,
+            authToken: process.env.SENTRY_AUTH_TOKEN,
+            sourcemaps: {
+              filesToDeleteAfterUpload: ["./dist/**/*.map"],
+            },
+            telemetry: false,
+          }),
+        ]
+      : []),
   ],
   define: {
     // Expose NEXT_PUBLIC_* env vars to client-side code (Vite only exposes VITE_* by default)
@@ -26,6 +45,7 @@ export default defineConfig({
     },
   },
   build: {
+    sourcemap: true,
     rollupOptions: {
       output: {
         // Manual chunk splitting: keep large PDF libraries and vendors in separate bundles

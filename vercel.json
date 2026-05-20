@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build:vercel",
-  "installCommand": "corepack enable && pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm build:vercel",
+  "installCommand": "pnpm install",
   "framework": null,
   "outputDirectory": ".vercel/output",
   "cleanUrls": true,
