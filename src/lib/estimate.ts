@@ -54,7 +54,7 @@ export function calculateEstimate(inputs: EstimateInputs): EstimateResult {
   return {
     inputs,
     multiplier: result.multiplier,
-    items: result.estimate_items,
+    items: result.lineItems,
     labour_total: result.labour_total,
     materials_total: result.materials_total,
     subtotal: result.subtotal,

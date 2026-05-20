@@ -8,4 +8,9 @@ export {
   CONTINGENCY_RATE,
   REFERENCE_SIZE_SQM,
 } from "@repo/services";
-export type { PricingEngineInputs, PricingEngineResult, PricingEstimateItem } from "@repo/services";
+export type {
+  PricingEngineInputs,
+  PricingEngineResult,
+  PricingLineItem,
+  PricingEstimateItem,
+} from "@repo/services";

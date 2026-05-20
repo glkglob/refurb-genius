@@ -101,12 +101,12 @@ export function validatePricingForDisplay(pricing: Record<string, unknown> | nul
     }
   });
 
-  // Check estimate items array
-  if (!Array.isArray(pricing.estimate_items)) {
-    errors.push(`estimate_items: not an array`);
-    dealCopilotDiagnostics.renderInvalidValue("estimate_items", pricing.estimate_items);
+  // Check line items array
+  if (!Array.isArray(pricing.lineItems)) {
+    errors.push(`lineItems: not an array`);
+    dealCopilotDiagnostics.renderInvalidValue("lineItems", pricing.lineItems);
   } else {
-    (pricing.estimate_items as unknown[]).forEach((item: unknown, index: number) => {
+    (pricing.lineItems as unknown[]).forEach((item: unknown, index: number) => {
       const itemRecord = item as Record<string, unknown>;
       const itemErrors: string[] = [];
       if (!isFiniteNumber(itemRecord.labour)) itemErrors.push(`labour`);
@@ -114,7 +114,7 @@ export function validatePricingForDisplay(pricing: Record<string, unknown> | nul
       if (!isFiniteNumber(itemRecord.total)) itemErrors.push(`total`);
       if (!isFiniteNumber(itemRecord.weeks)) itemErrors.push(`weeks`);
       if (itemErrors.length > 0) {
-        errors.push(`estimate_items[${index}]: invalid ${itemErrors.join(", ")}`);
+        errors.push(`lineItems[${index}]: invalid ${itemErrors.join(", ")}`);
       }
     });
   }

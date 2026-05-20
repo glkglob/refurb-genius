@@ -31,7 +31,7 @@ export type PricingEngineInputs = {
   property_size_sqm: number;
 };
 
-export type PricingEstimateItem = {
+export type PricingLineItem = {
   category: EstimateCategory;
   labour: number;
   materials: number;
@@ -39,11 +39,14 @@ export type PricingEstimateItem = {
   weeks: number;
 };
 
+/** @deprecated use PricingLineItem */
+export type PricingEstimateItem = PricingLineItem;
+
 export type PricingEngineResult = {
   inputs: PricingEngineInputs;
   multiplier: number;
   size_multiplier: number;
-  estimate_items: PricingEstimateItem[];
+  lineItems: PricingLineItem[];
   labour_total: number;
   materials_total: number;
   subtotal: number;
@@ -53,6 +56,9 @@ export type PricingEngineResult = {
   mid_total: number;
   high_total: number;
   timeline_weeks: number;
+  confidence: "low" | "medium" | "high";
+  assumptions: string[];
+  warnings: string[];
 };
 
 const round10 = (n: number) => Math.round(n / 10) * 10;
@@ -65,7 +71,7 @@ function baseMultiplier(inputs: PricingEngineInputs): number {
   );
 }
 
-function baseEstimateItems(inputs: PricingEngineInputs, multiplier: number): PricingEstimateItem[] {
+function baseEstimateItems(inputs: PricingEngineInputs, multiplier: number): PricingLineItem[] {
   const condition = CONDITION_MULTIPLIERS[inputs.property_condition];
   return inputs.selected_categories.map((category) => {
     const base = CATEGORY_BASE[category];
@@ -100,7 +106,7 @@ export function runPricingEngine(inputs: PricingEngineInputs): PricingEngineResu
   const multiplier = baseMultiplier(inputs);
   const baseItems = baseEstimateItems(inputs, multiplier);
 
-  const estimate_items: PricingEstimateItem[] = baseItems.map((i) => {
+  const lineItems: PricingLineItem[] = baseItems.map((i) => {
     const labour = round10(i.labour * sizeMult);
     const materials = round10(i.materials * sizeMult);
     return {
@@ -112,8 +118,8 @@ export function runPricingEngine(inputs: PricingEngineInputs): PricingEngineResu
     };
   });
 
-  const labour_total = estimate_items.reduce((s, i) => s + i.labour, 0);
-  const materials_total = estimate_items.reduce((s, i) => s + i.materials, 0);
+  const labour_total = lineItems.reduce((s, i) => s + i.labour, 0);
+  const materials_total = lineItems.reduce((s, i) => s + i.materials, 0);
   const subtotal = labour_total + materials_total;
   const contingency = Math.round(subtotal * CONTINGENCY_RATE);
   const vat = Math.round((subtotal + contingency) * VAT_RATE);
@@ -121,9 +127,9 @@ export function runPricingEngine(inputs: PricingEngineInputs): PricingEngineResu
   const low_total = Math.round(mid_total * 0.85);
   const high_total = Math.round(mid_total * 1.15);
 
-  const sumWeeks = estimate_items.reduce((s, i) => s + i.weeks, 0);
+  const sumWeeks = lineItems.reduce((s, i) => s + i.weeks, 0);
   const timeline_weeks = Math.max(
-    estimate_items.length ? Math.ceil(Math.max(...estimate_items.map((i) => i.weeks))) : 0,
+    lineItems.length ? Math.ceil(Math.max(...lineItems.map((i) => i.weeks))) : 0,
     Math.ceil(sumWeeks * 0.6),
   );
 
@@ -131,7 +137,7 @@ export function runPricingEngine(inputs: PricingEngineInputs): PricingEngineResu
     inputs,
     multiplier: +(multiplier * sizeMult).toFixed(3),
     size_multiplier: +sizeMult.toFixed(3),
-    estimate_items,
+    lineItems,
     labour_total,
     materials_total,
     subtotal,
@@ -141,7 +147,56 @@ export function runPricingEngine(inputs: PricingEngineInputs): PricingEngineResu
     mid_total,
     high_total,
     timeline_weeks,
+    confidence: computeConfidence(inputs),
+    assumptions: buildAssumptions(inputs, sizeMult),
+    warnings: buildWarnings(inputs, sizeMult),
   };
+}
+
+function computeConfidence(inputs: PricingEngineInputs): PricingEngineResult["confidence"] {
+  const n = inputs.selected_categories.length;
+  if (n === 0) return "low";
+  if (n >= 3) return "high";
+  return "medium";
+}
+
+function buildAssumptions(inputs: PricingEngineInputs, sizeMult: number): string[] {
+  const assumptions: string[] = [];
+  assumptions.push(`Region: ${inputs.region}`);
+  assumptions.push(`Property condition: ${inputs.property_condition}`);
+  assumptions.push(`Finish quality: ${inputs.finish_quality}`);
+  if (inputs.selected_categories.length === 0) {
+    assumptions.push(
+      "No refurbishment categories selected — estimate based on regional averages only",
+    );
+  }
+  if (sizeMult === 1) {
+    assumptions.push(
+      `Property size not provided — using reference size of ${REFERENCE_SIZE_SQM}m²`,
+    );
+  } else {
+    assumptions.push(
+      `Property size: ${inputs.property_size_sqm}m² (reference ${REFERENCE_SIZE_SQM}m²)`,
+    );
+  }
+  return assumptions;
+}
+
+function buildWarnings(inputs: PricingEngineInputs, sizeMult: number): string[] {
+  const warnings: string[] = [];
+  if (inputs.selected_categories.length === 0) {
+    warnings.push("Select refurbishment categories to generate a detailed line-item estimate");
+  }
+  if (sizeMult >= 1.75) {
+    warnings.push("Very large property — size multiplier capped; actual costs may be higher");
+  }
+  if (sizeMult <= 0.72) {
+    warnings.push("Very small property — minimum cost band applied");
+  }
+  if (inputs.property_condition === "Full Renovation Needed") {
+    warnings.push("Full renovation condition applied — higher contingency is strongly recommended");
+  }
+  return warnings;
 }
 
 // Re-export shared lookup tables and types so callers have a single import.

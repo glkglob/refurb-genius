@@ -13,7 +13,7 @@ export function DealEstimateSection({ pricing }: DealEstimateSectionProps) {
   }
 
   const {
-    estimate_items,
+    lineItems,
     labour_total,
     materials_total,
     subtotal,
@@ -30,7 +30,7 @@ export function DealEstimateSection({ pricing }: DealEstimateSectionProps) {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Category breakdown */}
-        {estimate_items.length > 0 && (
+        {lineItems.length > 0 && (
           <div className="space-y-3">
             <h3 className="font-medium text-foreground">Cost by category</h3>
             <div className="overflow-x-auto">
@@ -55,7 +55,7 @@ export function DealEstimateSection({ pricing }: DealEstimateSectionProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {estimate_items.map((item) => (
+                  {lineItems.map((item) => (
                     <tr key={item.category} className="border-b">
                       <td className="px-3 py-2">{item.category}</td>
                       <td className="px-3 py-2 text-right">{formatCurrency(item.labour)}</td>

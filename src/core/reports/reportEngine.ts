@@ -261,7 +261,7 @@ export function buildReport(inputs: ReportEngineInputs): Report {
         title: "Cost breakdown",
         subtitle: "Itemised refurbishment estimate.",
         body: {
-          items: pricing.estimate_items,
+          items: pricing.lineItems,
           labour_total: pricing.labour_total,
           materials_total: pricing.materials_total,
           subtotal: pricing.subtotal,

@@ -43,7 +43,7 @@ export async function saveProjectEstimate(
 
   if (estimateError) throw new Error(estimateError.message);
 
-  const rows = result.estimate_items.map((item) => ({
+  const rows = result.lineItems.map((item) => ({
     estimate_id: estimate.id,
     user_id: user.id,
     category: item.category,

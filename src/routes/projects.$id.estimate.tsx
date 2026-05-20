@@ -373,11 +373,11 @@ function EstimateContent({ id, project }: { id: string; project: Project }) {
                 Per-category labour and materials at the chosen region, condition and finish.
               </p>
             </div>
-            <Badge variant="outline">{result.estimate_items.length} categories</Badge>
+            <Badge variant="outline">{result.lineItems.length} categories</Badge>
           </div>
 
           <EstimateTable
-            items={result.estimate_items}
+            items={result.lineItems}
             labour_total={result.labour_total}
             materials_total={result.materials_total}
             subtotal={result.subtotal}

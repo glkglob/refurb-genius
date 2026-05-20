@@ -8,5 +8,6 @@ export {
 export type {
   PricingEngineInputs,
   PricingEngineResult,
+  PricingLineItem,
   PricingEstimateItem,
 } from "./pricingEngine";
