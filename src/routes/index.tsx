@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Navbar } from "@/components/Navbar";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowRight,
@@ -109,14 +108,19 @@ function Hero() {
               first-pass estimate usually takes about 2 minutes once the inputs are complete.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button asChild size="lg">
-                <Link to="/auth" search={{ mode: "signup" }}>
-                  Get started free <ArrowRight className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <a href="#workflow">See how it works</a>
-              </Button>
+              <Link
+                to="/auth"
+                search={{ mode: "signup" }}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+              >
+                Get started free <ArrowRight className="h-4 w-4" />
+              </Link>
+              <a
+                href="#workflow"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              >
+                See how it works
+              </a>
             </div>
             <ul className="mt-6 grid gap-2 text-sm text-muted-foreground sm:grid-cols-3">
               {[
@@ -483,11 +487,13 @@ function FinalCTA() {
             Join UK investors using Refurb Genius to analyse deals faster and with more confidence.
           </p>
           <div className="relative mt-8 flex flex-wrap justify-center gap-3">
-            <Button asChild size="lg" variant="secondary">
-              <Link to="/auth" search={{ mode: "signup" }}>
-                Get started free <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            <Link
+              to="/auth"
+              search={{ mode: "signup" }}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+            >
+              Get started free <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </div>
