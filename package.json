@@ -20,7 +20,10 @@
       "protobufjs",
       "esbuild",
       "@sentry/cli",
-      "canvas"
+      "canvas",
+      "core-js",
+      "sharp",
+      "workerd"
     ]
   },
   "dependencies": {
