@@ -20,6 +20,17 @@ const items = [
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
+function getInitials(nameOrEmail: string | null | undefined): string {
+  if (!nameOrEmail) return "U";
+  const trimmed = nameOrEmail.trim();
+  // Email — use first letter before @
+  if (trimmed.includes("@")) return trimmed[0].toUpperCase();
+  // Full name — use first letters of first two words
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return trimmed[0].toUpperCase();
+}
+
 function isActivePath(pathname: string, href: string) {
   if (href === "/") {
     return pathname === href;
@@ -40,6 +51,8 @@ export function Sidebar() {
 
   return (
     <aside className="hidden w-60 shrink-0 border-r border-border bg-card md:flex md:flex-col">
+      {/* Brand colour strip */}
+      <div className="h-1 bg-gradient-to-r from-teal-500 via-cyan-500 to-emerald-500" />
       <div className="flex h-16 items-center gap-2 border-b border-border px-5">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Building2 className="h-5 w-5" />
@@ -70,11 +83,16 @@ export function Sidebar() {
       </nav>
       <div className="border-t border-border p-3">
         {user && (
-          <div className="mb-2 px-3 py-2">
-            <p className="truncate text-xs text-muted-foreground">Signed in as</p>
-            <p className="truncate text-sm font-medium text-foreground">
-              {user.fullName ?? user.email}
-            </p>
+          <div className="mb-2 flex items-center gap-3 px-3 py-2">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-700">
+              {getInitials(user.fullName ?? user.email)}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-xs text-muted-foreground">Signed in as</p>
+              <p className="truncate text-sm font-medium text-foreground">
+                {user.fullName ?? user.email}
+              </p>
+            </div>
           </div>
         )}
         <button
