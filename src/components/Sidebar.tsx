@@ -20,6 +20,14 @@ const items = [
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
+function isActivePath(pathname: string, href: string) {
+  if (href === "/") {
+    return pathname === href;
+  }
+
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
@@ -42,17 +50,16 @@ export function Sidebar() {
       </div>
       <nav className="flex-1 space-y-1 p-3">
         {items.map((item) => {
-          const active =
-            pathname === item.to || (item.to !== "/dashboard" && pathname.startsWith(item.to));
+          const active = isActivePath(pathname, item.to);
           return (
             <Link
               key={item.to}
               to={item.to}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                 active
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  ? "bg-teal-50 text-teal-700 font-semibold"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
               )}
             >
               <item.icon className="h-4 w-4" />

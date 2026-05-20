@@ -35,7 +35,6 @@ import {
 } from "@/services/trades/tradesJobInterestStore";
 import { getTradeProfileByUserId } from "@/services/trades/tradeProfileStore";
 import { useAuth } from "@/hooks/useAuth";
-import { PlatformNavButtons } from "@/components/PlatformNavButtons";
 
 export const Route = createFileRoute("/trades_/$jobId")({
   head: () => ({ meta: [{ title: "Job detail — Trades Marketplace" }] }),
@@ -181,7 +180,11 @@ function TradesJobDetailPage() {
             </Link>
           </Button>
           {isOwner && (
-            <Button asChild variant="outline" size="sm">
+            <Button
+              asChild
+              size="sm"
+              className="rounded-lg bg-teal-600 text-white hover:bg-teal-700"
+            >
               <Link to="/trades/$jobId/edit" params={{ jobId }}>
                 <Pencil className="h-4 w-4" /> Edit Job
               </Link>
@@ -191,7 +194,6 @@ function TradesJobDetailPage() {
       }
     >
       <div className="mx-auto max-w-3xl space-y-6">
-        <PlatformNavButtons exclude={["/trades"]} className="mb-2" />
         <JobDetailCard job={job} />
         <JobInteractionSection job={job} />
       </div>
@@ -226,10 +228,10 @@ function JobInteractionSection({ job }: { job: TradesJob }) {
 // ---------------------------------------------------------------------------
 
 function JobDetailCard({ job }: { job: TradesJob }) {
-  const fields: { label: string; value: string }[] = [
-    { label: "Property address", value: job.propertyAddress ?? "Not specified" },
-    { label: "Postcode", value: job.postcode ?? "Not specified" },
-    { label: "Property type", value: job.propertyType ?? "Not specified" },
+  const fields: { label: string; value: string | undefined | null }[] = [
+    { label: "Property address", value: job.propertyAddress },
+    { label: "Postcode", value: job.postcode },
+    { label: "Property type", value: job.propertyType },
     { label: "Job category", value: formatCategoryLabel(job.jobCategory) },
     { label: "Budget range", value: formatBudgetRange(job) },
     { label: "Desired start date", value: formatShortDate(job.desiredStartDate) },
@@ -252,10 +254,14 @@ function JobDetailCard({ job }: { job: TradesJob }) {
               key={f.label}
               className={`px-6 py-4 ${i < fields.length - 1 ? "border-b border-border sm:border-b-0 sm:border-r" : ""}`}
             >
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <p className="text-xs font-medium uppercase tracking-wider text-gray-400">
                 {f.label}
               </p>
-              <p className="mt-0.5 text-sm font-medium text-foreground">{f.value}</p>
+              <p
+                className={`mt-0.5 text-sm font-medium ${f.value ? "text-gray-900" : "italic text-gray-400"}`}
+              >
+                {f.value || "Not specified"}
+              </p>
             </div>
           ))}
         </div>

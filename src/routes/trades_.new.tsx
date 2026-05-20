@@ -17,7 +17,6 @@ import { Loader2, AlertCircle, Lock, ArrowLeft, CheckCircle2 } from "lucide-reac
 import { TRADES_JOB_CATEGORIES, type TradesJobCategory } from "@/core/trades";
 import { createTradesJob } from "@/services/trades/tradesJobStore";
 import { useAuth } from "@/hooks/useAuth";
-import { PlatformNavButtons } from "@/components/PlatformNavButtons";
 
 export const Route = createFileRoute("/trades_/new")({
   head: () => ({ meta: [{ title: "Post a job — Trades Marketplace" }] }),
@@ -125,8 +124,6 @@ function TradesNewPageContent() {
         </Button>
       }
     >
-      <PlatformNavButtons exclude={["/trades/new"]} className="mb-8" />
-
       {posted ? (
         <div className="mx-auto max-w-2xl space-y-4 rounded-lg border border-emerald-200 bg-emerald-50 p-8 text-center">
           <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
@@ -188,10 +185,11 @@ function TradesNewPageContent() {
             <Textarea
               id="description"
               placeholder="Describe the work needed, current condition, access, any special requirements…"
-              rows={7}
+              rows={4}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
+            <p className="text-right text-xs text-gray-400">{description.length} characters</p>
           </div>
 
           <div className="space-y-2">

@@ -151,23 +151,25 @@ function SettingsPage() {
           <CardContent className="p-6">
             <h2 className="text-lg font-semibold mb-4">Data & Privacy</h2>
             <div className="space-y-4">
-              <div>
-                <p className="text-sm text-foreground/80">
-                  View our{" "}
-                  <a href="/privacy" className="text-primary hover:underline">
-                    privacy policy
-                  </a>{" "}
-                  and{" "}
-                  <a href="/terms" className="text-primary hover:underline">
-                    terms of service
-                  </a>
-                  .
-                </p>
-              </div>
-              <div className="pt-2 border-t border-border">
-                <Button variant="outline" asChild>
-                  <a href="/support">Get help</a>
-                </Button>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href="/privacy"
+                  className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Privacy Policy
+                </a>
+                <a
+                  href="/terms"
+                  className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Terms of Service
+                </a>
+                <a
+                  href="/support"
+                  className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Contact support
+                </a>
               </div>
             </div>
           </CardContent>
@@ -185,13 +187,14 @@ function SettingsPage() {
                   This action cannot be undone.
                 </p>
               </div>
-              <Button
-                variant="destructive"
+              <button
+                type="button"
+                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
                 onClick={() => setShowDeleteDialog(true)}
                 disabled={isDeleting}
               >
-                {isDeleting ? "Processing..." : "Delete Account"}
-              </Button>
+                {isDeleting ? "Processing…" : "Delete Account"}
+              </button>
               <p className="text-xs text-red-800">
                 Deletion will be processed within 7 business days. Your data will be permanently
                 removed from our servers.

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
-import { MetricCard } from "@/components/MetricCard";
+
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import {
   Briefcase,
+  FolderPlus,
   HardHat,
   Loader2,
   Eye,
@@ -19,7 +20,6 @@ import {
   BookMarked,
   Lock,
   HandshakeIcon,
-  UserCircle,
 } from "lucide-react";
 import type { TradesJob, TradesJobStatus } from "@/core/trades";
 import {
@@ -28,7 +28,6 @@ import {
   formatShortDate,
 } from "@/core/trades/tradesJob.selectors";
 import { listCurrentUserTradesJobs, updateTradesJob } from "@/services/trades/tradesJobStore";
-import { PlatformNavButtons } from "@/components/PlatformNavButtons";
 
 import {
   listCurrentUserInterestsWithJobs,
@@ -145,50 +144,33 @@ function DashboardContent() {
 
   const jobCount =
     jobsState.status === "ready" ? jobsState.jobs.filter((j) => j.status !== "closed").length : 0;
-
+  const interestCount = interestsState.status === "ready" ? interestsState.interests.length : 0;
   return (
     <AppLayout
       title="Dashboard"
       subtitle="Manage your refurbishment projects, trades jobs, and feasibility work."
     >
-      {/* Section 1 — Hero quick actions */}
-      <div className="mb-10 grid gap-4 sm:grid-cols-3">
-        <MetricCard
+      {/* Section 1 — Stats */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
           label="Active trades jobs"
           value={jobsState.status === "loading" ? "…" : String(jobCount)}
-          icon={HardHat}
-          hint="Jobs you have posted"
         />
-        <div className="col-span-1 flex flex-col justify-end gap-2 sm:col-span-2 sm:flex-row sm:items-end">
-          <Button asChild variant="outline">
-            <Link to="/trades">
-              <HardHat className="h-4 w-4" />
-              Browse Trades Marketplace
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/deal-copilot">
-              <Calculator className="h-4 w-4" />
-              Start Deal Analysis
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link to="/trades/new">
-              <Briefcase className="h-4 w-4" />
-              Post a Trades Job
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/trades/profile">
-              <UserCircle className="h-4 w-4" />
-              Trade Profile
-            </Link>
-          </Button>
-        </div>
+        <StatCard label="Projects" value="0" />
+        <StatCard label="Deal analyses" value="0" />
+        <StatCard
+          label="Saved opportunities"
+          value={interestsState.status === "loading" ? "…" : String(interestCount)}
+        />
       </div>
 
-      {/* Platform navigation */}
-      <PlatformNavButtons exclude={["/dashboard"]} className="mb-10" />
+      {/* Section 2 — Quick actions */}
+      <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <QuickActionCard icon={Calculator} label="Start Deal Analysis" to="/deal-copilot/new" />
+        <QuickActionCard icon={Briefcase} label="Post a Trades Job" to="/trades/new" />
+        <QuickActionCard icon={HardHat} label="Browse Marketplace" to="/trades" />
+        <QuickActionCard icon={FolderPlus} label="Create Project" to="/projects/new" />
+      </div>
 
       {/* Section 2 — My Trades Jobs */}
       <section className="mb-10">
@@ -209,7 +191,9 @@ function DashboardContent() {
 
       {/* Section 4 — Roadmap placeholders */}
       <section>
-        <h2 className="mb-4 text-lg font-semibold text-foreground">Coming soon</h2>
+        <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-gray-400">
+          Coming soon
+        </h2>
         <div className="grid gap-4 sm:grid-cols-3">
           <RoadmapCard
             icon={Calculator}
@@ -542,6 +526,35 @@ function MyInterestsTable({ state }: { state: InterestsState }) {
   );
 }
 
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border bg-white p-5">
+      <p className="text-sm font-medium text-gray-500">{label}</p>
+      <p className="mt-2 text-3xl font-semibold text-gray-900">{value}</p>
+    </div>
+  );
+}
+
+function QuickActionCard({
+  icon: Icon,
+  label,
+  to,
+}: {
+  icon: typeof Calculator;
+  label: string;
+  to: string;
+}) {
+  return (
+    <Link
+      to={to}
+      className="rounded-xl border bg-white p-5 text-sm font-medium text-foreground transition hover:border-teal-200 hover:shadow-sm"
+    >
+      <Icon className="mb-3 h-5 w-5 text-teal-600" />
+      {label}
+    </Link>
+  );
+}
+
 function RoadmapCard({
   icon: Icon,
   title,
@@ -552,7 +565,7 @@ function RoadmapCard({
   description: string;
 }) {
   return (
-    <Card className="relative overflow-hidden opacity-80">
+    <Card className="relative overflow-hidden bg-gray-50 opacity-60">
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-muted-foreground">

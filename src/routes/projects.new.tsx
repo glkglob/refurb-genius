@@ -89,142 +89,160 @@ function NewProject() {
     <AppLayout title="New project" subtitle="Create a new refurbishment project to analyse.">
       <Card>
         <CardContent className="p-6 sm:p-8">
-          <form className="grid gap-5 sm:grid-cols-2" onSubmit={handleSubmit} noValidate>
-            <Field label="Project name" className="sm:col-span-2">
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Victorian Terrace Refurb"
-                required
-              />
-            </Field>
+          <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+            {/* Property Details */}
+            <div className="space-y-4">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                Property Details
+              </h2>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Project name" className="sm:col-span-2">
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Victorian Terrace Refurb"
+                    required
+                  />
+                </Field>
 
-            <Field label="Address" className="sm:col-span-2">
-              <Input
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="12 Elm Street, London"
-                required
-              />
-            </Field>
+                <Field label="Address" className="sm:col-span-2">
+                  <Input
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="12 Elm Street, London"
+                    required
+                  />
+                </Field>
 
-            <Field label="UK postcode">
-              <Input
-                value={postcode}
-                onChange={(e) => setPostcode(e.target.value)}
-                placeholder="E1 6AN"
-                required
-              />
-            </Field>
+                <Field label="UK postcode">
+                  <Input
+                    value={postcode}
+                    onChange={(e) => setPostcode(e.target.value)}
+                    placeholder="E1 6AN"
+                    required
+                  />
+                </Field>
 
-            <Field label="Region">
-              <Select value={region} onValueChange={(v) => setRegion(v as UKRegion)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {UK_REGIONS.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+                <Field label="Region">
+                  <Select value={region} onValueChange={(v) => setRegion(v as UKRegion)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {UK_REGIONS.map((r) => (
+                        <SelectItem key={r} value={r}>
+                          {r}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
 
-            <Field label="Property type">
-              <Select
-                value={propertyType}
-                onValueChange={(v) => setPropertyType(v as PropertyType)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PROPERTY_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+                <Field label="Property type">
+                  <Select
+                    value={propertyType}
+                    onValueChange={(v) => setPropertyType(v as PropertyType)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PROPERTY_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
 
-            <Field label="Size (m²)">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                value={sizeSqm}
-                onChange={(e) => setSizeSqm(e.target.value)}
-                placeholder="95"
-                required
-              />
-            </Field>
+                <Field label="Size (m²)">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={sizeSqm}
+                    onChange={(e) => setSizeSqm(e.target.value)}
+                    placeholder="95"
+                    required
+                  />
+                </Field>
 
-            <Field label="Bedrooms">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={bedrooms}
-                onChange={(e) => setBedrooms(e.target.value)}
-                required
-              />
-            </Field>
+                <Field label="Bedrooms">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={bedrooms}
+                    onChange={(e) => setBedrooms(e.target.value)}
+                    placeholder="e.g. 3"
+                    required
+                  />
+                </Field>
 
-            <Field label="Bathrooms">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={bathrooms}
-                onChange={(e) => setBathrooms(e.target.value)}
-                required
-              />
-            </Field>
+                <Field label="Bathrooms">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={bathrooms}
+                    onChange={(e) => setBathrooms(e.target.value)}
+                    placeholder="e.g. 1"
+                    required
+                  />
+                </Field>
+              </div>
+            </div>
 
-            <Field label="Purchase price (£)">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                value={purchasePrice}
-                onChange={(e) => setPurchasePrice(e.target.value)}
-                placeholder="285000"
-                required
-              />
-            </Field>
+            {/* Financial Assumptions */}
+            <div className="space-y-4">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                Financial Assumptions
+              </h2>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Purchase price (£)">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={purchasePrice}
+                    onChange={(e) => setPurchasePrice(e.target.value)}
+                    placeholder="e.g. 285,000"
+                    required
+                  />
+                </Field>
 
-            <Field label="Estimated GDV (£)">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                value={estimatedGdv}
-                onChange={(e) => setEstimatedGdv(e.target.value)}
-                placeholder="410000"
-                required
-              />
-            </Field>
+                <Field label="Estimated GDV (£)">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    value={estimatedGdv}
+                    onChange={(e) => setEstimatedGdv(e.target.value)}
+                    placeholder="e.g. 410,000"
+                    required
+                  />
+                </Field>
 
-            <Field label="Notes" className="sm:col-span-2">
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={4}
-                placeholder="Any context about the property, goals, or scope."
-              />
-            </Field>
+                <Field label="Notes" className="sm:col-span-2">
+                  <Textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    rows={4}
+                    placeholder="Any context about the property, goals, or scope."
+                  />
+                </Field>
+              </div>
+            </div>
 
             {error && (
-              <div className="sm:col-span-2 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
-            <div className="sm:col-span-2 flex flex-col-reverse justify-end gap-2 sm:flex-row">
+            <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
               <Button
                 type="button"
                 variant="outline"

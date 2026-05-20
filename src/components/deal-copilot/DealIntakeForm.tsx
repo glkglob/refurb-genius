@@ -178,8 +178,8 @@ export function DealIntakeForm() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="space-y-6">
         <Card>
           <CardContent className="p-6">
             <div className="mb-6">
@@ -268,6 +268,17 @@ export function DealIntakeForm() {
           </CardContent>
         </Card>
 
+        {/* Full analysis results below form, inside left column */}
+        {analysis && analysis.ready && (
+          <div className="space-y-6">
+            <DealMetricsGrid roi={analysis.roi} />
+            <DealRiskFlags roi={analysis.roi} />
+            <DealEstimateSection pricing={analysis.pricing} />
+          </div>
+        )}
+      </div>
+
+      <aside className="self-start lg:sticky lg:top-6">
         <DealScorePanel
           score={score}
           savedOpportunity={savedOpportunity}
@@ -275,16 +286,7 @@ export function DealIntakeForm() {
           isSaving={isSaving}
           onSaveOpportunity={handleSaveOpportunity}
         />
-      </div>
-
-      {/* Full analysis results below form */}
-      {analysis && analysis.ready && (
-        <div className="space-y-6">
-          <DealMetricsGrid roi={analysis.roi} />
-          <DealRiskFlags roi={analysis.roi} />
-          <DealEstimateSection pricing={analysis.pricing} />
-        </div>
-      )}
+      </aside>
     </div>
   );
 }
@@ -323,14 +325,21 @@ function DealScorePanel({
           </div>
         </div>
 
-        {!score.ready ? (
-          <div className="mt-6 rounded-xl border border-border bg-secondary/30 p-4">
-            <p className="text-sm font-medium text-foreground">Missing inputs</p>
-            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+        {!score.ready && score.missingFields.length > 0 ? (
+          <div className="mt-6">
+            <p className="text-sm font-medium text-foreground">
+              Complete these fields to calculate your score:
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
               {score.missingFields.map((field) => (
-                <li key={field}>{field}</li>
+                <span
+                  key={field}
+                  className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-200"
+                >
+                  {field}
+                </span>
               ))}
-            </ul>
+            </div>
           </div>
         ) : null}
 

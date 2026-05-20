@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
-import { PlatformNavButtons } from "@/components/PlatformNavButtons";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -89,14 +89,18 @@ function TradesHero() {
           ready.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Button asChild size="lg">
-            <Link to="/trades/new">
-              Post a job <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="outline">
-            <a href="#register-trade">Register as a tradesperson</a>
-          </Button>
+          <Link
+            to="/trades/new"
+            className="inline-flex items-center justify-center rounded-lg bg-teal-600 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-700"
+          >
+            Post a job <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+          <a
+            href="#register-trade"
+            className="inline-flex items-center justify-center rounded-lg border border-teal-600 px-5 py-3 text-sm font-semibold text-teal-700 hover:bg-teal-50"
+          >
+            Register as a tradesperson
+          </a>
         </div>
       </div>
     </section>
@@ -228,8 +232,6 @@ function LiveJobListings() {
           title="Posted refurbishment jobs."
           subtitle="Browse jobs posted by UK property clients — apply directly with a short message."
         />
-
-        <PlatformNavButtons exclude={["/trades"]} className="mt-8" />
 
         {/* Category filter */}
         <div className="mt-8 flex flex-wrap items-center gap-2">
