@@ -33,14 +33,4 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
-  build: {
-    rollupOptions: {
-      output: {
-        // Don't hash entry file so HTML reference /assets/client.js matches the actual file
-        entryFileNames: "assets/client.js",
-        chunkFileNames: "assets/[name]-[hash].js",
-        assetFileNames: "assets/[name]-[hash][extname]",
-      },
-    },
-  },
 });
