@@ -11,6 +11,8 @@ import { z } from "zod";
 
 const authSearchSchema = z.object({
   mode: z.enum(["signin", "signup", "forgot", "reset"]).default("signin").catch("signin"),
+  /** Destination to redirect to after a successful sign-in or sign-up. */
+  redirect: z.string().optional(),
 });
 
 export const Route = createFileRoute("/auth")({
@@ -22,7 +24,7 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthPage() {
-  const { mode } = Route.useSearch();
+  const { mode, redirect } = Route.useSearch();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -49,12 +51,17 @@ function AuthPage() {
     setSuccess(null);
     setLoading(true);
     try {
+      // After auth, go to intended destination (if safe) or dashboard.
+      const destination =
+        redirect && redirect.startsWith("/") && !redirect.startsWith("//")
+          ? redirect
+          : "/dashboard";
       if (mode === "signin") {
         await auth.signIn(email.trim(), password);
-        navigate({ to: "/dashboard" });
+        navigate({ to: destination });
       } else if (mode === "signup") {
         await auth.signUp(email.trim(), password, fullName.trim());
-        navigate({ to: "/dashboard" });
+        navigate({ to: destination });
       } else if (mode === "forgot") {
         await auth.resetPasswordForEmail(email.trim());
         setSuccess("Check your inbox — we've sent a password reset link.");

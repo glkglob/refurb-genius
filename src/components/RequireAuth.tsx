@@ -22,6 +22,14 @@ export function RequireAuth({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  if (!isAuthenticated) return <Navigate to="/auth" />;
+  if (!isAuthenticated) {
+    const currentPath = typeof window !== "undefined" ? window.location.pathname : undefined;
+    return (
+      <Navigate
+        to="/auth"
+        search={currentPath && currentPath !== "/auth" ? { redirect: currentPath } : undefined}
+      />
+    );
+  }
   return <>{children}</>;
 }
