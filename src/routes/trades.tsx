@@ -91,13 +91,13 @@ function TradesHero() {
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
             to="/trades/new"
-            className="inline-flex items-center justify-center rounded-lg bg-teal-600 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-700"
+            className="inline-flex items-center justify-center rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
           >
             Post a job <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
           <a
             href="#register-trade"
-            className="inline-flex items-center justify-center rounded-lg border border-teal-600 px-5 py-3 text-sm font-semibold text-teal-700 hover:bg-teal-50"
+            className="inline-flex items-center justify-center rounded-lg border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-secondary"
           >
             Register as a tradesperson
           </a>

@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { auth } from "@/lib/auth";
 import { useAuth } from "@/hooks/useAuth";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const items = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -71,8 +72,8 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                 active
-                  ? "bg-teal-50 text-teal-700 font-semibold"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+                  ? "bg-accent text-accent-foreground font-semibold"
+                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
               )}
             >
               <item.icon className="h-4 w-4" />
@@ -84,7 +85,7 @@ export function Sidebar() {
       <div className="border-t border-border p-3">
         {user && (
           <div className="mb-2 flex items-center gap-3 px-3 py-2">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-teal-100 text-sm font-semibold text-teal-700">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-muted-foreground">
               {getInitials(user.fullName ?? user.email)}
             </div>
             <div className="min-w-0">
@@ -95,6 +96,13 @@ export function Sidebar() {
             </div>
           </div>
         )}
+
+        {/* Theme Toggle */}
+        <div className="mb-1 flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-muted-foreground">
+          <span>Theme</span>
+          <ThemeToggle />
+        </div>
+
         <button
           onClick={handleLogout}
           className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
@@ -106,3 +114,5 @@ export function Sidebar() {
     </aside>
   );
 }
+
+

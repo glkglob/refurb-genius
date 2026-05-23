@@ -2,12 +2,13 @@ import { Link } from "@tanstack/react-router";
 import { Building2, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV_LINKS = [
-  { to: "/dashboard", label: "Dashboard", color: "text-blue-600 dark:text-blue-400" },
-  { to: "/deal-copilot", label: "Deal Copilot", color: "text-purple-600 dark:text-purple-400" },
-  { to: "/trades", label: "Trades", color: "text-emerald-600 dark:text-emerald-400" },
-  { to: "/trades/new", label: "Post Job", color: "text-amber-600 dark:text-amber-400" },
+  { to: "/dashboard", label: "Dashboard" },
+  { to: "/deal-copilot", label: "Deal Copilot" },
+  { to: "/trades", label: "Trades" },
+  { to: "/trades/new", label: "Post Job" },
 ] as const;
 
 export function Navbar() {
@@ -30,7 +31,7 @@ export function Navbar() {
         <nav className="hidden items-center gap-1 md:flex">
           {NAV_LINKS.map((link) => (
             <Button key={link.to} asChild variant="ghost" size="sm">
-              <Link to={link.to} className={link.color}>
+              <Link to={link.to} className="text-muted-foreground hover:text-foreground">
                 {link.label}
               </Link>
             </Button>
@@ -74,7 +75,7 @@ export function Navbar() {
                 key={link.to}
                 to={link.to}
                 onClick={() => setMenuOpen(false)}
-                className={`rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary ${link.color}`}
+                className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground"
               >
                 {link.label}
               </Link>
@@ -88,6 +89,12 @@ export function Navbar() {
             >
               Get started free
             </Link>
+
+            {/* Mobile Theme Toggle */}
+            <div className="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-muted-foreground">
+              <span>Theme</span>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       )}

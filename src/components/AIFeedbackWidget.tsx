@@ -108,7 +108,7 @@ export function AIFeedbackWidget({ projectId, photoId, type, onSubmit }: AIFeedb
             <button
               onClick={() => handleRedesignFeedback("generic")}
               disabled={isSubmitting}
-              className="w-full text-left px-2 py-1 text-sm rounded hover:bg-gray-50 disabled:opacity-50"
+              className="w-full text-left px-2 py-1 text-sm rounded hover:bg-secondary disabled:opacity-50"
             >
               ~ Generic
             </button>
@@ -135,7 +135,7 @@ export function AIFeedbackWidget({ projectId, photoId, type, onSubmit }: AIFeedb
           <button
             onClick={() => setIsOpen(false)}
             disabled={isSubmitting}
-            className="flex-1 text-xs px-2 py-1 rounded border hover:bg-gray-50 disabled:opacity-50"
+            className="flex-1 text-xs px-2 py-1 rounded border hover:bg-secondary disabled:opacity-50"
           >
             Cancel
           </button>

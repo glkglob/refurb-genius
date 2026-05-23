@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/services/supabase";
 import type {
   TradesJobInterest,
   TradesJobInterestStatus,
@@ -66,7 +66,24 @@ export async function createTradesJobInterest(
     }
     throw new Error(error.message);
   }
-  return rowToInterest(data as TradesJobInterestRow);
+
+  const interest = rowToInterest(data as TradesJobInterestRow);
+
+  // Fire-and-forget email notification to job owner
+  supabase.functions
+    .invoke("send-notification-email", {
+      body: {
+        type: "interest_registered",
+        jobId: input.jobId,
+        interestUserId: userData.user.id,
+        message: input.message,
+      },
+    })
+    .catch((err) => {
+      console.warn("[trades] Failed to send interest_registered notification (non-blocking)", err);
+    });
+
+  return interest;
 }
 
 export async function listCurrentUserInterests(): Promise<TradesJobInterest[]> {
@@ -109,9 +126,42 @@ export async function updateTradesJobInterestStatus(
   interestId: string,
   status: TradesJobInterestStatus,
 ): Promise<TradesJobInterest> {
-  const { data, error } = await table().update({ status }).eq("id", interestId).select().single();
+  // Fetch the interest first so we have job_id and user_id for notifications
+  const { data: existing, error: fetchError } = await table()
+    .select("job_id, user_id")
+    .eq("id", interestId)
+    .single();
+
+  if (fetchError || !existing) {
+    throw new Error("Interest not found");
+  }
+
+  const { data, error } = await table()
+    .update({ status })
+    .eq("id", interestId)
+    .select()
+    .single();
+
   if (error) throw new Error(error.message);
-  return rowToInterest(data as TradesJobInterestRow);
+
+  const updated = rowToInterest(data as TradesJobInterestRow);
+
+  // Fire-and-forget notification to the tradesperson (only on accept/reject)
+  if (status === "accepted" || status === "rejected") {
+    supabase.functions
+      .invoke("send-notification-email", {
+        body: {
+          type: status === "accepted" ? "interest_accepted" : "interest_rejected",
+          jobId: existing.job_id,
+          interestUserId: existing.user_id,
+        },
+      })
+      .catch((err) => {
+        console.warn(`[trades] Failed to send ${status} notification (non-blocking)`, err);
+      });
+  }
+
+  return updated;
 }
 
 /** Returns the current user's interest for a specific job, or null if none exists. */

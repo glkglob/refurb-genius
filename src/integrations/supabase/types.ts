@@ -454,6 +454,182 @@ export type Database = {
         };
         Relationships: [];
       };
+      scope_analyses: {
+        Row: {
+          id: string;
+          user_id: string;
+          property_id: string;
+          overall_score: number | null;
+          summary: string | null;
+          total_estimated_cost_low: number | null;
+          total_estimated_cost_realistic: number | null;
+          total_estimated_cost_premium: number | null;
+          region: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          property_id: string;
+          overall_score?: number | null;
+          summary?: string | null;
+          total_estimated_cost_low?: number | null;
+          total_estimated_cost_realistic?: number | null;
+          total_estimated_cost_premium?: number | null;
+          region?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          property_id?: string;
+          overall_score?: number | null;
+          summary?: string | null;
+          total_estimated_cost_low?: number | null;
+          total_estimated_cost_realistic?: number | null;
+          total_estimated_cost_premium?: number | null;
+          region?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "scope_analyses_property_id_fkey";
+            columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "properties";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      scope_analysis_rooms: {
+        Row: {
+          id: string;
+          scope_analysis_id: string;
+          room_name: string;
+          area_sqm: number | null;
+          condition_summary: string | null;
+          display_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          scope_analysis_id: string;
+          room_name: string;
+          area_sqm?: number | null;
+          condition_summary?: string | null;
+          display_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          scope_analysis_id?: string;
+          room_name?: string;
+          area_sqm?: number | null;
+          condition_summary?: string | null;
+          display_order?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "scope_analysis_rooms_scope_analysis_id_fkey";
+            columns: ["scope_analysis_id"];
+            isOneToOne: false;
+            referencedRelation: "scope_analyses";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      scope_analysis_issues: {
+        Row: {
+          id: string;
+          room_id: string;
+          description: string;
+          severity: string;
+          category: string | null;
+          recommended_action: string | null;
+          display_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          room_id: string;
+          description: string;
+          severity?: string;
+          category?: string | null;
+          recommended_action?: string | null;
+          display_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          room_id?: string;
+          description?: string;
+          severity?: string;
+          category?: string | null;
+          recommended_action?: string | null;
+          display_order?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "scope_analysis_issues_room_id_fkey";
+            columns: ["room_id"];
+            isOneToOne: false;
+            referencedRelation: "scope_analysis_rooms";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      scope_analysis_items: {
+        Row: {
+          id: string;
+          room_id: string;
+          name: string;
+          category: string | null;
+          quantity: number;
+          unit: string | null;
+          base_unit_cost: number | null;
+          notes: string | null;
+          display_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          room_id: string;
+          name: string;
+          category?: string | null;
+          quantity?: number;
+          unit?: string | null;
+          base_unit_cost?: number | null;
+          notes?: string | null;
+          display_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          room_id?: string;
+          name?: string;
+          category?: string | null;
+          quantity?: number;
+          unit?: string | null;
+          base_unit_cost?: number | null;
+          notes?: string | null;
+          display_order?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "scope_analysis_items_room_id_fkey";
+            columns: ["room_id"];
+            isOneToOne: false;
+            referencedRelation: "scope_analysis_rooms";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       redesign_concepts: {
         Row: {
           created_at: string;

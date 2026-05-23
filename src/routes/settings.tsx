@@ -154,19 +154,19 @@ function SettingsPage() {
               <div className="flex flex-wrap gap-3">
                 <a
                   href="/privacy"
-                  className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary"
                 >
                   Privacy Policy
                 </a>
                 <a
                   href="/terms"
-                  className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary"
                 >
                   Terms of Service
                 </a>
                 <a
                   href="/support"
-                  className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary"
                 >
                   Contact support
                 </a>

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
+import { DashboardSection } from "@/components/DashboardSection";
 
 import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -134,20 +135,16 @@ function formatBudgetTotal(total: number | null, loading: boolean): string {
 }
 
 function JobStatusBadge({ status }: { status: TradesJobStatus }) {
-  const classes: Record<TradesJobStatus, string> = {
-    posted: "bg-green-100 text-green-700 border-green-200",
-    closed: "bg-slate-100 text-slate-600 border-slate-200",
-    draft: "bg-amber-100 text-amber-700 border-amber-200",
+  const toneMap: Record<TradesJobStatus, "accent" | "muted" | "destructive"> = {
+    posted: "accent",
+    closed: "muted",
+    draft: "destructive", // or we can add a "warning" tone later
   };
+
   return (
-    <span
-      className={cn(
-        "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-xs font-medium",
-        classes[status],
-      )}
-    >
+    <StatusBadge tone={toneMap[status] ?? "muted"}>
       {statusLabel(status)}
-    </span>
+    </StatusBadge>
   );
 }
 
@@ -181,68 +178,67 @@ function DashboardContent() {
         <StatCard
           label="Active trades jobs"
           value={jobsState.status === "loading" ? "…" : String(jobCount)}
-          accent="teal"
           icon={Briefcase}
           subLabel="open listings"
         />
         <StatCard
           label="Saved opportunities"
           value={interestsState.status === "loading" ? "…" : String(interestCount)}
-          accent="emerald"
           icon={HandshakeIcon}
           subLabel="interests expressed"
         />
         <StatCard
           label="Total budget posted"
           value={formatBudgetTotal(totalBudgetPosted, jobsState.status === "loading")}
-          accent="blue"
           icon={DollarSign}
           subLabel="across all jobs"
         />
         <StatCard
           label="Projects"
           value="0"
-          accent="amber"
           icon={FolderPlus}
           subLabel="coming soon"
         />
       </div>
 
       {/* Section 2 — Quick actions */}
-      <div className="mb-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <QuickActionCard icon={Calculator} label="Start Deal Analysis" to="/deal-copilot/new" />
-        <QuickActionCard icon={Briefcase} label="Post a Trades Job" to="/trades/new" />
-        <QuickActionCard icon={HardHat} label="Browse Marketplace" to="/trades" />
-        <QuickActionCard icon={FolderPlus} label="Create Project" to="/projects/new" />
+      <div className="mb-8">
+        <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
+          Quick actions
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <QuickActionCard icon={Calculator} label="Start Deal Analysis" to="/deal-copilot/new" />
+          <QuickActionCard icon={Briefcase} label="Post a Trades Job" to="/trades/new" />
+          <QuickActionCard icon={HardHat} label="Browse Marketplace" to="/trades" />
+          <QuickActionCard icon={FolderPlus} label="Create Project" to="/projects/new" />
+        </div>
       </div>
 
       {/* Section 3 — My Trades Jobs */}
-      <section className="mb-10">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
-            <Briefcase className="h-4 w-4 text-teal-600" />
-            My trades jobs
-          </h2>
+      <DashboardSection
+        title="My trades jobs"
+        icon={<Briefcase className="h-5 w-5" />}
+        action={
           <Link to="/trades/new" className="text-sm font-medium text-accent hover:underline">
             + Post new job
           </Link>
-        </div>
+        }
+      >
         <TradesJobsTable state={jobsState} onUpdate={applyUpdate} />
-      </section>
+      </DashboardSection>
 
       {/* Section 4 — My Interests */}
-      <section className="mb-10">
-        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
-          <HandshakeIcon className="h-4 w-4 text-teal-600" />
-          My interests
-        </h2>
+      <DashboardSection
+        title="My interests"
+        icon={<HandshakeIcon className="h-5 w-5" />}
+      >
         <MyInterestsTable state={interestsState} />
-      </section>
+      </DashboardSection>
 
       {/* Section 5 — Roadmap placeholders */}
       <section>
-        <div className="rounded-2xl bg-slate-50 p-6">
-          <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-gray-400">
+        <Card className="bg-muted/40 p-6">
+          <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
             Coming soon
           </h2>
           <div className="grid gap-4 sm:grid-cols-3">
@@ -262,7 +258,7 @@ function DashboardContent() {
               description="Store and revisit your feasibility studies. Share with lenders or JV partners."
             />
           </div>
-        </div>
+        </Card>
       </section>
     </AppLayout>
   );
@@ -309,36 +305,34 @@ function TradesJobsTable({
   }
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        {/* Mobile card list */}
-        <div className="divide-y divide-border sm:hidden">
-          {state.jobs.map((job) => (
-            <TradesJobCard key={job.id} job={job} onUpdate={onUpdate} />
-          ))}
-        </div>
-        {/* Desktop table */}
-        <div className="hidden overflow-x-auto sm:block">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-secondary/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                <th className="px-4 py-3 text-left">Title</th>
-                <th className="px-4 py-3 text-left">Category</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Budget</th>
-                <th className="px-4 py-3 text-left">Posted</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {state.jobs.map((job) => (
-                <TradesJobRow key={job.id} job={job} onUpdate={onUpdate} />
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
+    <>
+      {/* Mobile card list */}
+      <div className="divide-y divide-border sm:hidden">
+        {state.jobs.map((job) => (
+          <TradesJobCard key={job.id} job={job} onUpdate={onUpdate} />
+        ))}
+      </div>
+      {/* Desktop table */}
+      <div className="hidden overflow-x-auto sm:block">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-secondary/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <th className="px-4 py-3 text-left">Title</th>
+              <th className="px-4 py-3 text-left">Category</th>
+              <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-left">Budget</th>
+              <th className="px-4 py-3 text-left">Posted</th>
+              <th className="px-4 py-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {state.jobs.map((job) => (
+              <TradesJobRow key={job.id} job={job} onUpdate={onUpdate} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -357,7 +351,7 @@ function TradesJobRow({ job, onUpdate }: { job: TradesJob; onUpdate: (job: Trade
   }
 
   return (
-    <tr className="transition-colors hover:bg-slate-50">
+    <tr className="transition-colors hover:bg-secondary/50">
       <td className="max-w-[220px] truncate px-4 py-3 font-medium text-foreground">{job.title}</td>
       <td className="px-4 py-3 text-muted-foreground">{formatCategoryLabel(job.jobCategory)}</td>
       <td className="px-4 py-3">
@@ -477,7 +471,7 @@ function MyInterestsTable({ state }: { state: InterestsState }) {
         title="No interests yet"
         description="You have not registered interest in any jobs yet."
         action={
-          <Button asChild className="bg-teal-600 text-white hover:bg-teal-700">
+          <Button asChild>
             <Link to="/trades">
               <HardHat className="h-4 w-4" /> Start exploring jobs near you
             </Link>
@@ -494,126 +488,108 @@ function MyInterestsTable({ state }: { state: InterestsState }) {
   };
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        {/* Mobile card list */}
-        <div className="divide-y divide-border sm:hidden">
-          {state.interests.map((interest) => (
-            <div key={interest.id} className="flex items-start justify-between gap-3 p-4">
-              <div className="min-w-0 flex-1 space-y-1">
-                <p className="truncate font-medium text-foreground">{interest.jobTitle}</p>
-                <p className="text-xs text-muted-foreground">
-                  {formatCategoryLabel(interest.jobCategory)} · {interest.jobPostcode ?? "—"} ·{" "}
-                  {formatShortDate(interest.createdAt)}
-                </p>
-                <div className="flex items-center gap-2">
+    <>
+      {/* Mobile card list */}
+      <div className="divide-y divide-border sm:hidden">
+        {state.interests.map((interest) => (
+          <div key={interest.id} className="flex items-start justify-between gap-3 p-4">
+            <div className="min-w-0 flex-1 space-y-1">
+              <p className="truncate font-medium text-foreground">{interest.jobTitle}</p>
+              <p className="text-xs text-muted-foreground">
+                {formatCategoryLabel(interest.jobCategory)} · {interest.jobPostcode ?? "—"} ·{" "}
+                {formatShortDate(interest.createdAt)}
+              </p>
+              <div className="flex items-center gap-2">
+                <StatusBadge tone={interestStatusBadge[interest.status] ?? "muted"}>
+                  {interest.status}
+                </StatusBadge>
+                {interest.message && (
+                  <span className="max-w-[160px] truncate text-xs text-muted-foreground">
+                    {interest.message}
+                  </span>
+                )}
+              </div>
+            </div>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/trades/$jobId" params={{ jobId: interest.jobId }}>
+                <Eye className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        ))}
+      </div>
+      {/* Desktop table */}
+      <div className="hidden overflow-x-auto sm:block">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-secondary/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <th className="px-4 py-3 text-left">Job title</th>
+              <th className="px-4 py-3 text-left">Category</th>
+              <th className="px-4 py-3 text-left">Postcode</th>
+              <th className="px-4 py-3 text-left">Status</th>
+              <th className="px-4 py-3 text-left">Message</th>
+              <th className="px-4 py-3 text-left">Date</th>
+              <th className="px-4 py-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {state.interests.map((interest) => (
+              <tr key={interest.id} className="transition-colors hover:bg-secondary/30">
+                <td className="max-w-[200px] truncate px-4 py-3 font-medium text-foreground">
+                  {interest.jobTitle}
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {formatCategoryLabel(interest.jobCategory)}
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">{interest.jobPostcode ?? "—"}</td>
+                <td className="px-4 py-3">
                   <StatusBadge tone={interestStatusBadge[interest.status] ?? "muted"}>
                     {interest.status}
                   </StatusBadge>
-                  {interest.message && (
-                    <span className="max-w-[160px] truncate text-xs text-muted-foreground">
-                      {interest.message}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <Button asChild variant="ghost" size="sm">
-                <Link to="/trades/$jobId" params={{ jobId: interest.jobId }}>
-                  <Eye className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-          ))}
-        </div>
-        {/* Desktop table */}
-        <div className="hidden overflow-x-auto sm:block">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-secondary/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                <th className="px-4 py-3 text-left">Job title</th>
-                <th className="px-4 py-3 text-left">Category</th>
-                <th className="px-4 py-3 text-left">Postcode</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Message</th>
-                <th className="px-4 py-3 text-left">Date</th>
-                <th className="px-4 py-3 text-right">Action</th>
+                </td>
+                <td className="max-w-[200px] truncate px-4 py-3 text-muted-foreground">
+                  {interest.message ?? <span className="italic">No message</span>}
+                </td>
+                <td className="px-4 py-3 text-muted-foreground">
+                  {formatShortDate(interest.createdAt)}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <Button asChild variant="ghost" size="sm" title="View job">
+                    <Link to="/trades/$jobId" params={{ jobId: interest.jobId }}>
+                      <Eye className="h-4 w-4" />
+                      <span className="sr-only">View job</span>
+                    </Link>
+                  </Button>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {state.interests.map((interest) => (
-                <tr key={interest.id} className="transition-colors hover:bg-secondary/30">
-                  <td className="max-w-[200px] truncate px-4 py-3 font-medium text-foreground">
-                    {interest.jobTitle}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {formatCategoryLabel(interest.jobCategory)}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{interest.jobPostcode ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    <StatusBadge tone={interestStatusBadge[interest.status] ?? "muted"}>
-                      {interest.status}
-                    </StatusBadge>
-                  </td>
-                  <td className="max-w-[200px] truncate px-4 py-3 text-muted-foreground">
-                    {interest.message ?? <span className="italic">No message</span>}
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {formatShortDate(interest.createdAt)}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Button asChild variant="ghost" size="sm" title="View job">
-                      <Link to="/trades/$jobId" params={{ jobId: interest.jobId }}>
-                        <Eye className="h-4 w-4" />
-                        <span className="sr-only">View job</span>
-                      </Link>
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </CardContent>
-    </Card>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
 function StatCard({
   label,
   value,
-  accent = "teal",
   subLabel,
   icon: Icon,
 }: {
   label: string;
-  value: string;
-  accent?: "teal" | "emerald" | "blue" | "amber";
+  value: string | number;
   subLabel?: string;
   icon?: typeof Calculator;
 }) {
-  const borderAccent = {
-    teal: "border-l-teal-500",
-    emerald: "border-l-emerald-500",
-    blue: "border-l-blue-500",
-    amber: "border-l-amber-500",
-  }[accent];
-
-  const iconColor = {
-    teal: "text-teal-500",
-    emerald: "text-emerald-500",
-    blue: "text-blue-500",
-    amber: "text-amber-500",
-  }[accent];
-
   return (
-    <div className={cn("rounded-xl border border-l-4 bg-white p-5 shadow-sm", borderAccent)}>
+    <Card className="border-l-4 border-l-accent p-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-gray-500">{label}</p>
-        {Icon && <Icon className={cn("h-4 w-4", iconColor)} />}
+        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        {Icon && <Icon className="h-4 w-4 text-accent" />}
       </div>
-      <p className="mt-2 text-3xl font-semibold text-gray-900">{value}</p>
-      {subLabel && <p className="mt-1 text-xs text-gray-400">{subLabel}</p>}
-    </div>
+      <p className="mt-2 text-3xl font-semibold text-foreground">{value}</p>
+      {subLabel && <p className="mt-1 text-xs text-muted-foreground">{subLabel}</p>}
+    </Card>
   );
 }
 
@@ -629,9 +605,9 @@ function QuickActionCard({
   return (
     <Link
       to={to}
-      className="flex min-h-[96px] flex-col justify-between rounded-xl border bg-white p-5 text-sm font-medium text-foreground transition hover:border-teal-200 hover:shadow-md"
+      className="flex min-h-[96px] flex-col justify-between rounded-xl border bg-card p-5 text-sm font-medium text-foreground transition hover:border-accent/30 hover:shadow-md"
     >
-      <Icon className="h-5 w-5 text-teal-600" />
+      <Icon className="h-5 w-5 text-accent" />
       <span className="mt-3">{label}</span>
     </Link>
   );
@@ -647,7 +623,7 @@ function RoadmapCard({
   description: string;
 }) {
   return (
-    <Card className="relative overflow-hidden bg-gray-50 opacity-60">
+    <Card className="relative overflow-hidden bg-muted/50 opacity-60">
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-muted-foreground">

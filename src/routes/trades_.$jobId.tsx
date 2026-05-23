@@ -183,7 +183,7 @@ function TradesJobDetailPage() {
             <Button
               asChild
               size="sm"
-              className="rounded-lg bg-teal-600 text-white hover:bg-teal-700"
+              className="rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <Link to="/trades/$jobId/edit" params={{ jobId }}>
                 <Pencil className="h-4 w-4" /> Edit Job

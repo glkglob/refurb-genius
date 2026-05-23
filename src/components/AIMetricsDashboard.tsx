@@ -45,7 +45,7 @@ export function AIMetricsDashboard() {
       case "critical":
         return "text-red-600";
       default:
-        return "text-gray-600";
+        return "text-muted-foreground";
     }
   };
 

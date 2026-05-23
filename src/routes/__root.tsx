@@ -11,6 +11,7 @@ import { useEffect } from "react";
 
 import { Toaster } from "@/components/ui/sonner";
 import { captureException } from "@/lib/sentry";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -164,8 +165,10 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
-      <Toaster />
+      <ThemeProvider>
+        <Outlet />
+        <Toaster />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }
