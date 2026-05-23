@@ -65,31 +65,58 @@ export type Database = {
       estimate_items: {
         Row: {
           category: string;
+          created_at: string;
+          display_order: number;
           estimate_id: string;
           id: string;
+          is_ai_suggested: boolean;
           labour: number;
           materials: number;
-          total: number;
+          name: string;
+          notes: string | null;
+          quantity: number;
+          room_id: string | null;
+          total_cost: number;
+          unit: string;
+          unit_cost: number;
           user_id: string;
           weeks: number;
         };
         Insert: {
           category: string;
+          created_at?: string;
+          display_order?: number;
           estimate_id: string;
           id?: string;
+          is_ai_suggested?: boolean;
           labour?: number;
           materials?: number;
-          total?: number;
+          name?: string;
+          notes?: string | null;
+          quantity?: number;
+          room_id?: string | null;
+          total_cost?: number;
+          unit?: string;
+          unit_cost?: number;
           user_id: string;
           weeks?: number;
         };
         Update: {
           category?: string;
+          created_at?: string;
+          display_order?: number;
           estimate_id?: string;
           id?: string;
+          is_ai_suggested?: boolean;
           labour?: number;
           materials?: number;
-          total?: number;
+          name?: string;
+          notes?: string | null;
+          quantity?: number;
+          room_id?: string | null;
+          total_cost?: number;
+          unit?: string;
+          unit_cost?: number;
           user_id?: string;
           weeks?: number;
         };
@@ -101,10 +128,56 @@ export type Database = {
             referencedRelation: "estimates";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "estimate_items_room_id_fkey";
+            columns: ["room_id"];
+            isOneToOne: false;
+            referencedRelation: "estimate_rooms";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      estimate_rooms: {
+        Row: {
+          area_sqm: number | null;
+          created_at: string;
+          display_order: number;
+          estimate_id: string;
+          id: string;
+          name: string;
+          subtotal: number;
+        };
+        Insert: {
+          area_sqm?: number | null;
+          created_at?: string;
+          display_order?: number;
+          estimate_id: string;
+          id?: string;
+          name: string;
+          subtotal?: number;
+        };
+        Update: {
+          area_sqm?: number | null;
+          created_at?: string;
+          display_order?: number;
+          estimate_id?: string;
+          id?: string;
+          name?: string;
+          subtotal?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "estimate_rooms_estimate_id_fkey";
+            columns: ["estimate_id"];
+            isOneToOne: false;
+            referencedRelation: "estimates";
+            referencedColumns: ["id"];
+          },
         ];
       };
       estimates: {
         Row: {
+          ai_generated: boolean;
           condition_level: string;
           contingency: number;
           created_at: string;
@@ -115,14 +188,20 @@ export type Database = {
           low_total: number;
           materials_total: number;
           mid_total: number;
+          notes: string | null;
           project_id: string;
           region: string;
+          status: string;
           subtotal: number;
           timeline_weeks: number;
+          title: string;
+          updated_at: string;
           user_id: string;
-          vat: number;
+          vat_amount: number;
+          vat_rate: number;
         };
         Insert: {
+          ai_generated?: boolean;
           condition_level: string;
           contingency?: number;
           created_at?: string;
@@ -133,14 +212,20 @@ export type Database = {
           low_total?: number;
           materials_total?: number;
           mid_total?: number;
+          notes?: string | null;
           project_id: string;
           region: string;
+          status?: string;
           subtotal?: number;
           timeline_weeks?: number;
+          title?: string;
+          updated_at?: string;
           user_id: string;
-          vat?: number;
+          vat_amount?: number;
+          vat_rate?: number;
         };
         Update: {
+          ai_generated?: boolean;
           condition_level?: string;
           contingency?: number;
           created_at?: string;
@@ -151,12 +236,17 @@ export type Database = {
           low_total?: number;
           materials_total?: number;
           mid_total?: number;
+          notes?: string | null;
           project_id?: string;
           region?: string;
+          status?: string;
           subtotal?: number;
           timeline_weeks?: number;
+          title?: string;
+          updated_at?: string;
           user_id?: string;
-          vat?: number;
+          vat_amount?: number;
+          vat_rate?: number;
         };
         Relationships: [
           {

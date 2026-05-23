@@ -32,7 +32,7 @@ export async function saveProjectEstimate(
       materials_total: result.materials_total,
       subtotal: result.subtotal,
       contingency: result.contingency,
-      vat: result.vat,
+      vat_amount: result.vat,
       low_total: result.low_total,
       mid_total: result.mid_total,
       high_total: result.high_total,
@@ -49,7 +49,7 @@ export async function saveProjectEstimate(
     category: item.category,
     labour: item.labour,
     materials: item.materials,
-    total: item.total,
+    total_cost: item.total,
     weeks: item.weeks,
   }));
 
