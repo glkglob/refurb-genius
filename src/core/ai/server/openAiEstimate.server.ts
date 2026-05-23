@@ -123,7 +123,7 @@ interface AIGeneratedRoom {
   }>;
 }
 
-Return ONLY the JSON array. No markdown fences, no explanation.`;
+Return ONLY valid JSON as { "rooms": [...] }. No markdown fences, no explanation.`;
 }
 
 // ──────────────────────────────────────────────────────────────
@@ -333,13 +333,16 @@ export async function runSecureEstimateGeneration(
     const raw = data.choices?.[0]?.message?.content ?? "";
     if (!raw) throw new Error("Empty response from OpenAI");
 
-    const parsed = parseGptJson(raw) as Record<string, unknown>;
+    const parsed: unknown = parseGptJson(raw);
 
     // Accept { rooms: [...] } or a raw array
     const rawRooms = Array.isArray(parsed)
       ? parsed
-      : Array.isArray(parsed.rooms)
-        ? parsed.rooms
+      : typeof parsed === "object" &&
+          parsed !== null &&
+          "rooms" in parsed &&
+          Array.isArray((parsed as Record<string, unknown>).rooms)
+        ? ((parsed as Record<string, unknown>).rooms as unknown[])
         : null;
     if (!rawRooms) {
       throw new Error("Response did not contain a rooms array");

@@ -2,7 +2,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import type { EstimateCategory, FinishLevel, PricingEngineResult } from "@/core/pricing";
 import type { ConditionLevel } from "@/core/ai";
-import type { AIGeneratedRoom } from "@/core/ai/server/openAiEstimate.server";
 import type { CalculatedLineItem } from "@/core/pricing";
 import type { UKRegion } from "./projects";
 import { auth } from "./auth";
@@ -200,14 +199,35 @@ export async function saveAIEstimate(input: SaveAIEstimateInput): Promise<Persis
     .select();
 
   if (roomsError) {
-    // Rollback estimate on failure
-    await supabase.from("estimates").delete().eq("id", estimate.id);
+    const { error: rollbackError } = await supabase
+      .from("estimates")
+      .delete()
+      .eq("id", estimate.id);
+
+    if (rollbackError) {
+      console.error("Failed to rollback estimate after rooms insert failure.", {
+        estimateId: estimate.id,
+        projectId: input.projectId,
+        roomsInsertError: roomsError.message,
+        rollbackError: rollbackError.message,
+      });
+      throw new Error(
+        `Failed to save rooms: ${roomsError.message}. Rollback also failed for estimate ${estimate.id}: ${rollbackError.message}`,
+      );
+    }
+
     throw new Error(roomsError.message);
   }
 
   // 3. Create items for each room
+  // Build a lookup keyed by display_order so we don't rely on insert order
+  const roomsByDisplayOrder = new Map(rooms.map((r) => [r.display_order, r]));
+
   const itemInserts = input.rooms.flatMap((room, roomIdx) => {
-    const dbRoom = rooms[roomIdx];
+    const dbRoom = roomsByDisplayOrder.get(roomIdx);
+    if (!dbRoom) {
+      throw new Error(`Room at display_order=${roomIdx} not found in DB response`);
+    }
     return room.items.map((item, itemIdx) => ({
       estimate_id: estimate.id,
       room_id: dbRoom.id,
@@ -239,7 +259,23 @@ export async function saveAIEstimate(input: SaveAIEstimateInput): Promise<Persis
 
   if (itemsError) {
     // Cascade: deleting estimate also deletes rooms (FK CASCADE)
-    await supabase.from("estimates").delete().eq("id", estimate.id);
+    const { error: rollbackError } = await supabase
+      .from("estimates")
+      .delete()
+      .eq("id", estimate.id);
+
+    if (rollbackError) {
+      console.error("Failed to rollback estimate after items insert failure.", {
+        estimateId: estimate.id,
+        projectId: input.projectId,
+        itemsInsertError: itemsError.message,
+        rollbackError: rollbackError.message,
+      });
+      throw new Error(
+        `Failed to save items: ${itemsError.message}. Rollback also failed for estimate ${estimate.id}: ${rollbackError.message}`,
+      );
+    }
+
     throw new Error(itemsError.message);
   }
 

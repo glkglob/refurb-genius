@@ -228,20 +228,14 @@ export type CalculatedLineItem = AILineItemInput & {
 };
 
 /** Apply a regional multiplier to a base-cost line item. */
-export function calculateLineItem(
-  item: AILineItemInput,
-  multiplier: number,
-): CalculatedLineItem {
+export function calculateLineItem(item: AILineItemInput, multiplier: number): CalculatedLineItem {
   const unit_cost = Math.round(item.base_unit_cost * multiplier * 100) / 100;
   const total_cost = Math.round(item.quantity * unit_cost * 100) / 100;
   return { ...item, unit_cost, total_cost };
 }
 
 /** Subtotal + VAT for a flat list of already-calculated items. */
-export function calculateEstimateTotals(
-  items: CalculatedLineItem[],
-  vatRate = 20,
-) {
+export function calculateEstimateTotals(items: CalculatedLineItem[], vatRate = 20) {
   const subtotal = items.reduce((s, i) => s + i.total_cost, 0);
   const vat_amount = Math.round(subtotal * (vatRate / 100) * 100) / 100;
   const total = Math.round((subtotal + vat_amount) * 100) / 100;

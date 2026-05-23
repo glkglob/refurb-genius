@@ -1,17 +1,16 @@
-// AI surface: photo analysis, redesign concepts, summary wording.
-// Mock today, real models tomorrow — UI imports only from here.
+// AI surface: photo analysis, redesign concepts, summary wording, and
+// AI-generated refurbishment estimates. Mock today, real models tomorrow —
+// UI imports only from here.
 //
-// Boundary: AI generates language and visuals. AI does NOT generate
-// pricing, ROI, or any financial number. Money lives in `@/core/pricing`
-// and `@/core/roi`.
+// Boundary: AI generates language, visuals, and line-item estimate
+// suggestions (base costs). Financial calculations (regional adjustment,
+// ROI, profit) still live in `@/core/pricing` and `@/core/roi`.
 //
 // TODO(deal-copilot): listing parsing, deal narratives, and inbox triage
-// extend this module via new providers. They must stay language/vision
-// only — financial figures still come from the pricing and ROI engines.
+// extend this module via new providers.
 //
 // TODO(refurb-iq): specification writer, scope-of-works prose, and snag
-// descriptions extend this module via new providers. AI writes prose;
-// quantities, rates, and totals stay deterministic in `@/core/pricing`.
+// descriptions extend this module via new providers.
 
 export {
   photoAnalysisProvider,
