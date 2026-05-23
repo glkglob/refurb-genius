@@ -6,6 +6,7 @@ import type { RedesignConcept, RedesignStyle } from "@/lib/redesign";
 import { captureAiError, addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
 import { incrementCounter } from "@/lib/provider-diagnostics";
+import { timeoutPromise, isTimeoutError } from "@/lib/timeout";
 
 const TEXT_GENERATION_TIMEOUT_MS = 30_000;
 
@@ -53,15 +54,6 @@ function parseGptJson(text: string): unknown {
   return JSON.parse(inner);
 }
 
-async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`Timeout: ${label} (${ms}ms)`)), ms),
-    ),
-  ]);
-}
-
 async function generateConceptText(
   apiKey: string,
   style: RedesignStyle,
@@ -70,7 +62,7 @@ async function generateConceptText(
   try {
     const context = buildAnalysisContext(analyses);
 
-    const response = await withTimeout(
+    const response = await timeoutPromise(
       fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -123,7 +115,7 @@ async function generateConceptText(
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
 
-    if (errorMsg.includes("Timeout")) {
+    if (isTimeoutError(err)) {
       incrementCounter("redesign_timeout");
     } else if (errorMsg.includes("parse") || errorMsg.includes("JSON")) {
       incrementCounter("redesign_parse_failure");
@@ -138,7 +130,7 @@ async function generateConceptText(
 
     captureAiError(err, {
       provider: "gpt-4o-text",
-      reason: errorMsg.includes("Timeout") ? "timeout" : "api_error",
+      reason: isTimeoutError(err) ? "timeout" : "api_error",
     });
 
     return null;
@@ -155,6 +147,11 @@ export async function runSecureRedesignGeneration(input: {
   const analyses = input.analyses ?? [];
 
   if (!apiKey) {
+    if (process.env.NODE_ENV === "production") {
+      const err = new Error("OPENAI_API_KEY is not configured");
+      captureAiError(err, { provider: "gpt-4o-text", reason: "api_error" });
+      throw err;
+    }
     incrementCounter("redesign_fallback_used");
     return buildStaticConcepts(styles);
   }

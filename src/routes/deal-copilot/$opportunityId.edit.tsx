@@ -1,15 +1,12 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Save } from "lucide-react";
 
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  opportunityStore,
-  updateDealOpportunity,
-  type DealOpportunityStatus,
-} from "@/core/dealCopilot";
+import { type DealOpportunityStatus } from "@/core/dealCopilot";
+import { useOpportunity, useUpdateOpportunity } from "@/hooks/useOpportunities";
 
 export const Route = createFileRoute("/deal-copilot/$opportunityId/edit")({
   head: () => ({
@@ -32,16 +29,8 @@ function EditDealOpportunity() {
 function EditDealOpportunityContent() {
   const navigate = useNavigate();
   const { opportunityId } = Route.useParams();
-  const {
-    opportunities,
-    loaded,
-    error: loadError,
-  } = useSyncExternalStore(
-    opportunityStore.subscribe,
-    opportunityStore.getSnapshot,
-    opportunityStore.getSnapshot,
-  );
-  const opportunity = opportunities.find((o) => o.id === opportunityId) ?? null;
+  const { data: opportunity, isLoading, error: loadError } = useOpportunity(opportunityId);
+  const updateOpportunity = useUpdateOpportunity();
   const opportunityKey = opportunity?.id;
   const opportunityStatus = opportunity?.status;
   const [status, setStatus] = useState<DealOpportunityStatus>("sourced");
@@ -51,7 +40,7 @@ function EditDealOpportunityContent() {
     if (opportunityStatus) setStatus(opportunityStatus);
   }, [opportunityKey, opportunityStatus]);
 
-  if (!loaded) {
+  if (isLoading) {
     return (
       <AppLayout title="Loading…" subtitle="Fetching opportunity from your account.">
         <Card>
@@ -68,17 +57,6 @@ function EditDealOpportunityContent() {
       <AppLayout
         title="Unable to load opportunity"
         subtitle="There was a problem loading your saved opportunities."
-        actions={
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              void opportunityStore.refresh();
-            }}
-          >
-            Retry
-          </Button>
-        }
       >
         <Card>
           <CardContent className="p-6">
@@ -117,21 +95,22 @@ function EditDealOpportunityContent() {
     );
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    try {
-      const updated = await updateDealOpportunity(opportunityId, { status });
-      if (!updated) {
-        setUpdateError("This opportunity no longer exists.");
-        return;
-      }
-      await navigate({
-        to: "/deal-copilot/$opportunityId",
-        params: { opportunityId: updated.id },
-      });
-    } catch (err) {
-      setUpdateError(err instanceof Error ? err.message : "Unable to update this opportunity.");
-    }
+    updateOpportunity.mutate(
+      { id: opportunityId, updates: { status } },
+      {
+        onSuccess: (updated) => {
+          navigate({
+            to: "/deal-copilot/$opportunityId",
+            params: { opportunityId: updated.id },
+          });
+        },
+        onError: (err) => {
+          setUpdateError(err instanceof Error ? err.message : "Unable to update this opportunity.");
+        },
+      },
+    );
   }
 
   return (

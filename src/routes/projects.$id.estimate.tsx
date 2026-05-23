@@ -1,8 +1,7 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, useSyncExternalStore, type MouseEvent } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/LoadingState";
-import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,10 +27,10 @@ import {
   Percent,
   Gauge,
   ShieldAlert,
-  AlertCircle,
 } from "lucide-react";
-import { projectStore, type Project, type UKRegion } from "@/core/projects";
+import { type UKRegion } from "@/core/projects";
 import { type ConditionLevel } from "@/core/ai";
+import { useProject, useSetProjectStage, type ProjectWithProgress } from "@/hooks/useProjects";
 import {
   runPricingEngine,
   formatGBP,
@@ -63,14 +62,9 @@ const DEFAULT_CATEGORIES: EstimateCategory[] = [
 
 function EstimatePage() {
   const { id } = Route.useParams();
-  const snapshot = useSyncExternalStore(
-    projectStore.subscribe,
-    projectStore.getSnapshot,
-    projectStore.getSnapshot,
-  );
-  const project = snapshot.projects.find((p) => p.id === id);
+  const { data: project, isLoading, error } = useProject(id);
 
-  if (snapshot.loading || !snapshot.loaded) {
+  if (isLoading) {
     return (
       <AppLayout title="Cost estimate" subtitle="Loading project details…">
         <LoadingState label="Loading project…" />
@@ -78,15 +72,17 @@ function EstimatePage() {
     );
   }
 
-  if (snapshot.error) {
+  if (error) {
     return (
       <AppLayout title="Cost estimate" subtitle="Failed to load project">
-        <EmptyState
-          icon={AlertCircle}
-          title="Failed to load project"
-          description="We couldn't load this project. Please try again or contact support if the problem persists."
-          action={<Button onClick={() => projectStore.refresh()}>Try again</Button>}
-        />
+        <Card>
+          <CardContent className="flex flex-col gap-4 p-6">
+            <p className="text-sm font-medium text-foreground">Failed to load project details.</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {error.message ?? "Please try again."}
+            </p>
+          </CardContent>
+        </Card>
       </AppLayout>
     );
   }
@@ -96,8 +92,9 @@ function EstimatePage() {
   return <EstimateContent id={id} project={project} />;
 }
 
-function EstimateContent({ id, project }: { id: string; project: Project }) {
+function EstimateContent({ id, project }: { id: string; project: ProjectWithProgress }) {
   const navigate = useNavigate();
+  const setStage = useSetProjectStage();
 
   const [region, setRegion] = useState<UKRegion>(project.region);
   const [condition, setCondition] = useState<ConditionLevel>("Dated");
@@ -165,7 +162,7 @@ function EstimateContent({ id, project }: { id: string; project: Project }) {
         await saveProjectEstimate(id, result);
       }
 
-      projectStore.setStage(id, "estimate", true);
+      setStage.mutate({ id, stage: "estimate", value: true });
       navigate({ to: "/projects/$id/report", params: { id } });
     } catch (err) {
       console.error("[estimates] save failed", err);

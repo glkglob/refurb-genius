@@ -17,6 +17,7 @@ export {
   photoAnalysisProvider,
   mockPhotoAnalysisProvider,
   getPhotoAnalysis,
+  loadPhotoAnalysis,
   runPhotoAnalysis,
   subscribePhotoAnalysis,
 } from "./photoAnalysis";

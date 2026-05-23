@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,8 +21,9 @@ import {
 import { addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { ReportSection as Section } from "@/components/ReportSection";
 import { EstimateTable } from "@/components/EstimateTable";
-import { projectStore, photoStore } from "@/core/projects";
 import { getPhotoAnalysis, runPhotoAnalysis, type RoomAnalysis } from "@/core/ai";
+import { useProject, useSetProjectStage } from "@/hooks/useProjects";
+import { usePhotos } from "@/hooks/usePhotos";
 import { formatGBP } from "@/core/pricing";
 import { buildReport } from "@/core/reports";
 import {
@@ -38,12 +39,9 @@ export const Route = createFileRoute("/projects/$id/report")({
 
 function ReportPage() {
   const { id } = Route.useParams();
-  const snapshot = useSyncExternalStore(
-    projectStore.subscribe,
-    projectStore.getSnapshot,
-    projectStore.getSnapshot,
-  );
-  const project = snapshot.projects.find((p) => p.id === id);
+  const { data: project, isLoading: projectLoading, error: projectError } = useProject(id);
+  const { data: photos = [] } = usePhotos(id);
+  const setStage = useSetProjectStage();
   const [analysis, setAnalysis] = useState<RoomAnalysis[]>(() => getPhotoAnalysis(id) ?? []);
   const analysisProjectIdRef = useRef(id);
   const [savedEstimate, setSavedEstimate] = useState<PersistedProjectEstimate | null>(null);
@@ -121,7 +119,7 @@ function ReportPage() {
         loadAnalysis();
       }
 
-      projectStore.setStage(id, "report", true);
+      if (!project.report_done) setStage.mutate({ id, stage: "report", value: true });
       return () => {
         cancelled = true;
       };
@@ -135,14 +133,13 @@ function ReportPage() {
       }
     }
 
-    projectStore.setStage(id, "report", true);
+    if (!project.report_done) setStage.mutate({ id, stage: "report", value: true });
 
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, project, analysis.length]);
-
-  const photos = photoStore.list(id);
 
   useEffect(() => {
     let cancelled = false;
@@ -223,7 +220,7 @@ function ReportPage() {
   const concepts = report?.sections.redesign_concepts.body.concepts ?? [];
   const disclaimerText = report?.sections.disclaimer.body.text ?? "";
 
-  if (snapshot.loading || !snapshot.loaded) {
+  if (projectLoading) {
     return (
       <RequireAuth>
         <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
@@ -233,7 +230,7 @@ function ReportPage() {
     );
   }
 
-  if (snapshot.error) {
+  if (projectError) {
     return (
       <RequireAuth>
         <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
@@ -241,7 +238,6 @@ function ReportPage() {
             icon={AlertCircle}
             title="Failed to load project"
             description="We couldn't load this project. Please try again or contact support if the problem persists."
-            action={<Button onClick={() => projectStore.refresh()}>Try again</Button>}
           />
         </div>
       </RequireAuth>

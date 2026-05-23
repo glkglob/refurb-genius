@@ -1,4 +1,3 @@
-import { useSyncExternalStore } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, BrainCircuit, LineChart, ShieldAlert } from "lucide-react";
 
@@ -8,8 +7,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { opportunityStore } from "@/core/dealCopilot";
 import { PRODUCTS } from "@/core/platform";
+import { useOpportunities } from "@/hooks/useOpportunities";
 
 export const Route = createFileRoute("/deal-copilot/")({
   head: () => ({
@@ -23,11 +22,7 @@ function DealCopilotIndex() {
 }
 
 function DealCopilotIndexContent() {
-  const { opportunities, loading, loaded, error } = useSyncExternalStore(
-    opportunityStore.subscribe,
-    opportunityStore.getSnapshot,
-    opportunityStore.getSnapshot,
-  );
+  const { data: opportunities = [], isLoading, error } = useOpportunities();
 
   return (
     <AppLayout
@@ -84,7 +79,7 @@ function DealCopilotIndexContent() {
           <p className="mt-1 text-sm text-muted-foreground">Opportunities saved to your account.</p>
         </div>
 
-        {!loaded || loading ? (
+        {isLoading ? (
           <div className="mt-6">
             <LoadingState label="Loading opportunities…" />
           </div>
@@ -93,15 +88,6 @@ function DealCopilotIndexContent() {
             <p className="text-sm text-destructive">
               Could not load your opportunities. Please try again.
             </p>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                void opportunityStore.refresh();
-              }}
-            >
-              Retry
-            </Button>
           </div>
         ) : opportunities.length === 0 ? (
           <div className="mt-6">

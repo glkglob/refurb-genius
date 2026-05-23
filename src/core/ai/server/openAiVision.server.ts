@@ -11,6 +11,7 @@ import { buildMockRoomAnalyses } from "../mockAnalysis";
 import { captureAiError, addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
 import { incrementCounter } from "@/lib/provider-diagnostics";
+import { timeoutPromise, isTimeoutError } from "@/lib/timeout";
 
 const AI_ANALYSIS_TIMEOUT_MS = 60_000;
 
@@ -99,15 +100,6 @@ function parseGptJson(text: string): unknown {
   return JSON.parse(inner);
 }
 
-async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(`Timeout: ${label} (${ms}ms)`)), ms),
-    ),
-  ]);
-}
-
 async function analysePhoto(apiKey: string, photo: AnalysisPhotoSource): Promise<RoomAnalysis> {
   try {
     addDiagnosticBreadcrumb("ai:gpt4o:analyze:start", {
@@ -116,7 +108,7 @@ async function analysePhoto(apiKey: string, photo: AnalysisPhotoSource): Promise
       timeout: AI_ANALYSIS_TIMEOUT_MS,
     });
 
-    const response = await withTimeout(
+    const response = await timeoutPromise(
       fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -185,7 +177,7 @@ async function analysePhoto(apiKey: string, photo: AnalysisPhotoSource): Promise
     let reason: "timeout" | "rate_limit" | "parse_error" | "api_error" = "api_error";
     const errorMsg = err instanceof Error ? err.message : String(err);
 
-    if (errorMsg.includes("Timeout")) {
+    if (isTimeoutError(err)) {
       reason = "timeout";
       incrementCounter("vision_timeout");
     } else if (errorMsg.includes("rate_limit") || errorMsg.includes("429")) {
@@ -226,7 +218,17 @@ export async function runSecurePhotoAnalysis(input: {
   const photos = input.photos.length > 0 ? input.photos : undefined;
   const apiKey = process.env.OPENAI_API_KEY;
 
-  if (!apiKey || !photos?.length) {
+  if (!apiKey) {
+    if (process.env.NODE_ENV === "production") {
+      const err = new Error("OPENAI_API_KEY is not configured");
+      captureAiError(err, { provider: "gpt-4o-vision", reason: "api_error" });
+      throw err;
+    }
+    incrementCounter("vision_fallback_used");
+    return buildMockRoomAnalyses(photos);
+  }
+
+  if (!photos?.length) {
     incrementCounter("vision_fallback_used");
     return buildMockRoomAnalyses(photos);
   }

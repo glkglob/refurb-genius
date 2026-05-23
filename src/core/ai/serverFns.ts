@@ -5,7 +5,7 @@ import { REDESIGN_STYLES } from "@/lib/redesign";
 
 const photoInputSchema = z.object({
   id: z.string().min(1),
-  url: z.string().min(1),
+  url: z.string().url(),
   name: z.string().min(1),
   size: z.number().nonnegative().optional(),
 });
@@ -34,9 +34,35 @@ const runRedesignInputSchema = z.object({
   analyses: z.array(roomAnalysisSchema).optional(),
 });
 
+async function requireServerAuth(): Promise<void> {
+  const { getCookies } = await import("@tanstack/react-start/server");
+  const { createServerClient } = await import("@supabase/ssr");
+  const { assertSupabaseConfigured } = await import("@/core/config/env");
+
+  const { supabaseUrl, supabaseAnonKey } = assertSupabaseConfigured();
+  const cookies = getCookies();
+
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return Object.entries(cookies).map(([name, value]) => ({ name, value }));
+      },
+    },
+  });
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) {
+    throw new Error("Unauthorized: you must be signed in to use AI features.");
+  }
+}
+
 export const runPhotoAnalysisServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => runPhotoAnalysisInputSchema.parse(input))
   .handler(async ({ data }) => {
+    await requireServerAuth();
     const { runSecurePhotoAnalysis } = await import("./server/openAiVision.server");
     return runSecurePhotoAnalysis(data);
   });
@@ -44,6 +70,7 @@ export const runPhotoAnalysisServerFn = createServerFn({ method: "POST" })
 export const generateRedesignConceptsServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => runRedesignInputSchema.parse(input))
   .handler(async ({ data }) => {
+    await requireServerAuth();
     const { runSecureRedesignGeneration } = await import("./server/openAiRedesign.server");
     return runSecureRedesignGeneration(data);
   });

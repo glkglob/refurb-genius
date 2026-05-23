@@ -4,8 +4,6 @@ import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  projectStore,
-  calculateProjectProgress,
   estimatedRefurbCost,
   estimatedProfit,
   type ProjectStage,
@@ -23,8 +21,9 @@ import {
   Bath,
   Ruler,
   Home,
+  AlertCircle,
 } from "lucide-react";
-import { useSyncExternalStore } from "react";
+import { useProject, useProjectProgress } from "@/hooks/useProjects";
 
 export const Route = createFileRoute("/projects/$id/")({
   head: () => ({ meta: [{ title: "Project — Refurb Genius" }] }),
@@ -33,14 +32,10 @@ export const Route = createFileRoute("/projects/$id/")({
 
 function ProjectDetail() {
   const { id } = Route.useParams();
-  const snapshot = useSyncExternalStore(
-    projectStore.subscribe,
-    projectStore.getSnapshot,
-    projectStore.getSnapshot,
-  );
-  const project = snapshot.projects.find((p) => p.id === id);
+  const { data: project, isLoading: projectLoading, error: projectError } = useProject(id);
+  const progress = useProjectProgress(id);
 
-  if (snapshot.loading || !snapshot.loaded) {
+  if (projectLoading) {
     return (
       <AppLayout title="Project" subtitle="Loading project details…">
         <LoadingState label="Loading project…" />
@@ -48,7 +43,7 @@ function ProjectDetail() {
     );
   }
 
-  if (snapshot.error) {
+  if (projectError) {
     return (
       <AppLayout title="Project" subtitle="We couldn't load this project.">
         <Card>
@@ -56,11 +51,8 @@ function ProjectDetail() {
             <div>
               <p className="text-sm font-medium text-foreground">Failed to load project details.</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {snapshot.error ?? "Please try again."}
+                {projectError.message ?? "Please try again."}
               </p>
-            </div>
-            <div>
-              <Button onClick={() => projectStore.refresh()}>Retry</Button>
             </div>
           </CardContent>
         </Card>
@@ -69,8 +61,6 @@ function ProjectDetail() {
   }
 
   if (!project) return <Navigate to="/dashboard" />;
-
-  const progress = calculateProjectProgress(id);
 
   const workflow: {
     stage: ProjectStage;

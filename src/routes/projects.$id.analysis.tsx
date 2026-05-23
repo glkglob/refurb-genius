@@ -7,18 +7,19 @@ import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import { AnalysisCard } from "@/components/AnalysisCard";
 import { RedesignCard } from "@/components/RedesignCard";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { Sparkles, ArrowRight, AlertCircle } from "lucide-react";
 import {
   getPhotoAnalysis,
+  loadPhotoAnalysis,
   runPhotoAnalysis,
   type RoomAnalysis,
   generateRedesignConcepts,
 } from "@/core/ai";
 import type { RedesignConcept } from "@/core/ai";
-import { projectStore } from "@/core/projects";
 import { DISCLAIMER } from "@/core/reports";
 import { REDESIGN_CONCEPTS } from "@/core/ai";
+import { useProject, useSetProjectStage } from "@/hooks/useProjects";
 
 export const Route = createFileRoute("/projects/$id/analysis")({
   head: () => ({ meta: [{ title: "AI analysis — Refurb Genius" }] }),
@@ -27,12 +28,8 @@ export const Route = createFileRoute("/projects/$id/analysis")({
 
 function AnalysisPage() {
   const { id } = Route.useParams();
-  const snapshot = useSyncExternalStore(
-    projectStore.subscribe,
-    projectStore.getSnapshot,
-    projectStore.getSnapshot,
-  );
-  const project = snapshot.projects.find((p) => p.id === id);
+  const { data: project, isLoading: projectLoading, error: projectError } = useProject(id);
+  const setStage = useSetProjectStage();
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<RoomAnalysis[]>([]);
   const [concepts, setConcepts] = useState<RedesignConcept[]>(REDESIGN_CONCEPTS);
@@ -51,13 +48,11 @@ function AnalysisPage() {
     setLoading(true);
     setConcepts(REDESIGN_CONCEPTS);
 
-    const cached = getPhotoAnalysis(id);
-
     const afterAnalysis = (r: RoomAnalysis[]) => {
       if (cancelled) return;
       setResults(r);
       setLoading(false);
-      projectStore.setStage(id, "analysis", true);
+      setStage.mutate({ id, stage: "analysis", value: true });
 
       setConceptsLoading(true);
       generateRedesignConcepts({ projectId: id })
@@ -71,6 +66,7 @@ function AnalysisPage() {
         });
     };
 
+    const cached = getPhotoAnalysis(id);
     if (cached?.length) {
       afterAnalysis(cached);
       return () => {
@@ -78,14 +74,22 @@ function AnalysisPage() {
       };
     }
 
-    runPhotoAnalysis({ projectId: id }).then(afterAnalysis);
+    loadPhotoAnalysis(id).then((persisted) => {
+      if (cancelled) return;
+      if (persisted?.length) {
+        afterAnalysis(persisted);
+        return;
+      }
+      runPhotoAnalysis({ projectId: id }).then(afterAnalysis);
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [id, project]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, project?.id]);
 
-  if (snapshot.loading || !snapshot.loaded) {
+  if (projectLoading) {
     return (
       <AppLayout title="AI analysis" subtitle="Loading project details…">
         <LoadingState label="Loading project…" />
@@ -93,14 +97,13 @@ function AnalysisPage() {
     );
   }
 
-  if (snapshot.error) {
+  if (projectError) {
     return (
       <AppLayout title="AI analysis" subtitle="Failed to load project">
         <EmptyState
           icon={AlertCircle}
           title="Failed to load project"
           description="We couldn't load this project. Please try again or contact support if the problem persists."
-          action={<Button onClick={() => projectStore.refresh()}>Try again</Button>}
         />
       </AppLayout>
     );

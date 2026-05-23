@@ -15,7 +15,8 @@ import {
 import { useState, type FormEvent } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
 import { PROPERTY_TYPES, UK_REGIONS } from "@/core/constants";
-import { createProject, type PropertyType, type UKRegion } from "@/core/projects";
+import { type PropertyType, type UKRegion } from "@/core/projects";
+import { useCreateProject } from "@/hooks/useProjects";
 
 export const Route = createFileRoute("/projects/new")({
   head: () => ({ meta: [{ title: "New project — Refurb Genius" }] }),
@@ -26,7 +27,7 @@ const UK_POSTCODE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
 
 function NewProject() {
   const navigate = useNavigate();
-  const [submitting, setSubmitting] = useState(false);
+  const createProject = useCreateProject();
   const [error, setError] = useState<string | null>(null);
 
   const [name, setName] = useState("");
@@ -41,7 +42,7 @@ function NewProject() {
   const [estimatedGdv, setEstimatedGdv] = useState("");
   const [notes, setNotes] = useState("");
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -63,9 +64,8 @@ function NewProject() {
     if (!Number.isFinite(price) || price <= 0) return setError("Enter a valid purchase price.");
     if (!Number.isFinite(gdv) || gdv <= 0) return setError("Enter a valid estimated GDV.");
 
-    setSubmitting(true);
-    try {
-      const project = await createProject({
+    createProject.mutate(
+      {
         name: name.trim(),
         address: address.trim(),
         postcode: postcode.trim().toUpperCase(),
@@ -77,12 +77,16 @@ function NewProject() {
         purchase_price: price,
         estimated_gdv: gdv,
         notes: notes.trim(),
-      });
-      navigate({ to: "/projects/$id", params: { id: project.id } });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create project.");
-      setSubmitting(false);
-    }
+      },
+      {
+        onSuccess: (project) => {
+          navigate({ to: "/projects/$id", params: { id: project.id } });
+        },
+        onError: (err) => {
+          setError(err instanceof Error ? err.message : "Could not create project.");
+        },
+      },
+    );
   };
 
   return (
@@ -247,13 +251,13 @@ function NewProject() {
                 type="button"
                 variant="outline"
                 onClick={() => navigate({ to: "/dashboard" })}
-                disabled={submitting}
+                disabled={createProject.isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {submitting ? "Creating…" : "Create & continue"}
+              <Button type="submit" disabled={createProject.isPending}>
+                {createProject.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                {createProject.isPending ? "Creating…" : "Create & continue"}
               </Button>
             </div>
           </form>

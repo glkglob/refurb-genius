@@ -1,12 +1,11 @@
-import { useSyncExternalStore } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, ExternalLink, Pencil } from "lucide-react";
 
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { opportunityStore } from "@/core/dealCopilot";
 import { formatGBP } from "@/lib/utils";
+import { useOpportunity } from "@/hooks/useOpportunities";
 
 export const Route = createFileRoute("/deal-copilot/$opportunityId")({
   head: () => ({
@@ -14,21 +13,6 @@ export const Route = createFileRoute("/deal-copilot/$opportunityId")({
   }),
   component: DealOpportunityDetail,
 });
-
-function toSafeExternalUrl(value: string | undefined) {
-  if (!value) return null;
-
-  try {
-    const parsedUrl = new URL(value);
-    if (parsedUrl.protocol === "http:" || parsedUrl.protocol === "https:") {
-      return parsedUrl.toString();
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
 
 function getSafeListingUrl(listingUrl: string | undefined): string | null {
   if (!listingUrl) {
@@ -54,14 +38,9 @@ function DealOpportunityDetail() {
 
 function DealOpportunityDetailContent() {
   const { opportunityId } = Route.useParams();
-  const { opportunities, loaded, error } = useSyncExternalStore(
-    opportunityStore.subscribe,
-    opportunityStore.getSnapshot,
-    opportunityStore.getSnapshot,
-  );
-  const opportunity = opportunities.find((o) => o.id === opportunityId) ?? null;
+  const { data: opportunity, isLoading, error } = useOpportunity(opportunityId);
 
-  if (!loaded) {
+  if (isLoading) {
     return (
       <AppLayout title="Loading…" subtitle="Fetching opportunity from your account.">
         <Card>
@@ -78,17 +57,6 @@ function DealOpportunityDetailContent() {
       <AppLayout
         title="Unable to load opportunity"
         subtitle="There was a problem loading your saved opportunities."
-        actions={
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => {
-              void opportunityStore.refresh();
-            }}
-          >
-            Retry
-          </Button>
-        }
       >
         <Card>
           <CardContent className="p-6">

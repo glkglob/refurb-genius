@@ -7,8 +7,6 @@ const isDev = import.meta.env.DEV;
 function createSupabaseClient() {
   const { supabaseUrl, supabaseAnonKey } = assertSupabaseConfigured();
 
-  console.log("[Supabase] init:", { configured: true });
-
   return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookieOptions: {
       name: "pip-auth",

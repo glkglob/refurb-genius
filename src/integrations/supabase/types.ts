@@ -239,6 +239,65 @@ export type Database = {
         };
         Relationships: [];
       };
+      room_analyses: {
+        Row: {
+          id: string;
+          project_id: string;
+          user_id: string;
+          photo_id: string | null;
+          photo_url: string;
+          photo_name: string;
+          room_type: string;
+          condition_level: string;
+          refurbishment_level: string;
+          visible_issues: string[];
+          recommended_works: string[];
+          ai_summary: string;
+          confidence_score: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          user_id: string;
+          photo_id?: string | null;
+          photo_url: string;
+          photo_name: string;
+          room_type: string;
+          condition_level: string;
+          refurbishment_level: string;
+          visible_issues?: string[];
+          recommended_works?: string[];
+          ai_summary?: string;
+          confidence_score?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          user_id?: string;
+          photo_id?: string | null;
+          photo_url?: string;
+          photo_name?: string;
+          room_type?: string;
+          condition_level?: string;
+          refurbishment_level?: string;
+          visible_issues?: string[];
+          recommended_works?: string[];
+          ai_summary?: string;
+          confidence_score?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "room_analyses_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       projects: {
         Row: {
           address: string;

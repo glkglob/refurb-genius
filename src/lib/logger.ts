@@ -17,18 +17,25 @@ function formatLog(level: LogLevel, message: string, metadata?: LogMetadata): st
   return `[${timestamp}] [${level.toUpperCase()}] ${message}${meta}`;
 }
 
+let _debugCached: boolean | undefined;
+
+function isDebugMode(): boolean {
+  if (_debugCached !== undefined) return _debugCached;
+  if (typeof window !== "undefined") {
+    _debugCached = new URL(window.location.href).searchParams.has("debug");
+  } else {
+    _debugCached = false;
+  }
+  return _debugCached;
+}
+
 function shouldLog(level: LogLevel): boolean {
-  // Errors always logged in production.
   if (level === "error") return true;
 
-  // Info/warn suppressed in production (spam prevention).
-  // If you need to see info logs, set ?debug=1 in URL.
   if (typeof window !== "undefined") {
-    const debug = new URL(window.location.href).searchParams.has("debug");
-    return debug || !import.meta.env.PROD;
+    return isDebugMode() || !import.meta.env.PROD;
   }
 
-  // SSR: never log to avoid cluttering server output.
   return false;
 }
 

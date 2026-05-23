@@ -4,10 +4,11 @@ import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
-import { photoStore, formatFileSize } from "@/core/projects";
-import { projectStore } from "@/core/projects";
+import { formatFileSize } from "@/core/projects";
 import { Upload, ImagePlus, X, Sparkles, Loader2, AlertCircle, ArrowRight } from "lucide-react";
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useRef, useState } from "react";
+import { useProject, useSetProjectStage } from "@/hooks/useProjects";
+import { usePhotos, useUploadPhotos, useRemovePhoto } from "@/hooks/usePhotos";
 
 export const Route = createFileRoute("/projects/$id/upload")({
   head: () => ({ meta: [{ title: "Upload photos — Refurb Genius" }] }),
@@ -20,22 +21,15 @@ function UploadPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const snapshot = useSyncExternalStore(
-    projectStore.subscribe,
-    projectStore.getSnapshot,
-    projectStore.getSnapshot,
-  );
-  const project = snapshot.projects.find((p) => p.id === id);
-  const photos = useSyncExternalStore(
-    photoStore.subscribe,
-    () => photoStore.list(id),
-    () => photoStore.list(id),
-  );
+  const { data: project, isLoading: projectLoading, error: projectError } = useProject(id);
+  const { data: photos = [] } = usePhotos(id);
+  const uploadPhotos = useUploadPhotos(id);
+  const removePhoto = useRemovePhoto(id);
+  const setStage = useSetProjectStage();
 
-  if (snapshot.loading || !snapshot.loaded) {
+  if (projectLoading) {
     return (
       <AppLayout title="Upload photos" subtitle="Loading project details…">
         <LoadingState label="Loading project…" />
@@ -43,14 +37,13 @@ function UploadPage() {
     );
   }
 
-  if (snapshot.error) {
+  if (projectError) {
     return (
       <AppLayout title="Upload photos" subtitle="Failed to load project">
         <EmptyState
           icon={AlertCircle}
           title="Failed to load project"
           description="We couldn't load this project. Please try again or contact support if the problem persists."
-          action={<Button onClick={() => projectStore.refresh()}>Try again</Button>}
         />
       </AppLayout>
     );
@@ -72,21 +65,21 @@ function UploadPage() {
       return;
     }
     setError(null);
-    setUploading(true);
     try {
-      await photoStore.upload(id, files);
+      await uploadPhotos.mutateAsync(files);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
     } finally {
-      setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
     }
   };
 
   const handleAnalyse = () => {
-    projectStore.setStage(id, "photos", true);
+    setStage.mutate({ id, stage: "photos", value: true });
     navigate({ to: "/projects/$id/analysis", params: { id } });
   };
+
+  const uploading = uploadPhotos.isPending;
 
   return (
     <AppLayout
@@ -173,7 +166,7 @@ function UploadPage() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => photoStore.remove(id, p.id)}
+                          onClick={() => removePhoto.mutate(p.id)}
                           aria-label={`Remove ${p.name}`}
                           className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-background/90 text-foreground opacity-0 backdrop-blur transition-opacity hover:bg-destructive hover:text-destructive-foreground group-hover:opacity-100 focus:opacity-100"
                         >
