@@ -1,41 +1,23 @@
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 import type { Database } from "./types";
 import { assertSupabaseConfigured } from "@/core/config/env";
+
+const isDev = import.meta.env.DEV;
 
 function createSupabaseClient() {
   const { supabaseUrl, supabaseAnonKey } = assertSupabaseConfigured();
 
   console.log("[Supabase] init:", { configured: true });
 
-  // Wrap localStorage in a try/catch adapter so browser privacy settings
-  // (e.g. Safari ITP, blocked third-party storage) never crash the app.
-  const safeLocalStorage = {
-    getItem(key: string): string | null {
-      try {
-        return typeof window !== "undefined" ? window.localStorage.getItem(key) : null;
-      } catch {
-        return null;
-      }
+  return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
+    cookieOptions: {
+      name: "pip-auth",
+      ...(isDev ? {} : { domain: ".refurbgenius.space" }),
+      path: "/",
+      sameSite: "lax",
+      secure: !isDev,
     },
-    setItem(key: string, value: string): void {
-      try {
-        if (typeof window !== "undefined") window.localStorage.setItem(key, value);
-      } catch {
-        // Blocked by browser privacy settings — session will not persist.
-      }
-    },
-    removeItem(key: string): void {
-      try {
-        if (typeof window !== "undefined") window.localStorage.removeItem(key);
-      } catch {
-        // Blocked by browser privacy settings.
-      }
-    },
-  };
-
-  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: {
-      storage: safeLocalStorage,
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
