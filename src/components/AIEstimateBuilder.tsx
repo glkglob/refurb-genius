@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Sparkles, Trash2, Plus, Save, Loader2, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -134,13 +134,19 @@ export function AIEstimateBuilder({
   initialScopeRooms,
   onSaved,
 }: AIEstimateBuilderProps) {
-  // Pre-fill from scope analysis if provided, otherwise start empty
-  const initialLocal = initialScopeRooms?.length ? scopeRoomsToLocal(initialScopeRooms) : [];
+  // Pre-fill from scope analysis if provided, otherwise start empty.
+  // Lazy ref so scopeRoomsToLocal (which calls uid()) runs exactly once.
+  const initialLocalRef = useRef<LocalRoom[] | undefined>(undefined);
+  if (initialLocalRef.current === undefined) {
+    initialLocalRef.current = initialScopeRooms?.length ? scopeRoomsToLocal(initialScopeRooms) : [];
+  }
   const [region, setRegion] = useState<UKRegion>(initialRegion);
   const [condition, setCondition] = useState("Dated, needs full modernisation");
   const [requirements, setRequirements] = useState("");
-  const [rooms, setRooms] = useState<LocalRoom[]>(initialLocal);
-  const [openRooms, setOpenRooms] = useState<Set<string>>(new Set(initialLocal.map((r) => r.id)));
+  const [rooms, setRooms] = useState<LocalRoom[]>(initialLocalRef.current);
+  const [openRooms, setOpenRooms] = useState<Set<string>>(
+    () => new Set(initialLocalRef.current!.map((r) => r.id)),
+  );
   const [notes, setNotes] = useState("");
 
   const generate = useGenerateEstimate();
