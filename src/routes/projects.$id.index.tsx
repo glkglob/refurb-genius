@@ -3,11 +3,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  estimatedRefurbCost,
-  estimatedProfit,
-  type ProjectStage,
-} from "@/core/projects";
+import { estimatedRefurbCost, estimatedProfit, type ProjectStage } from "@/core/projects";
 import {
   Camera,
   Sparkles,

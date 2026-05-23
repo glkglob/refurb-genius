@@ -116,7 +116,15 @@ export function useCreateProject() {
 export function useSetProjectStage() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, stage, value }: { id: string; stage: ProjectStage; value: boolean }) => {
+    mutationFn: async ({
+      id,
+      stage,
+      value,
+    }: {
+      id: string;
+      stage: ProjectStage;
+      value: boolean;
+    }) => {
       const column =
         stage === "photos"
           ? { photos_done: value }

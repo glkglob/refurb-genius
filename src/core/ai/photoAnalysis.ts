@@ -67,9 +67,7 @@ export function getPhotoAnalysis(projectId: string): RoomAnalysis[] | undefined 
   return photoAnalysisProvider.get(projectId);
 }
 
-export async function loadPhotoAnalysis(
-  projectId: string,
-): Promise<RoomAnalysis[] | undefined> {
+export async function loadPhotoAnalysis(projectId: string): Promise<RoomAnalysis[] | undefined> {
   return analysisStore.load(projectId);
 }
 
