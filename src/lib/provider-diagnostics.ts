@@ -14,6 +14,12 @@ export interface ProviderDiagnostics {
   redesign_timeout: number;
   redesign_parse_failure: number;
   redesign_fallback_used: number;
+
+  estimate_ai_success: number;
+  estimate_timeout: number;
+  estimate_parse_failure: number;
+  estimate_rate_limit: number;
+  estimate_fallback_used: number;
 }
 
 const counters: ProviderDiagnostics = {
@@ -27,6 +33,12 @@ const counters: ProviderDiagnostics = {
   redesign_timeout: 0,
   redesign_parse_failure: 0,
   redesign_fallback_used: 0,
+
+  estimate_ai_success: 0,
+  estimate_timeout: 0,
+  estimate_parse_failure: 0,
+  estimate_rate_limit: 0,
+  estimate_fallback_used: 0,
 };
 
 export function incrementCounter(counter: keyof ProviderDiagnostics): void {

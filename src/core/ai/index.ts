@@ -41,6 +41,14 @@ export {
 } from "./aiSummaries";
 export type { AiSummariesProvider, ProjectSummaryInput } from "./aiSummaries";
 
+// AI estimate generation — server function for the estimate builder.
+export { generateEstimateServerFn } from "./serverFns";
+export type {
+  GenerateEstimateInput,
+  AIGeneratedRoom,
+  AIGeneratedItem,
+} from "./server/openAiEstimate.server";
+
 // Legacy exports — pages currently import these directly. New code should
 // prefer the provider helpers above.
 export { analysisStore, ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/lib/analysis";

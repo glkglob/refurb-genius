@@ -74,3 +74,26 @@ export const generateRedesignConceptsServerFn = createServerFn({ method: "POST" 
     const { runSecureRedesignGeneration } = await import("./server/openAiRedesign.server");
     return runSecureRedesignGeneration(data);
   });
+
+// ──────────────────────────────────────────────────────────────
+// AI estimate generation
+// ──────────────────────────────────────────────────────────────
+
+const generateEstimateInputSchema = z.object({
+  propertyType: z.string().min(1),
+  bedrooms: z.number().int().min(0).max(20),
+  bathrooms: z.number().int().min(0).max(10).optional(),
+  region: z.string().min(1),
+  postcode: z.string().optional(),
+  condition: z.string().min(1),
+  requirements: z.string(),
+  sizeSqm: z.number().positive().optional(),
+});
+
+export const generateEstimateServerFn = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => generateEstimateInputSchema.parse(input))
+  .handler(async ({ data }) => {
+    await requireServerAuth();
+    const { runSecureEstimateGeneration } = await import("./server/openAiEstimate.server");
+    return runSecureEstimateGeneration(data);
+  });

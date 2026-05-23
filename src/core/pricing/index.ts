@@ -11,6 +11,9 @@
 export {
   runPricingEngine,
   sizeMultiplier,
+  getRegionalMultiplier,
+  calculateLineItem,
+  calculateEstimateTotals,
   VAT_RATE,
   CONTINGENCY_RATE,
   REFERENCE_SIZE_SQM,
@@ -20,6 +23,8 @@ export type {
   PricingEngineResult,
   PricingLineItem,
   PricingEstimateItem,
+  AILineItemInput,
+  CalculatedLineItem,
 } from "./pricingEngine";
 
 // Legacy calculator + lookup tables kept for backwards compatibility with

@@ -199,6 +199,55 @@ function buildWarnings(inputs: PricingEngineInputs, sizeMult: number): string[] 
   return warnings;
 }
 
+// ──────────────────────────────────────────────────────────────
+// AI estimate helpers — per-item calculation for AI-generated rooms.
+// These use the same REGION_MULTIPLIERS as the deterministic engine
+// so all pricing flows stay consistent.
+// ──────────────────────────────────────────────────────────────
+
+/** Look up the regional multiplier for a UK region. Returns 1.0 for unknown. */
+export function getRegionalMultiplier(region: string): number {
+  return REGION_MULTIPLIERS[region as UKRegion] ?? 1.0;
+}
+
+/** A single AI-generated line item before regional adjustment. */
+export type AILineItemInput = {
+  name: string;
+  category?: string;
+  quantity: number;
+  unit?: string;
+  base_unit_cost: number;
+  notes?: string;
+};
+
+/** A line item after regional adjustment. */
+export type CalculatedLineItem = AILineItemInput & {
+  unit_cost: number;
+  total_cost: number;
+  is_ai_suggested?: boolean;
+};
+
+/** Apply a regional multiplier to a base-cost line item. */
+export function calculateLineItem(
+  item: AILineItemInput,
+  multiplier: number,
+): CalculatedLineItem {
+  const unit_cost = Math.round(item.base_unit_cost * multiplier * 100) / 100;
+  const total_cost = Math.round(item.quantity * unit_cost * 100) / 100;
+  return { ...item, unit_cost, total_cost };
+}
+
+/** Subtotal + VAT for a flat list of already-calculated items. */
+export function calculateEstimateTotals(
+  items: CalculatedLineItem[],
+  vatRate = 20,
+) {
+  const subtotal = items.reduce((s, i) => s + i.total_cost, 0);
+  const vat_amount = Math.round(subtotal * (vatRate / 100) * 100) / 100;
+  const total = Math.round((subtotal + vat_amount) * 100) / 100;
+  return { subtotal, vat_amount, total };
+}
+
 // Re-export shared lookup tables and types so callers have a single import.
 export { CATEGORY_BASE, REGION_MULTIPLIERS, CONDITION_MULTIPLIERS, FINISH_MULTIPLIERS };
 export type { EstimateCategory, FinishLevel };

@@ -76,7 +76,7 @@ export function captureUploadError(
 export function captureAiError(
   error: unknown,
   metadata?: {
-    provider?: "gpt-4o-vision" | "dall-e" | "gpt-4o-text" | "mock";
+    provider?: "gpt-4o-vision" | "gpt-4o-estimate" | "dall-e" | "gpt-4o-text" | "mock";
     projectId?: string;
     photoCount?: number;
     photoName?: string;
