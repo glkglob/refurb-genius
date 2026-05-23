@@ -29,6 +29,7 @@ import { Route as AuthCallbackRouteImport } from './routes/auth_.callback'
 import { Route as ProjectsIdIndexRouteImport } from './routes/projects.$id.index'
 import { Route as TradesJobIdEditRouteImport } from './routes/trades_.$jobId_.edit'
 import { Route as ProjectsIdUploadRouteImport } from './routes/projects.$id.upload'
+import { Route as ProjectsIdScopeRouteImport } from './routes/projects.$id.scope'
 import { Route as ProjectsIdReportRouteImport } from './routes/projects.$id.report'
 import { Route as ProjectsIdEstimateRouteImport } from './routes/projects.$id.estimate'
 import { Route as ProjectsIdAnalysisRouteImport } from './routes/projects.$id.analysis'
@@ -135,6 +136,11 @@ const ProjectsIdUploadRoute = ProjectsIdUploadRouteImport.update({
   path: '/projects/$id/upload',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProjectsIdScopeRoute = ProjectsIdScopeRouteImport.update({
+  id: '/projects/$id/scope',
+  path: '/projects/$id/scope',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProjectsIdReportRoute = ProjectsIdReportRouteImport.update({
   id: '/projects/$id/report',
   path: '/projects/$id/report',
@@ -179,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
   '/projects/$id/estimate': typeof ProjectsIdEstimateRoute
   '/projects/$id/report': typeof ProjectsIdReportRoute
+  '/projects/$id/scope': typeof ProjectsIdScopeRoute
   '/projects/$id/upload': typeof ProjectsIdUploadRoute
   '/trades/$jobId/edit': typeof TradesJobIdEditRoute
   '/projects/$id/': typeof ProjectsIdIndexRoute
@@ -205,6 +212,7 @@ export interface FileRoutesByTo {
   '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
   '/projects/$id/estimate': typeof ProjectsIdEstimateRoute
   '/projects/$id/report': typeof ProjectsIdReportRoute
+  '/projects/$id/scope': typeof ProjectsIdScopeRoute
   '/projects/$id/upload': typeof ProjectsIdUploadRoute
   '/trades/$jobId/edit': typeof TradesJobIdEditRoute
   '/projects/$id': typeof ProjectsIdIndexRoute
@@ -232,6 +240,7 @@ export interface FileRoutesById {
   '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
   '/projects/$id/estimate': typeof ProjectsIdEstimateRoute
   '/projects/$id/report': typeof ProjectsIdReportRoute
+  '/projects/$id/scope': typeof ProjectsIdScopeRoute
   '/projects/$id/upload': typeof ProjectsIdUploadRoute
   '/trades_/$jobId_/edit': typeof TradesJobIdEditRoute
   '/projects/$id/': typeof ProjectsIdIndexRoute
@@ -260,6 +269,7 @@ export interface FileRouteTypes {
     | '/projects/$id/analysis'
     | '/projects/$id/estimate'
     | '/projects/$id/report'
+    | '/projects/$id/scope'
     | '/projects/$id/upload'
     | '/trades/$jobId/edit'
     | '/projects/$id/'
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | '/projects/$id/analysis'
     | '/projects/$id/estimate'
     | '/projects/$id/report'
+    | '/projects/$id/scope'
     | '/projects/$id/upload'
     | '/trades/$jobId/edit'
     | '/projects/$id'
@@ -312,6 +323,7 @@ export interface FileRouteTypes {
     | '/projects/$id/analysis'
     | '/projects/$id/estimate'
     | '/projects/$id/report'
+    | '/projects/$id/scope'
     | '/projects/$id/upload'
     | '/trades_/$jobId_/edit'
     | '/projects/$id/'
@@ -338,6 +350,7 @@ export interface RootRouteChildren {
   ProjectsIdAnalysisRoute: typeof ProjectsIdAnalysisRoute
   ProjectsIdEstimateRoute: typeof ProjectsIdEstimateRoute
   ProjectsIdReportRoute: typeof ProjectsIdReportRoute
+  ProjectsIdScopeRoute: typeof ProjectsIdScopeRoute
   ProjectsIdUploadRoute: typeof ProjectsIdUploadRoute
   TradesJobIdEditRoute: typeof TradesJobIdEditRoute
   ProjectsIdIndexRoute: typeof ProjectsIdIndexRoute
@@ -485,6 +498,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProjectsIdUploadRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/projects/$id/scope': {
+      id: '/projects/$id/scope'
+      path: '/projects/$id/scope'
+      fullPath: '/projects/$id/scope'
+      preLoaderRoute: typeof ProjectsIdScopeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/projects/$id/report': {
       id: '/projects/$id/report'
       path: '/projects/$id/report'
@@ -551,6 +571,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProjectsIdAnalysisRoute: ProjectsIdAnalysisRoute,
   ProjectsIdEstimateRoute: ProjectsIdEstimateRoute,
   ProjectsIdReportRoute: ProjectsIdReportRoute,
+  ProjectsIdScopeRoute: ProjectsIdScopeRoute,
   ProjectsIdUploadRoute: ProjectsIdUploadRoute,
   TradesJobIdEditRoute: TradesJobIdEditRoute,
   ProjectsIdIndexRoute: ProjectsIdIndexRoute,
@@ -558,13 +579,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

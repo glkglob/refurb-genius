@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { type UKRegion } from "@/core/projects";
 import { type ConditionLevel } from "@/core/ai";
+import type { ScopeRoom } from "@/core/ai/server/openAiScopeAnalysis.server";
 import { useProject, useSetProjectStage, type ProjectWithProgress } from "@/hooks/useProjects";
 import {
   runPricingEngine,
@@ -53,6 +54,9 @@ import {
 export const Route = createFileRoute("/projects/$id/estimate")({
   head: () => ({ meta: [{ title: "Cost estimate — Refurb Genius" }] }),
   component: EstimatePage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    from: search.from === "scope" ? ("scope" as const) : undefined,
+  }),
 });
 
 const DEFAULT_CATEGORIES: EstimateCategory[] = [
@@ -98,6 +102,21 @@ function EstimatePage() {
 function EstimateContent({ id, project }: { id: string; project: ProjectWithProgress }) {
   const navigate = useNavigate();
   const setStage = useSetProjectStage();
+  const { from } = Route.useSearch();
+
+  // Read scope rooms from sessionStorage when navigating from scope analysis
+  const scopeRooms = useMemo<ScopeRoom[] | undefined>(() => {
+    if (from !== "scope") return undefined;
+    try {
+      const raw = sessionStorage.getItem(`scope-rooms:${id}`);
+      if (!raw) return undefined;
+      sessionStorage.removeItem(`scope-rooms:${id}`); // consume once
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? (parsed as ScopeRoom[]) : undefined;
+    } catch {
+      return undefined;
+    }
+  }, [from, id]);
 
   const [region, setRegion] = useState<UKRegion>(project.region);
   const [condition, setCondition] = useState<ConditionLevel>("Dated");
@@ -185,7 +204,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
         </Button>
       }
     >
-      <Tabs defaultValue="quick">
+      <Tabs defaultValue={scopeRooms ? "ai" : "quick"}>
         <TabsList className="mb-6">
           <TabsTrigger value="quick">
             <Calculator className="mr-1.5 h-4 w-4" /> Quick estimate
@@ -204,6 +223,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
             sizeSqm={project.size_sqm}
             initialRegion={project.region}
             postcode={project.postcode}
+            initialScopeRooms={scopeRooms}
             onSaved={() => {
               setStage.mutate({ id, stage: "estimate", value: true });
             }}

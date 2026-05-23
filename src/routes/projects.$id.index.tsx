@@ -18,6 +18,7 @@ import {
   Ruler,
   Home,
   AlertCircle,
+  Search,
 } from "lucide-react";
 import { useProject, useProjectProgress } from "@/hooks/useProjects";
 
@@ -78,6 +79,13 @@ function ProjectDetail() {
       label: "AI Analysis",
       desc: "Room-by-room condition & redesigns.",
       icon: Sparkles,
+    },
+    {
+      stage: "analysis",
+      to: "/projects/$id/scope",
+      label: "Scope Analysis",
+      desc: "Photo-based condition report & costed scope.",
+      icon: Search,
     },
     {
       stage: "estimate",
@@ -219,6 +227,7 @@ function ProjectDetail() {
 const workflowRoutes = [
   "/projects/$id/upload",
   "/projects/$id/analysis",
+  "/projects/$id/scope",
   "/projects/$id/estimate",
   "/projects/$id/report",
 ] as const;

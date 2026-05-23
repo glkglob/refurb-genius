@@ -23,6 +23,7 @@ import {
   type CalculatedLineItem,
 } from "@/core/pricing";
 import type { AIGeneratedRoom } from "@/core/ai/server/openAiEstimate.server";
+import type { ScopeRoom } from "@/core/ai/server/openAiScopeAnalysis.server";
 import { useGenerateEstimate, useSaveAIEstimate } from "@/hooks/useAIEstimate";
 import type { UKRegion } from "@/core/projects";
 import { UK_REGIONS } from "@/core/constants";
@@ -61,6 +62,8 @@ export interface AIEstimateBuilderProps {
   sizeSqm: number;
   initialRegion: UKRegion;
   postcode?: string;
+  /** Pre-fill from a scope analysis result. Converted to editable rooms on mount. */
+  initialScopeRooms?: ScopeRoom[];
   onSaved?: (estimateId: string) => void;
 }
 
@@ -79,6 +82,24 @@ function aiRoomsToLocal(rooms: AIGeneratedRoom[]): LocalRoom[] {
     name: room.name,
     area_sqm: room.area_sqm,
     items: room.items.map((item) => ({
+      id: uid(),
+      name: item.name,
+      category: item.category,
+      quantity: item.quantity,
+      unit: item.unit,
+      base_unit_cost: item.base_unit_cost,
+      notes: item.notes,
+      is_ai_suggested: true,
+    })),
+  }));
+}
+
+function scopeRoomsToLocal(rooms: ScopeRoom[]): LocalRoom[] {
+  return rooms.map((room) => ({
+    id: uid(),
+    name: room.room,
+    area_sqm: room.area_sqm,
+    items: room.recommended_items.map((item) => ({
       id: uid(),
       name: item.name,
       category: item.category,
@@ -110,13 +131,16 @@ export function AIEstimateBuilder({
   sizeSqm,
   initialRegion,
   postcode,
+  initialScopeRooms,
   onSaved,
 }: AIEstimateBuilderProps) {
+  // Pre-fill from scope analysis if provided, otherwise start empty
+  const initialLocal = initialScopeRooms?.length ? scopeRoomsToLocal(initialScopeRooms) : [];
   const [region, setRegion] = useState<UKRegion>(initialRegion);
   const [condition, setCondition] = useState("Dated, needs full modernisation");
   const [requirements, setRequirements] = useState("");
-  const [rooms, setRooms] = useState<LocalRoom[]>([]);
-  const [openRooms, setOpenRooms] = useState<Set<string>>(new Set());
+  const [rooms, setRooms] = useState<LocalRoom[]>(initialLocal);
+  const [openRooms, setOpenRooms] = useState<Set<string>>(new Set(initialLocal.map((r) => r.id)));
   const [notes, setNotes] = useState("");
 
   const generate = useGenerateEstimate();

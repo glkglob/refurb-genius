@@ -97,3 +97,33 @@ export const generateEstimateServerFn = createServerFn({ method: "POST" })
     const { runSecureEstimateGeneration } = await import("./server/openAiEstimate.server");
     return runSecureEstimateGeneration(data);
   });
+
+// ──────────────────────────────────────────────────────────────
+// AI scope analysis (photo → condition + costed scope)
+// ──────────────────────────────────────────────────────────────
+
+const photoSourceSchema = z.object({
+  id: z.string().min(1),
+  url: z.string().min(1),
+  name: z.string().min(1),
+  size: z.number().nonnegative().optional(),
+});
+
+const scopeAnalysisInputSchema = z.object({
+  projectId: z.string().min(1),
+  photos: z.array(photoSourceSchema),
+  roomTags: z.array(z.string()),
+  propertyType: z.string().min(1),
+  bedrooms: z.number().int().min(0).max(20),
+  bathrooms: z.number().int().min(0).max(10).optional(),
+  region: z.string().min(1),
+  notes: z.string().optional(),
+});
+
+export const runScopeAnalysisServerFn = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => scopeAnalysisInputSchema.parse(input))
+  .handler(async ({ data }) => {
+    await requireServerAuth();
+    const { runSecureScopeAnalysis } = await import("./server/openAiScopeAnalysis.server");
+    return runSecureScopeAnalysis(data);
+  });

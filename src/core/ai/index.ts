@@ -48,6 +48,16 @@ export type {
   AIGeneratedItem,
 } from "./server/openAiEstimate.server";
 
+// AI scope analysis — photo → condition + costed scope of works.
+export { runScopeAnalysisServerFn } from "./serverFns";
+export type {
+  ScopeAnalysisInput,
+  ScopeAnalysisResult,
+  ScopeRoom,
+  ScopeIssue,
+  ScopeRecommendedItem,
+} from "./server/openAiScopeAnalysis.server";
+
 // Legacy exports — pages currently import these directly. New code should
 // prefer the provider helpers above.
 export { analysisStore, ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/lib/analysis";

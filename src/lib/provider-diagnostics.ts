@@ -20,6 +20,12 @@ export interface ProviderDiagnostics {
   estimate_parse_failure: number;
   estimate_rate_limit: number;
   estimate_fallback_used: number;
+
+  scope_ai_success: number;
+  scope_timeout: number;
+  scope_parse_failure: number;
+  scope_rate_limit: number;
+  scope_fallback_used: number;
 }
 
 const counters: ProviderDiagnostics = {
@@ -39,6 +45,12 @@ const counters: ProviderDiagnostics = {
   estimate_parse_failure: 0,
   estimate_rate_limit: 0,
   estimate_fallback_used: 0,
+
+  scope_ai_success: 0,
+  scope_timeout: 0,
+  scope_parse_failure: 0,
+  scope_rate_limit: 0,
+  scope_fallback_used: 0,
 };
 
 export function incrementCounter(counter: keyof ProviderDiagnostics): void {
