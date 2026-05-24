@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/services/supabase";
 import type { Tables } from "@/integrations/supabase/types";
 import type {
   TradesJob,

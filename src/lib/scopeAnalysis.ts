@@ -1,4 +1,4 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/services/supabase";
 import type { Database } from "@/integrations/supabase/types";
 import type {
   ScopeAnalysisResult,

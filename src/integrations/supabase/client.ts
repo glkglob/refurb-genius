@@ -3,8 +3,8 @@ import type { Database } from "./types";
 
 const isDev = import.meta.env.DEV;
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
+// @deprecated — Import from the service boundary instead:
+// import { supabase } from "@/services/supabase";
 export const supabase = createBrowserSupabase<Database>({
   cookieName: "pip-auth",
   cookieDomain: isDev ? undefined : ".refurbgenius.space",
