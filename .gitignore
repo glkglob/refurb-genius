@@ -37,3 +37,11 @@ dist-ssr
 *.sw?
 .vercel
 .env*.local
+
+# External tools & experiments
+backend/
+property-intel/
+RAILWAY_SETUP.md
+
+# Supabase local temp
+supabase/.temp/
