@@ -141,11 +141,7 @@ function JobStatusBadge({ status }: { status: TradesJobStatus }) {
     draft: "destructive", // or we can add a "warning" tone later
   };
 
-  return (
-    <StatusBadge tone={toneMap[status] ?? "muted"}>
-      {statusLabel(status)}
-    </StatusBadge>
-  );
+  return <StatusBadge tone={toneMap[status] ?? "muted"}>{statusLabel(status)}</StatusBadge>;
 }
 
 // ---------------------------------------------------------------------------
@@ -193,12 +189,7 @@ function DashboardContent() {
           icon={DollarSign}
           subLabel="across all jobs"
         />
-        <StatCard
-          label="Projects"
-          value="0"
-          icon={FolderPlus}
-          subLabel="coming soon"
-        />
+        <StatCard label="Projects" value="0" icon={FolderPlus} subLabel="coming soon" />
       </div>
 
       {/* Section 2 — Quick actions */}
@@ -228,10 +219,7 @@ function DashboardContent() {
       </DashboardSection>
 
       {/* Section 4 — My Interests */}
-      <DashboardSection
-        title="My interests"
-        icon={<HandshakeIcon className="h-5 w-5" />}
-      >
+      <DashboardSection title="My interests" icon={<HandshakeIcon className="h-5 w-5" />}>
         <MyInterestsTable state={interestsState} />
       </DashboardSection>
 

@@ -53,16 +53,14 @@ export function ThemeProvider({
     let effectiveTheme: "light" | "dark";
 
     if (initialTheme === "system") {
-      effectiveTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light";
+      effectiveTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     } else {
       effectiveTheme = initialTheme;
     }
 
     applyTheme(effectiveTheme);
     setMounted(true);
-  }, []);
+  }, [defaultTheme, storageKey]);
 
   // Listen for system theme changes when using "system"
   React.useEffect(() => {

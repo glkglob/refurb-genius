@@ -136,11 +136,7 @@ export async function updateTradesJobInterestStatus(
     throw new Error("Interest not found");
   }
 
-  const { data, error } = await table()
-    .update({ status })
-    .eq("id", interestId)
-    .select()
-    .single();
+  const { data, error } = await table().update({ status }).eq("id", interestId).select().single();
 
   if (error) throw new Error(error.message);
 

@@ -78,12 +78,9 @@ export async function saveScopeAnalysis(
   // 3. Insert issues + items for each room
   const roomsByOrder = new Map(dbRooms.map((r) => [r.display_order, r]));
 
-  const allIssueInserts: Array<
-    Database["public"]["Tables"]["scope_analysis_issues"]["Insert"]
-  > = [];
-  const allItemInserts: Array<
-    Database["public"]["Tables"]["scope_analysis_items"]["Insert"]
-  > = [];
+  const allIssueInserts: Array<Database["public"]["Tables"]["scope_analysis_issues"]["Insert"]> =
+    [];
+  const allItemInserts: Array<Database["public"]["Tables"]["scope_analysis_items"]["Insert"]> = [];
 
   for (const [roomIdx, room] of input.analysis.rooms.entries()) {
     const dbRoom = roomsByOrder.get(roomIdx);
