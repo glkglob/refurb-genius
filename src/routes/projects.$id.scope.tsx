@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { useProject } from "@/hooks/useProjects";
 import { usePhotos } from "@/hooks/usePhotos";
 import { useScopeAnalysis } from "@/hooks/useScopeAnalysis";
+import { useSavedScopeAnalysis, useSaveScopeAnalysis } from "@/hooks/useScopeAnalysisPersistence";
 import { formatGBP, getRegionalMultiplier, calculateLineItem } from "@/core/pricing";
 import type {
   ScopeAnalysisResult,
@@ -137,12 +138,22 @@ function ScopeContent({
   const navigate = useNavigate();
   const { data: photos = [], isLoading: photosLoading } = usePhotos(id);
   const scopeAnalysis = useScopeAnalysis();
+  const { data: savedAnalysis, isLoading: savedLoading } = useSavedScopeAnalysis(id);
+  const saveScopeMutation = useSaveScopeAnalysis();
 
   const [roomTags, setRoomTags] = useState<string[]>([...DEFAULT_ROOM_TAGS]);
   const [notes, setNotes] = useState("");
   const [result, setResult] = useState<ScopeAnalysisResult | null>(null);
   const [openRooms, setOpenRooms] = useState<Set<string>>(new Set());
   const [pdfExporting, setPdfExporting] = useState(false);
+
+  // Hydrate from saved analysis on first load (only if no fresh result yet)
+  useEffect(() => {
+    if (savedAnalysis && !result) {
+      setResult(savedAnalysis);
+      setOpenRooms(new Set(savedAnalysis.rooms.map((r) => r.room)));
+    }
+  }, [savedAnalysis, result]);
 
   const multiplier = getRegionalMultiplier(project.region);
 
@@ -179,10 +190,28 @@ function ScopeContent({
       {
         onSuccess: (data) => {
           setResult(data);
-          // Open all rooms by default
           setOpenRooms(new Set(data.rooms.map((r) => r.room)));
           toast.success(
             `Analysis complete — ${data.rooms.length} rooms, ${data.rooms.reduce((s, r) => s + r.issues.length, 0)} issues detected`,
+          );
+
+          // Auto-save to database
+          saveScopeMutation.mutate(
+            {
+              projectId: id,
+              analysis: data,
+              region: project.region,
+              notes: notes || undefined,
+            },
+            {
+              onSuccess: () => {
+                toast.success("Scope analysis saved");
+              },
+              onError: (err) => {
+                console.error("Failed to save scope analysis:", err);
+                toast.error("Analysis complete but failed to save — results are visible above");
+              },
+            },
           );
         },
         onError: (err) => {
@@ -367,6 +396,13 @@ function ScopeContent({
           </div>
         </CardContent>
       </Card>
+
+      {/* Loading saved analysis */}
+      {savedLoading && !result && (
+        <div className="mt-6">
+          <LoadingState label="Loading previous scope analysis..." />
+        </div>
+      )}
 
       {/* Results — wrapped in print-area for PDF export */}
       {result && (
