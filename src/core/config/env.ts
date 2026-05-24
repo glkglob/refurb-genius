@@ -1,34 +1,17 @@
 // Canonical Supabase environment configuration.
 //
-// Single source of truth for env var names. Both the VITE_ prefix
-// (VITE_SUPABASE_PUBLISHABLE_KEY) and the standard Supabase name
-// (VITE_SUPABASE_ANON_KEY / NEXT_PUBLIC_SUPABASE_ANON_KEY) are accepted
-// so production Vercel deployments work without renaming variables.
-//
-// SSR note: import.meta.env.VITE_* values are embedded at Vite build time
-// in both client and server bundles. process.env fallbacks cover the Nitro
-// server path where the VITE_ prefix may be absent.
+// Delegates to @repo/supabase for the actual env resolution. This module
+// re-exports the shared helpers and adds the app-specific `env` shape
+// for backward compatibility with existing consumers.
 
-const _proc = typeof process !== "undefined" ? process.env : {};
+import { resolveSupabaseEnv, assertSupabaseEnv } from "@repo/supabase/env";
 
-const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_URL ||
-  _proc.SUPABASE_URL ||
-  _proc.NEXT_PUBLIC_SUPABASE_URL;
-
-const supabaseAnonKey =
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-  _proc.SUPABASE_ANON_KEY ||
-  _proc.SUPABASE_PUBLISHABLE_KEY ||
-  _proc.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const resolved = resolveSupabaseEnv();
 
 export const env = {
-  supabaseUrl,
-  supabaseAnonKey,
-  isSupabaseConfigured: Boolean(supabaseUrl && supabaseAnonKey),
+  supabaseUrl: resolved.supabaseUrl,
+  supabaseAnonKey: resolved.supabaseAnonKey,
+  isSupabaseConfigured: resolved.isConfigured,
 };
 
 /** Throws a clear error if either required variable is absent. Returns
@@ -37,14 +20,5 @@ export function assertSupabaseConfigured(): {
   supabaseUrl: string;
   supabaseAnonKey: string;
 } {
-  if (!env.supabaseUrl || !env.supabaseAnonKey) {
-    throw new Error(
-      "Missing Supabase environment variables. " +
-        "Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (or VITE_SUPABASE_PUBLISHABLE_KEY) in Vercel.",
-    );
-  }
-  return {
-    supabaseUrl: env.supabaseUrl,
-    supabaseAnonKey: env.supabaseAnonKey,
-  };
+  return assertSupabaseEnv();
 }

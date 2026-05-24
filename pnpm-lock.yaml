@@ -264,6 +264,15 @@ importers:
 
   packages/services: {}
 
+  packages/supabase:
+    dependencies:
+      '@supabase/ssr':
+        specifier: '*'
+        version: 0.10.3(@supabase/supabase-js@2.105.4)
+      '@supabase/supabase-js':
+        specifier: '*'
+        version: 2.105.4
+
   packages/types: {}
 
   packages/typescript-config: {}

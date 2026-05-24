@@ -36,19 +36,9 @@ const runRedesignInputSchema = z.object({
 
 async function requireServerAuth(): Promise<void> {
   const { getCookies } = await import("@tanstack/react-start/server");
-  const { createServerClient } = await import("@supabase/ssr");
-  const { assertSupabaseConfigured } = await import("@/core/config/env");
+  const { createServerSupabase } = await import("@repo/supabase/server");
 
-  const { supabaseUrl, supabaseAnonKey } = assertSupabaseConfigured();
-  const cookies = getCookies();
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return Object.entries(cookies).map(([name, value]) => ({ name, value }));
-      },
-    },
-  });
+  const supabase = createServerSupabase(getCookies());
 
   const {
     data: { user },
