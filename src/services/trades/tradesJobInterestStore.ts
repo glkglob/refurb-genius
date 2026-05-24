@@ -31,8 +31,7 @@ export type TradesJobInterestWithJob = TradesJobInterest & {
   jobCategory: TradesJobCategory;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const table = () => (supabase as any).from("trades_job_interests");
+const table = () => supabase.from("trades_job_interests");
 
 function rowToInterest(r: TradesJobInterestRow): TradesJobInterest {
   return {

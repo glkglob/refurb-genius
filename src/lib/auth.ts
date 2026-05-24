@@ -27,14 +27,20 @@ let authSubscription: { unsubscribe: () => void } | null = null;
 const HYDRATION_TIMEOUT_MS = 5_000;
 
 function fromSupabaseUser(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  u: { id: string; email?: string | null; user_metadata?: any } | null | undefined,
+  u:
+    | { id: string; email?: string | null; user_metadata?: Record<string, unknown> }
+    | null
+    | undefined,
 ): AuthUser | null {
   if (!u) return null;
+  const meta = u.user_metadata;
+  const fullName =
+    (typeof meta?.full_name === "string" ? meta.full_name : undefined) ??
+    (typeof meta?.name === "string" ? meta.name : undefined);
   return {
     id: u.id,
     email: u.email ?? "",
-    fullName: u.user_metadata?.full_name ?? u.user_metadata?.name ?? undefined,
+    fullName,
   };
 }
 

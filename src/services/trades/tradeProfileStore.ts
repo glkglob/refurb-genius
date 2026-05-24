@@ -14,8 +14,7 @@ type TradeProfileRow = {
   updated_at: string;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const table = () => (supabase as any).from("trade_profiles");
+const table = () => supabase.from("trade_profiles");
 
 function rowToProfile(r: TradeProfileRow): TradeProfile {
   return {

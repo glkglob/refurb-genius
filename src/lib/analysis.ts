@@ -3,6 +3,7 @@ import { auth } from "./auth";
 import { supabase } from "@/services/supabase";
 import { logger } from "./logger";
 import { buildMockRoomAnalyses, type RoomAnalysis } from "@/core/ai/mockAnalysis";
+import type { Tables } from "@/integrations/supabase/types";
 export {
   ROOM_TYPES,
   CONDITION_LEVELS,
@@ -32,15 +33,14 @@ function delay(ms = 1200) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function rowToAnalysis(r: any): RoomAnalysis {
+function rowToAnalysis(r: Tables<"room_analyses">): RoomAnalysis {
   return {
     id: r.id,
     photo_url: r.photo_url,
     photo_name: r.photo_name,
-    room_type: r.room_type,
-    condition_level: r.condition_level,
-    refurbishment_level: r.refurbishment_level,
+    room_type: r.room_type as RoomAnalysis["room_type"],
+    condition_level: r.condition_level as RoomAnalysis["condition_level"],
+    refurbishment_level: r.refurbishment_level as RoomAnalysis["refurbishment_level"],
     visible_issues: r.visible_issues ?? [],
     recommended_works: r.recommended_works ?? [],
     ai_summary: r.ai_summary ?? "",
