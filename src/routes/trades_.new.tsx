@@ -125,12 +125,10 @@ function TradesNewPageContent() {
       }
     >
       {posted ? (
-        <div className="mx-auto max-w-2xl space-y-4 rounded-lg border border-emerald-200 bg-emerald-50 p-8 text-center">
-          <CheckCircle2 className="mx-auto h-10 w-10 text-emerald-600" />
-          <h2 className="text-xl font-semibold text-emerald-800">Job posted!</h2>
-          <p className="text-sm text-emerald-700">
-            Your job is now live on the Trades Marketplace.
-          </p>
+        <div className="mx-auto max-w-2xl space-y-4 rounded-lg border border-success/30 bg-success/10 p-8 text-center">
+          <CheckCircle2 className="mx-auto h-10 w-10 text-success" />
+          <h2 className="text-xl font-semibold text-success">Job posted!</h2>
+          <p className="text-sm text-success/80">Your job is now live on the Trades Marketplace.</p>
           <div className="flex justify-center gap-3 pt-2">
             <Button asChild variant="outline">
               <Link to="/trades/new" onClick={() => setPosted(false)}>

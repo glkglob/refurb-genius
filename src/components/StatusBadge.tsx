@@ -6,7 +6,7 @@ type Tone = "default" | "accent" | "success" | "warning" | "destructive" | "mute
 const toneClasses: Record<Tone, string> = {
   default: "bg-secondary text-foreground border-border",
   accent: "bg-accent/10 text-accent border-accent/20",
-  success: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  success: "bg-success/10 text-success border-success/20",
   warning: "bg-amber-500/10 text-amber-600 border-amber-500/20",
   destructive: "bg-destructive/10 text-destructive border-destructive/20",
   muted: "bg-muted text-muted-foreground border-border",

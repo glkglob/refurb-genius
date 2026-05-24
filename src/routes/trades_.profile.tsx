@@ -170,7 +170,7 @@ function TradeProfileForm() {
           )}
 
           {saved && (
-            <div className="flex items-start gap-2 rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">
+            <div className="flex items-start gap-2 rounded-md border border-success/30 bg-success/10 p-3 text-sm text-success">
               <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
               <span>Profile saved successfully.</span>
             </div>
