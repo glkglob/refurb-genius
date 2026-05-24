@@ -82,15 +82,18 @@ import { aiProvider } from "@/integrations/openai";
 ### What @repo/ui can depend on:
 
 - @repo/types (if needed, but shouldn't be)
-- Root `@/components/ui/*` (facade layer re-exports)
-- Root `@/lib/utils` (cn utility)
+- Its own `src/components/*` and `src/lib/utils` (now owns the shared component source implementations)
+- Root `@/components/ui/*` and `@/lib/utils` (temporary shim re-exports during migration for backward compatibility)
 
 **Type check:**
 
 ```typescript
-// ✅ ALLOWED (re-export)
-export * from "@/components/ui/button";
-export { cn } from "@/lib/utils";
+// ✅ ALLOWED (local sources now primary)
+export * from "./components/button";
+export { cn } from "./lib/utils";
+
+// (temporary during migration)
+export * from "@/components/ui/card";
 
 // ❌ FORBIDDEN
 import { scoreDealOpportunity } from "@repo/services";
