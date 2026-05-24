@@ -133,7 +133,7 @@ npm run lint       → formatting errors resolved; 7 fast-refresh warnings remai
 - [x] Auth guards use `hydrated` flag — no synchronous session assumption on first render
 - [x] Owner-only write operations enforced at RLS level, not client-side only
 
-**Action required before deploy:** Verify RLS is enabled on `projects`, `photos`, `estimates`, and `reports` tables in the Supabase Dashboard. The `.cursor/rules/05-supabase-security.mdc` rule requires it but these tables are not confirmed in the architecture docs.
+**Action required before deploy:** Verify RLS is enabled on `projects`, `photos`, `estimates`, and `reports` tables in the Supabase Dashboard (per documented security requirements).
 
 ---
 

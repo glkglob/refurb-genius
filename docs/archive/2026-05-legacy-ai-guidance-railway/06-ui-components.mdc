@@ -1,0 +1,34 @@
+---
+description: UI and component rules
+globs: ["src/components/**/*.tsx", "src/pages/**/*.tsx"]
+alwaysApply: false
+---
+
+# UI Rules
+
+Preserve existing Refurb Genius branding.
+
+Style:
+- premium UK proptech SaaS
+- navy, white, slate, emerald
+- rounded cards
+- clean dashboards
+- large image cards
+- mobile responsive
+
+Reusable components should include:
+- Navbar
+- Sidebar
+- MetricCard
+- ProjectCard
+- EstimateTable
+- AnalysisCard
+- RedesignCard
+- ReportSection
+- EmptyState
+- LoadingState
+- StatusBadge
+
+Do not duplicate card layouts.
+Do not create one-off components if an existing reusable component fits.
+Do not redesign pages unless explicitly asked.

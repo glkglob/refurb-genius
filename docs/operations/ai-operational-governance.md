@@ -113,7 +113,7 @@ console.log(
 1. Check OpenAI API status page for outages
 2. If healthy: monitor timeout rate over next 1 hour
 3. If rate >15% (Vision) or >20% (Redesign): Escalate to ops
-4. If rate remains high: Consider disabling OpenAI (set VITE_OPENAI_API_KEY="" and redeploy)
+4. If rate remains high: Consider disabling OpenAI (set OPENAI_API_KEY="" and redeploy)
 
 ### Parse Failure Escalation
 
@@ -209,7 +209,7 @@ Vision outputs include `confidence_score` (0-1) indicating model certainty:
 
 Fallback to mock providers occurs when:
 
-1. VITE_OPENAI_API_KEY is missing or empty
+1. OPENAI_API_KEY is missing or empty
 2. OpenAI API call times out
 3. OpenAI returns parse error
 4. OpenAI returns rate limit (429)
@@ -230,7 +230,7 @@ If fallback rate exceeds thresholds:
 1. Verify OpenAI API key is configured (check .env)
 2. Check OpenAI API status page
 3. Review Sentry for error patterns
-4. Consider temporary disabling by removing VITE_OPENAI_API_KEY
+4. Consider temporary disabling by removing OPENAI_API_KEY
 
 ---
 
@@ -239,20 +239,12 @@ If fallback rate exceeds thresholds:
 ### Immediate Rollback (Disable OpenAI)
 
 **When:** If critical issues detected
-**Action:** Remove VITE_OPENAI_API_KEY from .env and redeploy
+**Action:** Remove or unset `OPENAI_API_KEY` in your deployment environment (Vercel, etc.) and redeploy.
 
-```bash
-# Remove from .env:
-VITE_OPENAI_API_KEY=
+**Effect:** All AI features immediately use mock providers.
+**Recovery:** Re-enable the key in the environment and redeploy.
 
-# Redeploy (automatic via Vercel)
-git add .env
-git commit -m "ops: disable OpenAI integration"
-git push
-```
-
-**Effect:** All AI features immediately use mock providers
-**Recovery:** Redeploy with VITE_OPENAI_API_KEY restored
+> **Warning:** Never commit `.env` files or secrets to the repository.
 
 ### Full Branch Rollback
 

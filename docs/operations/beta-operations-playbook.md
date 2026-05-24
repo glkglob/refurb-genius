@@ -95,7 +95,7 @@ Run these every morning and before/after deploying changes:
    - Look at `successCount`, `fallbackCount`, `avgPerPhotoMs`
 2. If rate limited: Wait 5-10 minutes before retrying
 3. If timeout: User can retry immediately (safe idempotent)
-4. If API key invalid: Check VITE_OPENAI_API_KEY env var
+4. If API key invalid: Check OPENAI_API_KEY env var
 
 ---
 
@@ -189,7 +189,7 @@ Run these every morning and before/after deploying changes:
 ### If AI Analysis Slow/Timing Out
 
 1. Check OpenAI API status page
-2. Verify VITE_OPENAI_API_KEY is valid
+2. Verify OPENAI_API_KEY is valid
 3. Monitor breadcrumbs for 429 (rate limit) errors
 4. If rate limited: Wait 5-10 min, no rollback needed (safe retry)
 5. If auth error (401): Regenerate API key, redeploy

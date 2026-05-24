@@ -27,6 +27,7 @@
       "@repo/types": ["packages/types/src"],
       "@repo/core": ["packages/core/src"],
       "@repo/ui": ["packages/ui/src"],
+      "@repo/ui/*": ["packages/ui/src/components/*"],
       "@repo/services": ["packages/services/src"],
       "@repo/supabase": ["packages/supabase/src"],
       "@repo/supabase/*": ["packages/supabase/src/*"]
