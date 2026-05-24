@@ -1,0 +1,35 @@
+---
+description: Tech stack and coding standards
+alwaysApply: true
+---
+
+# Tech Stack Rules
+
+Use:
+- React
+- TypeScript
+- Tailwind CSS
+- Supabase
+- Vite if this is a Lovable export
+- Next.js only if the existing app already uses Next.js
+
+Do not migrate frameworks unless explicitly asked.
+
+TypeScript:
+- Avoid `any`
+- Prefer explicit types from src/core/types
+- Keep functions small and testable
+- Do not silence errors with `// @ts-ignore`
+- Fix root causes, not symptoms
+
+React:
+- Use functional components
+- Keep business logic out of JSX
+- Extract reusable UI into components
+- Avoid giant page files
+- Avoid duplicated state logic
+
+Styling:
+- Preserve current UI unless asked to redesign
+- Use Tailwind
+- Keep mobile responsiveness intact

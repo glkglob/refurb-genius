@@ -1,0 +1,31 @@
+---
+description: Safe Cursor Agent behaviour for this codebase
+alwaysApply: true
+---
+
+# Agent Behaviour Rules
+
+Before editing:
+- Inspect relevant files first
+- Explain the intended change briefly
+- Change the smallest number of files possible
+
+Do not:
+- Rewrite the whole app
+- Redesign UI without being asked
+- Remove working features
+- Rename routes casually
+- Change database schema without explaining impact
+- Add new libraries unless necessary
+- Add mock data where real app state already exists
+- Break existing navigation
+
+After editing:
+- Check imports
+- Check TypeScript errors
+- Check affected routes
+- Summarise changed files and why
+
+When unsure:
+- Prefer a smaller safe change
+- Ask before destructive changes
