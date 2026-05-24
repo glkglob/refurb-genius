@@ -1,1 +1,1 @@
-export { Tabs, TabsList, TabsTrigger, TabsContent } from '@repo/ui';
+export { Tabs, TabsList, TabsTrigger, TabsContent } from "@repo/ui";

@@ -10,6 +10,14 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./tooltip": {
+      "types": "./src/components/tooltip.tsx",
+      "default": "./src/components/tooltip.tsx"
+    },
+    "./dialog": {
+      "types": "./src/components/dialog.tsx",
+      "default": "./src/components/dialog.tsx"
+    },
     "./*": {
       "types": "./src/components/*.tsx",
       "default": "./src/components/*.tsx"

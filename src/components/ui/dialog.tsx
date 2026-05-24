@@ -9,4 +9,4 @@ export {
   DialogFooter,
   DialogTitle,
   DialogDescription,
-} from "@repo/ui";
+} from "@repo/ui/dialog";

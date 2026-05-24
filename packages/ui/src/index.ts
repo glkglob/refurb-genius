@@ -1,5 +1,13 @@
-// @repo/ui - Convenience re-export of @/components/ui for monorepo imports
-// The source of truth is still src/components/ui/ for backward compatibility
+// @repo/ui - Shared UI component library.
+//
+// Migrated components (source of truth in packages/ui/src/components/*) are
+// exported via "./components/<name>" and also re-exported here for convenience.
+//
+// Legacy components still reference the app's src/components/ui/ via the
+// @/ path alias and will be migrated incrementally.
+//
+// Shims in src/components/ui/ re-export from this package so existing app
+// imports continue to work during the migration.
 
 export * from "@/components/ui/accordion";
 export * from "./components/alert-dialog";

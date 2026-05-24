@@ -1,1 +1,1 @@
-export { Switch } from '@repo/ui';
+export { Switch } from "@repo/ui";

@@ -1,1 +1,1 @@
-export { Checkbox } from '@repo/ui';
+export { Checkbox } from "@repo/ui";

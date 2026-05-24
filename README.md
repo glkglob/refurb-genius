@@ -20,11 +20,10 @@ core/               → Shared constants and utilities
 services/           → Shared deterministic business logic
 types/              → Shared types and contracts
 ui/                 → Shared UI components
-supabase/           → Shared Supabase clients and helpers
+supabase/           → Shared Supabase clients/helpers, database migrations, policies, and Edge Functions
 integrations/       → Shared integration boundaries
 eslint-config/      → Shared ESLint config
 typescript-config/  → Shared TypeScript config
-supabase/             → Database migrations, policies, and Edge Functions
 docs/                 → Architecture and product documentation
 tests/invariants/     → Invariant and contract tests
 ios/                  → Capacitor iOS project

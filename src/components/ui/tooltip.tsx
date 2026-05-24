@@ -1,1 +1,1 @@
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@repo/ui";
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@repo/ui/tooltip";
