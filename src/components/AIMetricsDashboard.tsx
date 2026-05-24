@@ -179,8 +179,8 @@ export function AIMetricsDashboard() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-2">
-              {recommendations.map((rec, idx) => (
-                <li key={idx} className="text-sm flex gap-2">
+              {recommendations.map((rec) => (
+                <li key={rec} className="text-sm flex gap-2">
                   <span className="text-gray-400">•</span>
                   <span>{rec}</span>
                 </li>

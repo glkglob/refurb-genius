@@ -100,9 +100,9 @@ export function DealRiskFlags({ roi }: DealRiskFlagsProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {flags.map((flag, index) => (
+          {flags.map((flag) => (
             <div
-              key={index}
+              key={flag.message}
               className={`flex gap-3 rounded-lg border p-3 ${flagClasses[flag.level]}`}
             >
               {flag.level === "critical" ? (

@@ -599,7 +599,7 @@ function RoomCard({
                 </h4>
                 <div className="space-y-2">
                   {sortedIssues.map((issue, i) => (
-                    <IssueRow key={i} issue={issue} />
+                    <IssueRow key={`${issue.category}-${issue.severity}-${i}`} issue={issue} />
                   ))}
                 </div>
               </div>
@@ -625,10 +625,10 @@ function RoomCard({
                       </tr>
                     </thead>
                     <tbody>
-                      {room.recommended_items.map((item, i) => {
+                      {room.recommended_items.map((item) => {
                         const calc = calculateLineItem(item, multiplier);
                         return (
-                          <tr key={i} className="border-b last:border-0">
+                          <tr key={item.name} className="border-b last:border-0">
                             <td className="px-3 py-2 font-medium text-foreground">
                               {item.name}
                               {item.notes && (

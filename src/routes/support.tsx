@@ -454,8 +454,8 @@ function IssueCard({
         <div>
           <h4 className="font-medium text-foreground">{title}</h4>
           <ul className="mt-2 space-y-1">
-            {items.map((item, idx) => (
-              <li key={idx} className="text-sm text-foreground/70">
+            {items.map((item) => (
+              <li key={item} className="text-sm text-foreground/70">
                 • {item}
               </li>
             ))}
