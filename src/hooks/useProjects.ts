@@ -2,54 +2,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
 import { supabase } from "@/services/supabase";
 import type { ProjectStage, NewProjectInput } from "@/lib/projects";
-import type { UKRegion, PropertyType, ProjectStatus } from "@/lib/projects";
+import { rowToProject, type ProjectWithProgress } from "@/lib/mappers";
 
-export type ProjectWithProgress = {
-  id: string;
-  user_id: string;
-  name: string;
-  address: string;
-  postcode: string;
-  region: UKRegion;
-  property_type: PropertyType;
-  bedrooms: number;
-  bathrooms: number;
-  size_sqm: number;
-  purchase_price: number;
-  estimated_gdv: number;
-  notes: string;
-  created_at: string;
-  status: ProjectStatus;
-  photos_done: boolean;
-  analysis_done: boolean;
-  estimate_done: boolean;
-  report_done: boolean;
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function rowToProject(r: any): ProjectWithProgress {
-  return {
-    id: r.id,
-    user_id: r.user_id,
-    name: r.name,
-    address: r.address ?? "",
-    postcode: r.postcode ?? "",
-    region: r.region as UKRegion,
-    property_type: r.property_type as PropertyType,
-    bedrooms: Number(r.bedrooms ?? 0),
-    bathrooms: Number(r.bathrooms ?? 0),
-    size_sqm: Number(r.size_sqm ?? 0),
-    purchase_price: Number(r.purchase_price ?? 0),
-    estimated_gdv: Number(r.estimated_gdv ?? 0),
-    notes: r.notes ?? "",
-    created_at: r.created_at,
-    status: (r.status ?? "Draft") as ProjectStatus,
-    photos_done: !!r.photos_done,
-    analysis_done: !!r.analysis_done,
-    estimate_done: !!r.estimate_done,
-    report_done: !!r.report_done,
-  };
-}
+export type { ProjectWithProgress } from "@/lib/mappers";
 
 async function fetchProjects(): Promise<ProjectWithProgress[]> {
   const { data, error } = await supabase

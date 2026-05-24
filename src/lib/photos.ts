@@ -6,8 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { auth } from "./auth";
 import { captureUploadError, addDiagnosticBreadcrumb } from "./sentry";
 import { logger } from "./logger";
-import { timeoutPromise, TimeoutError, isTimeoutError } from "./timeout";
+import { timeoutPromise, isTimeoutError } from "./timeout";
 import { ConcurrencyLimiter } from "./concurrency";
+import { rowToPhoto } from "./mappers";
 
 // Upload configuration
 const UPLOAD_TIMEOUT_MS = 60_000; // 60s per file
@@ -33,19 +34,6 @@ const notify = () => listeners.forEach((l) => l());
 
 // Concurrency limiter to prevent browser overload from simultaneous uploads
 const uploadLimiter = new ConcurrencyLimiter(MAX_CONCURRENT_UPLOADS);
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function rowToPhoto(r: any): ProjectPhoto {
-  return {
-    id: r.id,
-    projectId: r.project_id,
-    url: r.url,
-    name: r.name,
-    size: Number(r.size ?? 0),
-    uploadedAt: r.uploaded_at,
-    storagePath: r.storage_path,
-  };
-}
 
 async function fetchProjectPhotos(projectId: string) {
   if (!auth.getUser()) {
@@ -167,35 +155,36 @@ export const photoStore = {
           const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
           const url = pub.publicUrl;
 
-          // Wrap metadata insert with timeout
+          // Wrap metadata insert with timeout.
+          // Promise.resolve() converts the PostgrestBuilder (PromiseLike) to a real Promise.
           const insertResult = await timeoutPromise(
-            supabase
-              .from("photos")
-              .insert({
-                id,
-                project_id: projectId,
-                user_id: user.id,
-                storage_path: path,
-                url,
-                name: file.name,
-                size: file.size,
-              })
-              .select()
-              .single() as unknown as Promise<{
-              data: ProjectPhoto | null;
-              error: { message: string } | null;
-            }>,
+            Promise.resolve(
+              supabase
+                .from("photos")
+                .insert({
+                  id,
+                  project_id: projectId,
+                  user_id: user.id,
+                  storage_path: path,
+                  url,
+                  name: file.name,
+                  size: file.size,
+                })
+                .select()
+                .single(),
+            ),
             UPLOAD_TIMEOUT_MS,
             `Insert metadata for ${file.name}`,
           );
 
           const { data: row, error: insErr } = insertResult;
-          if (insErr) {
+          if (insErr || !row) {
+            const errMsg = insErr?.message ?? "No data returned from insert";
             logger.error("[photos] metadata insert failed", {
               file: file.name,
-              error: insErr.message,
+              error: errMsg,
             });
-            captureUploadError(insErr, {
+            captureUploadError(insErr ?? new Error(errMsg), {
               projectId,
               fileSizeMb: file.size / (1024 * 1024),
               stage: "metadata",
@@ -207,7 +196,7 @@ export const photoStore = {
               .catch((rollbackErr) => {
                 logger.error("[photos] rollback failed", { path, error: String(rollbackErr) });
               });
-            errors.push({ file: file.name, error: insErr.message });
+            errors.push({ file: file.name, error: errMsg });
             return;
           }
 

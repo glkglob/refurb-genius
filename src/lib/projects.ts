@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { auth } from "./auth";
 import { captureApiError, addDiagnosticBreadcrumb } from "./sentry";
 import { logger } from "./logger";
+import { rowToProject, type ProjectWithProgress } from "./mappers";
 
 export const PROPERTY_TYPES = [
   "Flat",
@@ -56,12 +57,8 @@ export type Project = {
 export type NewProjectInput = Omit<Project, "id" | "user_id" | "created_at" | "status">;
 export type ProjectStage = "photos" | "analysis" | "estimate" | "report";
 
-type ProjectRow = Project & {
-  photos_done: boolean;
-  analysis_done: boolean;
-  estimate_done: boolean;
-  report_done: boolean;
-};
+/** @deprecated Use `ProjectWithProgress` from `@/lib/mappers`. Kept as alias for internal store cache. */
+type ProjectRow = ProjectWithProgress;
 
 export type ProjectStoreSnapshot = {
   projects: Project[];
@@ -83,31 +80,6 @@ let snapshot: ProjectStoreSnapshot = {
 };
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function rowToProject(r: any): ProjectRow {
-  return {
-    id: r.id,
-    user_id: r.user_id,
-    name: r.name,
-    address: r.address ?? "",
-    postcode: r.postcode ?? "",
-    region: r.region as UKRegion,
-    property_type: r.property_type as PropertyType,
-    bedrooms: Number(r.bedrooms ?? 0),
-    bathrooms: Number(r.bathrooms ?? 0),
-    size_sqm: Number(r.size_sqm ?? 0),
-    purchase_price: Number(r.purchase_price ?? 0),
-    estimated_gdv: Number(r.estimated_gdv ?? 0),
-    notes: r.notes ?? "",
-    created_at: r.created_at,
-    status: (r.status ?? "Draft") as ProjectStatus,
-    photos_done: !!r.photos_done,
-    analysis_done: !!r.analysis_done,
-    estimate_done: !!r.estimate_done,
-    report_done: !!r.report_done,
-  };
-}
 
 async function fetchAll(): Promise<void> {
   if (!auth.getUser()) {

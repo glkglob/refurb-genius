@@ -2,19 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
 import { supabase } from "@/services/supabase";
 import { photoStore, type ProjectPhoto } from "@/lib/photos";
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function rowToPhoto(r: any): ProjectPhoto {
-  return {
-    id: r.id,
-    projectId: r.project_id,
-    url: r.url,
-    name: r.name,
-    size: Number(r.size ?? 0),
-    uploadedAt: r.uploaded_at,
-    storagePath: r.storage_path,
-  };
-}
+import { rowToPhoto } from "@/lib/mappers";
 
 async function fetchPhotos(projectId: string): Promise<ProjectPhoto[]> {
   const { data, error } = await supabase
