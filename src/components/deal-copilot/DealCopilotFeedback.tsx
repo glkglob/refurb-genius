@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ThumbsUp, ThumbsDown, MessageSquare } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 
 export interface DealCopilotFeedback {
   dealId: string;
@@ -55,9 +56,9 @@ export function DealCopilotFeedback({ onSubmit, dealId }: DealCopilotFeedbackPro
       }
 
       setSubmitted(true);
-      console.debug("[deal-copilot] Feedback submitted", { dealId, useful });
+      logger.debug("[deal-copilot] Feedback submitted", { dealId, useful });
     } catch (error) {
-      console.error("[deal-copilot] Feedback submission failed", error);
+      logger.error("[deal-copilot] Feedback submission failed", { error: String(error) });
     } finally {
       setSubmitting(false);
     }

@@ -1,4 +1,5 @@
 import { supabase } from "@/services/supabase";
+import { logger } from "@/lib/logger";
 import type {
   TradesJobInterest,
   TradesJobInterestStatus,
@@ -80,7 +81,9 @@ export async function createTradesJobInterest(
       },
     })
     .catch((err) => {
-      console.warn("[trades] Failed to send interest_registered notification (non-blocking)", err);
+      logger.warn("[trades] Failed to send interest_registered notification (non-blocking)", {
+        error: String(err),
+      });
     });
 
   return interest;
@@ -153,7 +156,9 @@ export async function updateTradesJobInterestStatus(
         },
       })
       .catch((err) => {
-        console.warn(`[trades] Failed to send ${status} notification (non-blocking)`, err);
+        logger.warn(`[trades] Failed to send ${status} notification (non-blocking)`, {
+          error: String(err),
+        });
       });
   }
 

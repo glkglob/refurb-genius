@@ -42,6 +42,7 @@ import {
   type FinishLevel,
 } from "@/core/pricing";
 import { runRoiEngine, type RoiRiskLevel as RiskLevel } from "@/core/roi";
+import { logger } from "@/lib/logger";
 import { saveProjectEstimate } from "@/lib/estimates";
 import {
   UK_REGIONS,
@@ -187,7 +188,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
       setStage.mutate({ id, stage: "estimate", value: true });
       navigate({ to: "/projects/$id/report", params: { id } });
     } catch (err) {
-      console.error("[estimates] save failed", err);
+      logger.error("[estimates] save failed", { error: String(err) });
       return;
     }
   }

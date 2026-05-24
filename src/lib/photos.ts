@@ -2,7 +2,7 @@
 // Files live in the public `project-photos` bucket under
 // `{user_id}/{project_id}/{uuid}.{ext}` so storage RLS scopes ownership by
 // the leading folder. Metadata is mirrored into the `photos` table.
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/services/supabase";
 import { auth } from "./auth";
 import { captureUploadError, addDiagnosticBreadcrumb } from "./sentry";
 import { logger } from "./logger";
@@ -262,7 +262,7 @@ export const photoStore = {
         .catch(() => {});
     }
     const { error } = await supabase.from("photos").delete().eq("id", photoId);
-    if (error) console.error("[photos] delete failed", error);
+    if (error) logger.error("[photos] delete failed", { error: error.message });
   },
   subscribe(fn: () => void): () => void {
     listeners.add(fn);

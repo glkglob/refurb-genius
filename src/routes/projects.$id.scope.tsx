@@ -23,6 +23,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { addDiagnosticBreadcrumb } from "@/lib/sentry";
+import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 import { useProject } from "@/hooks/useProjects";
 import { usePhotos } from "@/hooks/usePhotos";
@@ -208,7 +209,7 @@ function ScopeContent({
                 toast.success("Scope analysis saved");
               },
               onError: (err) => {
-                console.error("Failed to save scope analysis:", err);
+                logger.error("[scope] Failed to save scope analysis", { error: String(err) });
                 toast.error("Analysis complete but failed to save — results are visible above");
               },
             },

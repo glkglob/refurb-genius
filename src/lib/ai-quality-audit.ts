@@ -2,7 +2,8 @@
 // Identifies hallucinations, misclassifications, and other issues in production data.
 // Note: ai_quality_feedback table is optional for controlled-beta phase.
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/services/supabase";
+import { logger } from "@/lib/logger";
 
 export interface AuditFinding {
   type:
@@ -30,7 +31,7 @@ export async function auditVisionOutputs(): Promise<AuditFinding[]> {
       .order("created_at", { ascending: false });
 
     if (projError || !projects) {
-      console.error("[Audit] Failed to fetch projects:", projError);
+      logger.error("[Audit] Failed to fetch projects", { error: String(projError) });
       return findings;
     }
 
@@ -70,11 +71,14 @@ export async function auditVisionOutputs(): Promise<AuditFinding[]> {
           }
         });
       } catch (err) {
-        console.warn("[Audit] Error auditing project", project.id, err);
+        logger.warn("[Audit] Error auditing project", {
+          projectId: project.id,
+          error: String(err),
+        });
       }
     }
   } catch (err) {
-    console.error("[Audit] Vision audit failed:", err);
+    logger.error("[Audit] Vision audit failed", { error: String(err) });
   }
 
   return findings;
@@ -84,7 +88,7 @@ export async function auditRedesignOutputs(): Promise<AuditFinding[]> {
   const findings: AuditFinding[] = [];
 
   // Controlled-beta stub: ai_quality_feedback table not in typed schema
-  console.info(
+  logger.info(
     "[Audit] Redesign audit unavailable in controlled-beta (ai_quality_feedback table unavailable)",
   );
 
@@ -96,7 +100,7 @@ export async function runFullAudit(): Promise<{
   redesignFindings: AuditFinding[];
   timestamp: string;
 }> {
-  console.log("[Audit] Starting full AI quality audit...");
+  logger.info("[Audit] Starting full AI quality audit");
 
   const [visionFindings, redesignFindings] = await Promise.all([
     auditVisionOutputs(),
@@ -109,7 +113,7 @@ export async function runFullAudit(): Promise<{
     timestamp: new Date().toISOString(),
   };
 
-  console.log("[Audit] Audit complete:", {
+  logger.info("[Audit] Audit complete", {
     visionIssues: visionFindings.length,
     redesignIssues: redesignFindings.length,
   });

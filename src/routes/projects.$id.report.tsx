@@ -19,6 +19,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { addDiagnosticBreadcrumb } from "@/lib/sentry";
+import { logger } from "@/lib/logger";
 import { ReportSection as Section } from "@/components/ReportSection";
 import { EstimateTable } from "@/components/EstimateTable";
 import { getPhotoAnalysis, runPhotoAnalysis, type RoomAnalysis } from "@/core/ai";
@@ -151,7 +152,7 @@ function ReportPage() {
         if (!cancelled) setSavedEstimate(estimate);
       })
       .catch((error) => {
-        console.error("[estimates] load failed", error);
+        logger.error("[estimates] load failed", { error: String(error) });
         if (!cancelled) {
           setEstimateLoadError(
             error instanceof Error ? error : new Error("Failed to load saved estimate."),

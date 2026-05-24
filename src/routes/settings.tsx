@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { UK_REGIONS } from "@/core/constants";
 import { useAuth } from "@/hooks/useAuth";
+import { logger } from "@/lib/logger";
 import { useEffect, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import type { UKRegion } from "@/core/projects";
@@ -89,7 +90,7 @@ function SettingsPage() {
       await signOut();
       navigate({ to: "/" });
     } catch (error) {
-      console.error("Delete account error:", error);
+      logger.error("[settings] Delete account failed", { error: String(error) });
       toast.error(error instanceof Error ? error.message : "Failed to request account deletion");
     } finally {
       setIsDeleting(false);

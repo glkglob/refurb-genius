@@ -3,7 +3,8 @@
 // Persists feedback using existing Supabase patterns only.
 // Note: ai_quality_feedback table is optional for controlled-beta phase.
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/services/supabase";
+import { logger } from "@/lib/logger";
 
 export type VisionAccuracy = "accurate" | "partial" | "inaccurate";
 export type RedesignUsability = "useful" | "generic" | "unrealistic";
@@ -26,7 +27,7 @@ export async function submitVisionFeedback(
   notes?: string,
 ): Promise<boolean> {
   // Controlled-beta stub: ai_quality_feedback table not in typed schema
-  console.info("[AI Quality] Vision feedback not persisted in controlled-beta (table unavailable)");
+  logger.info("[AI Quality] Vision feedback not persisted in controlled-beta (table unavailable)");
   return false;
 }
 
@@ -37,7 +38,7 @@ export async function submitRedesignFeedback(
   notes?: string,
 ): Promise<boolean> {
   // Controlled-beta stub: ai_quality_feedback table not in typed schema
-  console.info(
+  logger.info(
     "[AI Quality] Redesign feedback not persisted in controlled-beta (table unavailable)",
   );
   return false;
@@ -52,7 +53,7 @@ export async function getFeedbackSummary(): Promise<{
   redesignUnrealistic: number;
 }> {
   // Controlled-beta stub: ai_quality_feedback table not in typed schema
-  console.info("[AI Quality] Feedback summary unavailable in controlled-beta (table unavailable)");
+  logger.info("[AI Quality] Feedback summary unavailable in controlled-beta (table unavailable)");
 
   return {
     visionAccurate: 0,

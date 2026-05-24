@@ -8,7 +8,8 @@ import { AIMetricsDashboard } from "@/components/AIMetricsDashboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { Activity, BarChart3, Users, Folder } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/services/supabase";
+import { logger } from "@/lib/logger";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -79,7 +80,7 @@ async function loadRecentProjects(): Promise<RecentProject[]> {
     .limit(5);
 
   if (error) {
-    console.warn("[Admin] Could not load recent projects:", error.message);
+    logger.warn("[Admin] Could not load recent projects", { error: error.message });
     return [];
   }
 
@@ -94,7 +95,7 @@ async function loadUsers(): Promise<User[]> {
     .limit(10);
 
   if (error) {
-    console.warn("[Admin] Could not load users (RLS may restrict access):", error.message);
+    logger.warn("[Admin] Could not load users (RLS may restrict access)", { error: error.message });
     return [];
   }
 

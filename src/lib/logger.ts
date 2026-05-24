@@ -9,7 +9,7 @@
 
 type LogMetadata = Record<string, unknown>;
 
-type LogLevel = "info" | "warn" | "error";
+type LogLevel = "debug" | "info" | "warn" | "error";
 
 function formatLog(level: LogLevel, message: string, metadata?: LogMetadata): string {
   const timestamp = new Date().toISOString();
@@ -31,6 +31,7 @@ function isDebugMode(): boolean {
 
 function shouldLog(level: LogLevel): boolean {
   if (level === "error") return true;
+  if (level === "debug") return isDebugMode();
 
   if (typeof window !== "undefined") {
     return isDebugMode() || !import.meta.env.PROD;
@@ -40,6 +41,12 @@ function shouldLog(level: LogLevel): boolean {
 }
 
 export const logger = {
+  debug(message: string, metadata?: LogMetadata): void {
+    if (shouldLog("debug")) {
+      console.debug(formatLog("debug", message, metadata));
+    }
+  },
+
   info(message: string, metadata?: LogMetadata): void {
     if (shouldLog("info")) {
       console.log(formatLog("info", message, metadata));

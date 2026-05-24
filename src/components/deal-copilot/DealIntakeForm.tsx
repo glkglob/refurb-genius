@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Calculator, CheckCircle2, CircleAlert } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import { CONDITION_LEVELS, type ConditionLevel } from "@/lib/analysis";
 import { UK_REGIONS, type UKRegion } from "@/lib/projects";
 import { formatGBP } from "@/lib/utils";
@@ -137,7 +138,7 @@ export function DealIntakeForm() {
   async function handleSaveOpportunity() {
     if (!score.ready || isSaving) {
       if (isSaving) {
-        console.debug("[deal-intake] Save already in progress, ignoring duplicate click");
+        logger.debug("[deal-intake] Save already in progress, ignoring duplicate click");
       }
       return;
     }
@@ -153,25 +154,25 @@ export function DealIntakeForm() {
     });
 
     if (hasSameDealOpportunityInputs(savedOpportunity, opportunity)) {
-      console.debug("[deal-intake] Save skipped: identical to last saved opportunity");
+      logger.debug("[deal-intake] Save skipped: identical to last saved opportunity");
       return;
     }
 
     setSaveError(null);
     setIsSaving(true);
-    console.info("[deal-intake] Starting save for opportunity:", opportunity.title);
+    logger.info("[deal-intake] Starting save", { title: opportunity.title });
     try {
       const saved = await saveDealOpportunity(opportunity);
       setSavedOpportunity(saved);
       setSaveError(null);
-      console.info("[deal-intake] Save successful, opportunity ID:", saved.id);
+      logger.info("[deal-intake] Save successful", { id: saved.id });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to save opportunity.";
       const displayMessage = message.startsWith("Unable to save")
         ? message
         : "Unable to save opportunity. Please try again.";
       setSaveError(displayMessage);
-      console.error("[deal-intake] Save failed:", { error: err, message, displayMessage });
+      logger.error("[deal-intake] Save failed", { error: String(err), message, displayMessage });
     } finally {
       setIsSaving(false);
     }

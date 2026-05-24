@@ -1,8 +1,9 @@
 // Supabase-backed opportunity store. Preserves a synchronous external-store
 // API (list / getById / subscribe) by caching results in memory and notifying
 // subscribers when async fetches complete.
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/services/supabase";
 import { auth } from "@/lib/auth";
+import { logger } from "@/lib/logger";
 import type { Tables } from "@/integrations/supabase/types";
 
 import type { DealOpportunity, DealOpportunityStatus, DealExitStrategy } from "@repo/types";
@@ -63,7 +64,7 @@ async function fetchAll(): Promise<void> {
     .select("*")
     .order("created_at", { ascending: false });
   if (error) {
-    console.error("[deal-opportunities] fetch failed", error);
+    logger.error("[deal-opportunities] fetch failed", { error: String(error) });
     cache = [];
     loaded = true;
     waitingForAuth = false;
@@ -252,7 +253,7 @@ export async function updateDealOpportunity(
     ) {
       return null;
     }
-    console.error("[deal-opportunities] update failed", { id, updates }, error);
+    logger.error("[deal-opportunities] update failed", { id, error: String(error) });
     throw error;
   }
 }
@@ -261,7 +262,7 @@ export async function deleteDealOpportunity(id: string): Promise<void> {
   try {
     await opportunityStore.delete(id);
   } catch (error) {
-    console.error("[deal-opportunities] delete failed", { id }, error);
+    logger.error("[deal-opportunities] delete failed", { id, error: String(error) });
     throw error;
   }
 }

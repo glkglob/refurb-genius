@@ -1,4 +1,5 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/services/supabase";
+import { logger } from "@/lib/logger";
 import type { Database } from "@/integrations/supabase/types";
 import type { EstimateCategory, FinishLevel, PricingEngineResult } from "@/core/pricing";
 import type { ConditionLevel } from "@/core/ai";
@@ -74,7 +75,7 @@ export async function saveProjectEstimate(
       .eq("id", estimate.id);
 
     if (rollbackError) {
-      console.error("Failed to rollback estimate after estimate_items insert failure.", {
+      logger.error("[estimates] Failed to rollback estimate after items insert failure", {
         estimateId: estimate.id,
         projectId,
         itemsInsertError: itemsError.message,
@@ -205,7 +206,7 @@ export async function saveAIEstimate(input: SaveAIEstimateInput): Promise<Persis
       .eq("id", estimate.id);
 
     if (rollbackError) {
-      console.error("Failed to rollback estimate after rooms insert failure.", {
+      logger.error("[estimates] Failed to rollback estimate after rooms insert failure", {
         estimateId: estimate.id,
         projectId: input.projectId,
         roomsInsertError: roomsError.message,
@@ -265,7 +266,7 @@ export async function saveAIEstimate(input: SaveAIEstimateInput): Promise<Persis
       .eq("id", estimate.id);
 
     if (rollbackError) {
-      console.error("Failed to rollback estimate after items insert failure.", {
+      logger.error("[estimates] Failed to rollback estimate after items insert failure", {
         estimateId: estimate.id,
         projectId: input.projectId,
         itemsInsertError: itemsError.message,
