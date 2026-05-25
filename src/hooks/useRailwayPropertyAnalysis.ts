@@ -77,8 +77,8 @@ export function useRailwayPropertyAnalysis() {
         }));
 
         return final;
-      } catch (err: any) {
-        const message = err?.message || "Analysis failed";
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Analysis failed";
         setState((s) => ({
           ...s,
           status: "failed",

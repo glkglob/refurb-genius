@@ -11,9 +11,10 @@
 
 const getApiBase = (): string => {
   // Vite exposes import.meta.env.VITE_* at build time
+  const env = import.meta.env as Record<string, string | undefined>;
   const base =
-    (import.meta as any).env?.VITE_API_BASE_URL ||
-    (import.meta as any).env?.NEXT_PUBLIC_API_BASE_URL || // compat fallback
+    env.VITE_API_BASE_URL ||
+    env.NEXT_PUBLIC_API_BASE_URL || // compat fallback
     "";
 
   // In dev without the var set, fall back to localhost backend for convenience
