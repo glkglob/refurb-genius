@@ -195,11 +195,15 @@ Currently **17 of 46** components are migrated to `@repo/ui`.
 ### Import Rules
 
 1. **App components** import from `@repo/ui` (or `@repo/ui/<component>` for
-   tooltip/dialog to avoid circular deps through command/sidebar):
+   components involved in circular deps through the barrel — currently
+   tooltip, dialog, and any component imported by sidebar):
    ```ts
-   import { Button, Card, Input } from "@repo/ui";
+   import { Button, Card } from "@repo/ui";
    import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@repo/ui/tooltip";
    import { Dialog, DialogContent, DialogTrigger } from "@repo/ui/dialog";
+   import { Input } from "@repo/ui/input";           // used by sidebar
+   import { Separator } from "@repo/ui/separator";   // used by sidebar
+   import { Skeleton } from "@repo/ui/skeleton";      // used by sidebar
    ```
 
 2. **Shim files** in `src/components/ui/` re-export from `@repo/ui` for backward
@@ -213,7 +217,7 @@ Currently **17 of 46** components are migrated to `@repo/ui`.
    re-export. Never delete shim files — replace their contents.
 
 4. **Tailwind v4 source directive**: `src/styles.css` includes
-   `@source "../../packages/ui/src/**/*"` so Tailwind scans the shared package.
+   `@source "../packages/ui/src/**/*"` so Tailwind scans the shared package.
 
 ### Component Pattern
 
