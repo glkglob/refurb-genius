@@ -21,6 +21,7 @@ const roomAnalysisSchema = z.object({
   recommended_works: z.array(z.string()),
   ai_summary: z.string(),
   confidence_score: z.number(),
+  source: z.enum(["ai", "mock", "fallback", "persisted"]),
 });
 
 const runPhotoAnalysisInputSchema = z.object({

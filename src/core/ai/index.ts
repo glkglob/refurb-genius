@@ -20,7 +20,7 @@ export {
   runPhotoAnalysis,
   subscribePhotoAnalysis,
 } from "./photoAnalysis";
-export type { PhotoAnalysisProvider, PhotoAnalysisInput } from "./photoAnalysis";
+export type { AnalysisSource, PhotoAnalysisProvider, PhotoAnalysisInput } from "./photoAnalysis";
 
 export {
   redesignProvider,

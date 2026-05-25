@@ -345,6 +345,7 @@ export type Database = {
           ai_summary: string;
           confidence_score: number;
           created_at: string;
+          source: string;
         };
         Insert: {
           id?: string;
@@ -361,6 +362,7 @@ export type Database = {
           ai_summary?: string;
           confidence_score?: number;
           created_at?: string;
+          source?: string;
         };
         Update: {
           id?: string;
@@ -377,6 +379,7 @@ export type Database = {
           ai_summary?: string;
           confidence_score?: number;
           created_at?: string;
+          source?: string;
         };
         Relationships: [
           {

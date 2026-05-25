@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { memo } from "react";
 import { Sparkles, AlertTriangle, Wrench } from "lucide-react";
 import type { RoomAnalysis, ConditionLevel } from "@/core/ai";
+import { AnalysisSourceBadge } from "./AnalysisSourceBadge";
 
 const conditionTone: Record<ConditionLevel, Parameters<typeof StatusBadge>[0]["tone"]> = {
   Modern: "success",
@@ -34,11 +35,12 @@ function AnalysisCardComponent({ analysis: r }: AnalysisCardProps) {
           </Badge>
           <StatusBadge tone={conditionTone[r.condition_level]}>{r.condition_level}</StatusBadge>
         </div>
-        <div className="absolute right-3 top-3">
+        <div className="absolute right-3 top-3 flex flex-col items-end gap-1.5">
           <Badge variant="secondary" className="bg-background/85 backdrop-blur">
             <Sparkles className="mr-1 h-3 w-3 text-accent" />
             {Math.round(r.confidence_score * 100)}%
           </Badge>
+          <AnalysisSourceBadge source={r.source} />
         </div>
       </div>
       <CardContent className="space-y-4 p-5">
