@@ -1,8 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input, Label } from "@repo/ui";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState, useEffect, type FormEvent } from "react";
 import { auth } from "@/lib/auth";

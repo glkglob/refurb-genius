@@ -1,17 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
 import {
+  Button,
+  Card,
+  CardContent,
+  Input,
+  Label,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+  Textarea,
+} from "@repo/ui";
 import { useState, type FormEvent } from "react";
 import { Loader2, AlertCircle } from "lucide-react";
 import { PROPERTY_TYPES, UK_REGIONS } from "@/core/constants";
