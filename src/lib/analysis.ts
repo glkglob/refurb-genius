@@ -23,6 +23,17 @@ export type {
   RefurbLevel,
 } from "@/core/ai/mockAnalysis";
 
+const VALID_SOURCES: ReadonlySet<string> = new Set<AnalysisSource>([
+  "ai",
+  "mock",
+  "fallback",
+  "persisted",
+]);
+
+function isAnalysisSource(value: unknown): value is AnalysisSource {
+  return typeof value === "string" && VALID_SOURCES.has(value);
+}
+
 const cache = new Map<string, RoomAnalysis[]>();
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
@@ -50,9 +61,9 @@ function rowToAnalysis(r: Tables<"room_analyses">): RoomAnalysis {
     recommended_works: r.recommended_works ?? [],
     ai_summary: r.ai_summary ?? "",
     confidence_score: Number(r.confidence_score ?? 0),
-    // Use stored source when present (post-migration); fall back to "persisted"
-    // for any legacy rows or during transition.
-    source: (r.source as AnalysisSource) ?? "persisted",
+    // Validate stored source against known enum; fall back to "persisted"
+    // for null, legacy, or unexpected DB values.
+    source: isAnalysisSource(r.source) ? r.source : "persisted",
   };
 }
 
