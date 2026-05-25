@@ -265,7 +265,11 @@ importers:
 
   packages/integrations: {}
 
-  packages/services: {}
+  packages/services:
+    dependencies:
+      '@repo/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/supabase:
     dependencies:

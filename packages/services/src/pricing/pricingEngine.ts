@@ -10,7 +10,7 @@ import {
   FINISH_MULTIPLIERS,
   type EstimateCategory,
   type FinishLevel,
-} from "./pricingData";
+} from "@repo/core/utilities/pricingData";
 import type { UKRegion } from "@/lib/projects";
 import type { ConditionLevel } from "@/lib/analysis";
 
