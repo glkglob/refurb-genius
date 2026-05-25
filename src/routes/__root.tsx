@@ -7,10 +7,12 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { Component, useEffect } from "react";
+import type { ErrorInfo, ReactNode } from "react";
 
 import { Toaster } from "@/components/ui/sonner";
 import { captureException } from "@/lib/sentry";
+import { logger } from "@/lib/logger";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import appCss from "../styles.css?url";
 
@@ -37,7 +39,7 @@ function NotFoundComponent() {
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
-  console.error(error);
+  logger.error("Route error caught", { error: error.message });
   const router = useRouter();
 
   useEffect(() => {
@@ -160,13 +162,82 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// React Error Boundary — catches rendering errors that TanStack Router's
+// errorComponent cannot (e.g. provider crashes, hydration failures).
+// Placed inside ThemeProvider so the fallback UI inherits theme tokens.
+// ---------------------------------------------------------------------------
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class RootErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    logger.error("Root error boundary caught rendering error", {
+      error: error.message,
+      componentStack: errorInfo.componentStack,
+    });
+    captureException(error, { componentStack: errorInfo.componentStack });
+  }
+
+  private handleReset = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background px-4">
+          <div className="max-w-md text-center">
+            <h1 className="text-xl font-semibold tracking-tight text-foreground">
+              Something went wrong
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              An unexpected error occurred. You can try again or head back to the home page.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+              <button
+                onClick={this.handleReset}
+                className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                Try again
+              </button>
+              <a
+                href="/"
+                className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+              >
+                Go home
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <Outlet />
+        <RootErrorBoundary>
+          <Outlet />
+        </RootErrorBoundary>
         <Toaster />
       </ThemeProvider>
     </QueryClientProvider>
