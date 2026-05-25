@@ -91,6 +91,7 @@ function buildFallback(photo: AnalysisPhotoSource): RoomAnalysis {
     recommended_works: ["Manual inspection recommended"],
     ai_summary: "AI analysis could not be completed for this photo.",
     confidence_score: 0,
+    source: "fallback",
   };
 }
 
@@ -172,6 +173,7 @@ async function analysePhoto(apiKey: string, photo: AnalysisPhotoSource): Promise
       recommended_works: coerceStringArray(parsed.recommended_works),
       ai_summary: typeof parsed.ai_summary === "string" ? parsed.ai_summary : "",
       confidence_score: coerceScore(parsed.confidence_score),
+      source: "ai",
     };
   } catch (err) {
     let reason: "timeout" | "rate_limit" | "parse_error" | "api_error" = "api_error";

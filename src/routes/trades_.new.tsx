@@ -2,16 +2,16 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
+  Input,
+  Label,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+  Textarea,
+} from "@repo/ui";
 import { useState, type FormEvent } from "react";
 import { Loader2, AlertCircle, Lock, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { TRADES_JOB_CATEGORIES, type TradesJobCategory } from "@/core/trades";

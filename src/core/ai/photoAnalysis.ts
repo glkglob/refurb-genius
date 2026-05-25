@@ -9,7 +9,13 @@
 // pricing, ROI, or financial numbers — those live in the pricing/ROI
 // engines and are deterministic.
 import { analysisStore } from "@/lib/analysis";
-import type { RoomAnalysis, RoomType, ConditionLevel, RefurbLevel } from "@/lib/analysis";
+import type {
+  AnalysisSource,
+  RoomAnalysis,
+  RoomType,
+  ConditionLevel,
+  RefurbLevel,
+} from "@/lib/analysis";
 import { photoStore } from "@/lib/photos";
 import { runPhotoAnalysisServerFn } from "./serverFns";
 
@@ -79,4 +85,4 @@ export function subscribePhotoAnalysis(fn: () => void): () => void {
   return photoAnalysisProvider.subscribe(fn);
 }
 
-export type { RoomAnalysis, RoomType, ConditionLevel, RefurbLevel };
+export type { AnalysisSource, RoomAnalysis, RoomType, ConditionLevel, RefurbLevel };

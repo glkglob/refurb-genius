@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AnalysisSourceBadge } from "@/components/AnalysisSourceBadge";
 import { RequireAuth } from "@/components/RequireAuth";
 import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
@@ -402,6 +403,7 @@ function ReportPage() {
                           <h3 className="text-base font-semibold text-foreground">{r.room_type}</h3>
                           <Badge variant="outline">{r.condition_level}</Badge>
                           <Badge variant="secondary">{r.refurbishment_level} refurb</Badge>
+                          <AnalysisSourceBadge source={r.source} />
                           <span className="text-xs text-muted-foreground">
                             Confidence {Math.round(r.confidence_score * 100)}%
                           </span>

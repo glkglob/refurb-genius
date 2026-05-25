@@ -2,7 +2,11 @@ import { type ProjectPhoto, photoStore } from "./photos";
 import { auth } from "./auth";
 import { supabase } from "@/services/supabase";
 import { logger } from "./logger";
-import { buildMockRoomAnalyses, type RoomAnalysis } from "@/core/ai/mockAnalysis";
+import {
+  buildMockRoomAnalyses,
+  type RoomAnalysis,
+  type AnalysisSource,
+} from "@/core/ai/mockAnalysis";
 import type { Tables } from "@/integrations/supabase/types";
 export {
   ROOM_TYPES,
@@ -12,11 +16,23 @@ export {
 } from "@/core/ai/mockAnalysis";
 export type {
   AnalysisPhotoSource,
+  AnalysisSource,
   RoomAnalysis,
   RoomType,
   ConditionLevel,
   RefurbLevel,
 } from "@/core/ai/mockAnalysis";
+
+const VALID_SOURCES: ReadonlySet<string> = new Set<AnalysisSource>([
+  "ai",
+  "mock",
+  "fallback",
+  "persisted",
+]);
+
+function isAnalysisSource(value: unknown): value is AnalysisSource {
+  return typeof value === "string" && VALID_SOURCES.has(value);
+}
 
 const cache = new Map<string, RoomAnalysis[]>();
 const listeners = new Set<() => void>();
@@ -45,6 +61,9 @@ function rowToAnalysis(r: Tables<"room_analyses">): RoomAnalysis {
     recommended_works: r.recommended_works ?? [],
     ai_summary: r.ai_summary ?? "",
     confidence_score: Number(r.confidence_score ?? 0),
+    // Validate stored source against known enum; fall back to "persisted"
+    // for null, legacy, or unexpected DB values.
+    source: isAnalysisSource(r.source) ? r.source : "persisted",
   };
 }
 
@@ -86,6 +105,7 @@ async function persistToSupabase(projectId: string, analyses: RoomAnalysis[]): P
         recommended_works: a.recommended_works,
         ai_summary: a.ai_summary,
         confidence_score: a.confidence_score,
+        source: a.source,
       }));
       const { error } = await supabase.from("room_analyses").insert(rows);
       if (error) {
@@ -117,6 +137,11 @@ export const analysisStore = {
     }
     return undefined;
   },
+  /** Run mock analysis from local photo metadata. This is a dev-only
+   *  convenience used by `mockPhotoAnalysisProvider`. In production the UI
+   *  calls `runPhotoAnalysis()` from `@/core/ai` which routes through
+   *  `serverPhotoAnalysisProvider` → `runPhotoAnalysisServerFn` → real
+   *  OpenAI Vision pipeline. */
   async run(projectId: string): Promise<RoomAnalysis[]> {
     await delay();
     const result = buildFromProjectPhotos(projectId);

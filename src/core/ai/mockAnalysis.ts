@@ -26,6 +26,9 @@ export type ConditionLevel = (typeof CONDITION_LEVELS)[number];
 export const REFURB_LEVELS = ["Light", "Medium", "Heavy", "Full"] as const;
 export type RefurbLevel = (typeof REFURB_LEVELS)[number];
 
+/** Where the analysis result originated. */
+export type AnalysisSource = "ai" | "mock" | "fallback" | "persisted";
+
 export type RoomAnalysis = {
   id: string;
   photo_url: string;
@@ -37,6 +40,9 @@ export type RoomAnalysis = {
   recommended_works: string[];
   ai_summary: string;
   confidence_score: number;
+  /** Where this result came from: real AI, mock template, per-photo fallback,
+   *  or loaded from Supabase (previous session). */
+  source: AnalysisSource;
 };
 
 export type AnalysisPhotoSource = {
@@ -54,6 +60,7 @@ const FALLBACK_PHOTOS = [
 
 const TEMPLATES: Array<Omit<RoomAnalysis, "id" | "photo_url" | "photo_name">> = [
   {
+    source: "mock",
     room_type: "Kitchen",
     condition_level: "Poor",
     refurbishment_level: "Heavy",
@@ -74,6 +81,7 @@ const TEMPLATES: Array<Omit<RoomAnalysis, "id" | "photo_url" | "photo_name">> = 
     confidence_score: 0.92,
   },
   {
+    source: "mock",
     room_type: "Bathroom",
     condition_level: "Dated",
     refurbishment_level: "Medium",
@@ -92,6 +100,7 @@ const TEMPLATES: Array<Omit<RoomAnalysis, "id" | "photo_url" | "photo_name">> = 
     confidence_score: 0.87,
   },
   {
+    source: "mock",
     room_type: "Living Room",
     condition_level: "Average",
     refurbishment_level: "Light",
@@ -106,6 +115,7 @@ const TEMPLATES: Array<Omit<RoomAnalysis, "id" | "photo_url" | "photo_name">> = 
     confidence_score: 0.81,
   },
   {
+    source: "mock",
     room_type: "Bedroom",
     condition_level: "Average",
     refurbishment_level: "Light",
@@ -120,6 +130,7 @@ const TEMPLATES: Array<Omit<RoomAnalysis, "id" | "photo_url" | "photo_name">> = 
     confidence_score: 0.84,
   },
   {
+    source: "mock",
     room_type: "Hallway",
     condition_level: "Dated",
     refurbishment_level: "Light",
@@ -134,6 +145,7 @@ const TEMPLATES: Array<Omit<RoomAnalysis, "id" | "photo_url" | "photo_name">> = 
     confidence_score: 0.78,
   },
   {
+    source: "mock",
     room_type: "Exterior",
     condition_level: "Dated",
     refurbishment_level: "Medium",

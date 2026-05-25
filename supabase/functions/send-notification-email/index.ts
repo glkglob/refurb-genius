@@ -18,17 +18,14 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
 const FROM_EMAIL = "notifications@mg.refurbgenius.co.uk"; // Update when domain is verified in Resend
 
-type NotificationType =
-  | "interest_registered"
-  | "interest_accepted"
-  | "interest_rejected";
+type NotificationType = "interest_registered" | "interest_accepted" | "interest_rejected";
 
 interface NotificationPayload {
   type: NotificationType;
   jobId: string;
   jobTitle?: string;
   interestUserId?: string; // tradesperson who registered interest
-  message?: string;        // only for interest_registered
+  message?: string; // only for interest_registered
 }
 
 interface EmailPayload {
@@ -74,10 +71,10 @@ Deno.serve(async (req) => {
 
   if (!RESEND_API_KEY || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
     console.error("Missing required environment variables");
-    return new Response(
-      JSON.stringify({ error: "Server configuration error" }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Server configuration error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -85,10 +82,10 @@ Deno.serve(async (req) => {
 
     // Basic validation
     if (!payload.type || !payload.jobId) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields: type, jobId" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Missing required fields: type, jobId" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // Create Supabase client authenticated as the caller
@@ -106,10 +103,10 @@ Deno.serve(async (req) => {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // Basic rate limiting per user
@@ -130,10 +127,10 @@ Deno.serve(async (req) => {
 
     if (jobError || !job) {
       console.error("Job not found:", payload.jobId);
-      return new Response(
-        JSON.stringify({ error: "Job not found" }),
-        { status: 404, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Job not found" }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     const jobTitle = payload.jobTitle ?? job.title;
@@ -175,7 +172,7 @@ Deno.serve(async (req) => {
       if (!payload.interestUserId) {
         return new Response(
           JSON.stringify({ error: "interestUserId is required for this notification type" }),
-          { status: 400, headers: { "Content-Type": "application/json" } }
+          { status: 400, headers: { "Content-Type": "application/json" } },
         );
       }
 
@@ -211,17 +208,17 @@ Deno.serve(async (req) => {
     }
 
     if (!email) {
-      return new Response(
-        JSON.stringify({ error: "Unsupported notification type" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Unsupported notification type" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // Send via Resend REST API
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
+        Authorization: `Bearer ${RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify(email),
