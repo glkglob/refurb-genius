@@ -3,7 +3,7 @@
 @import "@fontsource-variable/inter";
 
 /* Scan the shared UI package for Tailwind classes (Tailwind v4 @source directive) */
-@source "../../packages/ui/src/**/*";
+@source "../packages/ui/src/**/*";
 
 
 /*
