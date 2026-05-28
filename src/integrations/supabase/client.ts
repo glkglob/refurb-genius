@@ -7,6 +7,6 @@ const isDev = import.meta.env.DEV;
 // import { supabase } from "@/services/supabase";
 export const supabase = createBrowserSupabase<Database>({
   cookieName: "pip-auth",
-  cookieDomain: isDev ? undefined : ".refurbgenius.space",
+  cookieDomain: isDev ? undefined : ".refurbgenius.info",
   secure: !isDev,
 });
