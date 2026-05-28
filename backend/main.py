@@ -33,7 +33,7 @@ class Settings(BaseSettings):
 
     # Optional / future
     environment: str = "production"
-    frontend_url: str = "https://www.refurbgenius.site"
+    frontend_url: str = "https://www.refurbgenius.info"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -92,7 +92,7 @@ ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",  # Vite dev server default
     "http://127.0.0.1:3000",
-    "https://www.refurbgenius.site",
+    "https://www.refurbgenius.info",
     # Update this with your actual Vercel production URL (and any preview patterns if needed)
     # Example: "https://refurb-genius-abc123.vercel.app",
     settings.frontend_url,
