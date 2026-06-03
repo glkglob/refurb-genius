@@ -125,7 +125,7 @@ function AnalysisPage() {
       subtitle="Room-by-room condition assessment with recommended works."
       actions={
         <Button asChild>
-          <Link to="/projects/$id/estimate" params={{ id }}>
+          <Link to="/projects/$id/estimate" params={{ id }} search={{ from: undefined }}>
             Continue to estimate <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
         </Button>
@@ -170,7 +170,7 @@ function AnalysisPage() {
             </p>
           </div>
           <Button asChild size="lg">
-            <Link to="/projects/$id/estimate" params={{ id }}>
+            <Link to="/projects/$id/estimate" params={{ id }} search={{ from: undefined }}>
               View estimate <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>
