@@ -1,7 +1,22 @@
-// Supabase-backed auth. Keeps the same surface the app already uses
-// (signIn / signUp / signOut / getUser / onChange) so consumers don't need
-// to change. Google sign-in is exposed via signInWithGoogle().
-import { supabase } from "@/integrations/supabase/client";
+// LEGACY CLIENT AUTH LAYER (auth modernization complete for routes + critical writes)
+// -----------------------------------------------------------------------------
+// This module provides the mutation surface (signIn*, signOut, reset, etc.) and
+// a listener bridge so that legacy stores / non-React code / Sidebar can still
+// call auth.getUser() / auth.onChange() without immediate refactor.
+//
+// NEW CODE RULES:
+// - Authoritative "who am I" for protected server logic: use getCurrentUserServerFn / requireUser from @/serverFns/auth
+// - React UI: prefer useAuth() hook (now Query + serverFn backed, survives hard refresh)
+// - Writes that must survive hard-refresh/direct-nav: delegate to createServerFn (see serverFns/projects.ts, dealCopilot.ts)
+// - Client reads in stores (for user_id on insert, ownership checks): this layer is acceptable *after* hydration because
+//   the browser Supabase client receives the same cookies. But prefer serverFns for any mutation.
+//
+// The old client-only `supabase.auth.getUser()` + insert pattern that caused the bugs fixed by APPLY_THIS is no longer used
+// for the two critical paths (project create, deal save). Other call sites should be migrated opportunistically.
+//
+// Uses the centralized service boundary (which now creates the client via @repo/supabase/browser).
+// This removes the direct deprecated client import.
+import { supabase } from "@/services/supabase";
 import { captureAuthError, addDiagnosticBreadcrumb } from "./sentry";
 import { logger } from "./logger";
 

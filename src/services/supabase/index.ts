@@ -1,12 +1,22 @@
-// Supabase service boundary.
+// Supabase service boundary (centralized client).
 //
-// Components and pages should import the Supabase client from here, not
-// directly from `@/integrations/supabase/*`. That keeps a single seam for
-// future swaps (mocked tests, alternate backends) and gives us one place
-// to surface a setup warning when env vars are missing.
-import { supabase } from "@/integrations/supabase/client";
+// All app code (hooks, components, stores) should import the Supabase client
+// from here: `import { supabase } from "@/services/supabase";`
+//
+// This is now implemented via the supported `@repo/supabase/browser` factory
+// (no more direct import from the deprecated `@/integrations/supabase/client`).
+// Types are still pulled from the generated file for Database generic.
+import type { Database } from "@/integrations/supabase/types";
+import { createBrowserSupabase } from "@repo/supabase/browser";
 import { env } from "@/core/config/env";
-export { supabase };
+
+const isDev = import.meta.env.DEV;
+
+export const supabase = createBrowserSupabase<Database>({
+  cookieName: "pip-auth",
+  cookieDomain: isDev ? undefined : ".refurbgenius.space",
+  secure: !isDev,
+});
 
 // Re-export the auth wrapper so the auth surface lives behind the service
 // layer too. New code should prefer `@/services/supabase` over `@/lib/auth`.

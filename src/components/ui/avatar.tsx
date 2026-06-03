@@ -1,3 +1,4 @@
 "use client";
 
-export { Avatar, AvatarImage, AvatarFallback } from "@repo/ui";
+// Re-export from @repo/ui (single source of truth after UI migration).
+export * from "@repo/ui/avatar";

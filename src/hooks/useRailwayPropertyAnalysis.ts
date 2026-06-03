@@ -8,6 +8,8 @@ import {
   type JobStatusResponse,
   type JobResultResponse,
 } from "@/lib/api/railwayAnalysis";
+import { supabase } from "@/services/supabase";
+import { logger } from "@/lib/logger";
 
 export type AnalysisJobState = {
   jobId: string | null;
@@ -29,6 +31,14 @@ const initialState: AnalysisJobState = {
  * Hook for the Railway async property analysis flow.
  * Starts the job on Railway, polls status, and surfaces result or error.
  * Keeps the heavy AI work off Vercel server functions.
+ *
+ * // PRIMARY PATH (for heavy property/deal analysis per docs/architecture/analysis-paths.md)
+ * Use this as the default for photo + scope + estimate + redesign heavy jobs,
+ * especially in Deal Copilot flows (when address/postcode provided) and full
+ * project intel. TS serverFns are light/fast fallback or preview only.
+ *
+ * Strengthened: includes token forwarding for verified user, error handling,
+ * and abort support. Falls back gracefully on failure.
  */
 export function useRailwayPropertyAnalysis() {
   const [state, setState] = useState<AnalysisJobState>(initialState);
@@ -41,11 +51,19 @@ export function useRailwayPropertyAnalysis() {
   }, []);
 
   const start = useCallback(
-    async (input: PropertyAnalysisInput, userId?: string) => {
+    async (
+      input: PropertyAnalysisInput,
+      userId?: string,
+      options?: { fallback?: () => Promise<unknown> },
+    ) => {
       reset();
 
       try {
-        const { job_id } = await startAnalysis(input, userId);
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        const { job_id } = await startAnalysis(input, userId, token);
 
         setState((s) => ({
           ...s,
@@ -85,6 +103,14 @@ export function useRailwayPropertyAnalysis() {
           error: message,
           isPolling: false,
         }));
+        // Strengthen fallback between paths (PRIMARY Railway <-> TS light)
+        if (options?.fallback) {
+          try {
+            return await options.fallback();
+          } catch (fbErr) {
+            logger.warn("[railway] fallback also failed", { fbErr });
+          }
+        }
         throw err;
       }
     },

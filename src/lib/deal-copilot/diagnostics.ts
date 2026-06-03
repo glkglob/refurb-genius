@@ -12,6 +12,8 @@ import { formatGBP } from "@/lib/utils";
  * Logs are categorized for operational filtering and support.
  */
 
+import { logger } from "@/lib/logger";
+
 export type DiagnosticLevel = "debug" | "info" | "warn" | "error";
 export type DiagnosticCategory = "validation" | "analysis" | "save" | "render" | "calculation";
 
@@ -27,20 +29,21 @@ export interface DiagnosticEvent {
  * Log structured diagnostic event
  */
 function logEvent(event: DiagnosticEvent): void {
-  const prefix = `[deal-copilot/${event.category}]`;
+  const msg = `[deal-copilot/${event.category}] ${event.message}`;
+  const ctx = event.context || undefined;
 
   switch (event.level) {
     case "debug":
-      console.debug(prefix, event.message, event.context || "");
+      logger.debug(msg, ctx);
       break;
     case "info":
-      console.info(prefix, event.message, event.context || "");
+      logger.info(msg, ctx);
       break;
     case "warn":
-      console.warn(prefix, event.message, event.context || "");
+      logger.warn(msg, ctx);
       break;
     case "error":
-      console.error(prefix, event.message, event.context || "");
+      logger.error(msg, ctx);
       break;
   }
 }

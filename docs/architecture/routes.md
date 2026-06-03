@@ -26,27 +26,27 @@ Unauthenticated visitors are redirected to `/auth?redirect=<path>` and returned 
 
 | Path         | File                       |
 | ------------ | -------------------------- |
-| `/dashboard` | `src/routes/dashboard.tsx` |
+| `/dashboard` | `src/routes/_authed/dashboard.tsx` (protected by _authed layout) |
 
 ### Projects
 
 | Path                     | File                                   |
 | ------------------------ | -------------------------------------- |
 | `/projects/new`          | `src/routes/projects.new.tsx`          |
-| `/projects/:id`          | `src/routes/projects.$id.index.tsx`    |
-| `/projects/:id/upload`   | `src/routes/projects.$id.upload.tsx`   |
-| `/projects/:id/estimate` | `src/routes/projects.$id.estimate.tsx` |
-| `/projects/:id/analysis` | `src/routes/projects.$id.analysis.tsx` |
-| `/projects/:id/report`   | `src/routes/projects.$id.report.tsx`   |
+| `/projects/:id`          | `src/routes/_authed/projects.$id.index.tsx` |
+| `/projects/:id/upload`   | `src/routes/_authed/projects.$id.upload.tsx` |
+| `/projects/:id/estimate` | `src/routes/_authed/projects.$id.estimate.tsx` |
+| `/projects/:id/analysis` | `src/routes/_authed/projects.$id.analysis.tsx` |
+| `/projects/:id/report`   | `src/routes/_authed/projects.$id.report.tsx` |
 
 ### Deal Copilot
 
 | Path                                | File                                              |
 | ----------------------------------- | ------------------------------------------------- |
-| `/deal-copilot`                     | `src/routes/deal-copilot/index.tsx`               |
-| `/deal-copilot/new`                 | `src/routes/deal-copilot/new.tsx`                 |
-| `/deal-copilot/:opportunityId`      | `src/routes/deal-copilot/$opportunityId.tsx`      |
-| `/deal-copilot/:opportunityId/edit` | `src/routes/deal-copilot/$opportunityId.edit.tsx` |
+| `/deal-copilot`                     | `src/routes/_authed/deal-copilot/index.tsx`               |
+| `/deal-copilot/new`                 | `src/routes/_authed/deal-copilot/new.tsx`                 |
+| `/deal-copilot/:opportunityId`      | `src/routes/_authed/deal-copilot/$opportunityId.tsx`      |
+| `/deal-copilot/:opportunityId/edit` | `src/routes/_authed/deal-copilot/$opportunityId.edit.tsx` |
 
 ### Trades (Authenticated sub-routes)
 

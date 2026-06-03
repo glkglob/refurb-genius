@@ -62,10 +62,17 @@ export interface JobResultResponse {
 /**
  * Start a new async property analysis job on Railway.
  * Returns immediately with a job_id the frontend can poll.
+ *
+ * // PRIMARY PATH for heavy analysis (photo + scope + estimate + redesign).
+ * Per docs/architecture/analysis-paths.md: prefer Railway for heavy; this is the
+ * implementation. TS serverFns (core/ai) are for fast/light cases + fallbacks.
+ *
+ * Always forwards access token (when available) so backend can use verified JWT user.
  */
 export async function startAnalysis(
   input: PropertyAnalysisInput,
   userId?: string,
+  accessToken?: string,
 ): Promise<JobCreateResponse> {
   const base = getApiBase();
   const headers: Record<string, string> = {
@@ -74,6 +81,9 @@ export async function startAnalysis(
 
   if (userId) {
     headers["X-User-Id"] = userId;
+  }
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
   }
 
   const res = await fetch(`${base}/analyze-property`, {

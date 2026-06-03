@@ -9,6 +9,11 @@ import type { Tables } from "@/integrations/supabase/types";
 import type { DealOpportunity, DealOpportunityStatus, DealExitStrategy } from "@repo/types";
 import type { PropertyType } from "@/lib/projects";
 
+// NEW: server-backed save for the "Save opportunity" flow in Deal Copilot.
+// This is the critical write path that must survive hard refresh / direct nav
+// to /deal-copilot/new (and the intake form).
+import { saveDealOpportunityServerFn } from "@/serverFns/dealCopilot";
+
 export type OpportunityStoreSnapshot = {
   opportunities: DealOpportunity[];
   loading: boolean;
@@ -137,29 +142,30 @@ export const opportunityStore = {
     await fetchAll();
   },
   async save(opportunity: DealOpportunity): Promise<DealOpportunity> {
-    const user = auth.getUser();
-    if (!user) throw new Error("You must be signed in.");
-    const { data, error } = await supabase
-      .from("deal_opportunities")
-      .insert({
-        id: opportunity.id,
-        user_id: user.id,
-        title: opportunity.title,
-        listing_url: opportunity.listingUrl ?? null,
-        postcode: opportunity.postcode ?? null,
-        property_type: opportunity.propertyType ?? null,
-        bedrooms: opportunity.bedrooms ?? null,
-        purchase_price: opportunity.purchasePrice ?? null,
-        estimated_gdv: opportunity.estimatedGdv ?? null,
-        expected_monthly_rent: opportunity.expectedMonthlyRent ?? null,
-        refurb_budget: opportunity.refurbBudget ?? null,
-        target_exit_strategy: opportunity.targetExitStrategy ?? null,
-        status: opportunity.status,
-      })
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    const saved = rowToOpportunity(data);
+    /**
+     * THE FIX FOR DEAL COPILOT "SAVE OPPORTUNITY" AFTER HARD REFRESH
+     *
+     * Old code (now deleted from this path):
+     *   const user = auth.getUser(); if (!user) throw ...
+     *   await supabase.from("deal_opportunities").insert({ user_id: user.id, ... })
+     *
+     * This used the browser client's in-memory auth, which is empty on hard
+     * refresh or when landing directly on /deal-copilot/new. The form's
+     * handleSaveOpportunity would then fail with "You must be signed in."
+     *
+     * New behaviour:
+     *   - Call the serverFn (executes on Nitro server)
+     *   - serverFn calls requireUser() → validates via request cookies
+     *   - serverFn performs the INSERT with the real user.id
+     *   - serverFn returns a ready-to-use DealOpportunity (already mapped)
+     *
+     * We still do the local cache/notify dance here (the store's job) so
+     * subscribers (any components using opportunityStore) see the update
+     * synchronously after the await.
+     */
+    const saved = await saveDealOpportunityServerFn({ data: opportunity });
+
+    // Maintain the exact same cache-merge + notify contract as before.
     cache = [saved, ...cache.filter((o) => o.id !== saved.id)];
     notify();
     return saved;
