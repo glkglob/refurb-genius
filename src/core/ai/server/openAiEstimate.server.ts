@@ -5,6 +5,8 @@ import { logger } from "@/lib/logger";
 import { incrementCounter } from "@/lib/provider-diagnostics";
 import { timeoutPromise, isTimeoutError } from "@/lib/timeout";
 import { getRegionalMultiplier } from "@repo/services";
+import { aiEstimateResponseSchema, safeParseEstimate } from "../validation";
+import { withRetry } from "../platform/retry";
 
 // ──────────────────────────────────────────────────────────────
 // Types
@@ -295,30 +297,35 @@ export async function runSecureEstimateGeneration(
   });
 
   try {
-    const response = await timeoutPromise(
-      fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          max_tokens: 4096,
-          temperature: 0.3,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: systemPrompt },
-            {
-              role: "user",
-              content:
-                'Generate the refurbishment estimate now. Return the JSON array inside a top-level { "rooms": [...] } wrapper.',
+    const response = await withRetry(
+      async () =>
+        timeoutPromise(
+          fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
             },
-          ],
-        }),
-      }),
-      ESTIMATE_TIMEOUT_MS,
-      "GPT-4o estimate generation",
+            body: JSON.stringify({
+              model: "gpt-4o",
+              max_tokens: 4096,
+              temperature: 0.3,
+              response_format: { type: "json_object" },
+              messages: [
+                { role: "system", content: systemPrompt },
+                {
+                  role: "user",
+                  content:
+                    'Generate the refurbishment estimate now. Return the JSON array inside a top-level { "rooms": [...] } wrapper.',
+                },
+              ],
+            }),
+          }),
+          ESTIMATE_TIMEOUT_MS,
+          "GPT-4o estimate generation",
+        ),
+      { maxAttempts: 2, baseDelayMs: 400 },
+      "estimate-generation",
     );
 
     if (!response.ok) {
@@ -335,23 +342,41 @@ export async function runSecureEstimateGeneration(
 
     const parsed: unknown = parseGptJson(raw);
 
-    // Accept { rooms: [...] } or a raw array
-    const rawRooms = Array.isArray(parsed)
-      ? parsed
-      : typeof parsed === "object" &&
-          parsed !== null &&
-          "rooms" in parsed &&
-          Array.isArray((parsed as Record<string, unknown>).rooms)
-        ? ((parsed as Record<string, unknown>).rooms as unknown[])
-        : null;
-    if (!rawRooms) {
-      throw new Error("Response did not contain a rooms array");
+    // Phase 1: Zod first for structured reliability
+    const zodEst = safeParseEstimate(parsed);
+    let rooms: AIGeneratedRoom[] = [];
+    if (zodEst) {
+      rooms = zodEst.rooms
+        .map((r) => ({
+          name: r.name,
+          area_sqm: r.area_sqm,
+          items: r.items.map((it) => ({
+            name: it.name,
+            category: it.category,
+            quantity: it.quantity,
+            unit: it.unit,
+            base_unit_cost: it.base_unit_cost,
+            notes: it.notes,
+          })),
+        }))
+        .filter((r) => Array.isArray(r.items) && r.items.length > 0) as AIGeneratedRoom[];
+    } else {
+      // Accept { rooms: [...] } or a raw array (legacy path)
+      const rawRooms = Array.isArray(parsed)
+        ? parsed
+        : typeof parsed === "object" &&
+            parsed !== null &&
+            "rooms" in parsed &&
+            Array.isArray((parsed as Record<string, unknown>).rooms)
+          ? ((parsed as Record<string, unknown>).rooms as unknown[])
+          : null;
+      if (rawRooms) {
+        rooms = rawRooms
+          .filter((x): x is Record<string, unknown> => typeof x === "object" && x !== null)
+          .map(coerceRoom)
+          .filter((r): r is AIGeneratedRoom => r !== null);
+      }
     }
-
-    const rooms = rawRooms
-      .filter((x): x is Record<string, unknown> => typeof x === "object" && x !== null)
-      .map(coerceRoom)
-      .filter((r): r is AIGeneratedRoom => r !== null);
 
     if (rooms.length === 0) {
       throw new Error("AI returned zero valid rooms — falling back to mock");

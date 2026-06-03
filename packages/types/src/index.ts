@@ -12,8 +12,8 @@ export type {
   UKRegion,
 } from "./project";
 export type { Photo } from "./photo";
-export type { AnalysisResult, RoomType, ConditionLevel, RefurbLevel } from "./analysis";
-export type { RedesignConcept, RedesignStyle } from "./redesign";
+// Note: Analysis / Redesign types now consolidated under ./ai (Phase 1 AI platform contracts).
+// The old per-domain files still exist for compat but we avoid duplicate export names here.
 export type {
   Estimate,
   EstimateItem,
@@ -88,3 +88,21 @@ export type {
 
 // Deal Copilot orchestration types
 export type { ParsedDealFormData, DealAnalysisResult } from "./deal-copilot";
+
+// AI platform contracts (Phase 1+)
+export type {
+  RoomAnalysis,
+  RoomType,
+  ConditionLevel,
+  RefurbLevel,
+  AnalysisSource,
+  ScopeAnalysisResult,
+  ScopeRoom,
+  ScopeIssue,
+  ScopeRecommendedItem,
+  AIGeneratedRoom,
+  AIGeneratedItem,
+  GenerateEstimateInput,
+  RedesignConcept,
+  RedesignStyle,
+} from "./ai";

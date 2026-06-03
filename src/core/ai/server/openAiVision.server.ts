@@ -8,10 +8,12 @@ import type {
   RefurbLevel,
 } from "../mockAnalysis";
 import { buildMockRoomAnalyses } from "../mockAnalysis";
+import { roomAnalysisSchema, safeParseRoomAnalysis } from "../validation";
 import { captureAiError, addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
 import { incrementCounter } from "@/lib/provider-diagnostics";
 import { timeoutPromise, isTimeoutError } from "@/lib/timeout";
+import { withRetry, classifyError } from "../platform/retry";
 
 const AI_ANALYSIS_TIMEOUT_MS = 60_000;
 
@@ -109,37 +111,42 @@ async function analysePhoto(apiKey: string, photo: AnalysisPhotoSource): Promise
       timeout: AI_ANALYSIS_TIMEOUT_MS,
     });
 
-    const response = await timeoutPromise(
-      fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          max_tokens: 512,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: SYSTEM_PROMPT },
-            {
-              role: "user",
-              content: [
+    const response = await withRetry(
+      async () =>
+        timeoutPromise(
+          fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: "gpt-4o",
+              max_tokens: 512,
+              response_format: { type: "json_object" },
+              messages: [
+                { role: "system", content: SYSTEM_PROMPT },
                 {
-                  type: "image_url",
-                  image_url: { url: photo.url, detail: "low" },
-                },
-                {
-                  type: "text",
-                  text: `Analyse this property photo (filename: ${photo.name}).`,
+                  role: "user",
+                  content: [
+                    {
+                      type: "image_url",
+                      image_url: { url: photo.url, detail: "low" },
+                    },
+                    {
+                      type: "text",
+                      text: `Analyse this property photo (filename: ${photo.name}).`,
+                    },
+                  ],
                 },
               ],
-            },
-          ],
-        }),
-      }),
-      AI_ANALYSIS_TIMEOUT_MS,
-      `GPT-4o analysis for ${photo.name}`,
+            }),
+          }),
+          AI_ANALYSIS_TIMEOUT_MS,
+          `GPT-4o analysis for ${photo.name}`,
+        ),
+      { maxAttempts: 2, baseDelayMs: 300 },
+      `vision:${photo.name}`,
     );
 
     if (!response.ok) {
@@ -155,9 +162,13 @@ async function analysePhoto(apiKey: string, photo: AnalysisPhotoSource): Promise
 
     const parsed = parseGptJson(raw) as Record<string, unknown>;
 
+    // Phase 1 improvement: Zod validation on top of manual coerce for stronger guarantees
+    const zodValidated = safeParseRoomAnalysis(parsed);
+    const validated = { ...parsed, ...zodValidated };
+
     addDiagnosticBreadcrumb("ai:gpt4o:analyze:success", {
       photo: photo.name,
-      confidence: parsed.confidence_score,
+      confidence: validated.confidence_score,
     });
 
     incrementCounter("vision_success");
@@ -166,13 +177,13 @@ async function analysePhoto(apiKey: string, photo: AnalysisPhotoSource): Promise
       id: photo.id,
       photo_url: photo.url,
       photo_name: photo.name,
-      room_type: coerceRoomType(parsed.room_type),
-      condition_level: coerceConditionLevel(parsed.condition_level),
-      refurbishment_level: coerceRefurbLevel(parsed.refurbishment_level),
-      visible_issues: coerceStringArray(parsed.visible_issues),
-      recommended_works: coerceStringArray(parsed.recommended_works),
-      ai_summary: typeof parsed.ai_summary === "string" ? parsed.ai_summary : "",
-      confidence_score: coerceScore(parsed.confidence_score),
+      room_type: coerceRoomType(validated.room_type),
+      condition_level: coerceConditionLevel(validated.condition_level),
+      refurbishment_level: coerceRefurbLevel(validated.refurbishment_level),
+      visible_issues: coerceStringArray(validated.visible_issues),
+      recommended_works: coerceStringArray(validated.recommended_works),
+      ai_summary: typeof validated.ai_summary === "string" ? validated.ai_summary : "",
+      confidence_score: coerceScore(validated.confidence_score),
       source: "ai",
     };
   } catch (err) {

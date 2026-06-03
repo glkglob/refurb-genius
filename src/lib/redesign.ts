@@ -23,6 +23,8 @@ export type RedesignConcept = {
   afterGradient: string;
   // Real AI-generated render URL (DALL-E 3). When present, rendered instead of afterGradient.
   afterImageUrl?: string;
+  /** Phase 3: estimated cost uplift vs baseline (mid estimate). Optional for backward compat. */
+  estimatedCostUplift?: { low: number; mid: number; high: number; note?: string };
 };
 
 export const REDESIGN_CONCEPTS: RedesignConcept[] = [
@@ -39,6 +41,12 @@ export const REDESIGN_CONCEPTS: RedesignConcept[] = [
     lighting: "Recessed downlights with a sculptural matte black pendant.",
     furniture: "Low-profile sofa, oak coffee table, brass-accent shelving.",
     afterGradient: "linear-gradient(135deg, #F5F5F2 0%, #E4DED2 45%, #B08D57 100%)",
+    estimatedCostUplift: {
+      low: 8500,
+      mid: 12500,
+      high: 17500,
+      note: "Premium materials and finishes uplift vs baseline",
+    },
   },
   {
     style: "Luxury",
@@ -67,6 +75,7 @@ export const REDESIGN_CONCEPTS: RedesignConcept[] = [
     lighting: "Paper pendant shades and warm 2700K LED strips.",
     furniture: "Light oak dining set, linen sofa, woven storage.",
     afterGradient: "linear-gradient(135deg, #FAFAF7 0%, #E6D8C3 55%, #B7C4B0 100%)",
+    estimatedCostUplift: { low: 2200, mid: 3800, high: 5200, note: "Light natural refresh" },
   },
   {
     style: "Airbnb",
