@@ -164,6 +164,7 @@ export const saveDealOpportunityServerFn = createServerFn({ method: "POST" })
           refurb_budget: opportunity.refurbBudget ?? null,
           target_exit_strategy: opportunity.targetExitStrategy ?? null,
           status: opportunity.status,
+          // Always refresh updated_at on save (upsert); created_at uses DB default on insert.
           updated_at: new Date().toISOString(),
         },
         { onConflict: "id" },

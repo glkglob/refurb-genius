@@ -11,6 +11,7 @@ if (typeof process !== "undefined") {
     validateServerEnv();
   } catch (e) {
     logger.error("[env] Server env validation failed", { error: String(e) });
+    throw e;
   }
 }
 

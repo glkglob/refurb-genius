@@ -13,6 +13,12 @@ export function checkRateLimit(
   windowMs = WINDOW_MS,
 ): { allowed: boolean; retryAfter?: number } {
   const now = Date.now();
+  // Opportunistic cleanup to prevent unbounded memory growth in long-lived processes.
+  if (buckets.size > 1000) {
+    for (const [k, v] of buckets) {
+      if (now > v.resetAt) buckets.delete(k);
+    }
+  }
   let bucket = buckets.get(key);
   if (!bucket || now > bucket.resetAt) {
     bucket = { count: 0, resetAt: now + windowMs };

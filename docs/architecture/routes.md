@@ -32,7 +32,7 @@ Unauthenticated visitors are redirected to `/auth?redirect=<path>` and returned 
 
 | Path                     | File                                   |
 | ------------------------ | -------------------------------------- |
-| `/projects/new`          | `src/routes/projects.new.tsx`          |
+| `/projects/new`          | `src/routes/_authed/projects.new.tsx` (protected by _authed layout) |
 | `/projects/:id`          | `src/routes/_authed/projects.$id.index.tsx` |
 | `/projects/:id/upload`   | `src/routes/_authed/projects.$id.upload.tsx` |
 | `/projects/:id/estimate` | `src/routes/_authed/projects.$id.estimate.tsx` |
