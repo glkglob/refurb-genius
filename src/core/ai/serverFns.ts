@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { CONDITION_LEVELS, REFURB_LEVELS, ROOM_TYPES } from "./mockAnalysis";
 import { REDESIGN_STYLES } from "@/lib/redesign";
+import { checkRateLimit, rateLimitKeyForUser } from "@/lib/rate-limit";
 
 const photoInputSchema = z.object({
   id: z.string().min(1),
@@ -35,7 +36,7 @@ const runRedesignInputSchema = z.object({
   analyses: z.array(roomAnalysisSchema).optional(),
 });
 
-async function requireServerAuth(): Promise<void> {
+async function requireServerAuth(): Promise<{ id: string }> {
   const { getCookies } = await import("@tanstack/react-start/server");
   const { createServerSupabase } = await import("@repo/supabase/server");
 
@@ -48,12 +49,18 @@ async function requireServerAuth(): Promise<void> {
   if (error || !user) {
     throw new Error("Unauthorized: you must be signed in to use AI features.");
   }
+  return { id: user.id };
 }
 
 export const runPhotoAnalysisServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => runPhotoAnalysisInputSchema.parse(input))
   .handler(async ({ data }) => {
-    await requireServerAuth();
+    const user = await requireServerAuth();
+    const key = rateLimitKeyForUser(user.id, "ai-vision");
+    const rl = checkRateLimit(key);
+    if (!rl.allowed) {
+      throw new Error(`Rate limit exceeded. Try again in ${rl.retryAfter || 60}s.`);
+    }
     const { runSecurePhotoAnalysis } = await import("./server/openAiVision.server");
     return runSecurePhotoAnalysis(data);
   });
@@ -61,7 +68,12 @@ export const runPhotoAnalysisServerFn = createServerFn({ method: "POST" })
 export const generateRedesignConceptsServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => runRedesignInputSchema.parse(input))
   .handler(async ({ data }) => {
-    await requireServerAuth();
+    const user = await requireServerAuth();
+    const key = rateLimitKeyForUser(user.id, "ai-redesign");
+    const rl = checkRateLimit(key);
+    if (!rl.allowed) {
+      throw new Error(`Rate limit exceeded. Try again in ${rl.retryAfter || 60}s.`);
+    }
     const { runSecureRedesignGeneration } = await import("./server/openAiRedesign.server");
     return runSecureRedesignGeneration(data);
   });
@@ -84,7 +96,12 @@ const generateEstimateInputSchema = z.object({
 export const generateEstimateServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => generateEstimateInputSchema.parse(input))
   .handler(async ({ data }) => {
-    await requireServerAuth();
+    const user = await requireServerAuth();
+    const key = rateLimitKeyForUser(user.id, "ai-estimate");
+    const rl = checkRateLimit(key);
+    if (!rl.allowed) {
+      throw new Error(`Rate limit exceeded. Try again in ${rl.retryAfter || 60}s.`);
+    }
     const { runSecureEstimateGeneration } = await import("./server/openAiEstimate.server");
     return runSecureEstimateGeneration(data);
   });
@@ -114,11 +131,13 @@ const scopeAnalysisInputSchema = z.object({
 export const runScopeAnalysisServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => scopeAnalysisInputSchema.parse(input))
   .handler(async ({ data }) => {
-    await requireServerAuth();
-    // // LIGHT / FAST / FALLBACK path (see docs/architecture/analysis-paths.md)
-    // Primary heavy analysis uses Railway Python async jobs.
-    // This TS path (and siblings for estimate/redesign/vision) is for
-    // low-latency interactive use + fallback when Railway unavailable.
+    const user = await requireServerAuth();
+    const key = rateLimitKeyForUser(user.id, "ai-scope");
+    const rl = checkRateLimit(key);
+    if (!rl.allowed) {
+      throw new Error(`Rate limit exceeded. Try again in ${rl.retryAfter || 60}s.`);
+    }
+    // Native TypeScript + OpenAI implementation (single source of truth after Railway removal).
     const { runSecureScopeAnalysis } = await import("./server/openAiScopeAnalysis.server");
     return runSecureScopeAnalysis(data);
   });

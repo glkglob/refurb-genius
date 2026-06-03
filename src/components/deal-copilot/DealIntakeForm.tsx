@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
-import { Calculator, CheckCircle2, CircleAlert, Zap } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Calculator, CheckCircle2, CircleAlert, Loader2, Zap } from "lucide-react";
+import { toast } from "sonner";
+import { trackDealAnalyzed } from "@/lib/analytics";
 
-// // PRIMARY PATH usage in Deal Copilot (heavy analysis).
-// When postcode/address present, user can trigger Railway primary heavy intel job.
-import { useRailwayPropertyAnalysis } from "@/hooks/useRailwayPropertyAnalysis";
-import type { PropertyAnalysisInput } from "@/lib/api/railwayAnalysis";
+import { useGenerateEstimate } from "@/hooks/useAIEstimate";
+import type { GenerateEstimateInput, AIGeneratedRoom } from "@/core/ai";
+import { getRegionalMultiplier, calculateLineItem, calculateEstimateTotals } from "@/core/pricing";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
@@ -100,6 +101,9 @@ export function DealIntakeForm() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // AI estimate via native TS serverFn (OpenAI). Declare early so useEffects below can reference without TDZ.
+  const generateAiEstimate = useGenerateEstimate();
+
   const scoreInput = useMemo<DealScoreInput>(
     () => ({
       title: form.title.trim(),
@@ -117,6 +121,19 @@ export function DealIntakeForm() {
   );
 
   const score = useMemo<DealScoreResult>(() => scoreDealOpportunity(scoreInput), [scoreInput]);
+
+  // Basic telemetry for key user actions (Phase 3)
+  useEffect(() => {
+    if (score.ready) {
+      trackDealAnalyzed("deal-copilot");
+    }
+  }, [score.ready]);
+
+  useEffect(() => {
+    if (generateAiEstimate.data && generateAiEstimate.data.length > 0) {
+      trackDealAnalyzed("deal-copilot-ai-estimate");
+    }
+  }, [generateAiEstimate.data]);
 
   // Run full analysis through orchestration layer
   const validationResult = useMemo(
@@ -141,32 +158,43 @@ export function DealIntakeForm() {
     return analyzeDeal(validationResult.data);
   }, [validationResult]);
 
-  // PRIMARY heavy path integration in Deal Copilot (when address data present).
-  // Button below triggers Railway async job (primary for heavy intel) + shows result.
-  const {
-    start: startHeavy,
-    status: heavyStatus,
-    result: heavyResult,
-    error: heavyError,
-    isPolling: heavyPolling,
-  } = useRailwayPropertyAnalysis();
+  const aiEstimateResult = generateAiEstimate.data;
+  const aiMultiplier = getRegionalMultiplier(form.region);
+  const normalizedAiEstimate = useMemo(() => {
+    if (!aiEstimateResult?.length) return null;
+    const rooms = aiEstimateResult.map((room: AIGeneratedRoom) => ({
+      name: room.name,
+      area_sqm: room.area_sqm,
+      items: room.items.map((item) => calculateLineItem(item, aiMultiplier)),
+    }));
+    const allItems = rooms.flatMap((r) => r.items);
+    const totals = calculateEstimateTotals(allItems);
+    return { rooms, totals };
+  }, [aiEstimateResult, aiMultiplier]);
 
-  async function handleRunHeavyAnalysis() {
+  async function handleRunAiEstimate() {
     if (!form.postcode && !form.listingUrl) {
-      logger.warn("[deal-intake] Heavy analysis requires postcode or listing url");
+      logger.warn("[deal-intake] AI analysis requires postcode or listing url");
       return;
     }
-    const heavyInput: PropertyAnalysisInput = {
-      postcode: form.postcode.trim() || undefined,
-      property_address: form.listingUrl.trim() || undefined,
+    // Map form data to TS AI estimate input (no photos in Deal Copilot; text-only path)
+    const input: GenerateEstimateInput = {
+      propertyType: "House",
+      bedrooms: 3, // reasonable default for deal intel; user can refine in Projects
+      bathrooms: undefined,
       region: form.region,
-      // property_type omitted (DealIntakeForm uses propertyCondition; optional in backend model)
-      purchase_price: parseMoney(form.purchasePrice) ?? undefined,
-      estimated_gdv: parseMoney(form.estimatedGdv) ?? undefined,
+      postcode: form.postcode.trim() || undefined,
       condition: form.propertyCondition,
-      notes: "Triggered from Deal Copilot intake (primary Railway path)",
+      requirements: form.listingUrl
+        ? `Listing: ${form.listingUrl}`
+        : "Standard good quality modern refurb for investment",
+      sizeSqm: undefined,
     };
-    await startHeavy(heavyInput);
+    generateAiEstimate.mutate(input, {
+      onError: (err) => {
+        logger.error("[deal-intake] AI estimate failed", { error: err });
+      },
+    });
   }
 
   async function handleSaveOpportunity() {
@@ -200,6 +228,9 @@ export function DealIntakeForm() {
       setSavedOpportunity(saved);
       setSaveError(null);
       logger.info("[deal-intake] Save successful", { id: saved.id });
+      toast.success("Opportunity saved", {
+        description: "View it in Deal Copilot or create a full project for photo analysis.",
+      });
     } catch (err) {
       // Show the real error from serverFn (e.g. RLS violation, "You must be signed in.",
       // or DB error) instead of always swallowing into a generic message.
@@ -316,32 +347,100 @@ export function DealIntakeForm() {
           </div>
         )}
 
-        {/* Heavy analysis via PRIMARY Railway path (Deal Copilot integration) */}
+        {/* AI estimate via native TypeScript + OpenAI pipeline (replaces former Railway path) */}
         <div className="mt-4 border-t pt-4">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            onClick={handleRunHeavyAnalysis}
-            disabled={heavyPolling || (!form.postcode && !form.listingUrl)}
+            onClick={handleRunAiEstimate}
+            disabled={generateAiEstimate.isPending || (!form.postcode && !form.listingUrl)}
           >
             <Zap className="mr-1 h-4 w-4" />
-            {heavyPolling
-              ? "Running heavy analysis..."
-              : "Run Heavy Property Intel (Primary Railway)"}
+            {generateAiEstimate.isPending
+              ? "Running AI estimate..."
+              : "Run AI Property Estimate (TypeScript + OpenAI)"}
           </Button>
-          {heavyStatus !== "idle" && (
+          {generateAiEstimate.isPending && (
             <div className="mt-2 text-xs">
-              Status: <span className="font-medium">{heavyStatus}</span>
-              {heavyError && <span className="ml-2 text-destructive">Error: {heavyError}</span>}
+              Status: <span className="font-medium">processing</span>
             </div>
           )}
-          {heavyResult && (
-            <div className="mt-2 rounded border bg-muted/50 p-3 text-xs">
-              <div className="font-medium">Heavy Analysis Result (Railway primary)</div>
-              <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap text-[10px]">
-                {JSON.stringify(heavyResult, null, 2)}
-              </pre>
+          {generateAiEstimate.isError && (
+            <div className="mt-2 text-xs text-destructive">
+              {generateAiEstimate.error?.message?.includes("Rate limit")
+                ? generateAiEstimate.error.message
+                : `AI estimate failed: ${generateAiEstimate.error?.message || "Unknown error"}`}
+            </div>
+          )}
+          {normalizedAiEstimate && (
+            <div className="mt-2 rounded-md border bg-muted/60 p-3 text-xs">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-foreground">AI cost estimate (advisory)</span>
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-amber-200">
+                    ADVISORY ONLY
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted-foreground">
+                  ×{aiMultiplier.toFixed(2)} regional
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {normalizedAiEstimate.rooms.slice(0, 3).map((room, i) => (
+                  <div key={i} className="rounded border border-border/50 bg-background/50 p-2">
+                    <div className="mb-1 flex items-baseline justify-between font-semibold text-foreground">
+                      <span>
+                        {room.name}
+                        {room.area_sqm ? ` (${room.area_sqm}m²)` : ""}
+                      </span>
+                      <span className="text-[10px] font-normal text-muted-foreground">
+                        {room.items.length} items
+                      </span>
+                    </div>
+                    <div className="grid gap-x-3 gap-y-0.5 text-muted-foreground sm:grid-cols-2">
+                      {room.items.slice(0, 4).map((item, j) => (
+                        <div key={j} className="flex justify-between text-[10px]">
+                          <span className="truncate pr-1">{item.name}</span>
+                          <span className="font-medium tabular-nums text-foreground/80">
+                            {formatGBP(item.total_cost)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {room.items.length > 4 && (
+                      <div className="mt-0.5 text-[10px] text-muted-foreground">
+                        +{room.items.length - 4} more…
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {normalizedAiEstimate.rooms.length > 3 && (
+                <div className="mt-1 text-[10px] text-muted-foreground">
+                  +{normalizedAiEstimate.rooms.length - 3} more rooms…
+                </div>
+              )}
+
+              <div className="mt-2 flex justify-between border-t pt-2 font-medium text-foreground">
+                <span>Est. materials + labour (ex. VAT)</span>
+                <span>{formatGBP(normalizedAiEstimate.totals.subtotal)}</span>
+              </div>
+              <div className="mt-1 text-[10px] text-muted-foreground">
+                Starting point only. Create a Project, upload photos, and run full AI scope +
+                editable estimate for accurate room-by-room costs (uses the same deterministic
+                pricing engine).
+              </div>
+              <div className="mt-1 text-right">
+                <a
+                  href="/projects/new"
+                  className="text-[10px] font-medium text-accent underline-offset-2 hover:underline"
+                >
+                  Start a full project for photo-based estimates →
+                </a>
+              </div>
             </div>
           )}
         </div>
@@ -431,8 +530,9 @@ function DealScorePanel({
           onClick={() => {
             void onSaveOpportunity();
           }}
-          className="mt-6 w-full rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
+          {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
           {isSaving ? "Saving…" : "Save opportunity"}
         </button>
 

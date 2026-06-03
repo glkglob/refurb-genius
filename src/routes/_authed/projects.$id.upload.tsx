@@ -162,7 +162,7 @@ function UploadPage() {
                           decoding="async"
                         />
                         <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground backdrop-blur">
-                          <Sparkles className="h-3 w-3 text-accent" /> Pending analysis
+                          <Sparkles className="h-3 w-3 text-accent" /> Ready for analysis
                         </span>
                         <button
                           type="button"

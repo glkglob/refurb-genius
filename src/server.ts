@@ -3,6 +3,17 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { logger } from "./lib/logger";
+import { validateServerEnv } from "./lib/env-validation";
+
+// Validate critical server env on startup (throws in prod if missing e.g. OPENAI key)
+if (typeof process !== "undefined") {
+  try {
+    validateServerEnv();
+  } catch (e) {
+    logger.error("[env] Server env validation failed", { error: String(e) });
+    throw e;
+  }
+}
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -63,8 +74,10 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
     return response;
   }
 
+  const err = consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`);
   logger.error("h3 swallowed SSR error", {
-    error: consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`),
+    error: String(err),
+    stack: err instanceof Error ? err.stack : undefined,
   });
   return brandedErrorResponse();
 }
@@ -76,7 +89,10 @@ export default {
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
-      logger.error("Server fetch error", { error: String(error) });
+      logger.error("Server fetch error", {
+        error: String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       return brandedErrorResponse();
     }
   },

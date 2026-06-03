@@ -12,7 +12,10 @@ import type { PropertyType } from "@/lib/projects";
 // NEW: server-backed save for the "Save opportunity" flow in Deal Copilot.
 // This is the critical write path that must survive hard refresh / direct nav
 // to /deal-copilot/new (and the intake form).
-import { saveDealOpportunityServerFn } from "@/serverFns/dealCopilot";
+import {
+  saveDealOpportunityServerFn,
+  deleteDealOpportunityServerFn,
+} from "@/serverFns/dealCopilot";
 
 export type OpportunityStoreSnapshot = {
   opportunities: DealOpportunity[];
@@ -216,8 +219,8 @@ export const opportunityStore = {
     return updated;
   },
   async delete(id: string): Promise<void> {
-    const { error } = await supabase.from("deal_opportunities").delete().eq("id", id);
-    if (error) throw new Error(error.message);
+    // Use serverFn for hard-refresh safety + consistent auth (mirrors save path).
+    await deleteDealOpportunityServerFn({ data: { id } });
     cache = cache.filter((o) => o.id !== id);
     notify();
   },

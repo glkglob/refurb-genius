@@ -161,6 +161,42 @@ export function AIMetricsDashboard() {
                 Total operations: {health.redesign.totalOperations}
               </p>
             </div>
+
+            {/* Estimate (Phase 2 coverage) */}
+            <div className="border-t pt-4">
+              <div
+                className={`flex items-center gap-2 mb-4 ${getStatusColor(health.estimate.healthStatus)}`}
+              >
+                {getStatusIcon(health.estimate.healthStatus)}
+                <h3 className="font-semibold">AI Estimates</h3>
+                <span className="text-xs uppercase ml-auto font-bold">
+                  {health.estimate.healthStatus}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <div>Success: {health.estimate.successRate.toFixed(0)}%</div>
+                <div>Fallback: {health.estimate.fallbackRate.toFixed(0)}%</div>
+                <div>Ops: {health.estimate.totalOperations}</div>
+              </div>
+            </div>
+
+            {/* Scope */}
+            <div>
+              <div
+                className={`flex items-center gap-2 mb-4 ${getStatusColor(health.scope.healthStatus)}`}
+              >
+                {getStatusIcon(health.scope.healthStatus)}
+                <h3 className="font-semibold">Scope Analysis</h3>
+                <span className="text-xs uppercase ml-auto font-bold">
+                  {health.scope.healthStatus}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <div>Success: {health.scope.successRate.toFixed(0)}%</div>
+                <div>Fallback: {health.scope.fallbackRate.toFixed(0)}%</div>
+                <div>Ops: {health.scope.totalOperations}</div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

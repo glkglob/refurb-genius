@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { useProjects } from "@/hooks/useProjects";
+import { ProjectCard } from "@/components/ProjectCard";
 import { useEffect, useState } from "react";
 import {
   Briefcase,
@@ -156,6 +158,7 @@ function DashboardContent() {
   const { user: _user } = useAuth();
   const [jobsState, applyUpdate] = useMyTradesJobs();
   const interestsState = useMyInterests();
+  const { data: projects = [], isLoading: projectsLoading } = useProjects();
 
   const jobCount =
     jobsState.status === "ready" ? jobsState.jobs.filter((j) => j.status !== "closed").length : 0;
@@ -164,6 +167,7 @@ function DashboardContent() {
     jobsState.status === "ready"
       ? jobsState.jobs.reduce((sum, j) => sum + (j.budgetMax ?? j.budgetMin ?? 0), 0)
       : null;
+  const projectCount = projects.length;
   return (
     <AppLayout
       title="Dashboard"
@@ -189,7 +193,12 @@ function DashboardContent() {
           icon={DollarSign}
           subLabel="across all jobs"
         />
-        <StatCard label="Projects" value="0" icon={FolderPlus} subLabel="coming soon" />
+        <StatCard
+          label="Projects"
+          value={projectsLoading ? "…" : String(projectCount)}
+          icon={FolderPlus}
+          subLabel="refurb projects"
+        />
       </div>
 
       {/* Section 2 — Quick actions */}
@@ -223,7 +232,43 @@ function DashboardContent() {
         <MyInterestsTable state={interestsState} />
       </DashboardSection>
 
-      {/* Section 5 — Roadmap placeholders */}
+      {/* Section 5 — My Projects (was placeholder) */}
+      <DashboardSection
+        title="My projects"
+        icon={<FolderPlus className="h-5 w-5" />}
+        action={
+          <Link to="/projects/new" className="text-sm font-medium text-accent hover:underline">
+            + New project
+          </Link>
+        }
+      >
+        {projectsLoading ? (
+          <div className="py-4 text-center text-sm text-muted-foreground">
+            Loading your projects…
+          </div>
+        ) : projects.length === 0 ? (
+          <EmptyState
+            icon={FolderPlus}
+            title="No projects yet"
+            description="Create your first refurbishment project to start AI photo analysis and estimates."
+            action={
+              <Button asChild>
+                <Link to="/projects/new">
+                  <FolderPlus className="h-4 w-4" /> Create project
+                </Link>
+              </Button>
+            }
+          />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {projects.slice(0, 6).map((p) => (
+              <ProjectCard key={p.id} project={p} />
+            ))}
+          </div>
+        )}
+      </DashboardSection>
+
+      {/* Section 6 — Roadmap placeholders */}
       <section>
         <Card className="bg-muted/40 p-6">
           <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
@@ -593,10 +638,12 @@ function QuickActionCard({
   return (
     <Link
       to={to}
-      className="flex min-h-[96px] flex-col justify-between rounded-xl border bg-card p-5 text-sm font-medium text-foreground transition hover:border-accent/30 hover:shadow-md"
+      className="flex min-h-[96px] flex-col justify-between rounded-xl border bg-card p-5 text-sm font-medium text-foreground transition-all hover:border-accent/40 hover:shadow-md active:scale-[0.985]"
     >
-      <Icon className="h-5 w-5 text-accent" />
-      <span className="mt-3">{label}</span>
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent">
+        <Icon className="h-4 w-4" />
+      </div>
+      <span className="mt-2 leading-tight">{label}</span>
     </Link>
   );
 }

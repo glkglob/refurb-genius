@@ -49,6 +49,6 @@ export async function runFullRefurbIntel(_input: {
   property: unknown;
   mode?: AIOrchestrationMode;
 }): Promise<FullIntelResult> {
-  // Heavy path stub. When wired: Railway primary or chained TS with cache.
+  // Stub for future multi-step chaining (pure TS + OpenAI pipeline).
   return { warnings: ["orchestrator stub — full intel not yet implemented"] };
 }

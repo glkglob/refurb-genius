@@ -1,6 +1,6 @@
--- Create analysis_jobs table for async Railway FastAPI + CrewAI property analysis jobs.
--- Jobs are created from the frontend via VITE_API_BASE_URL.
--- The Railway backend (service role) updates status and results.
+-- Create analysis_jobs table (legacy async job tracking, originally for former Railway FastAPI backend).
+-- Table and RLS left in place for DB history / potential future queue use. No longer referenced by application code after Railway decommissioning.
+-- (Previously populated via VITE_API_BASE_URL + service role from removed backend/main.py.)
 -- Users can only see their own jobs via RLS.
 
 create table if not exists public.analysis_jobs (
@@ -63,6 +63,6 @@ create trigger trg_analysis_jobs_updated_at
   before update on public.analysis_jobs
   for each row execute function public.set_updated_at();
 
-comment on table public.analysis_jobs is 'Async job tracking for property intelligence / refurb analysis executed on Railway backend';
-comment on column public.analysis_jobs.input_payload is 'Frontend-supplied deal/property details (address, price, condition, etc.)';
-comment on column public.analysis_jobs.result_payload is 'Structured AI result (report, breakdown, recommendations, etc.)';
+comment on table public.analysis_jobs is 'Legacy async job tracking (former Railway backend experiment; table retained for history).';
+comment on column public.analysis_jobs.input_payload is 'Frontend-supplied deal/property details (address, price, condition, etc.).';
+comment on column public.analysis_jobs.result_payload is 'Structured AI result (report, breakdown, recommendations, etc.).';

@@ -16,6 +16,8 @@ opportunities and a Trades marketplace connecting investors with tradespeople.
 **Maturity:** Late Alpha / Early Beta. Core features work end-to-end; test
 coverage and UI package migration are the main gaps.
 
+**Current AI:** Pure TS serverFns + OpenAI (gpt-4o) only. Railway/Python backend fully decommissioned (see docs/architecture/ai-platform.md).
+
 ---
 
 ## Tech Stack

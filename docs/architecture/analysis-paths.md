@@ -1,77 +1,50 @@
 # Analysis Paths Strategy
 
-**Date:** 2026 (post auth + UI migration)
-**Status:** Primary path defined; unification in progress
+**Date:** 2026 (post Railway decommissioning)
+**Status:** Pure TypeScript + OpenAI is the single source of truth for all AI analysis.
 
-## Dual Paths (Current)
+## Current State: Pure TS Server Functions
 
-Refurb Genius has two complementary AI analysis implementations:
+All AI analysis (photo vision, scope of works, cost estimates, redesign concepts) is implemented exclusively via TanStack `createServerFn` + direct OpenAI (gpt-4o) calls in the main app.
 
-### 1. TS Server Functions (Vercel / "light / fast" path)
-- Location: `src/core/ai/serverFns.ts`, `src/core/ai/server/*.server.ts` (openAiVision, openAiScopeAnalysis, openAiEstimate, openAiRedesign).
-- Used by: Project photo upload flows (`useScopeAnalysis`, `useAIEstimate`, AIEstimateBuilder in `projects.$id.*` routes).
-- Characteristics:
-  - Synchronous `createServerFn` + direct OpenAI (gpt-4o / structured outputs).
-  - Low latency, request-scoped.
-  - Falls back to mocks in `core/ai/mockAnalysis.ts` on error.
-  - Runs on Vercel (edge/functions).
-- Best for: Instant feedback during photo upload / scope generation in active project.
+- **Location:** `src/core/ai/serverFns.ts`, `src/core/ai/server/*.server.ts` (openAiVision, openAiScopeAnalysis, openAiEstimate, openAiRedesign).
+- **Used by:** Project photo upload flows (`useScopeAnalysis`, `useAIEstimate`, AIEstimateBuilder in `projects.$id.*` routes). Deal Copilot uses `useGenerateEstimate` (native TS) for optional AI suggestions.
+- **Characteristics:**
+  - Synchronous `createServerFn` with Zod input validation + `requireServerAuth()`.
+  - Direct fetch to OpenAI with `response_format: { type: "json_object" }` (plus Zod post-validation + coercion).
+  - Retries on transient errors (via platform helpers), timeouts, structured fallbacks to mocks.
+  - Strong normalization for estimates: AI suggestions blended with deterministic `@repo/services` pricing authority (`normalizeAIEstimate`).
+  - Runs on Vercel (Nitro server functions).
+- **Best for:** All current use cases — interactive photo analysis, scope, editable estimates, redesign. No separate backend required.
 
-### 2. Railway Python FastAPI (PRIMARY for "heavy" property/deal analysis)
-- Location: `backend/main.py` (FastAPI + background tasks + OpenAI direct), `src/lib/api/railwayAnalysis.ts`, `src/hooks/useRailwayPropertyAnalysis.ts`.
-- Storage: `analysis_jobs` table (Supabase, RLS by user_id).
-- Used by: Currently prepared but lightly integrated (hook + api ready; see archive docs and comments).
-- Characteristics:
-  - Async job creation + polling (start → pending/processing → completed/failed).
-  - Offloads heavy/longer-running work from Vercel.
-  - Uses service-role for writes, basic JWT verification on `Authorization: Bearer` (preferred) or `X-User-Id` fallback.
-  - Currently implements property intel report via gpt-4o-mini JSON (summary, estimates, findings).
-- Best for: Heavy analysis (full property intel, batch deals, when photos + detailed scope/estimate/redesign combined).
+**Railway Python backend has been fully decommissioned and removed** (backend/, property-intel/, the TS railway client/hook files, dual-path conditional logic, and any VITE_API_BASE_URL usage for analysis). The former `analysis_jobs` table is legacy and no longer referenced by application code.
 
-**Decision (Phase 2):** Railway Python path is the **PRIMARY** for heavy property/deal analysis involving photo + scope + estimate + redesign. TS serverFns remain for **fast/light cases, previews, and fallbacks**.
+## Why Pure TS?
 
-## Strategy & Unification Plan
+- Simpler architecture (no split deployment, no polling, no service-role bypass for AI).
+- All AI behind serverFns (keys never client-side; uniform auth).
+- Easier strengthening with shared validation, retry/cache, and tight integration to deterministic pricing/ROI.
+- The former async "heavy" use case in Deal Copilot is now served by direct calls to `generateEstimateServerFn`.
 
-1. **Primary = Railway for heavy**:
-   - New or heavy flows (esp. Deal Copilot when address/postcode + financials provided, or full project analysis) should prefer `useRailwayPropertyAnalysis` + the job model.
-   - TS path used for immediate UI responsiveness (e.g. while job runs, show cached/TS light result).
+## Integration Points
 
-2. **Fallbacks & Error Handling** (strengthened):
-   - Hook supports optional `fallbackToSync` behavior (if Railway unreachable, can invoke light TS equivalent where exists).
-   - Backend: always attempt JWT validation first; only use fallback X-User-Id if no/invalid token. Jobs for unauthenticated users are rejected or marked with dummy (logged).
-   - On poll error/timeout in hook: surface clear error + option to retry or use TS fallback.
-   - ServerFns (TS): on OpenAI failure, still return `source: "fallback"` result (never crash).
+- **Projects:** Photo upload → `runPhotoAnalysisServerFn` (vision) → `runScopeAnalysisServerFn` (photo+tags → costed scope) → `generateEstimateServerFn` (or AIEstimateBuilder with normalization).
+- **Deal Copilot:** Deterministic `analyzeDeal` (pricing + ROI from @repo/services) is authoritative. Optional "Run AI Property Estimate" button uses native `useGenerateEstimate` / `generateEstimateServerFn` (replaces former Railway heavy demo).
+- **Reports:** Persisted AI analysis + redesign + deterministic pricing/ROI (AI only for narrative/suggestions).
+- **Financial invariants:** AI never bypasses pricing engine. AI line items are normalized (category mapping + risk uplift from condition/scope) before use; ROI/score always use `runPricingEngine().mid_total`.
 
-3. **Integration**:
-   - Deal Copilot intake now has a "Run Heavy Property Intel (Primary Railway path)" action (when sufficient data).
-   - Project photo flows keep TS for speed but can trigger a background Railway job for "full intel" enrichment.
-   - Unified result shape where possible (via mappers).
+## Fallbacks & Error Handling
 
-4. **Auth**:
-   - All Railway calls must carry the Supabase access_token (hook does via `getSession()` + forward as Bearer).
-   - Backend `verify_user_from_token` (or equivalent) is the source of truth for `user_id` on jobs.
-
-5. **Docs & Comments**:
-   - This file is the single source of truth.
-   - `// PRIMARY PATH` and `// FALLBACK / LIGHT` comments throughout code.
-   - See also `backend/main.py` header and `src/lib/api/railwayAnalysis.ts`.
-
-## Files to Watch
-
-- Primary heavy: `useRailwayPropertyAnalysis`, `startAnalysis` / `pollAnalysisResult`, `backend/main.py` endpoints + `run_property_analysis`.
-- Light/fast: `src/core/ai/serverFns.ts` (runScopeAnalysisServerFn etc.), `useScopeAnalysis`, `AIEstimateBuilder`.
-- Deterministic (always primary, non-AI): `analyzeDeal` / pricing / ROI engines in `@repo/services` and `src/lib/deal-copilot/dealAnalysis.ts`.
-
-## Migration Notes (for future)
-
-- When adding photo upload to Deal Copilot or new "Property Intel" product surface, default to Railway job + optimistic TS preview.
-- Eventually, the TS photo analysis serverFns can become thin wrappers that enqueue to Railway (or keep for ultra-low-latency previews only).
-- Monitor costs/latency: Vercel for interactive, Railway for batch/heavy.
-
-This strategy respects the deterministic financial authority (AI is always advisory; pricing/ROI/score engines are authoritative).
+- Every server path: try/catch → classify (timeout/rate/parse/api) → counters + Sentry → safe mock/fallback result (never crashes UI).
+- `source` on results: "ai" | "mock" | "fallback" | "persisted".
+- Client hooks surface loading/error.
+- Mocks always available (dev + no OPENAI_API_KEY).
 
 ## Related
 
-- `docs/architecture.md` (core principles)
-- `CLAUDE.md` (serverFns, auth patterns)
-- Previous RAILWAY_SETUP.md (archive)
+- `docs/architecture/ai-platform.md` (detailed AI platform doc, Phase 0 historical analysis of dual-path era, current improvements)
+- `CLAUDE.md` (serverFns, auth)
+- `src/core/ai/` (implementation + platform helpers for validation/retry/normalize)
+- Archive: `docs/archive/2026-05-legacy-ai-guidance-railway/` (historical)
+
+This single-path strategy keeps AI advisory while strictly protecting deterministic financial authority (pricing, ROI, deal scoring).
