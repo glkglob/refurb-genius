@@ -146,25 +146,28 @@ export const saveDealOpportunityServerFn = createServerFn({ method: "POST" })
 
     const { data: row, error } = await supabase
       .from("deal_opportunities")
-      .insert({
-        // The id is the client-generated one (preserves identity of the
-        // in-memory opportunity object across save).
-        id: opportunity.id,
-        // SECURITY: server-validated user id. Overrides anything in payload.
-        user_id: user.id,
-        title: opportunity.title,
-        listing_url: opportunity.listingUrl ?? null,
-        postcode: opportunity.postcode ?? null,
-        property_type: opportunity.propertyType ?? null,
-        bedrooms: opportunity.bedrooms ?? null,
-        purchase_price: opportunity.purchasePrice ?? null,
-        estimated_gdv: opportunity.estimatedGdv ?? null,
-        expected_monthly_rent: opportunity.expectedMonthlyRent ?? null,
-        refurb_budget: opportunity.refurbBudget ?? null,
-        target_exit_strategy: opportunity.targetExitStrategy ?? null,
-        status: opportunity.status,
-        // created_at / updated_at use DB defaults (now())
-      })
+      .upsert(
+        {
+          // The id is the client-generated one (preserves identity of the
+          // in-memory opportunity object across save).
+          id: opportunity.id,
+          // SECURITY: server-validated user id. Overrides anything in payload.
+          user_id: user.id,
+          title: opportunity.title,
+          listing_url: opportunity.listingUrl ?? null,
+          postcode: opportunity.postcode ?? null,
+          property_type: opportunity.propertyType ?? null,
+          bedrooms: opportunity.bedrooms ?? null,
+          purchase_price: opportunity.purchasePrice ?? null,
+          estimated_gdv: opportunity.estimatedGdv ?? null,
+          expected_monthly_rent: opportunity.expectedMonthlyRent ?? null,
+          refurb_budget: opportunity.refurbBudget ?? null,
+          target_exit_strategy: opportunity.targetExitStrategy ?? null,
+          status: opportunity.status,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "id" },
+      )
       .select()
       .single();
 
