@@ -11,7 +11,7 @@ export function MobileTopBar() {
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur md:hidden">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background/95 px-3 backdrop-blur md:hidden">
       <Link to="/dashboard" className="flex items-center gap-2">
         <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Building2 className="h-4 w-4" />
@@ -20,27 +20,27 @@ export function MobileTopBar() {
           Refurb<span className="text-accent">Genius</span>
         </span>
       </Link>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         <Button
           asChild
           size="sm"
           variant="ghost"
-          className="flex h-auto flex-col gap-0.5 px-2 py-1.5 text-[10px] leading-none"
+          className="flex h-9 min-w-[52px] flex-col items-center justify-center gap-0 px-1.5 py-0.5 text-[9px] leading-none"
         >
           <Link to="/trades" aria-label="Trades marketplace">
-            <Briefcase className="h-4 w-4" />
-            <span>Trades</span>
+            <Briefcase className="h-3.5 w-3.5" />
+            <span className="mt-px">Trades</span>
           </Link>
         </Button>
         <Button
           asChild
           size="sm"
           variant="ghost"
-          className="flex h-auto flex-col gap-0.5 px-2 py-1.5 text-[10px] leading-none"
+          className="flex h-9 min-w-[52px] flex-col items-center justify-center gap-0 px-1.5 py-0.5 text-[9px] leading-none"
         >
           <Link to="/projects/new" aria-label="New project">
-            <Plus className="h-4 w-4" />
-            <span>New</span>
+            <Plus className="h-3.5 w-3.5" />
+            <span className="mt-px">New</span>
           </Link>
         </Button>
         <Button
@@ -48,10 +48,10 @@ export function MobileTopBar() {
           variant="ghost"
           onClick={handleLogout}
           aria-label="Sign out"
-          className="flex h-auto flex-col gap-0.5 px-2 py-1.5 text-[10px] leading-none"
+          className="flex h-9 min-w-[52px] flex-col items-center justify-center gap-0 px-1.5 py-0.5 text-[9px] leading-none"
         >
-          <LogOut className="h-4 w-4" />
-          <span>Out</span>
+          <LogOut className="h-3.5 w-3.5" />
+          <span className="mt-px">Out</span>
         </Button>
       </div>
     </header>

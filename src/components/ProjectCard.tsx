@@ -13,7 +13,7 @@ export type ProjectCardProps = {
 function ProjectCardComponent({ project }: ProjectCardProps) {
   return (
     <Link to="/projects/$id" params={{ id: project.id }} className="group">
-      <Card className="h-full overflow-hidden transition-shadow hover:shadow-md">
+      <Card className="h-full overflow-hidden transition-all hover:shadow-md active:scale-[0.985]">
         <div className="h-28 bg-gradient-to-br from-primary to-accent" />
         <CardContent className="p-5">
           <div className="flex items-start justify-between gap-2">

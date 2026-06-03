@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Calculator, CheckCircle2, CircleAlert, Zap } from "lucide-react";
+import { Calculator, CheckCircle2, CircleAlert, Loader2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { trackDealAnalyzed } from "@/lib/analytics";
 
@@ -386,27 +386,44 @@ export function DealIntakeForm() {
                   ×{aiMultiplier.toFixed(2)} regional
                 </span>
               </div>
-              {normalizedAiEstimate.rooms.slice(0, 3).map((room, i) => (
-                <div key={i} className="mb-1.5">
-                  <div className="font-semibold text-foreground">
-                    {room.name}
-                    {room.area_sqm ? ` (${room.area_sqm}m²)` : ""}
-                  </div>
-                  <div className="ml-2 text-muted-foreground">
-                    {room.items.slice(0, 3).map((item, j) => (
-                      <span key={j} className="mr-2">
-                        {item.name}: {formatGBP(item.total_cost)}
+
+              <div className="space-y-2">
+                {normalizedAiEstimate.rooms.slice(0, 3).map((room, i) => (
+                  <div key={i} className="rounded border border-border/50 bg-background/50 p-2">
+                    <div className="mb-1 flex items-baseline justify-between font-semibold text-foreground">
+                      <span>
+                        {room.name}
+                        {room.area_sqm ? ` (${room.area_sqm}m²)` : ""}
                       </span>
-                    ))}
-                    {room.items.length > 3 && <span>+{room.items.length - 3} more</span>}
+                      <span className="text-[10px] font-normal text-muted-foreground">
+                        {room.items.length} items
+                      </span>
+                    </div>
+                    <div className="grid gap-x-3 gap-y-0.5 text-muted-foreground sm:grid-cols-2">
+                      {room.items.slice(0, 4).map((item, j) => (
+                        <div key={j} className="flex justify-between text-[10px]">
+                          <span className="truncate pr-1">{item.name}</span>
+                          <span className="font-medium tabular-nums text-foreground/80">
+                            {formatGBP(item.total_cost)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {room.items.length > 4 && (
+                      <div className="mt-0.5 text-[10px] text-muted-foreground">
+                        +{room.items.length - 4} more…
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+
               {normalizedAiEstimate.rooms.length > 3 && (
-                <div className="text-[10px] text-muted-foreground">
+                <div className="mt-1 text-[10px] text-muted-foreground">
                   +{normalizedAiEstimate.rooms.length - 3} more rooms…
                 </div>
               )}
+
               <div className="mt-2 flex justify-between border-t pt-2 font-medium text-foreground">
                 <span>Est. materials + labour (ex. VAT)</span>
                 <span>{formatGBP(normalizedAiEstimate.totals.subtotal)}</span>
@@ -415,6 +432,14 @@ export function DealIntakeForm() {
                 Starting point only. Create a Project, upload photos, and run full AI scope +
                 editable estimate for accurate room-by-room costs (uses the same deterministic
                 pricing engine).
+              </div>
+              <div className="mt-1 text-right">
+                <a
+                  href="/projects/new"
+                  className="text-[10px] font-medium text-accent underline-offset-2 hover:underline"
+                >
+                  Start a full project for photo-based estimates →
+                </a>
               </div>
             </div>
           )}
@@ -505,8 +530,9 @@ function DealScorePanel({
           onClick={() => {
             void onSaveOpportunity();
           }}
-          className="mt-6 w-full rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
+          {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
           {isSaving ? "Saving…" : "Save opportunity"}
         </button>
 

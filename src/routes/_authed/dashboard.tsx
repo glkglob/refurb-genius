@@ -638,10 +638,12 @@ function QuickActionCard({
   return (
     <Link
       to={to}
-      className="flex min-h-[96px] flex-col justify-between rounded-xl border bg-card p-5 text-sm font-medium text-foreground transition hover:border-accent/30 hover:shadow-md"
+      className="flex min-h-[96px] flex-col justify-between rounded-xl border bg-card p-5 text-sm font-medium text-foreground transition-all hover:border-accent/40 hover:shadow-md active:scale-[0.985]"
     >
-      <Icon className="h-5 w-5 text-accent" />
-      <span className="mt-3">{label}</span>
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent">
+        <Icon className="h-4 w-4" />
+      </div>
+      <span className="mt-2 leading-tight">{label}</span>
     </Link>
   );
 }
