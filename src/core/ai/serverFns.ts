@@ -115,10 +115,7 @@ export const runScopeAnalysisServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => scopeAnalysisInputSchema.parse(input))
   .handler(async ({ data }) => {
     await requireServerAuth();
-    // // LIGHT / FAST / FALLBACK path (see docs/architecture/analysis-paths.md)
-    // Primary heavy analysis uses Railway Python async jobs.
-    // This TS path (and siblings for estimate/redesign/vision) is for
-    // low-latency interactive use + fallback when Railway unavailable.
+    // Native TypeScript + OpenAI implementation (single source of truth after Railway removal).
     const { runSecureScopeAnalysis } = await import("./server/openAiScopeAnalysis.server");
     return runSecureScopeAnalysis(data);
   });

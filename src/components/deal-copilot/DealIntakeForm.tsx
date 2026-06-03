@@ -1,10 +1,8 @@
 import { useMemo, useState } from "react";
 import { Calculator, CheckCircle2, CircleAlert, Zap } from "lucide-react";
 
-// // PRIMARY PATH usage in Deal Copilot (heavy analysis).
-// When postcode/address present, user can trigger Railway primary heavy intel job.
-import { useRailwayPropertyAnalysis } from "@/hooks/useRailwayPropertyAnalysis";
-import type { PropertyAnalysisInput } from "@/lib/api/railwayAnalysis";
+import { useGenerateEstimate } from "@/hooks/useAIEstimate";
+import type { GenerateEstimateInput } from "@/core/ai";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
@@ -141,32 +139,32 @@ export function DealIntakeForm() {
     return analyzeDeal(validationResult.data);
   }, [validationResult]);
 
-  // PRIMARY heavy path integration in Deal Copilot (when address data present).
-  // Button below triggers Railway async job (primary for heavy intel) + shows result.
-  const {
-    start: startHeavy,
-    status: heavyStatus,
-    result: heavyResult,
-    error: heavyError,
-    isPolling: heavyPolling,
-  } = useRailwayPropertyAnalysis();
+  // AI estimate via native TS serverFn (OpenAI). Replaces removed Railway heavy path.
+  const generateAiEstimate = useGenerateEstimate();
 
   async function handleRunHeavyAnalysis() {
     if (!form.postcode && !form.listingUrl) {
-      logger.warn("[deal-intake] Heavy analysis requires postcode or listing url");
+      logger.warn("[deal-intake] AI analysis requires postcode or listing url");
       return;
     }
-    const heavyInput: PropertyAnalysisInput = {
-      postcode: form.postcode.trim() || undefined,
-      property_address: form.listingUrl.trim() || undefined,
+    // Map form data to TS AI estimate input (no photos in Deal Copilot; text-only path)
+    const input: GenerateEstimateInput = {
+      propertyType: "House",
+      bedrooms: 3, // reasonable default for deal intel; user can refine in Projects
+      bathrooms: undefined,
       region: form.region,
-      // property_type omitted (DealIntakeForm uses propertyCondition; optional in backend model)
-      purchase_price: parseMoney(form.purchasePrice) ?? undefined,
-      estimated_gdv: parseMoney(form.estimatedGdv) ?? undefined,
+      postcode: form.postcode.trim() || undefined,
       condition: form.propertyCondition,
-      notes: "Triggered from Deal Copilot intake (primary Railway path)",
+      requirements: form.listingUrl
+        ? `Listing: ${form.listingUrl}`
+        : "Standard good quality modern refurb for investment",
+      sizeSqm: undefined,
     };
-    await startHeavy(heavyInput);
+    generateAiEstimate.mutate(input, {
+      onError: (err) => {
+        logger.error("[deal-intake] AI estimate failed", { error: err });
+      },
+    });
   }
 
   async function handleSaveOpportunity() {
@@ -316,32 +314,53 @@ export function DealIntakeForm() {
           </div>
         )}
 
-        {/* Heavy analysis via PRIMARY Railway path (Deal Copilot integration) */}
+        {/* AI estimate via native TypeScript + OpenAI pipeline (replaces former Railway path) */}
         <div className="mt-4 border-t pt-4">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleRunHeavyAnalysis}
-            disabled={heavyPolling || (!form.postcode && !form.listingUrl)}
+            disabled={generateAiEstimate.isPending || (!form.postcode && !form.listingUrl)}
           >
             <Zap className="mr-1 h-4 w-4" />
-            {heavyPolling
-              ? "Running heavy analysis..."
-              : "Run Heavy Property Intel (Primary Railway)"}
+            {generateAiEstimate.isPending
+              ? "Running AI estimate..."
+              : "Run AI Property Estimate (TypeScript + OpenAI)"}
           </Button>
-          {heavyStatus !== "idle" && (
+          {generateAiEstimate.isPending && (
             <div className="mt-2 text-xs">
-              Status: <span className="font-medium">{heavyStatus}</span>
-              {heavyError && <span className="ml-2 text-destructive">Error: {heavyError}</span>}
+              Status: <span className="font-medium">processing</span>
             </div>
           )}
-          {heavyResult && (
+          {generateAiEstimate.isError && (
+            <div className="mt-2 text-xs text-destructive">
+              Error: {generateAiEstimate.error?.message || "AI analysis failed"}
+            </div>
+          )}
+          {generateAiEstimate.data && generateAiEstimate.data.length > 0 && (
             <div className="mt-2 rounded border bg-muted/50 p-3 text-xs">
-              <div className="font-medium">Heavy Analysis Result (Railway primary)</div>
-              <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap text-[10px]">
-                {JSON.stringify(heavyResult, null, 2)}
-              </pre>
+              <div className="font-medium mb-1">AI Estimate Suggestion (native TS pipeline)</div>
+              {generateAiEstimate.data.map((room, i) => (
+                <div key={i} className="mb-2">
+                  <div className="font-semibold">
+                    {room.name}
+                    {room.area_sqm ? ` (${room.area_sqm}m²)` : ""}
+                  </div>
+                  <ul className="ml-3 list-disc">
+                    {room.items.slice(0, 5).map((item, j) => (
+                      <li key={j}>
+                        {item.name} — {item.quantity} {item.unit} @ £{item.base_unit_cost}
+                      </li>
+                    ))}
+                    {room.items.length > 5 && <li>... +{room.items.length - 5} more</li>}
+                  </ul>
+                </div>
+              ))}
+              <div className="text-[10px] text-muted-foreground mt-1">
+                Results are suggestions. Use Projects for full photo-backed scope + editable
+                estimate.
+              </div>
             </div>
           )}
         </div>

@@ -23,6 +23,23 @@ export interface ProviderHealthSummary {
     totalOperations: number;
     healthStatus: "healthy" | "degraded" | "critical";
   };
+  // Phase 2 strengthening: include estimate/scope for full observability of primary AI paths
+  estimate: {
+    successRate: number;
+    timeoutRate: number;
+    parseFailureRate: number;
+    fallbackRate: number;
+    totalOperations: number;
+    healthStatus: "healthy" | "degraded" | "critical";
+  };
+  scope: {
+    successRate: number;
+    timeoutRate: number;
+    parseFailureRate: number;
+    fallbackRate: number;
+    totalOperations: number;
+    healthStatus: "healthy" | "degraded" | "critical";
+  };
 }
 
 export function analyzeProviderHealth(): ProviderHealthSummary {
@@ -93,16 +110,66 @@ export function analyzeProviderHealth(): ProviderHealthSummary {
     redesignHealth = "degraded";
   }
 
+  // Estimate (Phase 2: full coverage)
+  const estimateTotal =
+    counters.estimate_ai_success +
+    counters.estimate_timeout +
+    counters.estimate_parse_failure +
+    counters.estimate_rate_limit;
+  const estimateStats =
+    estimateTotal > 0
+      ? {
+          successRate: (counters.estimate_ai_success / estimateTotal) * 100,
+          timeoutRate: (counters.estimate_timeout / estimateTotal) * 100,
+          parseFailureRate: (counters.estimate_parse_failure / estimateTotal) * 100,
+          fallbackRate: (counters.estimate_fallback_used / estimateTotal) * 100,
+          totalOperations: estimateTotal,
+        }
+      : {
+          successRate: 0,
+          timeoutRate: 0,
+          parseFailureRate: 0,
+          fallbackRate: 0,
+          totalOperations: 0,
+        };
+  let estimateHealth: "healthy" | "degraded" | "critical" = "healthy";
+  if (estimateStats.timeoutRate > 10 || estimateStats.fallbackRate > 15)
+    estimateHealth = "critical";
+  else if (estimateStats.timeoutRate > 5 || estimateStats.fallbackRate > 10)
+    estimateHealth = "degraded";
+
+  // Scope
+  const scopeTotal =
+    counters.scope_ai_success +
+    counters.scope_timeout +
+    counters.scope_parse_failure +
+    counters.scope_rate_limit;
+  const scopeStats =
+    scopeTotal > 0
+      ? {
+          successRate: (counters.scope_ai_success / scopeTotal) * 100,
+          timeoutRate: (counters.scope_timeout / scopeTotal) * 100,
+          parseFailureRate: (counters.scope_parse_failure / scopeTotal) * 100,
+          fallbackRate: (counters.scope_fallback_used / scopeTotal) * 100,
+          totalOperations: scopeTotal,
+        }
+      : {
+          successRate: 0,
+          timeoutRate: 0,
+          parseFailureRate: 0,
+          fallbackRate: 0,
+          totalOperations: 0,
+        };
+  let scopeHealth: "healthy" | "degraded" | "critical" = "healthy";
+  if (scopeStats.timeoutRate > 15 || scopeStats.fallbackRate > 20) scopeHealth = "critical";
+  else if (scopeStats.timeoutRate > 10 || scopeStats.fallbackRate > 15) scopeHealth = "degraded";
+
   return {
     timestamp: new Date().toISOString(),
-    vision: {
-      ...visionStats,
-      healthStatus: visionHealth,
-    },
-    redesign: {
-      ...redesignStats,
-      healthStatus: redesignHealth,
-    },
+    vision: { ...visionStats, healthStatus: visionHealth },
+    redesign: { ...redesignStats, healthStatus: redesignHealth },
+    estimate: { ...estimateStats, healthStatus: estimateHealth },
+    scope: { ...scopeStats, healthStatus: scopeHealth },
   };
 }
 
@@ -143,6 +210,18 @@ export function getFailureRecommendations(health: ProviderHealthSummary): string
     if (health.redesign.timeoutRate > 15) {
       recommendations.push("Redesign: Timeout rate elevated (>15%). Monitor generation latency.");
     }
+  }
+
+  // Estimate / Scope (Phase 2)
+  if (health.estimate.healthStatus === "critical" && health.estimate.fallbackRate > 15) {
+    recommendations.push(
+      "Estimate: High fallback rate — review prompt for realistic costs or normalize more aggressively.",
+    );
+  }
+  if (health.scope.healthStatus === "critical" && health.scope.timeoutRate > 15) {
+    recommendations.push(
+      "Scope: High timeout on multi-photo analysis — consider fewer photos per call.",
+    );
   }
 
   if (recommendations.length === 0) {
