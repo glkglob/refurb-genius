@@ -25,7 +25,7 @@ import type { Database } from './generated/supabase-types'; // Your app's genera
 
 export const supabase = createBrowserSupabase<Database>({
   cookieName: 'rg-auth',              // Optional: defaults to 'sb-auth'
-  cookieDomain: '.refurbgenius.space', // Optional
+  cookieDomain: '.refurbgenius.info', // Optional
 });
 ```
 
