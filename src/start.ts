@@ -2,6 +2,16 @@ import { createStart, createMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
 import { logger } from "./lib/logger";
+import { validateClientEnv } from "./lib/env-validation";
+
+// Client env validation (runs in browser bundle)
+if (typeof window !== "undefined") {
+  try {
+    validateClientEnv();
+  } catch (e) {
+    logger.warn("[env] Client env validation warning", { error: String(e) });
+  }
+}
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {

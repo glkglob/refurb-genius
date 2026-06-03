@@ -3,6 +3,16 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { logger } from "./lib/logger";
+import { validateServerEnv } from "./lib/env-validation";
+
+// Validate critical server env on startup (throws in prod if missing e.g. OPENAI key)
+if (typeof process !== "undefined") {
+  try {
+    validateServerEnv();
+  } catch (e) {
+    logger.error("[env] Server env validation failed", { error: String(e) });
+  }
+}
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;

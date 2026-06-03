@@ -174,3 +174,27 @@ export const saveDealOpportunityServerFn = createServerFn({ method: "POST" })
 
     return rowToDealOpportunity(row);
   });
+
+// ──────────────────────────────────────────────────────────────
+// Delete
+// ──────────────────────────────────────────────────────────────
+
+const deleteOpportunityInputSchema = z.object({ id: z.string().min(1) });
+
+export const deleteDealOpportunityServerFn = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => deleteOpportunityInputSchema.parse(input))
+  .handler(async ({ data }) => {
+    const user = await requireUser();
+    const supabase = await createSupabaseServerClient();
+
+    // Defense-in-depth: scope delete to this user even if client sends wrong id.
+    const { error } = await supabase
+      .from("deal_opportunities")
+      .delete()
+      .eq("id", data.id)
+      .eq("user_id", user.id);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+  });

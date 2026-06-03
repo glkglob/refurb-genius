@@ -9,6 +9,7 @@ import { AnalysisCard } from "@/components/AnalysisCard";
 import { RedesignCard } from "@/components/RedesignCard";
 import { useEffect, useState } from "react";
 import { Sparkles, ArrowRight, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import {
   getPhotoAnalysis,
   loadPhotoAnalysis,
@@ -34,6 +35,7 @@ function AnalysisPage() {
   const [results, setResults] = useState<RoomAnalysis[]>([]);
   const [concepts, setConcepts] = useState<RedesignConcept[]>(REDESIGN_CONCEPTS);
   const [conceptsLoading, setConceptsLoading] = useState(false);
+  const [redesignError, setRedesignError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,14 +57,23 @@ function AnalysisPage() {
       setStage.mutate({ id, stage: "analysis", value: true });
 
       setConceptsLoading(true);
+      setRedesignError(null);
       generateRedesignConcepts({ projectId: id })
         .then((generated) => {
           if (cancelled) return;
           setConcepts(generated);
           setConceptsLoading(false);
         })
-        .catch(() => {
-          if (!cancelled) setConceptsLoading(false);
+        .catch((err) => {
+          if (!cancelled) {
+            setConceptsLoading(false);
+            const msg =
+              err instanceof Error ? err.message : "Could not generate redesign concepts.";
+            setRedesignError(msg);
+            toast.error("Redesign concepts unavailable", {
+              description: "Using default suggestions. You can retry later.",
+            });
+          }
         });
     };
 
@@ -153,6 +164,12 @@ function AnalysisPage() {
             {conceptsLoading ? "Generating…" : "Concept previews"}
           </Badge>
         </div>
+
+        {redesignError ? (
+          <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            Redesign generation failed: {redesignError} (showing defaults)
+          </div>
+        ) : null}
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {concepts.map((c) => (

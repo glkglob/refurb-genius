@@ -2,6 +2,8 @@
 
 Refurb Genius is a property refurbishment analysis platform built with **TanStack Start**, **React 19**, **TypeScript**, **Tailwind CSS**, and **Supabase**.
 
+**Status:** Consolidated on pure TypeScript serverFns + OpenAI for all AI (photo analysis, scope, estimates, redesign). Railway backend fully removed. Ready for public launch on Vercel.
+
 This repository is a **pnpm workspace monorepo**. The active application runtime lives in the root `src/` directory, with shared logic extracted into workspace packages under `packages/`.
 
 ## Stack

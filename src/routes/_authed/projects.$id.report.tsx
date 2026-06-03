@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { trackReportExported } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -85,6 +86,7 @@ function ReportPage() {
         },
       });
       toast.success("Report exported successfully!", { id: toastId });
+      trackReportExported("project-report");
       setPdfProgress(null);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "Unknown error";

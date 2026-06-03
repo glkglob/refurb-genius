@@ -18,6 +18,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { PROPERTY_TYPES, UK_REGIONS } from "@/core/constants";
 import { type PropertyType, type UKRegion } from "@/core/projects";
 import { useCreateProject } from "@/hooks/useProjects";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/_authed/projects/new")({
   head: () => ({ meta: [{ title: "New project — Refurb Genius" }] }),
@@ -81,6 +82,7 @@ function NewProject() {
       },
       {
         onSuccess: (project) => {
+          trackEvent("deal_analyzed", { surface: "project-create" }); // proxy for project start
           navigate({ to: "/projects/$id", params: { id: project.id } });
         },
         onError: (err) => {

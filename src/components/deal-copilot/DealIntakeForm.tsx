@@ -1,8 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Calculator, CheckCircle2, CircleAlert, Zap } from "lucide-react";
+import { toast } from "sonner";
+import { trackDealAnalyzed } from "@/lib/analytics";
 
 import { useGenerateEstimate } from "@/hooks/useAIEstimate";
-import type { GenerateEstimateInput } from "@/core/ai";
+import type { GenerateEstimateInput, AIGeneratedRoom } from "@/core/ai";
+import { getRegionalMultiplier, calculateLineItem, calculateEstimateTotals } from "@/core/pricing";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
@@ -98,6 +101,9 @@ export function DealIntakeForm() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  // AI estimate via native TS serverFn (OpenAI). Declare early so useEffects below can reference without TDZ.
+  const generateAiEstimate = useGenerateEstimate();
+
   const scoreInput = useMemo<DealScoreInput>(
     () => ({
       title: form.title.trim(),
@@ -115,6 +121,19 @@ export function DealIntakeForm() {
   );
 
   const score = useMemo<DealScoreResult>(() => scoreDealOpportunity(scoreInput), [scoreInput]);
+
+  // Basic telemetry for key user actions (Phase 3)
+  useEffect(() => {
+    if (score.ready) {
+      trackDealAnalyzed("deal-copilot");
+    }
+  }, [score.ready]);
+
+  useEffect(() => {
+    if (generateAiEstimate.data && generateAiEstimate.data.length > 0) {
+      trackDealAnalyzed("deal-copilot-ai-estimate");
+    }
+  }, [generateAiEstimate.data]);
 
   // Run full analysis through orchestration layer
   const validationResult = useMemo(
@@ -139,10 +158,21 @@ export function DealIntakeForm() {
     return analyzeDeal(validationResult.data);
   }, [validationResult]);
 
-  // AI estimate via native TS serverFn (OpenAI). Replaces removed Railway heavy path.
-  const generateAiEstimate = useGenerateEstimate();
+  const aiEstimateResult = generateAiEstimate.data;
+  const aiMultiplier = getRegionalMultiplier(form.region);
+  const normalizedAiEstimate = useMemo(() => {
+    if (!aiEstimateResult?.length) return null;
+    const rooms = aiEstimateResult.map((room: AIGeneratedRoom) => ({
+      name: room.name,
+      area_sqm: room.area_sqm,
+      items: room.items.map((item) => calculateLineItem(item, aiMultiplier)),
+    }));
+    const allItems = rooms.flatMap((r) => r.items);
+    const totals = calculateEstimateTotals(allItems);
+    return { rooms, totals };
+  }, [aiEstimateResult, aiMultiplier]);
 
-  async function handleRunHeavyAnalysis() {
+  async function handleRunAiEstimate() {
     if (!form.postcode && !form.listingUrl) {
       logger.warn("[deal-intake] AI analysis requires postcode or listing url");
       return;
@@ -198,6 +228,9 @@ export function DealIntakeForm() {
       setSavedOpportunity(saved);
       setSaveError(null);
       logger.info("[deal-intake] Save successful", { id: saved.id });
+      toast.success("Opportunity saved", {
+        description: "View it in Deal Copilot or create a full project for photo analysis.",
+      });
     } catch (err) {
       // Show the real error from serverFn (e.g. RLS violation, "You must be signed in.",
       // or DB error) instead of always swallowing into a generic message.
@@ -320,7 +353,7 @@ export function DealIntakeForm() {
             type="button"
             variant="outline"
             size="sm"
-            onClick={handleRunHeavyAnalysis}
+            onClick={handleRunAiEstimate}
             disabled={generateAiEstimate.isPending || (!form.postcode && !form.listingUrl)}
           >
             <Zap className="mr-1 h-4 w-4" />
@@ -335,31 +368,53 @@ export function DealIntakeForm() {
           )}
           {generateAiEstimate.isError && (
             <div className="mt-2 text-xs text-destructive">
-              Error: {generateAiEstimate.error?.message || "AI analysis failed"}
+              {generateAiEstimate.error?.message?.includes("Rate limit")
+                ? generateAiEstimate.error.message
+                : `AI estimate failed: ${generateAiEstimate.error?.message || "Unknown error"}`}
             </div>
           )}
-          {generateAiEstimate.data && generateAiEstimate.data.length > 0 && (
-            <div className="mt-2 rounded border bg-muted/50 p-3 text-xs">
-              <div className="font-medium mb-1">AI Estimate Suggestion (native TS pipeline)</div>
-              {generateAiEstimate.data.map((room, i) => (
-                <div key={i} className="mb-2">
-                  <div className="font-semibold">
+          {normalizedAiEstimate && (
+            <div className="mt-2 rounded-md border bg-muted/60 p-3 text-xs">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-foreground">AI cost estimate (advisory)</span>
+                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-amber-200">
+                    ADVISORY ONLY
+                  </span>
+                </div>
+                <span className="text-[10px] text-muted-foreground">
+                  ×{aiMultiplier.toFixed(2)} regional
+                </span>
+              </div>
+              {normalizedAiEstimate.rooms.slice(0, 3).map((room, i) => (
+                <div key={i} className="mb-1.5">
+                  <div className="font-semibold text-foreground">
                     {room.name}
                     {room.area_sqm ? ` (${room.area_sqm}m²)` : ""}
                   </div>
-                  <ul className="ml-3 list-disc">
-                    {room.items.slice(0, 5).map((item, j) => (
-                      <li key={j}>
-                        {item.name} — {item.quantity} {item.unit} @ £{item.base_unit_cost}
-                      </li>
+                  <div className="ml-2 text-muted-foreground">
+                    {room.items.slice(0, 3).map((item, j) => (
+                      <span key={j} className="mr-2">
+                        {item.name}: {formatGBP(item.total_cost)}
+                      </span>
                     ))}
-                    {room.items.length > 5 && <li>... +{room.items.length - 5} more</li>}
-                  </ul>
+                    {room.items.length > 3 && <span>+{room.items.length - 3} more</span>}
+                  </div>
                 </div>
               ))}
-              <div className="text-[10px] text-muted-foreground mt-1">
-                Results are suggestions. Use Projects for full photo-backed scope + editable
-                estimate.
+              {normalizedAiEstimate.rooms.length > 3 && (
+                <div className="text-[10px] text-muted-foreground">
+                  +{normalizedAiEstimate.rooms.length - 3} more rooms…
+                </div>
+              )}
+              <div className="mt-2 flex justify-between border-t pt-2 font-medium text-foreground">
+                <span>Est. materials + labour (ex. VAT)</span>
+                <span>{formatGBP(normalizedAiEstimate.totals.subtotal)}</span>
+              </div>
+              <div className="mt-1 text-[10px] text-muted-foreground">
+                Starting point only. Create a Project, upload photos, and run full AI scope +
+                editable estimate for accurate room-by-room costs (uses the same deterministic
+                pricing engine).
               </div>
             </div>
           )}

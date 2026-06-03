@@ -7,6 +7,7 @@ import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 
 // Use the protected serverFn for writes (consistent with projects save and auth migration).
 import { saveDealOpportunityServerFn } from "@/serverFns/dealCopilot";
+import { deleteDealOpportunity } from "@/core/dealCopilot";
 
 function rowToOpportunity(r: Tables<"deal_opportunities">): DealOpportunity {
   return {
@@ -114,8 +115,8 @@ export function useDeleteOpportunity() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("deal_opportunities").delete().eq("id", id);
-      if (error) throw new Error(error.message);
+      // ServerFn path for consistency + hard-refresh safety (RLS still enforces).
+      await deleteDealOpportunity(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["opportunities"] });
