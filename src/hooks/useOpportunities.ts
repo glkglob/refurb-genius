@@ -5,6 +5,9 @@ import type { DealOpportunity, DealOpportunityStatus, DealExitStrategy } from "@
 import type { PropertyType } from "@/lib/projects";
 import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 
+// Use the protected serverFn for writes (consistent with projects save and auth migration).
+import { saveDealOpportunityServerFn } from "@/serverFns/dealCopilot";
+
 function rowToOpportunity(r: Tables<"deal_opportunities">): DealOpportunity {
   return {
     id: r.id,
@@ -54,33 +57,13 @@ export function useOpportunity(id: string) {
 export function useSaveOpportunity() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (opportunity: DealOpportunity) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("You must be signed in.");
-      const { data, error } = await supabase
-        .from("deal_opportunities")
-        .insert({
-          id: opportunity.id,
-          user_id: user.id,
-          title: opportunity.title,
-          listing_url: opportunity.listingUrl ?? null,
-          postcode: opportunity.postcode ?? null,
-          property_type: opportunity.propertyType ?? null,
-          bedrooms: opportunity.bedrooms ?? null,
-          purchase_price: opportunity.purchasePrice ?? null,
-          estimated_gdv: opportunity.estimatedGdv ?? null,
-          expected_monthly_rent: opportunity.expectedMonthlyRent ?? null,
-          refurb_budget: opportunity.refurbBudget ?? null,
-          target_exit_strategy: opportunity.targetExitStrategy ?? null,
-          status: opportunity.status,
-        })
-        .select()
-        .single();
-      if (error) throw new Error(error.message);
-      return rowToOpportunity(data);
-    },
+    /**
+     * Use serverFn (requireUser + cookie auth) for the write.
+     * This survives hard refresh / direct nav to deal-copilot routes under _authed.
+     * Matches the pattern used by the intake form's store.save and by projects create.
+     */
+    mutationFn: (opportunity: DealOpportunity) =>
+      saveDealOpportunityServerFn({ data: opportunity }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["opportunities"] });
     },

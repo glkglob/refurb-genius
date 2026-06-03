@@ -36,6 +36,15 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  // Suppress react-refresh warning for thin re-export shims (intentional during UI migration to @repo/ui).
+  // These files only contain `export * from "@repo/ui/..."` for backward compat (@/components/ui/* paths).
+  // See Phase 2 of lint cleanup task.
+  {
+    files: ["src/components/ui/**/*.tsx"],
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
   // Monorepo boundary enforcement — @repo/services files
   {
     files: ["packages/services/**/*.{ts,tsx}"],

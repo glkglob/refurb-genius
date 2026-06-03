@@ -7,6 +7,13 @@ import test from "node:test";
 
 import { runPricingEngine, type PricingEngineInputs } from "@repo/services";
 
+// Guard against schema drift for projects table columns (e.g. bathrooms).
+// The generated types in src/integrations/supabase/types.ts are the source of truth
+// for what columns the DB + PostgREST expose. If a migration drops a column
+// that the New Project form / serverFn / mappers expect, referencing it here
+// will make `pnpm typecheck` (part of pre-commit) fail.
+import type { Tables } from "@/integrations/supabase/types";
+
 const BASE_INPUT: PricingEngineInputs = {
   region: "London",
   property_condition: "Average",
@@ -135,4 +142,24 @@ test("ROI does not use fallback values — mid_total is always the authoritative
   assert.notEqual(result.mid_total, undefined, "mid_total must never be undefined");
   assert.notEqual(result.mid_total, null, "mid_total must never be null");
   assert.ok(!Number.isNaN(result.mid_total), "mid_total must never be NaN");
+});
+
+test("projects table in generated Supabase types includes critical columns (prevent schema drift)", () => {
+  // Referencing these ensures that if the columns are removed from
+  // src/integrations/supabase/types.ts (i.e. the DB schema no longer has them),
+  // typecheck will fail this invariant test during pre-commit.
+  // Matches the columns the New Project form, serverFn insert, mappers,
+  // and initial migration (plus our add-if-not-exists migration) expect.
+  type ProjectRow = Tables<"projects">;
+
+  // These type assertions (keyof) will fail at compile time (during `pnpm typecheck`)
+  // if the column was removed from the generated types (i.e. DB schema drift vs migration).
+  const _baths: keyof ProjectRow = "bathrooms";
+  const _beds: keyof ProjectRow = "bedrooms";
+  const _size: keyof ProjectRow = "size_sqm";
+  const _ptype: keyof ProjectRow = "property_type";
+  const _price: keyof ProjectRow = "purchase_price";
+  const _gdv: keyof ProjectRow = "estimated_gdv";
+
+  assert.ok(true, "projects schema has critical columns (see migration 20260525120000)");
 });
