@@ -12,28 +12,29 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TradesRouteImport } from './routes/trades'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as SupportRouteImport } from './routes/support'
-import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DealCopilotIndexRouteImport } from './routes/deal-copilot/index'
-import { Route as TradesProfileRouteImport } from './routes/trades_.profile'
-import { Route as TradesNewRouteImport } from './routes/trades_.new'
 import { Route as TradesJobIdRouteImport } from './routes/trades_.$jobId'
-import { Route as ProjectsNewRouteImport } from './routes/projects.new'
-import { Route as DealCopilotNewRouteImport } from './routes/deal-copilot/new'
-import { Route as DealCopilotOpportunityIdRouteImport } from './routes/deal-copilot/$opportunityId'
 import { Route as AuthCallbackRouteImport } from './routes/auth_.callback'
-import { Route as ProjectsIdIndexRouteImport } from './routes/projects.$id.index'
-import { Route as TradesJobIdEditRouteImport } from './routes/trades_.$jobId_.edit'
-import { Route as ProjectsIdUploadRouteImport } from './routes/projects.$id.upload'
-import { Route as ProjectsIdScopeRouteImport } from './routes/projects.$id.scope'
-import { Route as ProjectsIdReportRouteImport } from './routes/projects.$id.report'
-import { Route as ProjectsIdEstimateRouteImport } from './routes/projects.$id.estimate'
-import { Route as ProjectsIdAnalysisRouteImport } from './routes/projects.$id.analysis'
-import { Route as DealCopilotOpportunityIdEditRouteImport } from './routes/deal-copilot/$opportunityId.edit'
+import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
+import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
+import { Route as AuthedAdminRouteImport } from './routes/_authed/admin'
+import { Route as AuthedDealCopilotIndexRouteImport } from './routes/_authed/deal-copilot/index'
+import { Route as AuthedTradesProfileRouteImport } from './routes/_authed/trades_.profile'
+import { Route as AuthedTradesNewRouteImport } from './routes/_authed/trades_.new'
+import { Route as AuthedProjectsNewRouteImport } from './routes/_authed/projects.new'
+import { Route as AuthedDealCopilotNewRouteImport } from './routes/_authed/deal-copilot/new'
+import { Route as AuthedDealCopilotOpportunityIdRouteImport } from './routes/_authed/deal-copilot/$opportunityId'
+import { Route as AuthedProjectsIdIndexRouteImport } from './routes/_authed/projects.$id.index'
+import { Route as AuthedTradesJobIdEditRouteImport } from './routes/_authed/trades_.$jobId_.edit'
+import { Route as AuthedProjectsIdUploadRouteImport } from './routes/_authed/projects.$id.upload'
+import { Route as AuthedProjectsIdScopeRouteImport } from './routes/_authed/projects.$id.scope'
+import { Route as AuthedProjectsIdReportRouteImport } from './routes/_authed/projects.$id.report'
+import { Route as AuthedProjectsIdEstimateRouteImport } from './routes/_authed/projects.$id.estimate'
+import { Route as AuthedProjectsIdAnalysisRouteImport } from './routes/_authed/projects.$id.analysis'
+import { Route as AuthedDealCopilotOpportunityIdEditRouteImport } from './routes/_authed/deal-copilot/$opportunityId.edit'
 
 const TradesRoute = TradesRouteImport.update({
   id: '/trades',
@@ -50,19 +51,9 @@ const SupportRoute = SupportRouteImport.update({
   path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -70,9 +61,8 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const AuthedRoute = AuthedRouteImport.update({
+  id: '/_authed',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -80,188 +70,206 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DealCopilotIndexRoute = DealCopilotIndexRouteImport.update({
-  id: '/deal-copilot/',
-  path: '/deal-copilot/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TradesProfileRoute = TradesProfileRouteImport.update({
-  id: '/trades_/profile',
-  path: '/trades/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TradesNewRoute = TradesNewRouteImport.update({
-  id: '/trades_/new',
-  path: '/trades/new',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const TradesJobIdRoute = TradesJobIdRouteImport.update({
   id: '/trades_/$jobId',
   path: '/trades/$jobId',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProjectsNewRoute = ProjectsNewRouteImport.update({
-  id: '/projects/new',
-  path: '/projects/new',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DealCopilotNewRoute = DealCopilotNewRouteImport.update({
-  id: '/deal-copilot/new',
-  path: '/deal-copilot/new',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DealCopilotOpportunityIdRoute =
-  DealCopilotOpportunityIdRouteImport.update({
-    id: '/deal-copilot/$opportunityId',
-    path: '/deal-copilot/$opportunityId',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth_/callback',
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProjectsIdIndexRoute = ProjectsIdIndexRouteImport.update({
+const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedAdminRoute = AuthedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedDealCopilotIndexRoute = AuthedDealCopilotIndexRouteImport.update({
+  id: '/deal-copilot/',
+  path: '/deal-copilot/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedTradesProfileRoute = AuthedTradesProfileRouteImport.update({
+  id: '/trades_/profile',
+  path: '/trades/profile',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedTradesNewRoute = AuthedTradesNewRouteImport.update({
+  id: '/trades_/new',
+  path: '/trades/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedProjectsNewRoute = AuthedProjectsNewRouteImport.update({
+  id: '/projects/new',
+  path: '/projects/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedDealCopilotNewRoute = AuthedDealCopilotNewRouteImport.update({
+  id: '/deal-copilot/new',
+  path: '/deal-copilot/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedDealCopilotOpportunityIdRoute =
+  AuthedDealCopilotOpportunityIdRouteImport.update({
+    id: '/deal-copilot/$opportunityId',
+    path: '/deal-copilot/$opportunityId',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedProjectsIdIndexRoute = AuthedProjectsIdIndexRouteImport.update({
   id: '/projects/$id/',
   path: '/projects/$id/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthedRoute,
 } as any)
-const TradesJobIdEditRoute = TradesJobIdEditRouteImport.update({
+const AuthedTradesJobIdEditRoute = AuthedTradesJobIdEditRouteImport.update({
   id: '/trades_/$jobId_/edit',
   path: '/trades/$jobId/edit',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthedRoute,
 } as any)
-const ProjectsIdUploadRoute = ProjectsIdUploadRouteImport.update({
+const AuthedProjectsIdUploadRoute = AuthedProjectsIdUploadRouteImport.update({
   id: '/projects/$id/upload',
   path: '/projects/$id/upload',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthedRoute,
 } as any)
-const ProjectsIdScopeRoute = ProjectsIdScopeRouteImport.update({
+const AuthedProjectsIdScopeRoute = AuthedProjectsIdScopeRouteImport.update({
   id: '/projects/$id/scope',
   path: '/projects/$id/scope',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthedRoute,
 } as any)
-const ProjectsIdReportRoute = ProjectsIdReportRouteImport.update({
+const AuthedProjectsIdReportRoute = AuthedProjectsIdReportRouteImport.update({
   id: '/projects/$id/report',
   path: '/projects/$id/report',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthedRoute,
 } as any)
-const ProjectsIdEstimateRoute = ProjectsIdEstimateRouteImport.update({
-  id: '/projects/$id/estimate',
-  path: '/projects/$id/estimate',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProjectsIdAnalysisRoute = ProjectsIdAnalysisRouteImport.update({
-  id: '/projects/$id/analysis',
-  path: '/projects/$id/analysis',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DealCopilotOpportunityIdEditRoute =
-  DealCopilotOpportunityIdEditRouteImport.update({
+const AuthedProjectsIdEstimateRoute =
+  AuthedProjectsIdEstimateRouteImport.update({
+    id: '/projects/$id/estimate',
+    path: '/projects/$id/estimate',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedProjectsIdAnalysisRoute =
+  AuthedProjectsIdAnalysisRouteImport.update({
+    id: '/projects/$id/analysis',
+    path: '/projects/$id/analysis',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedDealCopilotOpportunityIdEditRoute =
+  AuthedDealCopilotOpportunityIdEditRouteImport.update({
     id: '/edit',
     path: '/edit',
-    getParentRoute: () => DealCopilotOpportunityIdRoute,
+    getParentRoute: () => AuthedDealCopilotOpportunityIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
-  '/dashboard': typeof DashboardRoute
   '/privacy': typeof PrivacyRoute
-  '/settings': typeof SettingsRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/trades': typeof TradesRoute
+  '/admin': typeof AuthedAdminRoute
+  '/dashboard': typeof AuthedDashboardRoute
+  '/settings': typeof AuthedSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/deal-copilot/$opportunityId': typeof DealCopilotOpportunityIdRouteWithChildren
-  '/deal-copilot/new': typeof DealCopilotNewRoute
-  '/projects/new': typeof ProjectsNewRoute
   '/trades/$jobId': typeof TradesJobIdRoute
-  '/trades/new': typeof TradesNewRoute
-  '/trades/profile': typeof TradesProfileRoute
-  '/deal-copilot/': typeof DealCopilotIndexRoute
-  '/deal-copilot/$opportunityId/edit': typeof DealCopilotOpportunityIdEditRoute
-  '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
-  '/projects/$id/estimate': typeof ProjectsIdEstimateRoute
-  '/projects/$id/report': typeof ProjectsIdReportRoute
-  '/projects/$id/scope': typeof ProjectsIdScopeRoute
-  '/projects/$id/upload': typeof ProjectsIdUploadRoute
-  '/trades/$jobId/edit': typeof TradesJobIdEditRoute
-  '/projects/$id/': typeof ProjectsIdIndexRoute
+  '/deal-copilot/$opportunityId': typeof AuthedDealCopilotOpportunityIdRouteWithChildren
+  '/deal-copilot/new': typeof AuthedDealCopilotNewRoute
+  '/projects/new': typeof AuthedProjectsNewRoute
+  '/trades/new': typeof AuthedTradesNewRoute
+  '/trades/profile': typeof AuthedTradesProfileRoute
+  '/deal-copilot/': typeof AuthedDealCopilotIndexRoute
+  '/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
+  '/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
+  '/projects/$id/estimate': typeof AuthedProjectsIdEstimateRoute
+  '/projects/$id/report': typeof AuthedProjectsIdReportRoute
+  '/projects/$id/scope': typeof AuthedProjectsIdScopeRoute
+  '/projects/$id/upload': typeof AuthedProjectsIdUploadRoute
+  '/trades/$jobId/edit': typeof AuthedTradesJobIdEditRoute
+  '/projects/$id/': typeof AuthedProjectsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
-  '/dashboard': typeof DashboardRoute
   '/privacy': typeof PrivacyRoute
-  '/settings': typeof SettingsRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/trades': typeof TradesRoute
+  '/admin': typeof AuthedAdminRoute
+  '/dashboard': typeof AuthedDashboardRoute
+  '/settings': typeof AuthedSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
-  '/deal-copilot/$opportunityId': typeof DealCopilotOpportunityIdRouteWithChildren
-  '/deal-copilot/new': typeof DealCopilotNewRoute
-  '/projects/new': typeof ProjectsNewRoute
   '/trades/$jobId': typeof TradesJobIdRoute
-  '/trades/new': typeof TradesNewRoute
-  '/trades/profile': typeof TradesProfileRoute
-  '/deal-copilot': typeof DealCopilotIndexRoute
-  '/deal-copilot/$opportunityId/edit': typeof DealCopilotOpportunityIdEditRoute
-  '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
-  '/projects/$id/estimate': typeof ProjectsIdEstimateRoute
-  '/projects/$id/report': typeof ProjectsIdReportRoute
-  '/projects/$id/scope': typeof ProjectsIdScopeRoute
-  '/projects/$id/upload': typeof ProjectsIdUploadRoute
-  '/trades/$jobId/edit': typeof TradesJobIdEditRoute
-  '/projects/$id': typeof ProjectsIdIndexRoute
+  '/deal-copilot/$opportunityId': typeof AuthedDealCopilotOpportunityIdRouteWithChildren
+  '/deal-copilot/new': typeof AuthedDealCopilotNewRoute
+  '/projects/new': typeof AuthedProjectsNewRoute
+  '/trades/new': typeof AuthedTradesNewRoute
+  '/trades/profile': typeof AuthedTradesProfileRoute
+  '/deal-copilot': typeof AuthedDealCopilotIndexRoute
+  '/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
+  '/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
+  '/projects/$id/estimate': typeof AuthedProjectsIdEstimateRoute
+  '/projects/$id/report': typeof AuthedProjectsIdReportRoute
+  '/projects/$id/scope': typeof AuthedProjectsIdScopeRoute
+  '/projects/$id/upload': typeof AuthedProjectsIdUploadRoute
+  '/trades/$jobId/edit': typeof AuthedTradesJobIdEditRoute
+  '/projects/$id': typeof AuthedProjectsIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/_authed': typeof AuthedRouteWithChildren
   '/auth': typeof AuthRoute
-  '/dashboard': typeof DashboardRoute
   '/privacy': typeof PrivacyRoute
-  '/settings': typeof SettingsRoute
   '/support': typeof SupportRoute
   '/terms': typeof TermsRoute
   '/trades': typeof TradesRoute
+  '/_authed/admin': typeof AuthedAdminRoute
+  '/_authed/dashboard': typeof AuthedDashboardRoute
+  '/_authed/settings': typeof AuthedSettingsRoute
   '/auth_/callback': typeof AuthCallbackRoute
-  '/deal-copilot/$opportunityId': typeof DealCopilotOpportunityIdRouteWithChildren
-  '/deal-copilot/new': typeof DealCopilotNewRoute
-  '/projects/new': typeof ProjectsNewRoute
   '/trades_/$jobId': typeof TradesJobIdRoute
-  '/trades_/new': typeof TradesNewRoute
-  '/trades_/profile': typeof TradesProfileRoute
-  '/deal-copilot/': typeof DealCopilotIndexRoute
-  '/deal-copilot/$opportunityId/edit': typeof DealCopilotOpportunityIdEditRoute
-  '/projects/$id/analysis': typeof ProjectsIdAnalysisRoute
-  '/projects/$id/estimate': typeof ProjectsIdEstimateRoute
-  '/projects/$id/report': typeof ProjectsIdReportRoute
-  '/projects/$id/scope': typeof ProjectsIdScopeRoute
-  '/projects/$id/upload': typeof ProjectsIdUploadRoute
-  '/trades_/$jobId_/edit': typeof TradesJobIdEditRoute
-  '/projects/$id/': typeof ProjectsIdIndexRoute
+  '/_authed/deal-copilot/$opportunityId': typeof AuthedDealCopilotOpportunityIdRouteWithChildren
+  '/_authed/deal-copilot/new': typeof AuthedDealCopilotNewRoute
+  '/_authed/projects/new': typeof AuthedProjectsNewRoute
+  '/_authed/trades_/new': typeof AuthedTradesNewRoute
+  '/_authed/trades_/profile': typeof AuthedTradesProfileRoute
+  '/_authed/deal-copilot/': typeof AuthedDealCopilotIndexRoute
+  '/_authed/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
+  '/_authed/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
+  '/_authed/projects/$id/estimate': typeof AuthedProjectsIdEstimateRoute
+  '/_authed/projects/$id/report': typeof AuthedProjectsIdReportRoute
+  '/_authed/projects/$id/scope': typeof AuthedProjectsIdScopeRoute
+  '/_authed/projects/$id/upload': typeof AuthedProjectsIdUploadRoute
+  '/_authed/trades_/$jobId_/edit': typeof AuthedTradesJobIdEditRoute
+  '/_authed/projects/$id/': typeof AuthedProjectsIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/admin'
     | '/auth'
-    | '/dashboard'
     | '/privacy'
-    | '/settings'
     | '/support'
     | '/terms'
     | '/trades'
+    | '/admin'
+    | '/dashboard'
+    | '/settings'
     | '/auth/callback'
+    | '/trades/$jobId'
     | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
-    | '/trades/$jobId'
     | '/trades/new'
     | '/trades/profile'
     | '/deal-copilot/'
@@ -276,19 +284,19 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/admin'
     | '/auth'
-    | '/dashboard'
     | '/privacy'
-    | '/settings'
     | '/support'
     | '/terms'
     | '/trades'
+    | '/admin'
+    | '/dashboard'
+    | '/settings'
     | '/auth/callback'
+    | '/trades/$jobId'
     | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
-    | '/trades/$jobId'
     | '/trades/new'
     | '/trades/profile'
     | '/deal-copilot'
@@ -303,57 +311,43 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/admin'
+    | '/_authed'
     | '/auth'
-    | '/dashboard'
     | '/privacy'
-    | '/settings'
     | '/support'
     | '/terms'
     | '/trades'
+    | '/_authed/admin'
+    | '/_authed/dashboard'
+    | '/_authed/settings'
     | '/auth_/callback'
-    | '/deal-copilot/$opportunityId'
-    | '/deal-copilot/new'
-    | '/projects/new'
     | '/trades_/$jobId'
-    | '/trades_/new'
-    | '/trades_/profile'
-    | '/deal-copilot/'
-    | '/deal-copilot/$opportunityId/edit'
-    | '/projects/$id/analysis'
-    | '/projects/$id/estimate'
-    | '/projects/$id/report'
-    | '/projects/$id/scope'
-    | '/projects/$id/upload'
-    | '/trades_/$jobId_/edit'
-    | '/projects/$id/'
+    | '/_authed/deal-copilot/$opportunityId'
+    | '/_authed/deal-copilot/new'
+    | '/_authed/projects/new'
+    | '/_authed/trades_/new'
+    | '/_authed/trades_/profile'
+    | '/_authed/deal-copilot/'
+    | '/_authed/deal-copilot/$opportunityId/edit'
+    | '/_authed/projects/$id/analysis'
+    | '/_authed/projects/$id/estimate'
+    | '/_authed/projects/$id/report'
+    | '/_authed/projects/$id/scope'
+    | '/_authed/projects/$id/upload'
+    | '/_authed/trades_/$jobId_/edit'
+    | '/_authed/projects/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AuthedRoute: typeof AuthedRouteWithChildren
   AuthRoute: typeof AuthRoute
-  DashboardRoute: typeof DashboardRoute
   PrivacyRoute: typeof PrivacyRoute
-  SettingsRoute: typeof SettingsRoute
   SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
   TradesRoute: typeof TradesRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
-  DealCopilotOpportunityIdRoute: typeof DealCopilotOpportunityIdRouteWithChildren
-  DealCopilotNewRoute: typeof DealCopilotNewRoute
-  ProjectsNewRoute: typeof ProjectsNewRoute
   TradesJobIdRoute: typeof TradesJobIdRoute
-  TradesNewRoute: typeof TradesNewRoute
-  TradesProfileRoute: typeof TradesProfileRoute
-  DealCopilotIndexRoute: typeof DealCopilotIndexRoute
-  ProjectsIdAnalysisRoute: typeof ProjectsIdAnalysisRoute
-  ProjectsIdEstimateRoute: typeof ProjectsIdEstimateRoute
-  ProjectsIdReportRoute: typeof ProjectsIdReportRoute
-  ProjectsIdScopeRoute: typeof ProjectsIdScopeRoute
-  ProjectsIdUploadRoute: typeof ProjectsIdUploadRoute
-  TradesJobIdEditRoute: typeof TradesJobIdEditRoute
-  ProjectsIdIndexRoute: typeof ProjectsIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -379,25 +373,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -407,11 +387,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+    '/_authed': {
+      id: '/_authed'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -421,53 +401,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/deal-copilot/': {
-      id: '/deal-copilot/'
-      path: '/deal-copilot'
-      fullPath: '/deal-copilot/'
-      preLoaderRoute: typeof DealCopilotIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/trades_/profile': {
-      id: '/trades_/profile'
-      path: '/trades/profile'
-      fullPath: '/trades/profile'
-      preLoaderRoute: typeof TradesProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/trades_/new': {
-      id: '/trades_/new'
-      path: '/trades/new'
-      fullPath: '/trades/new'
-      preLoaderRoute: typeof TradesNewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/trades_/$jobId': {
       id: '/trades_/$jobId'
       path: '/trades/$jobId'
       fullPath: '/trades/$jobId'
       preLoaderRoute: typeof TradesJobIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/projects/new': {
-      id: '/projects/new'
-      path: '/projects/new'
-      fullPath: '/projects/new'
-      preLoaderRoute: typeof ProjectsNewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/deal-copilot/new': {
-      id: '/deal-copilot/new'
-      path: '/deal-copilot/new'
-      fullPath: '/deal-copilot/new'
-      preLoaderRoute: typeof DealCopilotNewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/deal-copilot/$opportunityId': {
-      id: '/deal-copilot/$opportunityId'
-      path: '/deal-copilot/$opportunityId'
-      fullPath: '/deal-copilot/$opportunityId'
-      preLoaderRoute: typeof DealCopilotOpportunityIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth_/callback': {
@@ -477,105 +415,206 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/projects/$id/': {
-      id: '/projects/$id/'
+    '/_authed/settings': {
+      id: '/_authed/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthedSettingsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/dashboard': {
+      id: '/_authed/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthedDashboardRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/admin': {
+      id: '/_authed/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthedAdminRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/deal-copilot/': {
+      id: '/_authed/deal-copilot/'
+      path: '/deal-copilot'
+      fullPath: '/deal-copilot/'
+      preLoaderRoute: typeof AuthedDealCopilotIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/trades_/profile': {
+      id: '/_authed/trades_/profile'
+      path: '/trades/profile'
+      fullPath: '/trades/profile'
+      preLoaderRoute: typeof AuthedTradesProfileRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/trades_/new': {
+      id: '/_authed/trades_/new'
+      path: '/trades/new'
+      fullPath: '/trades/new'
+      preLoaderRoute: typeof AuthedTradesNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/projects/new': {
+      id: '/_authed/projects/new'
+      path: '/projects/new'
+      fullPath: '/projects/new'
+      preLoaderRoute: typeof AuthedProjectsNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/deal-copilot/new': {
+      id: '/_authed/deal-copilot/new'
+      path: '/deal-copilot/new'
+      fullPath: '/deal-copilot/new'
+      preLoaderRoute: typeof AuthedDealCopilotNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/deal-copilot/$opportunityId': {
+      id: '/_authed/deal-copilot/$opportunityId'
+      path: '/deal-copilot/$opportunityId'
+      fullPath: '/deal-copilot/$opportunityId'
+      preLoaderRoute: typeof AuthedDealCopilotOpportunityIdRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/projects/$id/': {
+      id: '/_authed/projects/$id/'
       path: '/projects/$id'
       fullPath: '/projects/$id/'
-      preLoaderRoute: typeof ProjectsIdIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthedProjectsIdIndexRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/trades_/$jobId_/edit': {
-      id: '/trades_/$jobId_/edit'
+    '/_authed/trades_/$jobId_/edit': {
+      id: '/_authed/trades_/$jobId_/edit'
       path: '/trades/$jobId/edit'
       fullPath: '/trades/$jobId/edit'
-      preLoaderRoute: typeof TradesJobIdEditRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthedTradesJobIdEditRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/projects/$id/upload': {
-      id: '/projects/$id/upload'
+    '/_authed/projects/$id/upload': {
+      id: '/_authed/projects/$id/upload'
       path: '/projects/$id/upload'
       fullPath: '/projects/$id/upload'
-      preLoaderRoute: typeof ProjectsIdUploadRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthedProjectsIdUploadRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/projects/$id/scope': {
-      id: '/projects/$id/scope'
+    '/_authed/projects/$id/scope': {
+      id: '/_authed/projects/$id/scope'
       path: '/projects/$id/scope'
       fullPath: '/projects/$id/scope'
-      preLoaderRoute: typeof ProjectsIdScopeRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthedProjectsIdScopeRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/projects/$id/report': {
-      id: '/projects/$id/report'
+    '/_authed/projects/$id/report': {
+      id: '/_authed/projects/$id/report'
       path: '/projects/$id/report'
       fullPath: '/projects/$id/report'
-      preLoaderRoute: typeof ProjectsIdReportRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthedProjectsIdReportRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/projects/$id/estimate': {
-      id: '/projects/$id/estimate'
+    '/_authed/projects/$id/estimate': {
+      id: '/_authed/projects/$id/estimate'
       path: '/projects/$id/estimate'
       fullPath: '/projects/$id/estimate'
-      preLoaderRoute: typeof ProjectsIdEstimateRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthedProjectsIdEstimateRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/projects/$id/analysis': {
-      id: '/projects/$id/analysis'
+    '/_authed/projects/$id/analysis': {
+      id: '/_authed/projects/$id/analysis'
       path: '/projects/$id/analysis'
       fullPath: '/projects/$id/analysis'
-      preLoaderRoute: typeof ProjectsIdAnalysisRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthedProjectsIdAnalysisRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/deal-copilot/$opportunityId/edit': {
-      id: '/deal-copilot/$opportunityId/edit'
+    '/_authed/deal-copilot/$opportunityId/edit': {
+      id: '/_authed/deal-copilot/$opportunityId/edit'
       path: '/edit'
       fullPath: '/deal-copilot/$opportunityId/edit'
-      preLoaderRoute: typeof DealCopilotOpportunityIdEditRouteImport
-      parentRoute: typeof DealCopilotOpportunityIdRoute
+      preLoaderRoute: typeof AuthedDealCopilotOpportunityIdEditRouteImport
+      parentRoute: typeof AuthedDealCopilotOpportunityIdRoute
     }
   }
 }
 
-interface DealCopilotOpportunityIdRouteChildren {
-  DealCopilotOpportunityIdEditRoute: typeof DealCopilotOpportunityIdEditRoute
+interface AuthedDealCopilotOpportunityIdRouteChildren {
+  AuthedDealCopilotOpportunityIdEditRoute: typeof AuthedDealCopilotOpportunityIdEditRoute
 }
 
-const DealCopilotOpportunityIdRouteChildren: DealCopilotOpportunityIdRouteChildren =
+const AuthedDealCopilotOpportunityIdRouteChildren: AuthedDealCopilotOpportunityIdRouteChildren =
   {
-    DealCopilotOpportunityIdEditRoute: DealCopilotOpportunityIdEditRoute,
+    AuthedDealCopilotOpportunityIdEditRoute:
+      AuthedDealCopilotOpportunityIdEditRoute,
   }
 
-const DealCopilotOpportunityIdRouteWithChildren =
-  DealCopilotOpportunityIdRoute._addFileChildren(
-    DealCopilotOpportunityIdRouteChildren,
+const AuthedDealCopilotOpportunityIdRouteWithChildren =
+  AuthedDealCopilotOpportunityIdRoute._addFileChildren(
+    AuthedDealCopilotOpportunityIdRouteChildren,
   )
+
+interface AuthedRouteChildren {
+  AuthedAdminRoute: typeof AuthedAdminRoute
+  AuthedDashboardRoute: typeof AuthedDashboardRoute
+  AuthedSettingsRoute: typeof AuthedSettingsRoute
+  AuthedDealCopilotOpportunityIdRoute: typeof AuthedDealCopilotOpportunityIdRouteWithChildren
+  AuthedDealCopilotNewRoute: typeof AuthedDealCopilotNewRoute
+  AuthedProjectsNewRoute: typeof AuthedProjectsNewRoute
+  AuthedTradesNewRoute: typeof AuthedTradesNewRoute
+  AuthedTradesProfileRoute: typeof AuthedTradesProfileRoute
+  AuthedDealCopilotIndexRoute: typeof AuthedDealCopilotIndexRoute
+  AuthedProjectsIdAnalysisRoute: typeof AuthedProjectsIdAnalysisRoute
+  AuthedProjectsIdEstimateRoute: typeof AuthedProjectsIdEstimateRoute
+  AuthedProjectsIdReportRoute: typeof AuthedProjectsIdReportRoute
+  AuthedProjectsIdScopeRoute: typeof AuthedProjectsIdScopeRoute
+  AuthedProjectsIdUploadRoute: typeof AuthedProjectsIdUploadRoute
+  AuthedTradesJobIdEditRoute: typeof AuthedTradesJobIdEditRoute
+  AuthedProjectsIdIndexRoute: typeof AuthedProjectsIdIndexRoute
+}
+
+const AuthedRouteChildren: AuthedRouteChildren = {
+  AuthedAdminRoute: AuthedAdminRoute,
+  AuthedDashboardRoute: AuthedDashboardRoute,
+  AuthedSettingsRoute: AuthedSettingsRoute,
+  AuthedDealCopilotOpportunityIdRoute:
+    AuthedDealCopilotOpportunityIdRouteWithChildren,
+  AuthedDealCopilotNewRoute: AuthedDealCopilotNewRoute,
+  AuthedProjectsNewRoute: AuthedProjectsNewRoute,
+  AuthedTradesNewRoute: AuthedTradesNewRoute,
+  AuthedTradesProfileRoute: AuthedTradesProfileRoute,
+  AuthedDealCopilotIndexRoute: AuthedDealCopilotIndexRoute,
+  AuthedProjectsIdAnalysisRoute: AuthedProjectsIdAnalysisRoute,
+  AuthedProjectsIdEstimateRoute: AuthedProjectsIdEstimateRoute,
+  AuthedProjectsIdReportRoute: AuthedProjectsIdReportRoute,
+  AuthedProjectsIdScopeRoute: AuthedProjectsIdScopeRoute,
+  AuthedProjectsIdUploadRoute: AuthedProjectsIdUploadRoute,
+  AuthedTradesJobIdEditRoute: AuthedTradesJobIdEditRoute,
+  AuthedProjectsIdIndexRoute: AuthedProjectsIdIndexRoute,
+}
+
+const AuthedRouteWithChildren =
+  AuthedRoute._addFileChildren(AuthedRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AuthedRoute: AuthedRouteWithChildren,
   AuthRoute: AuthRoute,
-  DashboardRoute: DashboardRoute,
   PrivacyRoute: PrivacyRoute,
-  SettingsRoute: SettingsRoute,
   SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,
   TradesRoute: TradesRoute,
   AuthCallbackRoute: AuthCallbackRoute,
-  DealCopilotOpportunityIdRoute: DealCopilotOpportunityIdRouteWithChildren,
-  DealCopilotNewRoute: DealCopilotNewRoute,
-  ProjectsNewRoute: ProjectsNewRoute,
   TradesJobIdRoute: TradesJobIdRoute,
-  TradesNewRoute: TradesNewRoute,
-  TradesProfileRoute: TradesProfileRoute,
-  DealCopilotIndexRoute: DealCopilotIndexRoute,
-  ProjectsIdAnalysisRoute: ProjectsIdAnalysisRoute,
-  ProjectsIdEstimateRoute: ProjectsIdEstimateRoute,
-  ProjectsIdReportRoute: ProjectsIdReportRoute,
-  ProjectsIdScopeRoute: ProjectsIdScopeRoute,
-  ProjectsIdUploadRoute: ProjectsIdUploadRoute,
-  TradesJobIdEditRoute: TradesJobIdEditRoute,
-  ProjectsIdIndexRoute: ProjectsIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

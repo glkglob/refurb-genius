@@ -2,6 +2,7 @@
  * Lightweight operational counters for AI providers.
  * No telemetry vendor — structured logs only.
  */
+import { logger } from "./logger";
 
 export interface ProviderDiagnostics {
   vision_success: number;
@@ -62,7 +63,7 @@ export function getCounters(): Readonly<ProviderDiagnostics> {
 }
 
 export function logCounterSnapshot(label: string): void {
-  console.debug(`[provider-diagnostics] ${label}:`, getCounters());
+  logger.debug(`[provider-diagnostics] ${label}`, { counters: getCounters() });
 }
 
 export function resetCounters(): void {

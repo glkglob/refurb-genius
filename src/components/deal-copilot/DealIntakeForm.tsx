@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
-import { Calculator, CheckCircle2, CircleAlert } from "lucide-react";
+import { Calculator, CheckCircle2, CircleAlert, Zap } from "lucide-react";
+
+// // PRIMARY PATH usage in Deal Copilot (heavy analysis).
+// When postcode/address present, user can trigger Railway primary heavy intel job.
+import { useRailwayPropertyAnalysis } from "@/hooks/useRailwayPropertyAnalysis";
+import type { PropertyAnalysisInput } from "@/lib/api/railwayAnalysis";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
@@ -20,6 +25,7 @@ import { DealScoreCard } from "@/components/deal-copilot/DealScoreCard";
 import { DealMetricsGrid } from "@/components/deal-copilot/DealMetricsGrid";
 import { DealRiskFlags } from "@/components/deal-copilot/DealRiskFlags";
 import { DealEstimateSection } from "@/components/deal-copilot/DealEstimateSection";
+import { Button } from "@repo/ui";
 
 type DealFormState = {
   title: string;
@@ -134,6 +140,34 @@ export function DealIntakeForm() {
     }
     return analyzeDeal(validationResult.data);
   }, [validationResult]);
+
+  // PRIMARY heavy path integration in Deal Copilot (when address data present).
+  // Button below triggers Railway async job (primary for heavy intel) + shows result.
+  const {
+    start: startHeavy,
+    status: heavyStatus,
+    result: heavyResult,
+    error: heavyError,
+    isPolling: heavyPolling,
+  } = useRailwayPropertyAnalysis();
+
+  async function handleRunHeavyAnalysis() {
+    if (!form.postcode && !form.listingUrl) {
+      logger.warn("[deal-intake] Heavy analysis requires postcode or listing url");
+      return;
+    }
+    const heavyInput: PropertyAnalysisInput = {
+      postcode: form.postcode.trim() || undefined,
+      property_address: form.listingUrl.trim() || undefined,
+      region: form.region,
+      // property_type omitted (DealIntakeForm uses propertyCondition; optional in backend model)
+      purchase_price: parseMoney(form.purchasePrice) ?? undefined,
+      estimated_gdv: parseMoney(form.estimatedGdv) ?? undefined,
+      condition: form.propertyCondition,
+      notes: "Triggered from Deal Copilot intake (primary Railway path)",
+    };
+    await startHeavy(heavyInput);
+  }
 
   async function handleSaveOpportunity() {
     if (!score.ready || isSaving) {
@@ -277,6 +311,36 @@ export function DealIntakeForm() {
             <DealEstimateSection pricing={analysis.pricing} />
           </div>
         )}
+
+        {/* Heavy analysis via PRIMARY Railway path (Deal Copilot integration) */}
+        <div className="mt-4 border-t pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleRunHeavyAnalysis}
+            disabled={heavyPolling || (!form.postcode && !form.listingUrl)}
+          >
+            <Zap className="mr-1 h-4 w-4" />
+            {heavyPolling
+              ? "Running heavy analysis..."
+              : "Run Heavy Property Intel (Primary Railway)"}
+          </Button>
+          {heavyStatus !== "idle" && (
+            <div className="mt-2 text-xs">
+              Status: <span className="font-medium">{heavyStatus}</span>
+              {heavyError && <span className="ml-2 text-destructive">Error: {heavyError}</span>}
+            </div>
+          )}
+          {heavyResult && (
+            <div className="mt-2 rounded border bg-muted/50 p-3 text-xs">
+              <div className="font-medium">Heavy Analysis Result (Railway primary)</div>
+              <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap text-[10px]">
+                {JSON.stringify(heavyResult, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
       </div>
 
       <aside className="self-start lg:sticky lg:top-6">

@@ -1,12 +1,4 @@
-export {
-  Select,
-  SelectGroup,
-  SelectValue,
-  SelectTrigger,
-  SelectContent,
-  SelectLabel,
-  SelectItem,
-  SelectSeparator,
-  SelectScrollUpButton,
-  SelectScrollDownButton,
-} from "@repo/ui";
+"use client";
+
+// Re-export from @repo/ui (single source of truth after UI migration).
+export * from "@repo/ui/select";

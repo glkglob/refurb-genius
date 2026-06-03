@@ -4,6 +4,10 @@ import { supabase } from "@/services/supabase";
 import type { ProjectStage, NewProjectInput } from "@/lib/projects";
 import { rowToProject, type ProjectWithProgress } from "@/lib/mappers";
 
+// NEW: server-side create mutation (SSR + hard-refresh safe).
+// Replaces the previous client-only supabase.auth.getUser() + insert.
+import { createProjectServerFn } from "@/serverFns/projects";
+
 export type { ProjectWithProgress } from "@/lib/mappers";
 
 async function fetchProjects(): Promise<ProjectWithProgress[]> {
@@ -35,33 +39,24 @@ export function useProject(id: string) {
 export function useCreateProject() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (input: NewProjectInput) => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("You must be signed in.");
-      const { data, error } = await supabase
-        .from("projects")
-        .insert({
-          user_id: user.id,
-          name: input.name,
-          address: input.address,
-          postcode: input.postcode,
-          region: input.region,
-          property_type: input.property_type,
-          bedrooms: input.bedrooms,
-          bathrooms: input.bathrooms,
-          size_sqm: input.size_sqm,
-          purchase_price: input.purchase_price,
-          estimated_gdv: input.estimated_gdv,
-          notes: input.notes,
-          status: "Draft",
-        })
-        .select()
-        .single();
-      if (error) throw new Error(error.message);
-      return rowToProject(data);
-    },
+    /**
+     * THE FIX FOR /projects/new AFTER HARD REFRESH / DIRECT NAV
+     *
+     * Previously this performed a browser-only `supabase.auth.getUser()` check
+     * followed by a direct insert. That always failed with "You must be signed in."
+     * on hard refresh because the client Supabase singleton had no session in memory.
+     *
+     * Now we delegate the entire authenticated insert to `createProjectServerFn`,
+     * which:
+     *   - runs its handler on the server
+     *   - calls `requireUser()` (cookie-validated via the server Supabase client)
+     *   - writes the row using the real `user.id` from the validated session
+     *
+     * The rest of the hook (React Query caching, onSuccess invalidation, error
+     * handling in the form) is unchanged so the UI in projects.new.tsx continues
+     * to work identically.
+     */
+    mutationFn: (input: NewProjectInput) => createProjectServerFn({ data: input }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
     },

@@ -14,6 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { captureException } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { AuthProvider } from "@/hooks/useAuth";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -164,8 +165,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 // ---------------------------------------------------------------------------
 // React Error Boundary — catches rendering errors that TanStack Router's
-// errorComponent cannot (e.g. provider crashes, hydration failures).
-// Placed inside ThemeProvider so the fallback UI inherits theme tokens.
+// errorComponent cannot (e.g. provider crashes inside the app tree,
+// hydration failures, bad route components).
+// Placed inside ThemeProvider (and now also inside AuthProvider) so that
+// the themed fallback UI is available for errors in <Outlet /> content.
+// Foundational providers (QueryClientProvider + AuthProvider) sit above it.
 // ---------------------------------------------------------------------------
 
 interface ErrorBoundaryState {
@@ -234,12 +238,14 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <RootErrorBoundary>
-          <Outlet />
-        </RootErrorBoundary>
-        <Toaster />
-      </ThemeProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <RootErrorBoundary>
+            <Outlet />
+          </RootErrorBoundary>
+          <Toaster />
+        </ThemeProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

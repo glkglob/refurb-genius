@@ -39,23 +39,26 @@ test("all public route files exist", () => {
 // ── Authenticated routes ──────────────────────────────────────────────────────
 
 const AUTHENTICATED_ROUTES: [string, string][] = [
-  ["dashboard.tsx", "/dashboard"],
-  ["settings.tsx", "/settings"],
-  ["admin.tsx", "/admin"],
-  ["projects.new.tsx", "/projects/new"],
-  ["projects.$id.index.tsx", "/projects/:id"],
-  ["projects.$id.upload.tsx", "/projects/:id/upload"],
-  ["projects.$id.estimate.tsx", "/projects/:id/estimate"],
-  ["projects.$id.analysis.tsx", "/projects/:id/analysis"],
-  ["projects.$id.report.tsx", "/projects/:id/report"],
-  ["deal-copilot/index.tsx", "/deal-copilot"],
-  ["deal-copilot/new.tsx", "/deal-copilot/new"],
-  ["deal-copilot/$opportunityId.tsx", "/deal-copilot/:opportunityId"],
-  ["deal-copilot/$opportunityId.edit.tsx", "/deal-copilot/:opportunityId/edit"],
-  ["trades_.new.tsx", "/trades/new"],
-  ["trades_.profile.tsx", "/trades/profile"],
+  // Auth modernization: protected routes now live under the _authed pathless layout.
+  // The generator strips the _authed prefix so public URLs are unchanged.
+  ["_authed/dashboard.tsx", "/dashboard"],
+  ["_authed/settings.tsx", "/settings"],
+  ["_authed/admin.tsx", "/admin"],
+  ["_authed/projects.new.tsx", "/projects/new"],
+  ["_authed/projects.$id.index.tsx", "/projects/:id"],
+  ["_authed/projects.$id.upload.tsx", "/projects/:id/upload"],
+  ["_authed/projects.$id.estimate.tsx", "/projects/:id/estimate"],
+  ["_authed/projects.$id.analysis.tsx", "/projects/:id/analysis"],
+  ["_authed/projects.$id.report.tsx", "/projects/:id/report"],
+  ["_authed/deal-copilot/index.tsx", "/deal-copilot"],
+  ["_authed/deal-copilot/new.tsx", "/deal-copilot/new"],
+  ["_authed/deal-copilot/$opportunityId.tsx", "/deal-copilot/:opportunityId"],
+  ["_authed/deal-copilot/$opportunityId.edit.tsx", "/deal-copilot/:opportunityId/edit"],
+  ["_authed/trades_.new.tsx", "/trades/new"],
+  ["_authed/trades_.profile.tsx", "/trades/profile"],
+  // trades_.$jobId.tsx (public job detail view) remains at root for unauthenticated marketplace visitors
   ["trades_.$jobId.tsx", "/trades/:jobId"],
-  ["trades_.$jobId_.edit.tsx", "/trades/:jobId/edit"],
+  ["_authed/trades_.$jobId_.edit.tsx", "/trades/:jobId/edit"],
 ];
 
 test("all authenticated route files exist", () => {
@@ -77,13 +80,16 @@ test("/auth/callback route file exists", () => {
 });
 
 test("/dashboard route file exists", () => {
-  assert.ok(routeExists("dashboard.tsx"), "/dashboard (dashboard.tsx) must exist");
+  assert.ok(
+    routeExists("_authed/dashboard.tsx"),
+    "/dashboard (_authed/dashboard.tsx) must exist after auth modernization",
+  );
 });
 
 test("/trades/new route file exists", () => {
   assert.ok(
-    routeExists("trades_.new.tsx"),
-    "/trades/new (trades_.new.tsx) must exist — authenticated post-job flow",
+    routeExists("_authed/trades_.new.tsx"),
+    "/trades/new (_authed/trades_.new.tsx) must exist — authenticated post-job flow (protected under _authed layout)",
   );
 });
 
@@ -103,11 +109,11 @@ test("public routes do not use AppLayout (which wraps RequireAuth)", () => {
 test("key authenticated routes use AppLayout", () => {
   // Spot-check a representative set of authenticated routes.
   const authenticated: [string, string][] = [
-    ["dashboard.tsx", "/dashboard"],
-    ["settings.tsx", "/settings"],
-    ["projects.new.tsx", "/projects/new"],
-    ["deal-copilot/index.tsx", "/deal-copilot"],
-    ["trades_.new.tsx", "/trades/new"],
+    ["_authed/dashboard.tsx", "/dashboard"],
+    ["_authed/settings.tsx", "/settings"],
+    ["_authed/projects.new.tsx", "/projects/new"],
+    ["_authed/deal-copilot/index.tsx", "/deal-copilot"],
+    ["_authed/trades_.new.tsx", "/trades/new"],
   ];
 
   for (const [file, path] of authenticated) {

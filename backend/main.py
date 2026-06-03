@@ -1,10 +1,17 @@
 """
-Refurb Genius - FastAPI + CrewAI Backend
-Entry point for Railway deployment (separate from Vercel frontend).
+Refurb Genius - FastAPI Backend (Railway)
+Entry point for Railway deployment (separate from Vercel frontend + TanStack serverFns).
 
-This is a minimal production-ready skeleton. Extend with CrewAI crews,
-property analysis endpoints, etc. See RAILWAY_SETUP.md and property-intel/
-for existing CrewAI patterns to port.
+DUAL ANALYSIS PATHS (intentional):
+- Primary (Vercel): src/core/ai/* + createServerFn wrappers (OpenAI Vision for photo uploads,
+  scope, estimates, redesign). Fast, per-request, used by project photo flows.
+- Async heavy (Railway): this FastAPI service for longer-running or batch property/deal
+  intelligence jobs (see /analyze-property). Stores results in analysis_jobs table.
+  Frontend polls via useRailwayPropertyAnalysis + lib/api/railwayAnalysis.
+  Currently uses direct OpenAI (gpt-4o-mini) JSON mode; CrewAI is sidelined (see property-intel/).
+
+JWT verification: basic support added below (Authorization: Bearer <supabase_jwt> preferred
+over X-User-Id). Real deploys should enforce it and reject unauthenticated job creation.
 """
 
 import json
@@ -351,21 +358,40 @@ async def root():
 
 
 # --- Analysis Job Endpoints (called by frontend via VITE_API_BASE_URL) ---
+# // PRIMARY PATH for heavy property/deal analysis (see docs/architecture/analysis-paths.md)
+# This endpoint + background processing is the recommended primary for
+# photo + full scope/estimate/redesign intel. TS/Vercel serverFns are light/fast fallback.
 
 @app.post("/analyze-property", response_model=JobCreateResponse, tags=["analysis"])
 async def analyze_property(
     payload: PropertyAnalysisInput,
     background_tasks: BackgroundTasks,
-    # In production the frontend would send Authorization: Bearer <supabase_jwt>
-    # For v1 we accept user_id in body or header; here we take a simple header for demo.
-    # Real implementation should use verifyToken pattern or Supabase JWT validation.
+    # Preferred: Authorization: Bearer <supabase_access_token> (JWT)
+    # Fallback: X-User-Id (for current hook compatibility during rollout)
     x_user_id: str = Header(None, alias="X-User-Id"),
+    authorization: str | None = Header(None, alias="Authorization"),
 ):
     """
     Start an async property analysis job on Railway.
     Returns immediately with job_id. Frontend polls status/result.
     """
-    user_id = x_user_id or "00000000-0000-0000-0000-000000000000"  # fallback for local testing
+    # Resolve user_id with basic JWT verification (Authorization Bearer preferred).
+    # // PRIMARY: Railway always prefers verified user from JWT (see analysis-paths.md).
+    # Full prod: use Depends(security) + proper validation + 401.
+    # We use verified uid from token when possible; X-User-Id is compat fallback only.
+    user_id = x_user_id or "00000000-0000-0000-0000-000000000000"
+    if authorization and authorization.lower().startswith("bearer "):
+      token = authorization.split(" ", 1)[1].strip()
+      try:
+        supa = get_supabase_service_client()
+        user_res = supa.auth.get_user(token)
+        uid = getattr(getattr(user_res, "user", None), "id", None)
+        if uid:
+          user_id = uid
+        else:
+          print("[auth] JWT parsed but no user id; using fallback")
+      except Exception as exc:  # noqa: BLE001
+        print(f"[auth] JWT verify failed (using fallback id): {exc}")
 
     # Convert Pydantic model to dict (allow extra fields)
     input_dict = payload.model_dump(exclude_none=True)

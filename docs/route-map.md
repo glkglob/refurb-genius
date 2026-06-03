@@ -26,11 +26,11 @@ Use underscore filenames for flat URL routes that should not create nested layou
 
 | URL                                 | Purpose                          | Route file                               |
 | ----------------------------------- | -------------------------------- | ---------------------------------------- |
-| `/dashboard`                        | User dashboard                   | `dashboard.tsx`                          |
-| `/deal-copilot`                     | Deal Copilot list/home           | `deal-copilot.tsx`                       |
-| `/deal-copilot/new`                 | New opportunity                  | `deal-copilot_.new.tsx`                  |
-| `/deal-copilot/$opportunityId`      | Opportunity detail               | `deal-copilot_.$opportunityId.tsx`       |
-| `/deal-copilot/$opportunityId/edit` | Edit opportunity                 | `deal-copilot_.$opportunityId_.edit.tsx` |
+| `/dashboard`                        | User dashboard                   | `_authed/dashboard.tsx` (under _authed layout) |
+| `/deal-copilot`                     | Deal Copilot list/home           | `_authed/deal-copilot/index.tsx`         |
+| `/deal-copilot/new`                 | New opportunity                  | `_authed/deal-copilot/new.tsx`           |
+| `/deal-copilot/$opportunityId`      | Opportunity detail               | `_authed/deal-copilot/$opportunityId.tsx`|
+| `/deal-copilot/$opportunityId/edit` | Edit opportunity                 | `_authed/deal-copilot/$opportunityId.edit.tsx` |
 | `/trades/new`                       | Post trade job                   | `trades_.new.tsx`                        |
 | `/trades/profile`                   | Trade profile onboarding/editing | `trades_.profile.tsx`                    |
 | `/trades/$jobId/edit`               | Edit trade job                   | `trades_.$jobId_.edit.tsx`               |
