@@ -65,3 +65,40 @@ export type { RoomAnalysis, RoomType, ConditionLevel, RefurbLevel } from "@/lib/
 
 export { REDESIGN_CONCEPTS, REDESIGN_STYLES } from "@/lib/redesign";
 export type { RedesignConcept, RedesignStyle } from "@/lib/redesign";
+
+// Phase 1: shared validation schemas + safe parsers for stronger structured outputs
+export {
+  roomAnalysisSchema,
+  scopeAnalysisResultSchema,
+  aiEstimateResponseSchema,
+  redesignConceptTextSchema,
+  safeParseRoomAnalysis,
+  safeParseScopeResult,
+  safeParseEstimate,
+  safeParseRedesignText,
+  roomTypeSchema,
+  conditionLevelSchema,
+  refurbLevelSchema,
+} from "./validation";
+
+// Phase 1 retry + classification (used by enhanced server paths)
+export { withRetry, classifyError } from "./platform/retry";
+
+// Basic cache (project-aware, used by providers in later phases)
+export { getCached, setCached, clearProjectCache, getCacheStats } from "./platform/cache";
+
+// Orchestrator stubs (Phase 1+; expand as chaining + normalizers land)
+export {
+  runVisionThenScope,
+  runScopeThenEstimate,
+  runFullRefurbIntel,
+} from "./platform/orchestrator";
+export type { AIOrchestrationMode, FullIntelResult } from "./platform/orchestrator";
+
+// Estimate normalizer (Phase 2): AI suggestions → deterministic pricing authority
+export { normalizeAIEstimate } from "./normalizers";
+export type {
+  EstimateNormalizationInput,
+  NormalizedEstimateRoom,
+  NormalizedEstimateResult,
+} from "./normalizers";

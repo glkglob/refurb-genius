@@ -10,7 +10,7 @@ export type {
   PropertyType,
   UKRegion,
   Photo,
-  AnalysisResult,
+  RoomAnalysis,
   RoomType,
   ConditionLevel,
   RefurbLevel,

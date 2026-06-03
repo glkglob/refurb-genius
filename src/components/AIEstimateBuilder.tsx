@@ -28,6 +28,8 @@ import type { ScopeRoom } from "@/core/ai/server/openAiScopeAnalysis.server";
 import { useGenerateEstimate, useSaveAIEstimate } from "@/hooks/useAIEstimate";
 import type { UKRegion } from "@/core/projects";
 import { UK_REGIONS } from "@/core/constants";
+import { normalizeAIEstimate, type NormalizedEstimateResult } from "@/core/ai";
+import type { ConditionLevel } from "@/core/ai";
 
 // ──────────────────────────────────────────────────────────────
 // Types
@@ -149,6 +151,7 @@ export function AIEstimateBuilder({
     () => new Set(initialLocalRef.current!.map((r) => r.id)),
   );
   const [notes, setNotes] = useState("");
+  const [lastNormalized, setLastNormalized] = useState<NormalizedEstimateResult | null>(null);
 
   const generate = useGenerateEstimate();
   const save = useSaveAIEstimate();
@@ -195,6 +198,27 @@ export function AIEstimateBuilder({
           setRooms(local);
           // Open all rooms by default
           setOpenRooms(new Set(local.map((r) => r.id)));
+
+          // Phase 2: normalize AI suggestions against deterministic pricing authority
+          try {
+            const norm = normalizeAIEstimate({
+              aiRooms,
+              region,
+              condition: ["Modern", "Average", "Dated", "Poor", "Full Renovation Needed"].includes(
+                condition,
+              )
+                ? (condition as ConditionLevel)
+                : "Dated",
+              sizeSqm: sizeSqm || undefined,
+            });
+            setLastNormalized(norm);
+            if (norm.warnings.length) {
+              toast.info(`AI estimate normalized: ${norm.warnings[0]}`);
+            }
+          } catch {
+            setLastNormalized(null);
+          }
+
           toast.success(
             `Generated ${aiRooms.length} rooms with ${aiRooms.reduce((s, r) => s + r.items.length, 0)} line items`,
           );
@@ -386,6 +410,36 @@ export function AIEstimateBuilder({
           </div>
         </CardContent>
       </Card>
+
+      {/* Phase 2: AI normalization feedback (pricing authority alignment) */}
+      {lastNormalized && (
+        <Card className="border-accent/40 bg-accent/5">
+          <CardContent className="p-4 text-sm">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span className="font-medium text-foreground">
+                AI estimate normalized to pricing authority
+              </span>
+              <span>
+                AI suggested total: <strong>{formatGBP(lastNormalized.totalAiSuggested)}</strong>
+              </span>
+              <span>
+                Authority-aligned: <strong>{formatGBP(lastNormalized.totalNormalized)}</strong>
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Risk uplift {(lastNormalized.riskMultiplier * 100).toFixed(0)}%
+              </span>
+            </div>
+            {lastNormalized.warnings.length > 0 && (
+              <p className="mt-2 text-xs text-amber-600">{lastNormalized.warnings.join(" ")}</p>
+            )}
+            {lastNormalized.notes.length > 0 && (
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {lastNormalized.notes.join(" ")}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Rooms + items (accordion) */}
       {rooms.length === 0 ? (

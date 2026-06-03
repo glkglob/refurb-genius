@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Palette, Sofa, Lightbulb, Layers } from "lucide-react";
 import type { RedesignConcept } from "@/core/ai";
+import { formatGBP } from "@/core/pricing";
 
 export type RedesignCardProps = {
   concept: RedesignConcept;
@@ -79,6 +80,14 @@ export function RedesignCard({ concept: c, beforePhotoUrl }: RedesignCardProps) 
           <DetailRow icon={<Lightbulb className="h-4 w-4" />} label="Lighting" value={c.lighting} />
           <DetailRow icon={<Sofa className="h-4 w-4" />} label="Furniture" value={c.furniture} />
         </div>
+
+        {c.estimatedCostUplift && (
+          <div className="pt-2 border-t text-xs text-muted-foreground">
+            Est. cost uplift vs baseline: {formatGBP(c.estimatedCostUplift.low)}–
+            {formatGBP(c.estimatedCostUplift.high)}
+            {c.estimatedCostUplift.note ? ` · ${c.estimatedCostUplift.note}` : ""}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

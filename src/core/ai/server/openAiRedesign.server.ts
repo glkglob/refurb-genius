@@ -7,6 +7,7 @@ import { captureAiError, addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
 import { incrementCounter } from "@/lib/provider-diagnostics";
 import { timeoutPromise, isTimeoutError } from "@/lib/timeout";
+import { safeParseRedesignText } from "../validation";
 
 const TEXT_GENERATION_TIMEOUT_MS = 30_000;
 
@@ -44,9 +45,10 @@ Return ONLY a JSON object with these exact fields:
   ],
   "flooring": "One sentence specifying flooring material, finish and notes",
   "lighting": "One sentence specifying lighting approach and fittings",
-  "furniture": "One sentence specifying key furniture pieces and materials"
+  "furniture": "One sentence specifying key furniture pieces and materials",
+  "estimatedCostUplift": { "low": <GBP int>, "mid": <GBP int>, "high": <GBP int>, "note": "<short reason>" }
 }
-Use UK English. Be specific and professional. Return ONLY the JSON.`;
+The uplift is vs a standard modern refurb baseline for this property type (realistic 2026 UK residential). Use UK English. Be specific and professional. Return ONLY the JSON.`;
 
 function parseGptJson(text: string): unknown {
   const trimmed = text.trim();
@@ -100,17 +102,44 @@ async function generateConceptText(
     const parsed = parseGptJson(raw) as Record<string, unknown>;
     const fallback = staticFallback(style);
 
+    // Phase 1: Zod validation for redesign text fields
+    const zodText = safeParseRedesignText(parsed);
+
     incrementCounter("redesign_success");
 
     return {
-      tagline: typeof parsed.tagline === "string" ? parsed.tagline : fallback.tagline,
+      tagline:
+        zodText?.tagline ??
+        (typeof parsed.tagline === "string" ? parsed.tagline : fallback.tagline),
       palette:
-        Array.isArray(parsed.palette) && parsed.palette.length > 0
-          ? (parsed.palette as RedesignConcept["palette"])
-          : fallback.palette,
-      flooring: typeof parsed.flooring === "string" ? parsed.flooring : fallback.flooring,
-      lighting: typeof parsed.lighting === "string" ? parsed.lighting : fallback.lighting,
-      furniture: typeof parsed.furniture === "string" ? parsed.furniture : fallback.furniture,
+        zodText?.palette && zodText.palette.length > 0
+          ? zodText.palette
+          : Array.isArray(parsed.palette) && parsed.palette.length > 0
+            ? (parsed.palette as RedesignConcept["palette"])
+            : fallback.palette,
+      flooring:
+        zodText?.flooring ??
+        (typeof parsed.flooring === "string" ? parsed.flooring : fallback.flooring),
+      lighting:
+        zodText?.lighting ??
+        (typeof parsed.lighting === "string" ? parsed.lighting : fallback.lighting),
+      furniture:
+        zodText?.furniture ??
+        (typeof parsed.furniture === "string" ? parsed.furniture : fallback.furniture),
+      estimatedCostUplift: (parsed as Record<string, unknown>).estimatedCostUplift
+        ? (() => {
+            const u = (parsed as Record<string, unknown>).estimatedCostUplift as Record<
+              string,
+              unknown
+            >;
+            return {
+              low: Math.max(0, Math.round(Number(u.low) || 0)),
+              mid: Math.max(0, Math.round(Number(u.mid) || Number(u.low) || 0)),
+              high: Math.max(0, Math.round(Number(u.high) || Number(u.mid) || 0)),
+              note: typeof u.note === "string" ? u.note : undefined,
+            };
+          })()
+        : fallback.estimatedCostUplift,
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);

@@ -4,6 +4,8 @@ import { captureAiError, addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
 import { incrementCounter } from "@/lib/provider-diagnostics";
 import { timeoutPromise, isTimeoutError } from "@/lib/timeout";
+import { scopeAnalysisResultSchema, safeParseScopeResult } from "../validation";
+import { withRetry } from "../platform/retry";
 
 // ──────────────────────────────────────────────────────────────
 // Types
@@ -496,26 +498,31 @@ export async function runSecureScopeAnalysis(
       text: `Analyse these ${input.photos.length} property photos and produce the scope analysis. Photos are named: ${input.photos.map((p) => p.name).join(", ")}.`,
     });
 
-    const response = await timeoutPromise(
-      fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          max_tokens: 4096,
-          temperature: 0.3,
-          response_format: { type: "json_object" },
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userContent },
-          ],
-        }),
-      }),
-      SCOPE_ANALYSIS_TIMEOUT_MS,
-      "GPT-4o scope analysis",
+    const response = await withRetry(
+      async () =>
+        timeoutPromise(
+          fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: "gpt-4o",
+              max_tokens: 4096,
+              temperature: 0.3,
+              response_format: { type: "json_object" },
+              messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userContent },
+              ],
+            }),
+          }),
+          SCOPE_ANALYSIS_TIMEOUT_MS,
+          "GPT-4o scope analysis",
+        ),
+      { maxAttempts: 2, baseDelayMs: 500 },
+      "scope-analysis",
     );
 
     if (!response.ok) {
@@ -531,7 +538,10 @@ export async function runSecureScopeAnalysis(
     if (!raw) throw new Error("Empty response from OpenAI");
 
     const parsed: unknown = parseGptJson(raw);
-    const result = coerceResult(parsed);
+
+    // Phase 1: prefer Zod schema validation (stronger than manual coerce alone)
+    const zodResult = safeParseScopeResult(parsed);
+    const result = zodResult ?? coerceResult(parsed);
 
     incrementCounter("scope_ai_success");
 
