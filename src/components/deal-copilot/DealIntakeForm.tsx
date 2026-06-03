@@ -201,12 +201,16 @@ export function DealIntakeForm() {
       setSaveError(null);
       logger.info("[deal-intake] Save successful", { id: saved.id });
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unable to save opportunity.";
-      const displayMessage = message.startsWith("Unable to save")
+      // Show the real error from serverFn (e.g. RLS violation, "You must be signed in.",
+      // or DB error) instead of always swallowing into a generic message.
+      // This makes debugging (and user feedback) specific as required.
+      const message =
+        err instanceof Error ? err.message : "Unable to save opportunity. Please try again.";
+      const displayMessage = message.includes("save opportunity")
         ? message
-        : "Unable to save opportunity. Please try again.";
+        : `Unable to save opportunity: ${message}`;
       setSaveError(displayMessage);
-      logger.error("[deal-intake] Save failed", { error: String(err), message, displayMessage });
+      logger.error("[deal-intake] Save failed", { error: String(err), displayMessage });
     } finally {
       setIsSaving(false);
     }
