@@ -7,11 +7,13 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { nitro } from "nitro/vite";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 
+// Vercel build config for TanStack Start + Nitro
 export default defineConfig({
   build: {
     sourcemap: true, // Required for good Sentry stack traces
-    chunkSizeWarningLimit: 1000, // Reduces noisy chunk warnings
+    chunkSizeWarningLimit: 1200, // Reduce noise on large vendor chunks
   },
+
   plugins: [
     tanstackStart({
       server: {
@@ -23,7 +25,7 @@ export default defineConfig({
     tsconfigPaths(),
     nitro({ preset: "vercel" }),
 
-    // Sentry - Sourcemaps upload + release creation
+    // Sentry sourcemaps upload (only runs on Vercel build when auth token present)
     sentryVitePlugin({
       org: process.env.SENTRY_ORG,
       project: process.env.SENTRY_PROJECT,
@@ -32,8 +34,13 @@ export default defineConfig({
         name: process.env.VERCEL_GIT_COMMIT_SHA || "dev",
       },
       disable: !process.env.SENTRY_AUTH_TOKEN,
+      sourcemaps: {
+        assets: "./.vercel/output/**",
+        ignore: ["**/node_modules/**"],
+      },
     }),
   ],
+
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
