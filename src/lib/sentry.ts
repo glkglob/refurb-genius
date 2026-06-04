@@ -1,35 +1,29 @@
 // Sentry integration for Refurb Genius
 // Client-side only - privacy safe configuration
-import * as Sentry from '@sentry/react';
+import * as Sentry from "@sentry/react";
 
 const dsn = import.meta.env.VITE_SENTRY_DSN;
 
 if (import.meta.env.PROD && dsn) {
   Sentry.init({
     dsn,
-    integrations: [
-      Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration(),
-    ],
+    integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
     tracesSampleRate: 0.2,
     replaysSessionSampleRate: 0.05,
     replaysOnErrorSampleRate: 1.0,
     environment: import.meta.env.MODE,
     sendDefaultPii: false, // Privacy safe - do not change without review
-    tracePropagationTargets: [
-      'localhost',
-      /^https:\/\/.*\.refurbgenius\.info/,
-    ],
+    tracePropagationTargets: ["localhost", /^https:\/\/.*\.refurbgenius\.info/],
   });
 }
 
 // Helper functions
 export const captureAiError = (error: unknown, context?: Record<string, unknown>) => {
-  Sentry.captureException(error, { tags: { type: 'ai' }, ...context });
+  Sentry.captureException(error, { tags: { type: "ai" }, ...context });
 };
 
 export const captureAuthError = (error: unknown) => {
-  Sentry.captureException(error, { tags: { type: 'auth' } });
+  Sentry.captureException(error, { tags: { type: "auth" } });
 };
 
 export function captureException(error: unknown, context?: Record<string, unknown>): void {
@@ -118,9 +112,15 @@ export function addDiagnosticBreadcrumb(message: string, metadata?: Record<strin
   });
 }
 
+type SentryWithConversationId = typeof Sentry & {
+  setConversationId?: (id: string) => void;
+};
+
 export function setConversationId(id: string): void {
-  if (typeof (Sentry as any).setConversationId === 'function') {
-    (Sentry as any).setConversationId(id);
+  const sentryWithConversationId = Sentry as SentryWithConversationId;
+
+  if (typeof sentryWithConversationId.setConversationId === "function") {
+    sentryWithConversationId.setConversationId(id);
   }
 }
 
