@@ -6,10 +6,21 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { createBrowserClient } from '@/lib/auth'
+import { supabase } from "@/services/supabase";
 import { toast } from 'sonner'
 
 export const Route = createFileRoute('/auth')({
+  validateSearch: (search: Record<string, unknown>): { 
+    mode?: 'signin' | 'signup' | 'reset';
+    redirect?: string;
+  } => {
+    const mode = search.mode as string | undefined;
+    const redirect = typeof search.redirect === 'string' ? search.redirect : undefined;
+    return {
+      mode: mode === 'signup' || mode === 'reset' ? mode : 'signin',
+      redirect,
+    }
+  },
   component: AuthPage,
 })
 
@@ -17,7 +28,7 @@ function AuthPage() {
   const navigate = useNavigate()
   const { mode = 'signin' } = useSearch({ from: '/auth' })
 
-  const [isSignIn, setIsSignIn] = useState(mode === 'signin')
+  const [isSignIn, setIsSignIn] = useState(mode !== 'signup')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
@@ -50,7 +61,7 @@ function AuthPage() {
     }
   }, [isLocked, lockedUntil])
 
-  const supabase = createBrowserClient()
+  // supabase client from centralized service (replaces createBrowserClient)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
