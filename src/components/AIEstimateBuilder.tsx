@@ -30,6 +30,7 @@ import type { UKRegion } from "@/core/projects";
 import { UK_REGIONS } from "@/core/constants";
 import { normalizeAIEstimate, type NormalizedEstimateResult } from "@/core/ai";
 import type { ConditionLevel } from "@/core/ai";
+import { runScopeThenEstimate } from "@/core/ai/platform/orchestrator";
 
 // ──────────────────────────────────────────────────────────────
 // Types
@@ -181,6 +182,69 @@ export function AIEstimateBuilder({
   // ────────────── AI generation ──────────────
 
   const handleGenerate = useCallback(() => {
+    const baseReq = requirements || "Standard good quality modern refurb";
+
+    // If we have initial scope context, use the orchestrator for richer, more accurate AI output
+    // (vision/scope context → better seeded estimate prompt). Falls back gracefully.
+    if (initialScopeRooms && initialScopeRooms.length > 0) {
+      (async () => {
+        try {
+          const aiRooms = await runScopeThenEstimate(
+            { rooms: initialScopeRooms, overall_score: 5, summary: "" },
+            { propertyType, bedrooms, bathrooms, region, condition, sizeSqm: sizeSqm || undefined },
+            "balanced",
+          );
+          if (aiRooms && aiRooms.length > 0) {
+            const local = aiRoomsToLocal(aiRooms);
+            setRooms(local);
+            setOpenRooms(new Set(local.map((r) => r.id)));
+            try {
+              const norm = normalizeAIEstimate({
+                aiRooms,
+                region,
+                condition: [
+                  "Modern",
+                  "Average",
+                  "Dated",
+                  "Poor",
+                  "Full Renovation Needed",
+                ].includes(condition)
+                  ? (condition as ConditionLevel)
+                  : "Dated",
+                sizeSqm: sizeSqm || undefined,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                scope: { rooms: initialScopeRooms } as unknown as any,
+              });
+              setLastNormalized(norm);
+              if (norm.warnings.length)
+                toast.info(`AI (orchestrated from scope): ${norm.warnings[0]}`);
+            } catch {
+              setLastNormalized(null);
+            }
+            toast.success(`Generated ${aiRooms.length} rooms (scope-informed)`);
+            return;
+          }
+        } catch {
+          /* orchestration failed (e.g. no prior vision); fall back to direct estimate */
+        }
+        // fallback to direct
+        generate.mutate(
+          {
+            propertyType,
+            bedrooms,
+            bathrooms,
+            region,
+            postcode,
+            condition,
+            requirements: baseReq,
+            sizeSqm: sizeSqm || undefined,
+          },
+          { onSuccess: standardOnSuccess },
+        );
+      })();
+      return;
+    }
+
     generate.mutate(
       {
         propertyType,
@@ -189,45 +253,12 @@ export function AIEstimateBuilder({
         region,
         postcode,
         condition,
-        requirements: requirements || "Standard good quality modern refurb",
+        requirements: baseReq,
         sizeSqm: sizeSqm || undefined,
       },
-      {
-        onSuccess: (aiRooms) => {
-          const local = aiRoomsToLocal(aiRooms);
-          setRooms(local);
-          // Open all rooms by default
-          setOpenRooms(new Set(local.map((r) => r.id)));
-
-          // Phase 2: normalize AI suggestions against deterministic pricing authority
-          try {
-            const norm = normalizeAIEstimate({
-              aiRooms,
-              region,
-              condition: ["Modern", "Average", "Dated", "Poor", "Full Renovation Needed"].includes(
-                condition,
-              )
-                ? (condition as ConditionLevel)
-                : "Dated",
-              sizeSqm: sizeSqm || undefined,
-            });
-            setLastNormalized(norm);
-            if (norm.warnings.length) {
-              toast.info(`AI estimate normalized: ${norm.warnings[0]}`);
-            }
-          } catch {
-            setLastNormalized(null);
-          }
-
-          toast.success(
-            `Generated ${aiRooms.length} rooms with ${aiRooms.reduce((s, r) => s + r.items.length, 0)} line items`,
-          );
-        },
-        onError: (err) => {
-          toast.error(err.message || "AI generation failed");
-        },
-      },
+      { onSuccess: standardOnSuccess },
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     generate,
     propertyType,
@@ -238,7 +269,36 @@ export function AIEstimateBuilder({
     condition,
     requirements,
     sizeSqm,
+    initialScopeRooms,
   ]);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const standardOnSuccess = (aiRooms: any[]) => {
+    const local = aiRoomsToLocal(aiRooms);
+    setRooms(local);
+    setOpenRooms(new Set(local.map((r) => r.id)));
+    try {
+      const norm = normalizeAIEstimate({
+        aiRooms,
+        region,
+        condition: ["Modern", "Average", "Dated", "Poor", "Full Renovation Needed"].includes(
+          condition,
+        )
+          ? (condition as ConditionLevel)
+          : "Dated",
+        sizeSqm: sizeSqm || undefined,
+      });
+      setLastNormalized(norm);
+      if (norm.warnings.length) {
+        toast.info(`AI estimate normalized: ${norm.warnings[0]}`);
+      }
+    } catch {
+      setLastNormalized(null);
+    }
+    toast.success(
+      `Generated ${aiRooms.length} rooms with ${aiRooms.reduce((s, r) => s + r.items.length, 0)} line items`,
+    );
+  };
 
   // ────────────── Save ──────────────
 

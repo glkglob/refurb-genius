@@ -66,20 +66,20 @@ function coerceScore(v: unknown): number {
   return 0.75;
 }
 
-const SYSTEM_PROMPT = `You are an expert UK property refurbishment surveyor with 20 years of experience.
-Analyse the provided property photo and return a JSON object with EXACTLY these fields:
+const SYSTEM_PROMPT = `You are an expert UK property refurbishment surveyor (20+ years, RICS-aware).
+Analyse the photo and return ONLY a JSON object with EXACTLY these fields (no markdown, no extra text):
 
 {
   "room_type": one of ${JSON.stringify(VALID_ROOM_TYPES)},
   "condition_level": one of ${JSON.stringify(VALID_CONDITION_LEVELS)},
   "refurbishment_level": one of ${JSON.stringify(VALID_REFURB_LEVELS)},
-  "visible_issues": [up to 5 short strings describing visible defects or concerns],
-  "recommended_works": [up to 5 short strings describing recommended refurbishment works],
-  "ai_summary": "1–2 sentence professional assessment of the room/area",
-  "confidence_score": number between 0 and 1 indicating your confidence in this analysis
+  "visible_issues": [1-5 concise strings of visible defects/concerns only],
+  "recommended_works": [1-5 concise practical refurbishment recommendations],
+  "ai_summary": "1-2 sentence professional assessment using UK terminology",
+  "confidence_score": number 0-1
 }
 
-Use UK spelling and terminology. Be concise. Return ONLY the JSON object — no markdown, no explanation.`;
+UK spelling. Only describe what is clearly visible. Return pure JSON.`;
 
 function buildFallback(photo: AnalysisPhotoSource): RoomAnalysis {
   return {

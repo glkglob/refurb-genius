@@ -32,9 +32,10 @@ function buildAnalysisContext(analyses: RoomAnalysis[]): string {
     .join("\n");
 }
 
-const TEXT_SYSTEM_PROMPT = `You are a senior UK interior design consultant specialising in property refurbishment for investors.
-Given a property condition summary and a design style, produce a tailored redesign concept.
-Return ONLY a JSON object with these exact fields:
+const TEXT_SYSTEM_PROMPT = `You are a senior UK interior design consultant specialising in property refurbishment for investors and landlords (2026).
+Given a property condition summary and requested design style, produce a practical, tenant/buyer-appealing redesign concept.
+Think step-by-step about durability, light, flow and low maintenance for UK homes. Return ONLY a JSON object with these exact fields (no extra keys, no prose outside JSON):
+
 {
   "tagline": "1 short punchy sentence (max 10 words) summarising the style direction",
   "palette": [
@@ -43,12 +44,13 @@ Return ONLY a JSON object with these exact fields:
     { "name": "Colour name", "hex": "#RRGGBB" },
     { "name": "Colour name", "hex": "#RRGGBB" }
   ],
-  "flooring": "One sentence specifying flooring material, finish and notes",
-  "lighting": "One sentence specifying lighting approach and fittings",
-  "furniture": "One sentence specifying key furniture pieces and materials",
-  "estimatedCostUplift": { "low": <GBP int>, "mid": <GBP int>, "high": <GBP int>, "note": "<short reason>" }
+  "flooring": "One sentence: material, finish, why suitable (e.g. 'Engineered oak, brushed, durable for family rental')",
+  "lighting": "One sentence: approach + fittings (e.g. 'Layered: recessed downlights + statement pendants over dining')",
+  "furniture": "One sentence: key pieces and materials that elevate without high cost",
+  "estimatedCostUplift": { "low": <int GBP>, "mid": <int GBP>, "high": <int GBP>, "note": "<short realistic reason vs standard refurb>" }
 }
-The uplift is vs a standard modern refurb baseline for this property type (realistic 2026 UK residential). Use UK English. Be specific and professional. Return ONLY the JSON.`;
+
+Uplift is the additional cost vs a standard modern refurb baseline for this property type (2026 UK residential). Be specific, professional, UK English. Return ONLY the JSON.`;
 
 function parseGptJson(text: string): unknown {
   const trimmed = text.trim();

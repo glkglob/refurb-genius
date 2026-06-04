@@ -430,22 +430,26 @@ function ScopeContent({
                   <p className="mt-2 text-4xl font-bold tracking-tight text-foreground">
                     {issueStats.total}
                   </p>
-                  <div className="mt-1 flex gap-2 text-xs">
+                  <div className="mt-1 flex flex-wrap gap-1.5 text-xs">
                     {issueStats.critical > 0 && (
-                      <Badge variant="destructive" className="text-xs">
+                      <Badge variant="destructive" className="text-[10px] font-medium">
                         {issueStats.critical} critical
                       </Badge>
                     )}
                     {issueStats.high > 0 && (
-                      <Badge className="border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-400">
+                      <Badge className="border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-400 text-[10px] font-medium">
                         {issueStats.high} high
                       </Badge>
                     )}
                     {issueStats.medium > 0 && (
-                      <span className="text-muted-foreground">{issueStats.medium} medium</span>
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                        {issueStats.medium} medium
+                      </span>
                     )}
                     {issueStats.low > 0 && (
-                      <span className="text-muted-foreground">{issueStats.low} low</span>
+                      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                        {issueStats.low} low
+                      </span>
                     )}
                   </div>
                 </CardContent>

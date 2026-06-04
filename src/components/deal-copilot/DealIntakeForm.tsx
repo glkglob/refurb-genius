@@ -374,44 +374,48 @@ export function DealIntakeForm() {
             </div>
           )}
           {normalizedAiEstimate && (
-            <div className="mt-2 rounded-md border bg-muted/60 p-3 text-xs">
-              <div className="mb-2 flex items-center justify-between">
+            <div className="mt-3 rounded-xl border border-border/70 bg-card p-4 text-sm shadow-sm">
+              <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-foreground">AI cost estimate (advisory)</span>
-                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-amber-200">
+                  <span className="font-semibold tracking-tight text-foreground">
+                    AI cost estimate
+                  </span>
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/60 dark:text-amber-400">
                     ADVISORY ONLY
                   </span>
                 </div>
-                <span className="text-[10px] text-muted-foreground">
-                  ×{aiMultiplier.toFixed(2)} regional
+                <span className="text-xs text-muted-foreground">
+                  ×{aiMultiplier.toFixed(2)} regional multiplier
                 </span>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {normalizedAiEstimate.rooms.slice(0, 3).map((room, i) => (
-                  <div key={i} className="rounded border border-border/50 bg-background/50 p-2">
-                    <div className="mb-1 flex items-baseline justify-between font-semibold text-foreground">
-                      <span>
+                  <div key={i} className="rounded-lg border border-border/50 bg-background p-3">
+                    <div className="mb-2 flex items-baseline justify-between">
+                      <div className="font-medium text-foreground">
                         {room.name}
-                        {room.area_sqm ? ` (${room.area_sqm}m²)` : ""}
-                      </span>
-                      <span className="text-[10px] font-normal text-muted-foreground">
-                        {room.items.length} items
-                      </span>
+                        {room.area_sqm ? (
+                          <span className="ml-1 text-xs text-muted-foreground">
+                            ({room.area_sqm} m²)
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="text-xs text-muted-foreground">{room.items.length} items</div>
                     </div>
-                    <div className="grid gap-x-3 gap-y-0.5 text-muted-foreground sm:grid-cols-2">
+                    <div className="grid gap-x-4 gap-y-1 text-xs sm:grid-cols-2">
                       {room.items.slice(0, 4).map((item, j) => (
-                        <div key={j} className="flex justify-between text-[10px]">
-                          <span className="truncate pr-1">{item.name}</span>
-                          <span className="font-medium tabular-nums text-foreground/80">
+                        <div key={j} className="flex justify-between text-muted-foreground">
+                          <span className="truncate pr-2">{item.name}</span>
+                          <span className="font-medium tabular-nums text-foreground/90">
                             {formatGBP(item.total_cost)}
                           </span>
                         </div>
                       ))}
                     </div>
                     {room.items.length > 4 && (
-                      <div className="mt-0.5 text-[10px] text-muted-foreground">
-                        +{room.items.length - 4} more…
+                      <div className="mt-1 text-[10px] text-muted-foreground">
+                        +{room.items.length - 4} more line items…
                       </div>
                     )}
                   </div>
@@ -419,27 +423,31 @@ export function DealIntakeForm() {
               </div>
 
               {normalizedAiEstimate.rooms.length > 3 && (
-                <div className="mt-1 text-[10px] text-muted-foreground">
-                  +{normalizedAiEstimate.rooms.length - 3} more rooms…
+                <div className="mt-1.5 text-xs text-muted-foreground">
+                  +{normalizedAiEstimate.rooms.length - 3} more rooms in full project…
                 </div>
               )}
 
-              <div className="mt-2 flex justify-between border-t pt-2 font-medium text-foreground">
-                <span>Est. materials + labour (ex. VAT)</span>
-                <span>{formatGBP(normalizedAiEstimate.totals.subtotal)}</span>
-              </div>
-              <div className="mt-1 text-[10px] text-muted-foreground">
-                Starting point only. Create a Project, upload photos, and run full AI scope +
-                editable estimate for accurate room-by-room costs (uses the same deterministic
-                pricing engine).
-              </div>
-              <div className="mt-1 text-right">
-                <a
-                  href="/projects/new"
-                  className="text-[10px] font-medium text-accent underline-offset-2 hover:underline"
-                >
-                  Start a full project for photo-based estimates →
-                </a>
+              <div className="mt-3 border-t pt-3">
+                <div className="flex items-baseline justify-between font-semibold text-foreground">
+                  <span>Est. materials + labour (ex. VAT)</span>
+                  <span className="text-lg tabular-nums">
+                    {formatGBP(normalizedAiEstimate.totals.subtotal)}
+                  </span>
+                </div>
+                <p className="mt-1.5 text-xs leading-snug text-muted-foreground">
+                  Text-only advisory starting point. For precise room-by-room costs with photo
+                  analysis, open a full Project (uses the same deterministic pricing engine + full
+                  AI scope).
+                </p>
+                <div className="mt-2 text-right">
+                  <a
+                    href="/projects/new"
+                    className="text-xs font-medium text-accent underline-offset-2 hover:underline"
+                  >
+                    Start a full project for photo-based estimates →
+                  </a>
+                </div>
               </div>
             </div>
           )}

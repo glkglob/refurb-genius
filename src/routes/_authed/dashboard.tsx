@@ -615,13 +615,17 @@ function StatCard({
   icon?: typeof Calculator;
 }) {
   return (
-    <Card className="border-l-4 border-l-accent p-5">
+    <Card className="border border-border/60 p-5 transition hover:shadow-sm">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+        <p className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground">
+          {label}
+        </p>
         {Icon && <Icon className="h-4 w-4 text-accent" />}
       </div>
-      <p className="mt-2 text-3xl font-semibold text-foreground">{value}</p>
-      {subLabel && <p className="mt-1 text-xs text-muted-foreground">{subLabel}</p>}
+      <p className="mt-3 text-3xl font-semibold tracking-tighter text-foreground tabular-nums">
+        {value}
+      </p>
+      {subLabel && <p className="mt-0.5 text-xs text-muted-foreground">{subLabel}</p>}
     </Card>
   );
 }
@@ -638,12 +642,14 @@ function QuickActionCard({
   return (
     <Link
       to={to}
-      className="flex min-h-[96px] flex-col justify-between rounded-xl border bg-card p-5 text-sm font-medium text-foreground transition-all hover:border-accent/40 hover:shadow-md active:scale-[0.985]"
+      className="group flex min-h-[96px] flex-col justify-between rounded-xl border border-border/60 bg-card p-5 text-sm font-medium text-foreground transition-all hover:border-accent/30 hover:shadow-md active:scale-[0.985]"
     >
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent transition group-hover:bg-accent/15">
         <Icon className="h-4 w-4" />
       </div>
-      <span className="mt-2 leading-tight">{label}</span>
+      <span className="mt-2 leading-tight text-foreground/90 group-hover:text-foreground">
+        {label}
+      </span>
     </Link>
   );
 }
