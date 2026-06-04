@@ -30,25 +30,64 @@ create trigger trade_profiles_updated_at
 -- Row Level Security
 alter table public.trade_profiles enable row level security;
 
--- Any authenticated user can read profiles
-create policy "Authenticated users can view trade profiles"
-  on public.trade_profiles for select
-  to authenticated
-  using (true);
+-- Idempotent policies
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'trade_profiles'
+      AND policyname = 'Authenticated users can view trade profiles'
+  ) THEN
+    create policy "Authenticated users can view trade profiles"
+      on public.trade_profiles for select
+      to authenticated
+      using (true);
+  END IF;
+END
+$$;
 
--- Users manage their own profile
-create policy "Users can insert own trade profile"
-  on public.trade_profiles for insert
-  to authenticated
-  with check (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'trade_profiles'
+      AND policyname = 'Users can insert own trade profile'
+  ) THEN
+    create policy "Users can insert own trade profile"
+      on public.trade_profiles for insert
+      to authenticated
+      with check (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
-create policy "Users can update own trade profile"
-  on public.trade_profiles for update
-  to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'trade_profiles'
+      AND policyname = 'Users can update own trade profile'
+  ) THEN
+    create policy "Users can update own trade profile"
+      on public.trade_profiles for update
+      to authenticated
+      using (auth.uid() = user_id)
+      with check (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
-create policy "Users can delete own trade profile"
-  on public.trade_profiles for delete
-  to authenticated
-  using (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'trade_profiles'
+      AND policyname = 'Users can delete own trade profile'
+  ) THEN
+    create policy "Users can delete own trade profile"
+      on public.trade_profiles for delete
+      to authenticated
+      using (auth.uid() = user_id);
+  END IF;
+END
+$$;

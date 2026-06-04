@@ -9,9 +9,43 @@ create table public.profiles (
   created_at timestamptz not null default now()
 );
 alter table public.profiles enable row level security;
-create policy "profile_select_own" on public.profiles for select using (auth.uid() = id);
-create policy "profile_insert_own" on public.profiles for insert with check (auth.uid() = id);
-create policy "profile_update_own" on public.profiles for update using (auth.uid() = id);
+
+-- Idempotent policies (all original creates wrapped for re-runnability)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'profiles'
+      AND policyname = 'profile_select_own'
+  ) THEN
+    create policy "profile_select_own" on public.profiles for select using (auth.uid() = id);
+  END IF;
+END
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'profiles'
+      AND policyname = 'profile_insert_own'
+  ) THEN
+    create policy "profile_insert_own" on public.profiles for insert with check (auth.uid() = id);
+  END IF;
+END
+$$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'profiles'
+      AND policyname = 'profile_update_own'
+  ) THEN
+    create policy "profile_update_own" on public.profiles for update using (auth.uid() = id);
+  END IF;
+END
+$$;
 
 -- Trigger to create profile on signup
 create or replace function public.handle_new_user()
@@ -59,7 +93,19 @@ create table public.projects (
   created_at timestamptz not null default now()
 );
 alter table public.projects enable row level security;
-create policy "projects_all_own" on public.projects for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'projects'
+      AND policyname = 'projects_all_own'
+  ) THEN
+    create policy "projects_all_own" on public.projects for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  END IF;
+END
+$$;
+
 create index projects_user_id_idx on public.projects(user_id, created_at desc);
 
 -- Photos
@@ -74,7 +120,19 @@ create table public.photos (
   uploaded_at timestamptz not null default now()
 );
 alter table public.photos enable row level security;
-create policy "photos_all_own" on public.photos for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'photos'
+      AND policyname = 'photos_all_own'
+  ) THEN
+    create policy "photos_all_own" on public.photos for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  END IF;
+END
+$$;
+
 create index photos_project_idx on public.photos(project_id, uploaded_at);
 
 -- Redesign concepts
@@ -87,7 +145,19 @@ create table public.redesign_concepts (
   created_at timestamptz not null default now()
 );
 alter table public.redesign_concepts enable row level security;
-create policy "redesign_all_own" on public.redesign_concepts for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'redesign_concepts'
+      AND policyname = 'redesign_all_own'
+  ) THEN
+    create policy "redesign_all_own" on public.redesign_concepts for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  END IF;
+END
+$$;
+
 create index redesign_project_idx on public.redesign_concepts(project_id);
 
 -- Estimates
@@ -110,7 +180,19 @@ create table public.estimates (
   created_at timestamptz not null default now()
 );
 alter table public.estimates enable row level security;
-create policy "estimates_all_own" on public.estimates for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'estimates'
+      AND policyname = 'estimates_all_own'
+  ) THEN
+    create policy "estimates_all_own" on public.estimates for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  END IF;
+END
+$$;
+
 create index estimates_project_idx on public.estimates(project_id, created_at desc);
 
 -- Estimate items
@@ -125,7 +207,19 @@ create table public.estimate_items (
   weeks numeric not null default 0
 );
 alter table public.estimate_items enable row level security;
-create policy "estimate_items_all_own" on public.estimate_items for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'estimate_items'
+      AND policyname = 'estimate_items_all_own'
+  ) THEN
+    create policy "estimate_items_all_own" on public.estimate_items for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  END IF;
+END
+$$;
+
 create index estimate_items_estimate_idx on public.estimate_items(estimate_id);
 
 -- Storage bucket for photos
@@ -133,27 +227,67 @@ insert into storage.buckets (id, name, public)
 values ('project-photos', 'project-photos', true)
 on conflict (id) do nothing;
 
-create policy "project_photos_read_public"
-on storage.objects for select
-using (bucket_id = 'project-photos');
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects'
+      AND policyname = 'project_photos_read_public'
+  ) THEN
+    create policy "project_photos_read_public"
+    on storage.objects for select
+    using (bucket_id = 'project-photos');
+  END IF;
+END
+$$;
 
-create policy "project_photos_insert_own"
-on storage.objects for insert
-with check (
-  bucket_id = 'project-photos'
-  and auth.uid()::text = (storage.foldername(name))[1]
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects'
+      AND policyname = 'project_photos_insert_own'
+  ) THEN
+    create policy "project_photos_insert_own"
+    on storage.objects for insert
+    with check (
+      bucket_id = 'project-photos'
+      and auth.uid()::text = (storage.foldername(name))[1]
+    );
+  END IF;
+END
+$$;
 
-create policy "project_photos_update_own"
-on storage.objects for update
-using (
-  bucket_id = 'project-photos'
-  and auth.uid()::text = (storage.foldername(name))[1]
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects'
+      AND policyname = 'project_photos_update_own'
+  ) THEN
+    create policy "project_photos_update_own"
+    on storage.objects for update
+    using (
+      bucket_id = 'project-photos'
+      and auth.uid()::text = (storage.foldername(name))[1]
+    );
+  END IF;
+END
+$$;
 
-create policy "project_photos_delete_own"
-on storage.objects for delete
-using (
-  bucket_id = 'project-photos'
-  and auth.uid()::text = (storage.foldername(name))[1]
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'storage' AND tablename = 'objects'
+      AND policyname = 'project_photos_delete_own'
+  ) THEN
+    create policy "project_photos_delete_own"
+    on storage.objects for delete
+    using (
+      bucket_id = 'project-photos'
+      and auth.uid()::text = (storage.foldername(name))[1]
+    );
+  END IF;
+END
+$$;

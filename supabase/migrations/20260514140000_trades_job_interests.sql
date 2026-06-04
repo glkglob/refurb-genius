@@ -20,27 +20,55 @@ create index if not exists trades_job_interests_user_id_idx
 -- Enable RLS
 alter table public.trades_job_interests enable row level security;
 
--- Users can insert their own interest
-create policy "interests: insert own"
-  on public.trades_job_interests
-  for insert
-  to authenticated
-  with check (user_id = auth.uid());
+-- Idempotent policies (note: one update policy lives in 20260514160000_... which already used DROP IF)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'trades_job_interests'
+      AND policyname = 'interests: insert own'
+  ) THEN
+    create policy "interests: insert own"
+      on public.trades_job_interests
+      for insert
+      to authenticated
+      with check (user_id = auth.uid());
+  END IF;
+END
+$$;
 
--- Users can view their own interests
-create policy "interests: select own"
-  on public.trades_job_interests
-  for select
-  to authenticated
-  using (user_id = auth.uid());
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'trades_job_interests'
+      AND policyname = 'interests: select own'
+  ) THEN
+    create policy "interests: select own"
+      on public.trades_job_interests
+      for select
+      to authenticated
+      using (user_id = auth.uid());
+  END IF;
+END
+$$;
 
--- Job owners can view interests for their jobs
-create policy "interests: job owner can view"
-  on public.trades_job_interests
-  for select
-  to authenticated
-  using (
-    job_id in (
-      select id from public.trades_jobs where user_id = auth.uid()
-    )
-  );
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'trades_job_interests'
+      AND policyname = 'interests: job owner can view'
+  ) THEN
+    create policy "interests: job owner can view"
+      on public.trades_job_interests
+      for select
+      to authenticated
+      using (
+        job_id in (
+          select id from public.trades_jobs where user_id = auth.uid()
+        )
+      );
+  END IF;
+END
+$$;

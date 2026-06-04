@@ -1,6 +1,7 @@
 {
   "name": "tanstack_start_ts",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "sideEffects": false,
   "type": "module",
   "scripts": {

@@ -1,6 +1,6 @@
 -- 1. Add role column to profiles with constrained values
 alter table public.profiles
-  add column role text not null default 'user'
+  add column if not exists role text not null default 'user'
   check (role in ('user', 'admin'));
 
 -- 2. Backfill any existing profiles (default covers new rows; explicit for safety)
@@ -47,26 +47,87 @@ grant execute on function public.is_admin() to authenticated;
 
 -- 5. Admin read-only RLS policies for all user-owned tables
 --    Admins can SELECT any row; existing own-row policies still cover writes.
-create policy "profiles_select_admin"
-  on public.profiles for select
-  using (public.is_admin());
+--    Made idempotent with DO $$ IF NOT EXISTS to allow safe re-application.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'profiles'
+      AND policyname = 'profiles_select_admin'
+  ) THEN
+    create policy "profiles_select_admin"
+      on public.profiles for select
+      using (public.is_admin());
+  END IF;
+END
+$$;
 
-create policy "projects_select_admin"
-  on public.projects for select
-  using (public.is_admin());
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'projects'
+      AND policyname = 'projects_select_admin'
+  ) THEN
+    create policy "projects_select_admin"
+      on public.projects for select
+      using (public.is_admin());
+  END IF;
+END
+$$;
 
-create policy "photos_select_admin"
-  on public.photos for select
-  using (public.is_admin());
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'photos'
+      AND policyname = 'photos_select_admin'
+  ) THEN
+    create policy "photos_select_admin"
+      on public.photos for select
+      using (public.is_admin());
+  END IF;
+END
+$$;
 
-create policy "redesign_select_admin"
-  on public.redesign_concepts for select
-  using (public.is_admin());
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'redesign_concepts'
+      AND policyname = 'redesign_select_admin'
+  ) THEN
+    create policy "redesign_select_admin"
+      on public.redesign_concepts for select
+      using (public.is_admin());
+  END IF;
+END
+$$;
 
-create policy "estimates_select_admin"
-  on public.estimates for select
-  using (public.is_admin());
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'estimates'
+      AND policyname = 'estimates_select_admin'
+  ) THEN
+    create policy "estimates_select_admin"
+      on public.estimates for select
+      using (public.is_admin());
+  END IF;
+END
+$$;
 
-create policy "estimate_items_select_admin"
-  on public.estimate_items for select
-  using (public.is_admin());
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'estimate_items'
+      AND policyname = 'estimate_items_select_admin'
+  ) THEN
+    create policy "estimate_items_select_admin"
+      on public.estimate_items for select
+      using (public.is_admin());
+  END IF;
+END
+$$;

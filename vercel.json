@@ -1,6 +1,6 @@
 {
   "buildCommand": "pnpm build:vercel",
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install --frozen-lockfile",
   "framework": null,
   "outputDirectory": ".vercel/output",
   "cleanUrls": true,

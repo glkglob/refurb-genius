@@ -1,4 +1,4 @@
-create table public.trades_jobs (
+create table if not exists public.trades_jobs (
   id                 uuid        primary key default gen_random_uuid(),
   user_id            uuid        not null references auth.users(id) on delete cascade,
   title              text        not null,
@@ -18,18 +18,59 @@ create table public.trades_jobs (
 
 alter table public.trades_jobs enable row level security;
 
-create policy "Users can select their own trades jobs"
-  on public.trades_jobs for select
-  using (auth.uid() = user_id);
+-- Idempotent policies
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'trades_jobs'
+      AND policyname = 'Users can select their own trades jobs'
+  ) THEN
+    create policy "Users can select their own trades jobs"
+      on public.trades_jobs for select
+      using (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
-create policy "Users can insert their own trades jobs"
-  on public.trades_jobs for insert
-  with check (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'trades_jobs'
+      AND policyname = 'Users can insert their own trades jobs'
+  ) THEN
+    create policy "Users can insert their own trades jobs"
+      on public.trades_jobs for insert
+      with check (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
-create policy "Users can update their own trades jobs"
-  on public.trades_jobs for update
-  using (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'trades_jobs'
+      AND policyname = 'Users can update their own trades jobs'
+  ) THEN
+    create policy "Users can update their own trades jobs"
+      on public.trades_jobs for update
+      using (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
-create policy "Users can delete their own trades jobs"
-  on public.trades_jobs for delete
-  using (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'trades_jobs'
+      AND policyname = 'Users can delete their own trades jobs'
+  ) THEN
+    create policy "Users can delete their own trades jobs"
+      on public.trades_jobs for delete
+      using (auth.uid() = user_id);
+  END IF;
+END
+$$;

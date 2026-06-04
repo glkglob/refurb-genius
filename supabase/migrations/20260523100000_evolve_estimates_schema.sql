@@ -44,22 +44,34 @@ CREATE INDEX IF NOT EXISTS idx_rooms_estimate ON public.estimate_rooms(estimate_
 ALTER TABLE public.estimate_rooms ENABLE ROW LEVEL SECURITY;
 
 -- RLS: users can manage rooms belonging to their own estimates
-CREATE POLICY "Users can manage rooms on their own estimates"
-  ON public.estimate_rooms FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.estimates e
-      WHERE e.id = estimate_rooms.estimate_id
-      AND e.user_id = auth.uid()
-    )
-  )
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.estimates e
-      WHERE e.id = estimate_rooms.estimate_id
-      AND e.user_id = auth.uid()
-    )
-  );
+-- Idempotent wrapper for safe re-application of migration.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'estimate_rooms'
+      AND policyname = 'Users can manage rooms on their own estimates'
+  ) THEN
+    CREATE POLICY "Users can manage rooms on their own estimates"
+      ON public.estimate_rooms FOR ALL
+      USING (
+        EXISTS (
+          SELECT 1 FROM public.estimates e
+          WHERE e.id = estimate_rooms.estimate_id
+          AND e.user_id = auth.uid()
+        )
+      )
+      WITH CHECK (
+        EXISTS (
+          SELECT 1 FROM public.estimates e
+          WHERE e.id = estimate_rooms.estimate_id
+          AND e.user_id = auth.uid()
+        )
+      );
+  END IF;
+END
+$$;
 
 -- ────────────────────────────────────────────────────────────────────
 -- 3. estimate_items — add room_id FK and richer item columns
@@ -114,6 +126,17 @@ WHERE name = '';
 -- 5. Admin read-access policy for estimate_rooms
 -- ────────────────────────────────────────────────────────────────────
 
-CREATE POLICY "estimate_rooms_select_admin"
-  ON public.estimate_rooms FOR SELECT
-  USING (public.is_admin());
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'estimate_rooms'
+      AND policyname = 'estimate_rooms_select_admin'
+  ) THEN
+    CREATE POLICY "estimate_rooms_select_admin"
+      ON public.estimate_rooms FOR SELECT
+      USING (public.is_admin());
+  END IF;
+END
+$$;

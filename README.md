@@ -61,8 +61,11 @@ pnpm typecheck
 # Lint
 pnpm lint
 
-# Build for production
-pnpm build
+# Build for production (Vercel)
+pnpm build:vercel
+```
+
+**For reliable deploys:** Always use `pnpm install --frozen-lockfile`. The project pins pnpm@9.15.9 via `packageManager` and uses idempotent Supabase migrations (policies/tables guarded against duplicates).
 ```
 
 ## Environment Variables
@@ -93,5 +96,6 @@ Start with:
 
 - Keep changes small and reversible.
 - Follow existing patterns and respect package boundaries.
-- Run `pnpm typecheck` and `pnpm lint` before committing significant changes.
+- Run `pnpm typecheck && pnpm lint && pnpm test:invariants` before committing (matches CI + pre-commit).
+- Supabase migrations and pnpm config are hardened for repeatable deploys (see CLAUDE.md).
 - Update documentation when architecture or behavior changes.

@@ -33,22 +33,67 @@ create index if not exists idx_analysis_jobs_created on public.analysis_jobs(cre
 alter table public.analysis_jobs enable row level security;
 
 -- RLS Policies: users can manage only their own analysis jobs
-create policy "Users can view their own analysis jobs"
-  on public.analysis_jobs for select
-  using (auth.uid() = user_id);
+-- Idempotent wrappers (DO $$ + pg_policies check) for safe re-runs.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'analysis_jobs'
+      AND policyname = 'Users can view their own analysis jobs'
+  ) THEN
+    CREATE POLICY "Users can view their own analysis jobs"
+      ON public.analysis_jobs FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
-create policy "Users can insert their own analysis jobs"
-  on public.analysis_jobs for insert
-  with check (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'analysis_jobs'
+      AND policyname = 'Users can insert their own analysis jobs'
+  ) THEN
+    CREATE POLICY "Users can insert their own analysis jobs"
+      ON public.analysis_jobs FOR INSERT
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
-create policy "Users can update their own analysis jobs"
-  on public.analysis_jobs for update
-  using (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'analysis_jobs'
+      AND policyname = 'Users can update their own analysis jobs'
+  ) THEN
+    CREATE POLICY "Users can update their own analysis jobs"
+      ON public.analysis_jobs FOR UPDATE
+      USING (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
 -- Optional: allow delete for the owner (cleanup)
-create policy "Users can delete their own analysis jobs"
-  on public.analysis_jobs for delete
-  using (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'analysis_jobs'
+      AND policyname = 'Users can delete their own analysis jobs'
+  ) THEN
+    CREATE POLICY "Users can delete their own analysis jobs"
+      ON public.analysis_jobs FOR DELETE
+      USING (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
 -- Simple updated_at trigger (defensive; backend also sets it)
 create or replace function public.set_updated_at()

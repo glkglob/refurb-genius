@@ -17,16 +17,51 @@ create table if not exists room_analyses (
 
 alter table room_analyses enable row level security;
 
-create policy "Users can view their own analyses"
-  on room_analyses for select
-  using (auth.uid() = user_id);
+-- Idempotent policy creation (prevents "policy already exists" errors on re-apply,
+-- db resets, supabase db push, or partial state recovery). Safe for prod + dev.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'room_analyses'
+      AND policyname = 'Users can view their own analyses'
+  ) THEN
+    CREATE POLICY "Users can view their own analyses"
+      ON public.room_analyses FOR SELECT
+      USING (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
-create policy "Users can insert their own analyses"
-  on room_analyses for insert
-  with check (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'room_analyses'
+      AND policyname = 'Users can insert their own analyses'
+  ) THEN
+    CREATE POLICY "Users can insert their own analyses"
+      ON public.room_analyses FOR INSERT
+      WITH CHECK (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
-create policy "Users can delete their own analyses"
-  on room_analyses for delete
-  using (auth.uid() = user_id);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'room_analyses'
+      AND policyname = 'Users can delete their own analyses'
+  ) THEN
+    CREATE POLICY "Users can delete their own analyses"
+      ON public.room_analyses FOR DELETE
+      USING (auth.uid() = user_id);
+  END IF;
+END
+$$;
 
 create index idx_room_analyses_project on room_analyses(project_id);
