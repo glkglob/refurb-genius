@@ -82,7 +82,15 @@ const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
 async function fetchAll(): Promise<void> {
-  if (!auth.getUser()) {
+  // Verify an active Supabase session exists before querying. Using the live
+  // session (rather than the in-memory auth.getUser() cache) prevents a race
+  // where a stale cached user causes a fetch to fire while the JWT is expired
+  // or still being refreshed, which would make Supabase treat the request as
+  // anon and fail with "permission denied for function is_admin" (HTTP 403).
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.access_token) {
     cache = [];
     loaded = true;
     waitingForAuth = false;
