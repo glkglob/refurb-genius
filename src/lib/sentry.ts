@@ -1,58 +1,71 @@
-// Sentry integration for production runtime error monitoring with contextual helpers.
+// Sentry integration for production error monitoring + AI/agent observability (safer defaults).
 //
-// Initialises only when:
-//   - Running in the browser (not SSR)
-//   - VITE_SENTRY_DSN is set
-//   - import.meta.env.PROD is true (production build)
+// - Server: @sentry/node (OpenAI client instrumentation, gen_ai spans).
+// - Client: @sentry/react (errors + replay).
 //
-// No performance tracing. No session replay. Minimal footprint.
-// Provides categorized error capture for different failure domains.
-import * as Sentry from "@sentry/react";
+// Only initializes in production when VITE_SENTRY_DSN is present.
+//
+// Features:
+// - streamGenAiSpans + instrumentOpenAiClient for LLM/agent monitoring.
+// - setConversationId() for grouping related calls (e.g. per project).
+//
+// Privacy & cost conscious:
+// - sendDefaultPii: false
+// - AI input/output recording disabled by default (opt-in via SENTRY_AI_RECORD_DATA=true).
+// - tracesSampleRate: 0.2 (adjust as needed).
+//
+// See openai-client.ts and .env.example for AI data capture controls.
+// Build source maps via vite plugin. Never hardcode DSN.
+import * as SentryReact from "@sentry/react";
+import * as SentryNode from "@sentry/node";
 
-const dsn = import.meta.env.VITE_SENTRY_DSN as string | undefined;
+const dsn = import.meta.env.VITE_SENTRY_DSN;
+const isServer = typeof window === "undefined";
 
-// Guard: browser + DSN present + production build.
-const enabled = Boolean(dsn && import.meta.env.PROD && typeof window !== "undefined");
+// Choose the appropriate Sentry SDK based on environment.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Sentry: any = isServer ? SentryNode : SentryReact;
 
-if (enabled) {
-  Sentry.init({
+if (import.meta.env.PROD && dsn) {
+  const baseConfig = {
     dsn,
-    // Default integrations capture unhandled exceptions, unhandled promise
-    // rejections (globalHandlersIntegration) and browser API errors.
-    tracesSampleRate: 0, // no performance tracing
-    // No replayIntegration added — session replay is disabled.
-  });
+    environment: import.meta.env.MODE,
+    // Balanced sampling for production (not 1.0 to control volume/cost).
+    tracesSampleRate: 0.2,
+    // Enables gen_ai.* spans for LLM/agent calls (works with our instrumented OpenAI client).
+    streamGenAiSpans: true,
+    // Privacy: do not send default PII (IP, etc.). AI data is controlled separately below.
+    sendDefaultPii: false,
+  };
+
+  if (isServer) {
+    SentryNode.init(baseConfig);
+  } else {
+    SentryReact.init({
+      ...baseConfig,
+      integrations: [SentryReact.browserTracingIntegration(), SentryReact.replayIntegration()],
+      replaysSessionSampleRate: 0.05,
+      replaysOnErrorSampleRate: 1.0,
+      tracePropagationTargets: ["localhost", /^https:\/\/.*\.refurbgenius\.info/],
+    });
+  }
 }
 
-/**
- * Report an exception to Sentry. Safe to call unconditionally — no-op when
- * Sentry is not initialised (dev, missing DSN, or SSR context).
- */
+// Lightweight AI/auth error helpers (used alongside richer ones below for compatibility).
+export const captureAiError = (error: unknown, context?: Record<string, unknown>) => {
+  Sentry.captureException(error, { tags: { type: "ai" }, ...context });
+};
+
+export const captureAuthError = (error: unknown) => {
+  Sentry.captureException(error, { tags: { type: "auth" } });
+};
+
+// Existing detailed helpers (kept for compatibility with current call sites)
 export function captureException(error: unknown, context?: Record<string, unknown>): void {
-  if (!enabled) return;
+  if (!import.meta.env.PROD || !dsn) return;
   Sentry.captureException(error, context ? { extra: context } : undefined);
 }
 
-/**
- * Capture auth-related failures (login, signup, session hydration, token refresh).
- * Provides consistent categorization for auth debugging.
- */
-export function captureAuthError(
-  error: unknown,
-  action: "login" | "signup" | "google_signin" | "session_check" | "token_refresh" | "logout",
-  metadata?: Record<string, unknown>,
-): void {
-  if (!enabled) return;
-  Sentry.captureException(error, {
-    tags: { domain: "auth", action },
-    extra: { ...metadata, timestamp: new Date().toISOString() },
-  });
-}
-
-/**
- * Capture upload-related failures (file upload, metadata insertion, storage).
- * Includes file metrics for debugging.
- */
 export function captureUploadError(
   error: unknown,
   metadata?: {
@@ -62,38 +75,13 @@ export function captureUploadError(
     stage?: "validation" | "storage" | "metadata" | "rollback";
   },
 ): void {
-  if (!enabled) return;
+  if (!import.meta.env.PROD || !dsn) return;
   Sentry.captureException(error, {
     tags: { domain: "upload", stage: metadata?.stage ?? "unknown" },
     extra: { ...metadata, timestamp: new Date().toISOString() },
   });
 }
 
-/**
- * Capture AI provider failures (OpenAI Vision, redesign concepts, image analysis).
- * Tracks which photos failed and why.
- */
-export function captureAiError(
-  error: unknown,
-  metadata?: {
-    provider?: "gpt-4o-vision" | "gpt-4o-estimate" | "dall-e" | "gpt-4o-text" | "mock";
-    projectId?: string;
-    photoCount?: number;
-    photoName?: string;
-    reason?: "timeout" | "rate_limit" | "parse_error" | "api_error";
-  },
-): void {
-  if (!enabled) return;
-  Sentry.captureException(error, {
-    tags: { domain: "ai", provider: metadata?.provider ?? "unknown" },
-    extra: { ...metadata, timestamp: new Date().toISOString() },
-  });
-}
-
-/**
- * Capture API/data failures (Supabase queries, photo fetches, project loads).
- * Provides table name and operation type for debugging.
- */
 export function captureApiError(
   error: unknown,
   metadata?: {
@@ -103,17 +91,13 @@ export function captureApiError(
     context?: string;
   },
 ): void {
-  if (!enabled) return;
+  if (!import.meta.env.PROD || !dsn) return;
   Sentry.captureException(error, {
     tags: { domain: "api", operation: metadata?.operation ?? "unknown" },
     extra: { ...metadata, timestamp: new Date().toISOString() },
   });
 }
 
-/**
- * Capture PDF export failures with timing and memory info.
- * Tracks export stage and size for debugging large report issues.
- */
 export function capturePdfError(
   error: unknown,
   metadata?: {
@@ -123,18 +107,15 @@ export function capturePdfError(
     memoryMbEstimate?: number;
   },
 ): void {
-  if (!enabled) return;
+  if (!import.meta.env.PROD || !dsn) return;
   Sentry.captureException(error, {
     tags: { domain: "pdf", stage: metadata?.stage ?? "unknown" },
     extra: { ...metadata, timestamp: new Date().toISOString() },
   });
 }
 
-/**
- * Capture image loading/memory issues and cleanup diagnostics.
- */
 export function captureImageDiagnostic(message: string, metadata?: Record<string, unknown>): void {
-  if (!enabled) return;
+  if (!import.meta.env.PROD || !dsn) return;
   Sentry.addBreadcrumb({
     message: `[image] ${message}`,
     data: metadata,
@@ -143,15 +124,12 @@ export function captureImageDiagnostic(message: string, metadata?: Record<string
   });
 }
 
-/**
- * Capture route loading diagnostics (timeouts, state race conditions).
- */
 export function captureRouteLoadDiagnostic(
   routePath: string,
   message: string,
   metadata?: Record<string, unknown>,
 ): void {
-  if (!enabled) return;
+  if (!import.meta.env.PROD || !dsn) return;
   Sentry.addBreadcrumb({
     message: `[route] ${routePath}: ${message}`,
     data: metadata,
@@ -160,15 +138,32 @@ export function captureRouteLoadDiagnostic(
   });
 }
 
-/**
- * Add a breadcrumb for context tracking (progress events, user actions, etc).
- * Helps trace the path to failures without cluttering error reports.
- */
 export function addDiagnosticBreadcrumb(message: string, metadata?: Record<string, unknown>): void {
-  if (!enabled) return;
+  if (!import.meta.env.PROD || !dsn) return;
   Sentry.addBreadcrumb({
     message,
     data: metadata,
     timestamp: Date.now() / 1000,
   });
+}
+
+export { Sentry };
+export default Sentry;
+
+/**
+ * Set a conversation ID to group related LLM/agent calls (vision, scope, estimate, redesign)
+ * into one thread in Sentry's AI monitoring dashboard.
+ *
+ * Call early in analysis flows (per projectId is ideal).
+ *
+ * To see full LLM prompts/responses in spans:
+ *   Set SENTRY_AI_RECORD_DATA=true (server env var).
+ * This keeps production data collection targeted and privacy-safe by default.
+ */
+export function setConversationId(id: string): void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (typeof (Sentry as any).setConversationId === "function") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (Sentry as any).setConversationId(id);
+  }
 }

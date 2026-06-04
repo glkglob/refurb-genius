@@ -1,6 +1,7 @@
 import "@tanstack/react-start/server-only";
 
-import { captureAiError, addDiagnosticBreadcrumb } from "@/lib/sentry";
+import { captureAiError, addDiagnosticBreadcrumb, setConversationId } from "@/lib/sentry";
+import { getOpenAIClient } from "./openai-client";
 import { logger } from "@/lib/logger";
 import { incrementCounter } from "@/lib/provider-diagnostics";
 import { timeoutPromise, isTimeoutError } from "@/lib/timeout";
@@ -278,6 +279,9 @@ export async function runSecureEstimateGeneration(
 
   const systemPrompt = buildSystemPrompt(input);
 
+  // Group this estimate + related AI calls under one conversation for Sentry agent monitoring
+  setConversationId(`estimate-${input.region}-${input.bedrooms}beds-${input.condition}`);
+
   addDiagnosticBreadcrumb("ai:gpt4o:estimate:start", {
     region: input.region,
     propertyType: input.propertyType,
@@ -286,29 +290,24 @@ export async function runSecureEstimateGeneration(
   });
 
   try {
-    const response = await withRetry(
+    const openai = getOpenAIClient(apiKey);
+
+    const completion = await withRetry(
       async () =>
         timeoutPromise(
-          fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-              model: "gpt-4o",
-              max_tokens: 4096,
-              temperature: 0.3,
-              response_format: { type: "json_object" },
-              messages: [
-                { role: "system", content: systemPrompt },
-                {
-                  role: "user",
-                  content:
-                    'Generate the refurbishment estimate now. Return the JSON array inside a top-level { "rooms": [...] } wrapper.',
-                },
-              ],
-            }),
+          openai.chat.completions.create({
+            model: "gpt-4o",
+            max_tokens: 4096,
+            temperature: 0.3,
+            response_format: { type: "json_object" },
+            messages: [
+              { role: "system", content: systemPrompt },
+              {
+                role: "user",
+                content:
+                  'Generate the refurbishment estimate now. Return the JSON array inside a top-level { "rooms": [...] } wrapper.',
+              },
+            ],
           }),
           ESTIMATE_TIMEOUT_MS,
           "GPT-4o estimate generation",
@@ -317,16 +316,7 @@ export async function runSecureEstimateGeneration(
       "estimate-generation",
     );
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`OpenAI API error ${response.status}: ${error}`);
-    }
-
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-
-    const raw = data.choices?.[0]?.message?.content ?? "";
+    const raw = completion.choices?.[0]?.message?.content ?? "";
     if (!raw) throw new Error("Empty response from OpenAI");
 
     const parsed: unknown = parseGptJson(raw);

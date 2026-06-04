@@ -4,6 +4,10 @@ import { renderErrorPage } from "./lib/error-page";
 import { logger } from "./lib/logger";
 import { validateClientEnv } from "./lib/env-validation";
 
+// Side-effect import: ensures Sentry.init() runs as early as possible
+// in the client bundle (guarded inside the module).
+import "@/lib/sentry";
+
 // Client env validation (runs in browser bundle)
 if (typeof window !== "undefined") {
   try {

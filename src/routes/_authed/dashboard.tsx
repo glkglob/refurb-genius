@@ -293,6 +293,16 @@ function DashboardContent() {
           </div>
         </Card>
       </section>
+
+      {/* TEMPORARY Sentry test button - REMOVE AFTER VERIFICATION */}
+      <button
+        onClick={() => {
+          throw new Error(`Test Sentry error - ${new Date().toISOString()}`);
+        }}
+        className="fixed bottom-4 right-4 px-4 py-2 bg-red-600 text-white rounded-lg text-sm z-50"
+      >
+        🧪 Test Sentry
+      </button>
     </AppLayout>
   );
 }

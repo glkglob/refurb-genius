@@ -91,7 +91,7 @@ async function ensureInitialized(): Promise<void> {
 
     if (error) {
       logger.error("[auth] getSession failed", { error: error.message });
-      captureAuthError(error, "session_check", { code: error.code, message: error.message });
+      captureAuthError(error);
     }
 
     currentUser = fromSupabaseUser(session?.user);
@@ -123,7 +123,7 @@ async function ensureInitialized(): Promise<void> {
     initialized = true;
   } catch (err) {
     logger.error("[auth] ensureInitialized failed", { error: String(err) });
-    captureAuthError(err, "session_check", { fatal: true });
+    captureAuthError(err);
     currentUser = null;
     initialized = true;
   } finally {
@@ -164,7 +164,7 @@ export const auth = {
       return currentUser;
     } catch (err) {
       logger.error("[auth] signIn failed", { email, error: String(err) });
-      captureAuthError(err, "login", { email });
+      captureAuthError(err);
       throw err;
     }
   },
@@ -188,7 +188,7 @@ export const auth = {
       return user;
     } catch (err) {
       logger.error("[auth] signUp failed", { email, error: String(err) });
-      captureAuthError(err, "signup", { email });
+      captureAuthError(err);
       throw err;
     }
   },
@@ -205,7 +205,7 @@ export const auth = {
       addDiagnosticBreadcrumb("auth:google_signin:success");
     } catch (err) {
       logger.error("[auth] signInWithGoogle failed", { error: String(err) });
-      captureAuthError(err, "google_signin");
+      captureAuthError(err);
       throw err;
     }
   },
@@ -218,7 +218,7 @@ export const auth = {
       notify();
     } catch (err) {
       logger.error("[auth] signOut failed", { error: String(err) });
-      captureAuthError(err, "logout");
+      captureAuthError(err);
       throw err;
     }
   },
@@ -232,7 +232,7 @@ export const auth = {
       addDiagnosticBreadcrumb("auth:reset_password:success", { email });
     } catch (err) {
       logger.error("[auth] resetPasswordForEmail failed", { email, error: String(err) });
-      captureAuthError(err, "token_refresh", { email });
+      captureAuthError(err);
       throw err;
     }
   },
@@ -244,7 +244,7 @@ export const auth = {
       addDiagnosticBreadcrumb("auth:update_password:success");
     } catch (err) {
       logger.error("[auth] updatePassword failed", { error: String(err) });
-      captureAuthError(err, "token_refresh");
+      captureAuthError(err);
       throw err;
     }
   },
