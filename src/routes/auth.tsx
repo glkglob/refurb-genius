@@ -1,343 +1,258 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Navbar } from "@/components/Navbar";
-import { Button } from "@/components/ui/button";
-import { Input, Label } from "@repo/ui";
-import { Card, CardContent } from "@/components/ui/card";
-import { useState, useEffect, type FormEvent } from "react";
-import { auth } from "@/lib/auth";
-import { Loader2, AlertCircle } from "lucide-react";
-import { z } from "zod";
+import { createFileRoute } from '@tanstack/react-router'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearch } from '@tanstack/react-router'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { createBrowserClient } from '@/lib/auth'
+import { toast } from 'sonner'
 
-const authSearchSchema = z.object({
-  mode: z.enum(["signin", "signup", "forgot", "reset"]).default("signin").catch("signin"),
-  /** Destination to redirect to after a successful sign-in or sign-up. */
-  redirect: z.string().optional(),
-});
-
-export const Route = createFileRoute("/auth")({
-  head: () => ({
-    meta: [{ title: "Sign in — Refurb Genius" }],
-  }),
-  validateSearch: authSearchSchema,
+export const Route = createFileRoute('/auth')({
   component: AuthPage,
-});
+})
 
 function AuthPage() {
-  const { mode, redirect } = Route.useSearch();
-  const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const navigate = useNavigate()
+  const { mode = 'signin' } = useSearch({ from: '/auth' })
 
+  const [isSignIn, setIsSignIn] = useState(mode === 'signin')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [oauthLoading, setOauthLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  // Rate limiting state
+  const [failedAttempts, setFailedAttempts] = useState(0)
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null)
+
+  const isLocked = lockedUntil !== null && Date.now() < lockedUntil
+  const remainingSeconds = isLocked 
+    ? Math.ceil((lockedUntil! - Date.now()) / 1000) 
+    : 0
+
+  // Countdown timer
   useEffect(() => {
-    const titles: Record<string, string> = {
-      signin: "Sign in — Refurb Genius",
-      signup: "Create account — Refurb Genius",
-      forgot: "Reset password — Refurb Genius",
-      reset: "Set new password — Refurb Genius",
-    };
-    document.title = titles[mode] ?? "Sign in — Refurb Genius";
-  }, [mode]);
-
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    setLoading(true);
-    try {
-      // After auth, go to intended destination (if safe) or dashboard.
-      const destination =
-        redirect && redirect.startsWith("/") && !redirect.startsWith("//")
-          ? redirect
-          : "/dashboard";
-      if (mode === "signin") {
-        await auth.signIn(email.trim(), password);
-        navigate({ to: destination });
-      } else if (mode === "signup") {
-        await auth.signUp(email.trim(), password, fullName.trim());
-        navigate({ to: destination });
-      } else if (mode === "forgot") {
-        await auth.resetPasswordForEmail(email.trim());
-        setSuccess("Check your inbox — we've sent a password reset link.");
-      } else if (mode === "reset") {
-        if (password !== confirmPassword) throw new Error("Passwords do not match.");
-        await auth.updatePassword(password);
-        navigate({ to: "/dashboard" });
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
-    } finally {
-      setLoading(false);
+    let interval: NodeJS.Timeout | null = null
+    if (isLocked) {
+      interval = setInterval(() => {
+        if (Date.now() >= lockedUntil!) {
+          setLockedUntil(null)
+          setFailedAttempts(0)
+        }
+      }, 1000)
     }
-  };
+    return () => {
+      if (interval) clearInterval(interval)
+    }
+  }, [isLocked, lockedUntil])
 
-  const toggle = () => {
-    setError(null);
-    setSuccess(null);
-    navigate({ to: "/auth", search: { mode: mode === "signin" ? "signup" : "signin" } });
-  };
+  const supabase = createBrowserClient()
 
-  // ── Reset password mode ──────────────────────────────────────────────────
-  if (mode === "reset") {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="mx-auto flex max-w-md flex-col px-6 py-16">
-          <Card>
-            <CardContent className="p-8">
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                Set new password
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Choose a new password for your account.
-              </p>
-              <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
-                <div className="space-y-1.5">
-                  <Label htmlFor="password">New password</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder="At least 6 characters"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    required
-                    minLength={6}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="confirmPassword">Confirm password</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder="Repeat your new password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={loading}
-                    required
-                    minLength={6}
-                  />
-                </div>
-                {error && (
-                  <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {loading ? "Updating…" : "Update password"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    if (isLocked) {
+      setError(`Too many failed attempts. Please wait ${remainingSeconds} seconds.`)
+      return
+    }
+
+    if (!email || !password) {
+      setError('Email and password are required')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      if (isSignIn) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+
+        if (signInError) throw signInError
+      } else {
+        // Sign up
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { full_name: fullName } },
+        })
+
+        if (signUpError) throw signUpError
+      }
+
+      // Success → reset rate limit
+      setFailedAttempts(0)
+      setLockedUntil(null)
+
+      toast.success(isSignIn ? 'Signed in successfully' : 'Account created! Check your email.')
+      navigate({ to: '/dashboard' })
+
+    } catch (err: any) {
+      console.error(err)
+
+      const message = err.message || 'Authentication failed'
+
+      // Handle rate limit from Supabase
+      if (message.toLowerCase().includes('rate limit') || 
+          message.toLowerCase().includes('too many requests')) {
+        setError('Too many sign-in attempts. Please wait a moment and try again.')
+      } else {
+        setError(message)
+      }
+
+      // Increment failed attempts
+      const newAttempts = failedAttempts + 1
+      setFailedAttempts(newAttempts)
+
+      if (newAttempts >= 3) {
+        const lockTime = Date.now() + 60_000 // 60 seconds lockout
+        setLockedUntil(lockTime)
+        setError(`Too many failed attempts. Please wait 60 seconds.`)
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // ── Forgot password mode ─────────────────────────────────────────────────
-  if (mode === "forgot") {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="mx-auto flex max-w-md flex-col px-6 py-16">
-          <Card>
-            <CardContent className="p-8">
-              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-                Reset your password
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Enter your email and we'll send a reset link.
-              </p>
-              <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
-                <div className="space-y-1.5">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    placeholder="you@company.co.uk"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading || !!success}
-                    required
-                  />
-                </div>
-                {error && (
-                  <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>{error}</span>
-                  </div>
-                )}
-                {success && (
-                  <div className="rounded-md border border-success/30 bg-success/10 p-3 text-sm text-success">
-                    {success}
-                  </div>
-                )}
-                {!success && (
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {loading ? "Sending…" : "Send reset link"}
-                  </Button>
-                )}
-              </form>
-              <p className="mt-6 text-center text-sm text-muted-foreground">
-                <button
-                  type="button"
-                  onClick={() => navigate({ to: "/auth", search: { mode: "signin" } })}
-                  className="font-medium text-accent hover:underline"
+  const handleGoogleSignIn = async () => {
+    setOauthLoading(true)
+    setError('')
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      })
+
+      if (error) throw error
+    } catch (err: any) {
+      setError(err.message || 'Google sign in failed')
+    } finally {
+      setOauthLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>{isSignIn ? 'Sign in' : 'Create account'}</CardTitle>
+          <CardDescription>
+            {isSignIn 
+              ? 'Welcome back to Refurb Genius' 
+              : 'Join the UK property refurb platform'}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {!isSignIn && (
+              <div>
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="John Smith"
+                  required={!isSignIn}
+                />
+              </div>
+            )}
+
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            {isLocked && (
+              <Alert>
+                <AlertDescription>
+                  Account temporarily locked. Try again in {remainingSeconds} seconds.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={loading || oauthLoading || isLocked}
+            >
+              {loading 
+                ? 'Processing...' 
+                : isSignIn 
+                  ? 'Sign In' 
+                  : 'Create Account'}
+            </Button>
+          </form>
+
+          <div className="mt-6">
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={handleGoogleSignIn}
+              disabled={oauthLoading || isLocked}
+            >
+              {oauthLoading ? 'Connecting...' : 'Continue with Google'}
+            </Button>
+          </div>
+
+          <div className="mt-6 text-center text-sm">
+            {isSignIn ? (
+              <p>
+                Don't have an account?{' '}
+                <button 
+                  onClick={() => setIsSignIn(false)} 
+                  className="text-blue-600 hover:underline"
                 >
-                  ← Back to sign in
+                  Sign up
                 </button>
               </p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Sign in / Sign up ────────────────────────────────────────────────────
-  return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <div className="mx-auto flex max-w-md flex-col px-6 py-16">
-        <Card>
-          <CardContent className="p-8">
-            <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              {mode === "signin" ? "Welcome back" : "Create your account"}
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {mode === "signin"
-                ? "Sign in to continue analysing UK refurbs."
-                : "Start analysing UK refurbs in minutes."}
-            </p>
-
-            <form className="mt-6 space-y-4" onSubmit={handleSubmit} noValidate>
-              {mode === "signup" && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="name">Full name</Label>
-                  <Input
-                    id="name"
-                    autoComplete="name"
-                    placeholder="Jane Smith"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    disabled={loading}
-                    required
-                  />
-                </div>
-              )}
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="you@company.co.uk"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                  required
-                />
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  {mode === "signin" && (
-                    <button
-                      type="button"
-                      onClick={() => navigate({ to: "/auth", search: { mode: "forgot" } })}
-                      className="text-xs text-muted-foreground hover:text-accent hover:underline"
-                    >
-                      Forgot password?
-                    </button>
-                  )}
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                  placeholder="At least 6 characters"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  required
-                  minLength={6}
-                />
-              </div>
-
-              {error && (
-                <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <Button type="submit" className="w-full" disabled={loading || oauthLoading}>
-                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {loading
-                  ? mode === "signin"
-                    ? "Signing in…"
-                    : "Creating account…"
-                  : mode === "signin"
-                    ? "Sign in"
-                    : "Create account"}
-              </Button>
-            </form>
-
-            <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
-              <span className="h-px flex-1 bg-border" />
-              or
-              <span className="h-px flex-1 bg-border" />
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              disabled={loading || oauthLoading}
-              onClick={async () => {
-                setError(null);
-                setOauthLoading(true);
-                try {
-                  await auth.signInWithGoogle();
-                } catch (err) {
-                  setError(err instanceof Error ? err.message : "Google sign-in failed.");
-                  setOauthLoading(false);
-                }
-              }}
-            >
-              {oauthLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-              {oauthLoading ? "Redirecting…" : "Continue with Google"}
-            </Button>
-
-            <p className="mt-6 text-center text-sm text-muted-foreground">
-              {mode === "signin" ? "No account yet?" : "Already have an account?"}{" "}
-              <button
-                type="button"
-                onClick={toggle}
-                className="font-medium text-accent hover:underline"
-                disabled={loading}
-              >
-                {mode === "signin" ? "Sign up" : "Sign in"}
-              </button>
-            </p>
-            <p className="mt-4 text-center text-xs text-muted-foreground">
-              <Link to="/" className="hover:underline">
-                ← Back to home
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+            ) : (
+              <p>
+                Already have an account?{' '}
+                <button 
+                  onClick={() => setIsSignIn(true)} 
+                  className="text-blue-600 hover:underline"
+                >
+                  Sign in
+                </button>
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
-  );
+  )
 }
