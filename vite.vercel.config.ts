@@ -19,8 +19,7 @@ import { sentryVitePlugin } from "@sentry/vite-plugin";
 // directly in the Vercel project's Environment Variables settings.
 export default defineConfig({
   build: {
-    // Required for Sentry to produce good stack traces in production.
-    sourcemap: true,
+    sourcemap: true, // Required for Sentry stack traces
   },
   plugins: [
     tanstackStart({
@@ -33,15 +32,15 @@ export default defineConfig({
     tsconfigPaths(),
     nitro({ preset: "vercel" }),
 
-    // ... existing plugins (tanstackStart, react, tailwind, etc.)
+    // Sentry sourcemap upload (only runs on Vercel build)
     sentryVitePlugin({
       org: process.env.SENTRY_ORG,
       project: process.env.SENTRY_PROJECT,
       authToken: process.env.SENTRY_AUTH_TOKEN,
       release: {
-        name: process.env.VERCEL_GIT_COMMIT_SHA || "dev",
+        name: process.env.VERCEL_GIT_COMMIT_SHA || 'dev',
       },
-      disable: !process.env.SENTRY_AUTH_TOKEN, // Only run during real builds
+      disable: !process.env.SENTRY_AUTH_TOKEN,
     }),
   ],
   resolve: {
