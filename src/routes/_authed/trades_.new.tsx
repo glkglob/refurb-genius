@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
-import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import {
   Input,
@@ -13,10 +12,9 @@ import {
   Textarea,
 } from "@repo/ui";
 import { useState, type FormEvent } from "react";
-import { Loader2, AlertCircle, Lock, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Loader2, AlertCircle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { TRADES_JOB_CATEGORIES, type TradesJobCategory } from "@/core/trades";
 import { createTradesJob } from "@/services/trades/tradesJobStore";
-import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/_authed/trades_/new")({
   head: () => ({ meta: [{ title: "Post a job — Trades Marketplace" }] }),
@@ -37,7 +35,10 @@ function TradesNewPage() {
 }
 
 function TradesNewPageContent() {
-  const { user, hydrated } = useAuth();
+  // NOTE: user/hydrated guards removed. _authed beforeLoad + the RequireAuth
+  // passthrough (post-mount only) guarantee we render the real form in the
+  // initial SSR HTML and first client render. This avoids hydration mismatch
+  // and the "Checking session" flash for this protected route.
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,37 +52,6 @@ function TradesNewPageContent() {
   const [budgetMin, setBudgetMin] = useState("");
   const [budgetMax, setBudgetMax] = useState("");
   const [desiredStartDate, setDesiredStartDate] = useState("");
-
-  // Wait for auth to hydrate
-  if (!hydrated) {
-    return (
-      <AppLayout title="Post a refurbishment job">
-        <div className="flex items-center justify-center py-24 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin" />
-        </div>
-      </AppLayout>
-    );
-  }
-
-  // Guard: must be signed in
-  if (!user) {
-    return (
-      <AppLayout title="Post a refurbishment job">
-        <EmptyState
-          icon={Lock}
-          title="Sign in required"
-          description="You need to be signed in to post a job."
-          action={
-            <Button asChild>
-              <Link to="/auth" search={{ mode: "signin" }}>
-                Sign in
-              </Link>
-            </Button>
-          }
-        />
-      </AppLayout>
-    );
-  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

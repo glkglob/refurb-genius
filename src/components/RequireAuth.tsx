@@ -1,17 +1,29 @@
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { Navigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/useAuth";
-import { LoadingState } from "@/components/LoadingState";
 
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { hydrated, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
 
-  if (!hydrated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center p-6">
-        <LoadingState label="Checking session…" />
-      </div>
-    );
+  // IMPORTANT: Defer all auth checks/redirects until after the component has
+  // mounted on the client. On server (SSR) and on the very first client render
+  // we unconditionally render children. This ensures the DOM produced for
+  // hydration exactly matches what _authed beforeLoad decided to send (the
+  // real protected content), eliminating hydration mismatches that surface as
+  // "Something went wrong" via RootErrorBoundary.
+  //
+  // After mount the (refetched) client auth state is consulted as a belt-and-
+  // suspenders safety net: if the session disappeared we SPA-redirect to /auth.
+  // We no longer block with a "Checking session" spinner — the beforeLoad
+  // guarantee + instant paint is preserved.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <>{children}</>;
   }
   if (!isAuthenticated) {
     const currentPath = typeof window !== "undefined" ? window.location.pathname : undefined;

@@ -98,7 +98,17 @@ export const Route = createFileRoute("/_authed")({
     // executes on the server and can read the *current* request's cookies.
     // On true SSR (hard refresh, direct link, bot crawl, etc.) this runs
     // entirely on the server before any React component mounts.
-    const { user } = await getCurrentUserServerFn();
+    let user: AuthUser | null = null;
+    try {
+      const res = await getCurrentUserServerFn();
+      user = res.user;
+    } catch {
+      // Treat any error reading the session (infra, bad/expired cookie that
+      // causes getUser to error rather than null, etc.) as unauthenticated.
+      // We redirect instead of letting the error escape to the route error
+      // boundary (which produces the "Something went wrong" screen).
+      user = null;
+    }
 
     if (!user) {
       // Preserve the originally requested URL (pathname + search) so the
