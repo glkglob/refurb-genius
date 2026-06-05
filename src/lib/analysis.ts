@@ -7,7 +7,7 @@ import {
   type RoomAnalysis,
   type AnalysisSource,
 } from "@/core/ai/mockAnalysis";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@repo/supabase";
 export {
   ROOM_TYPES,
   CONDITION_LEVELS,

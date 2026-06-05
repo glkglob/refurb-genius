@@ -6,7 +6,7 @@
 // This is now implemented via the supported `@repo/supabase/browser` factory
 // (no more direct import from the deprecated `@/integrations/supabase/client`).
 // Types are still pulled from the generated file for Database generic.
-import type { Database } from "@/integrations/supabase/types";
+import type { Database } from "@repo/supabase";
 import { createBrowserSupabase } from "@repo/supabase/browser";
 import { env } from "@/core/config/env";
 

@@ -272,8 +272,7 @@ export function AIEstimateBuilder({
     initialScopeRooms,
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const standardOnSuccess = (aiRooms: any[]) => {
+  const standardOnSuccess = (aiRooms: AIGeneratedRoom[]) => {
     const local = aiRoomsToLocal(aiRooms);
     setRooms(local);
     setOpenRooms(new Set(local.map((r) => r.id)));

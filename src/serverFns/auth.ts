@@ -79,7 +79,7 @@ import { z } from "zod";
 // Type-only imports — 100% safe at the top level. They produce zero runtime
 // code and do not pull any browser-only modules into server bundles.
 import type { AuthUser } from "@/lib/auth";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database } from "@repo/supabase";
 
 /**
  * Empty input schema.
