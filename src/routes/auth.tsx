@@ -39,34 +39,34 @@ function AuthPage() {
   const [error, setError] = useState("");
 
   // Rate limiting state
-  const [remainingSeconds, setRemainingSeconds] = useState(0)
-  const [lockedUntil, setLockedUntil] = useState<number | null>(null)
-  const [failedAttempts, setFailedAttempts] = useState(0)
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
 
-  const isLocked = remainingSeconds > 0
+  const isLocked = remainingSeconds > 0;
 
   // Countdown timer — ticks every second, drives remainingSeconds display
   useEffect(() => {
     if (lockedUntil === null) {
-      setRemainingSeconds(0)
-      return
+      setRemainingSeconds(0);
+      return;
     }
 
     const tick = () => {
-      const secs = Math.ceil((lockedUntil - Date.now()) / 1000)
+      const secs = Math.ceil((lockedUntil - Date.now()) / 1000);
       if (secs <= 0) {
-        setRemainingSeconds(0)
-        setLockedUntil(null)
-        setFailedAttempts(0)
+        setRemainingSeconds(0);
+        setLockedUntil(null);
+        setFailedAttempts(0);
       } else {
-        setRemainingSeconds(secs)
+        setRemainingSeconds(secs);
       }
-    }
+    };
 
-    tick() // run immediately so the display is correct on first render
-    const interval = setInterval(tick, 1000)
-    return () => clearInterval(interval)
-  }, [lockedUntil])
+    tick(); // run immediately so the display is correct on first render
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [lockedUntil]);
 
   // supabase client from centralized service (replaces createBrowserClient)
 
