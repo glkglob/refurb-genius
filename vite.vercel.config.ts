@@ -35,8 +35,11 @@ export default defineConfig({
       },
       disable: !process.env.SENTRY_AUTH_TOKEN,
       sourcemaps: {
-        assets: "./.vercel/output/**",
-        ignore: ["**/node_modules/**"],
+        // Target only client-side static chunks — Nitro's server function
+        // bundles in .vercel/output/functions/ have no source maps and
+        // produce "could not determine source map reference" noise.
+        assets: "./.vercel/output/static/**/*.js",
+        filesToDeleteAfterUpload: "./.vercel/output/static/**/*.js.map",
       },
     }),
   ],
