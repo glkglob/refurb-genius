@@ -40,6 +40,8 @@ function AuthPage() {
 
   // Rate limiting state
   const [remainingSeconds, setRemainingSeconds] = useState(0)
+  const [lockedUntil, setLockedUntil] = useState<number | null>(null)
+  const [failedAttempts, setFailedAttempts] = useState(0)
 
   const isLocked = remainingSeconds > 0
 
