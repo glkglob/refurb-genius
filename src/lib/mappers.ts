@@ -4,7 +4,7 @@
 // that lived in both `src/hooks/` and `src/lib/`. All call-sites should
 // import from here.
 
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@repo/supabase";
 import type { ProjectPhoto } from "./photos";
 import type { UKRegion, PropertyType, ProjectStatus } from "./projects";
 

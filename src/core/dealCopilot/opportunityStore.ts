@@ -4,7 +4,7 @@
 import { supabase } from "@/services/supabase";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@repo/supabase";
 
 import type { DealOpportunity, DealOpportunityStatus, DealExitStrategy } from "@repo/types";
 import type { PropertyType } from "@/lib/projects";

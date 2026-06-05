@@ -1,6 +1,6 @@
 import { supabase } from "@/services/supabase";
 import { logger } from "@/lib/logger";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database } from "@repo/supabase";
 import type { EstimateCategory, FinishLevel, PricingEngineResult } from "@/core/pricing";
 import type { ConditionLevel } from "@/core/ai";
 import type { CalculatedLineItem } from "@/core/pricing";

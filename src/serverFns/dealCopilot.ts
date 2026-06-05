@@ -57,7 +57,7 @@ import { z } from "zod";
 
 // Type-only: safe, zero runtime cost, does not execute the source module.
 import type { DealOpportunity } from "@repo/types";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@repo/supabase";
 
 // The two primitives that give us SSR-safe auth for every serverFn.
 import { requireUser, createSupabaseServerClient } from "@/serverFns/auth";

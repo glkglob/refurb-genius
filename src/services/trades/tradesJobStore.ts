@@ -1,5 +1,5 @@
 import { supabase } from "@/services/supabase";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Tables } from "@repo/supabase";
 import type {
   TradesJob,
   TradesJobCategory,

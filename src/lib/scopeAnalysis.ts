@@ -1,5 +1,5 @@
 import { supabase } from "@/services/supabase";
-import type { Database } from "@/integrations/supabase/types";
+import type { Database } from "@repo/supabase";
 import type {
   ScopeAnalysisResult,
   ScopeRoom,

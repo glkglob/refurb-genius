@@ -21,6 +21,10 @@
     "./env": {
       "types": "./src/env.ts",
       "default": "./src/env.ts"
+    },
+    "./types": {
+      "types": "./src/database.types.ts",
+      "default": "./src/database.types.ts"
     }
   },
   "dependencies": {

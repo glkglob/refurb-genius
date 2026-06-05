@@ -12,7 +12,7 @@
 -- schema cache" error (PostgREST schema introspection fails for unknown columns
 -- during .select('*') or typed inserts).
 --
--- After applying this migration, run `supabase gen types typescript --local > src/integrations/supabase/types.ts`
+-- After applying this migration, run `supabase gen types typescript --local > packages/supabase/src/database.types.ts`
 -- (or the equivalent) to refresh client types if they were out of sync.
 
 ALTER TABLE public.projects

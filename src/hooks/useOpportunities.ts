@@ -3,7 +3,7 @@ import { useAuth } from "./useAuth";
 import { supabase } from "@/services/supabase";
 import type { DealOpportunity, DealOpportunityStatus, DealExitStrategy } from "@repo/types";
 import type { PropertyType } from "@/lib/projects";
-import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
+import type { Tables, TablesUpdate } from "@repo/supabase";
 
 // Use the protected serverFn for writes (consistent with projects save and auth migration).
 import { saveDealOpportunityServerFn } from "@/serverFns/dealCopilot";
