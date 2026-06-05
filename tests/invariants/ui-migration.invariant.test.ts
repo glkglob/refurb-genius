@@ -106,18 +106,20 @@ test("newly migrated shims (the 11) are pure re-exports (no implementation or @/
   for (const name of NEWLY_MIGRATED) {
     const shimFile = shimPath(name);
     const content = readTrimmed(shimFile);
-    const lines = content
+    const rawLines = content
       .split("\n")
       .map((l) => l.trim())
       .filter(Boolean);
+    const lines = rawLines.filter((l) => !l.startsWith("//"));
 
-    // Should be exactly one line (or one effective after comments)
-    assert.ok(
-      lines.length <= 2, // allow a trailing newline or simple comment
-      `Shim ${name}.tsx should be a single re-export line, got ${lines.length} lines: ${content}`,
+    // Should be exactly one non-comment line: the re-export
+    assert.equal(
+      lines.length,
+      1,
+      `Shim ${name}.tsx should contain exactly one re-export statement (comments allowed). Got ${rawLines.length} lines: ${content}`,
     );
 
-    const match = content.match(reexportRegex);
+    const match = lines[0].match(reexportRegex);
     assert.ok(
       match,
       `Shim ${name}.tsx must be a pure re-export. Got:\n${content}\nExpected: export * from "@repo/ui/${name}";`,
