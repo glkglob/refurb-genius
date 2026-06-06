@@ -1,0 +1,54 @@
+packages/ui/src/components/chart.tsx
+  s_77b5d4cf8ce63d::t_17207b625c3c8e 173
+  s_77b5d4cf8ce63d::t_281b8e268353cc 223
+src/services/supabase/index.ts
+  s_77b5d4cf8ce63d::t_413a834dee1769 15-20,23
+src/components/marketplace/MessagingInbox.tsx
+  s_77b5d4cf8ce63d::t_75feae0fd7870c 28-33
+  s_77b5d4cf8ce63d::t_ca5e715b567704 224
+src/routes/_authed/marketplace.tsx
+  s_77b5d4cf8ce63d::t_6212989a0ae66c 6
+  s_77b5d4cf8ce63d::t_6b51ca49e6e6a7 23-25
+  s_77b5d4cf8ce63d::t_ecb8934106620c 30
+  s_77b5d4cf8ce63d::t_1128e7ff95762a 67-69,72-73
+src/components/photos/PhotoAnalysisCard.tsx
+  s_77b5d4cf8ce63d::t_b3c13dfc3ba3a4 141
+src/components/pitch-deck/PitchDeckGenerator.tsx
+  s_77b5d4cf8ce63d::t_a16f38246a602f 162
+  s_77b5d4cf8ce63d::t_20cdc1be2f2730 3
+  s_77b5d4cf8ce63d::t_6fcf8205595cc5 42-48
+src/routes/gallery.$slug.tsx
+  s_77b5d4cf8ce63d::t_c0e01e41444e32 41-44
+  s_77b5d4cf8ce63d::t_0aff769a0638aa 224
+packages/ui/src/components/carousel.tsx
+  s_77b5d4cf8ce63d::t_385832bf337ec7 103
+src/lib/pitchDeck.ts
+  s_77b5d4cf8ce63d::t_9eb7044fc884db 329
+  s_77b5d4cf8ce63d::t_38cbb09f54bb78 221-222
+  s_77b5d4cf8ce63d::t_19da74de0af451 229-232
+src/routes/_authed/projects.$id.index.tsx
+  s_77b5d4cf8ce63d::t_8ccbf9605404f3 244-248,250-256,258-261
+  s_77b5d4cf8ce63d::t_19da74de0af451 249
+packages/ui/src/components/breadcrumb.tsx
+  s_77b5d4cf8ce63d::t_19da74de0af451 12-14
+src/components/marketplace/QuoteRequestDialog.tsx
+  s_77b5d4cf8ce63d::t_488a0a8a490f8b 50
+src/components/photos/PhotoAnalysisFilters.tsx
+  s_77b5d4cf8ce63d::t_2e97780aa376c1 96,98,100,102-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "06e5a30455e607d361b0f628905e24dc5479b22e",
+  "prompts": {},
+  "sessions": {
+    "s_77b5d4cf8ce63d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "70996314-76bc-4668-b57d-aac1af89e969",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Kris Solo <glkglob@users.noreply.github.com>"
+    }
+  }
+}
