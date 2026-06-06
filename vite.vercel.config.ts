@@ -41,6 +41,7 @@ export default defineConfig({
         assets: "./.vercel/output/**",
         ignore: ["**/node_modules/**"],
         filesToDeleteAfterUpload: "./.vercel/output/**/*.map",
+      },
     }),
   ],
 
