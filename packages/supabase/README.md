@@ -32,11 +32,12 @@ export const supabase = createBrowserSupabase<Database>({
 ### Server Client (TanStack Start / SSR)
 
 ```ts
+import { getCookies } from "@tanstack/react-start/server";
 import { createServerSupabase } from "@repo/supabase/server";
 import type { Database } from "./generated/supabase-types";
 
-export async function getSupabase(cookies: Record<string, string>) {
-  return createServerSupabase<Database>(cookies);
+export async function getSupabase() {
+  return createServerSupabase<Database>(getCookies());
 }
 ```
 
