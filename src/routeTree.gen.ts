@@ -18,6 +18,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as TradesJobIdRouteImport } from './routes/trades_.$jobId'
+import { Route as OauthConsentRouteImport } from './routes/oauth.consent'
 import { Route as GallerySlugRouteImport } from './routes/gallery.$slug'
 import { Route as AuthCallbackRouteImport } from './routes/auth_.callback'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
@@ -25,7 +26,6 @@ import { Route as AuthedMarketplaceRouteImport } from './routes/_authed/marketpl
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as AuthedAdminRouteImport } from './routes/_authed/admin'
 import { Route as AuthedDealCopilotIndexRouteImport } from './routes/_authed/deal-copilot/index'
-import { Route as PrivacyOauthConsentRouteImport } from './routes/privacy_.oauth.consent'
 import { Route as AuthedTradesProfileRouteImport } from './routes/_authed/trades_.profile'
 import { Route as AuthedTradesNewRouteImport } from './routes/_authed/trades_.new'
 import { Route as AuthedProjectsNewRouteImport } from './routes/_authed/projects.new'
@@ -84,6 +84,11 @@ const TradesJobIdRoute = TradesJobIdRouteImport.update({
   path: '/trades/$jobId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OauthConsentRoute = OauthConsentRouteImport.update({
+  id: '/oauth/consent',
+  path: '/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GallerySlugRoute = GallerySlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -118,11 +123,6 @@ const AuthedDealCopilotIndexRoute = AuthedDealCopilotIndexRouteImport.update({
   id: '/deal-copilot/',
   path: '/deal-copilot/',
   getParentRoute: () => AuthedRoute,
-} as any)
-const PrivacyOauthConsentRoute = PrivacyOauthConsentRouteImport.update({
-  id: '/privacy_/oauth/consent',
-  path: '/privacy/oauth/consent',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedTradesProfileRoute = AuthedTradesProfileRouteImport.update({
   id: '/trades_/profile',
@@ -208,13 +208,13 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthedSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/gallery/$slug': typeof GallerySlugRoute
+  '/oauth/consent': typeof OauthConsentRoute
   '/trades/$jobId': typeof TradesJobIdRoute
   '/deal-copilot/$opportunityId': typeof AuthedDealCopilotOpportunityIdRouteWithChildren
   '/deal-copilot/new': typeof AuthedDealCopilotNewRoute
   '/projects/new': typeof AuthedProjectsNewRoute
   '/trades/new': typeof AuthedTradesNewRoute
   '/trades/profile': typeof AuthedTradesProfileRoute
-  '/privacy/oauth/consent': typeof PrivacyOauthConsentRoute
   '/deal-copilot/': typeof AuthedDealCopilotIndexRoute
   '/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
   '/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
@@ -239,13 +239,13 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthedSettingsRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/gallery/$slug': typeof GallerySlugRoute
+  '/oauth/consent': typeof OauthConsentRoute
   '/trades/$jobId': typeof TradesJobIdRoute
   '/deal-copilot/$opportunityId': typeof AuthedDealCopilotOpportunityIdRouteWithChildren
   '/deal-copilot/new': typeof AuthedDealCopilotNewRoute
   '/projects/new': typeof AuthedProjectsNewRoute
   '/trades/new': typeof AuthedTradesNewRoute
   '/trades/profile': typeof AuthedTradesProfileRoute
-  '/privacy/oauth/consent': typeof PrivacyOauthConsentRoute
   '/deal-copilot': typeof AuthedDealCopilotIndexRoute
   '/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
   '/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
@@ -272,13 +272,13 @@ export interface FileRoutesById {
   '/_authed/settings': typeof AuthedSettingsRoute
   '/auth_/callback': typeof AuthCallbackRoute
   '/gallery/$slug': typeof GallerySlugRoute
+  '/oauth/consent': typeof OauthConsentRoute
   '/trades_/$jobId': typeof TradesJobIdRoute
   '/_authed/deal-copilot/$opportunityId': typeof AuthedDealCopilotOpportunityIdRouteWithChildren
   '/_authed/deal-copilot/new': typeof AuthedDealCopilotNewRoute
   '/_authed/projects/new': typeof AuthedProjectsNewRoute
   '/_authed/trades_/new': typeof AuthedTradesNewRoute
   '/_authed/trades_/profile': typeof AuthedTradesProfileRoute
-  '/privacy_/oauth/consent': typeof PrivacyOauthConsentRoute
   '/_authed/deal-copilot/': typeof AuthedDealCopilotIndexRoute
   '/_authed/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
   '/_authed/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
@@ -305,13 +305,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/callback'
     | '/gallery/$slug'
+    | '/oauth/consent'
     | '/trades/$jobId'
     | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
     | '/trades/new'
     | '/trades/profile'
-    | '/privacy/oauth/consent'
     | '/deal-copilot/'
     | '/deal-copilot/$opportunityId/edit'
     | '/projects/$id/analysis'
@@ -336,13 +336,13 @@ export interface FileRouteTypes {
     | '/settings'
     | '/auth/callback'
     | '/gallery/$slug'
+    | '/oauth/consent'
     | '/trades/$jobId'
     | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
     | '/trades/new'
     | '/trades/profile'
-    | '/privacy/oauth/consent'
     | '/deal-copilot'
     | '/deal-copilot/$opportunityId/edit'
     | '/projects/$id/analysis'
@@ -368,13 +368,13 @@ export interface FileRouteTypes {
     | '/_authed/settings'
     | '/auth_/callback'
     | '/gallery/$slug'
+    | '/oauth/consent'
     | '/trades_/$jobId'
     | '/_authed/deal-copilot/$opportunityId'
     | '/_authed/deal-copilot/new'
     | '/_authed/projects/new'
     | '/_authed/trades_/new'
     | '/_authed/trades_/profile'
-    | '/privacy_/oauth/consent'
     | '/_authed/deal-copilot/'
     | '/_authed/deal-copilot/$opportunityId/edit'
     | '/_authed/projects/$id/analysis'
@@ -396,8 +396,8 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   TradesRoute: typeof TradesRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  OauthConsentRoute: typeof OauthConsentRoute
   TradesJobIdRoute: typeof TradesJobIdRoute
-  PrivacyOauthConsentRoute: typeof PrivacyOauthConsentRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -465,6 +465,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TradesJobIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/oauth/consent': {
+      id: '/oauth/consent'
+      path: '/oauth/consent'
+      fullPath: '/oauth/consent'
+      preLoaderRoute: typeof OauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gallery/$slug': {
       id: '/gallery/$slug'
       path: '/$slug'
@@ -513,13 +520,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/deal-copilot/'
       preLoaderRoute: typeof AuthedDealCopilotIndexRouteImport
       parentRoute: typeof AuthedRoute
-    }
-    '/privacy_/oauth/consent': {
-      id: '/privacy_/oauth/consent'
-      path: '/privacy/oauth/consent'
-      fullPath: '/privacy/oauth/consent'
-      preLoaderRoute: typeof PrivacyOauthConsentRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/_authed/trades_/profile': {
       id: '/_authed/trades_/profile'
@@ -695,8 +695,8 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   TradesRoute: TradesRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  OauthConsentRoute: OauthConsentRoute,
   TradesJobIdRoute: TradesJobIdRoute,
-  PrivacyOauthConsentRoute: PrivacyOauthConsentRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

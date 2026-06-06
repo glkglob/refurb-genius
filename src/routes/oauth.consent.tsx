@@ -3,7 +3,7 @@ import { ShieldCheck, Mail, User, LogIn } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/privacy_/oauth/consent")({
+export const Route = createFileRoute("/oauth/consent")({
   head: () => ({
     meta: [
       { title: "Authorise Access — Refurb Genius" },
