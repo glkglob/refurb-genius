@@ -86,6 +86,28 @@ export type {
   CreateTradesJobInterestInput,
 } from "./tradesJobInterest.types";
 
+// Feature foundation types (3D Floorplan, Marketplace, Photo Analysis, Pitch Deck, Gallery)
+export type {
+  FloorplanModel,
+  FloorplanAnnotation,
+  FloorplanMeasurement,
+  FloorplanModelWithAnnotations,
+  FloorplanStatus,
+} from "./floorplan";
+export type {
+  Tradeperson,
+  TradeSpecialty,
+  TradeFavorite,
+  QuoteRequest,
+  TradeMessage,
+  TradepersonWithSpecialties,
+  QuoteRequestWithMessages,
+  QuoteStatus,
+} from "./marketplace";
+export type { PhotoAnalysisResult } from "./photo-analysis";
+export type { PitchDeckExport } from "./pitch-deck";
+export type { PublicGalleryProject, InvestorLead, GalleryProjectWithLeads } from "./gallery";
+
 // Deal Copilot orchestration types
 export type { ParsedDealFormData, DealAnalysisResult } from "./deal-copilot";
 

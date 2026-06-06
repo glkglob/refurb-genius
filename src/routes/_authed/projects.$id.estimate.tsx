@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/LoadingState";
 import { AIEstimateBuilder } from "@/components/AIEstimateBuilder";
+import { EstimateBuilder } from "@/components/EstimateBuilder";
 import {
   Badge,
   Button,
@@ -34,6 +35,7 @@ import {
   Percent,
   Gauge,
   ShieldAlert,
+  GripVertical,
 } from "lucide-react";
 import { type UKRegion } from "@/core/projects";
 import { type ConditionLevel } from "@/core/ai";
@@ -217,6 +219,9 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
           <TabsTrigger value="ai">
             <Sparkles className="mr-1.5 h-4 w-4" /> AI estimate
           </TabsTrigger>
+          <TabsTrigger value="builder">
+            <GripVertical className="mr-1.5 h-4 w-4" /> Builder (drag & drop)
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="ai">
@@ -229,6 +234,16 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
             initialRegion={project.region}
             postcode={project.postcode}
             initialScopeRooms={scopeRooms}
+            onSaved={() => {
+              setStage.mutate({ id, stage: "estimate", value: true });
+            }}
+          />
+        </TabsContent>
+
+        <TabsContent value="builder">
+          <EstimateBuilder
+            projectId={id}
+            project={project}
             onSaved={() => {
               setStage.mutate({ id, stage: "estimate", value: true });
             }}

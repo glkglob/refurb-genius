@@ -62,6 +62,7 @@ function AuthPage() {
   }, [isLocked, lockedUntil]);
 
   // supabase client from centralized service (replaces createBrowserClient)
+  const supabase = createBrowserClient(); // or your centralized client
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -254,4 +255,8 @@ function AuthPage() {
       </Card>
     </div>
   );
+}
+
+function createBrowserClient() {
+  return supabase;
 }

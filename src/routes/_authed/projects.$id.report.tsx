@@ -281,7 +281,7 @@ function ReportPage() {
       <div className="no-print sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Button asChild variant="ghost" size="sm">
-            <Link to="/projects/$id" params={{ id }}>
+            <Link to="/projects/$id" params={{ id }} search={{ tab: "overview" }}>
               <ArrowLeft className="h-4 w-4" /> Back to project
             </Link>
           </Button>
