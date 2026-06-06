@@ -24,11 +24,6 @@ export const supabase = createBrowserSupabase<Database>({
   secure: !isDev,
 });
 
-// Re-export the auth wrapper so the auth surface lives behind the service
-// layer too. New code should prefer `@/services/supabase` over `@/lib/auth`.
-export { auth } from "@/lib/auth";
-export type { AuthUser } from "@/lib/auth";
-
 /** True when Supabase URL + key are present at build time. */
 export function isSupabaseConfigured(): boolean {
   return env.isSupabaseConfigured;
