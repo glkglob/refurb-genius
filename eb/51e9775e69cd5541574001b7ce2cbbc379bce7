@@ -1,0 +1,19 @@
+vite.vercel.config.ts
+  s_77b5d4cf8ce63d::t_e67ded7b2c1821 41-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "eb51e9775e69cd5541574001b7ce2cbbc379bce7",
+  "prompts": {},
+  "sessions": {
+    "s_77b5d4cf8ce63d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "70996314-76bc-4668-b57d-aac1af89e969",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Kris Solo <glkglob@users.noreply.github.com>"
+    }
+  }
+}
