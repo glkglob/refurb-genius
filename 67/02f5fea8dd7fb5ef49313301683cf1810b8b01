@@ -1,0 +1,21 @@
+src/routeTree.gen.ts
+  s_d53f61cea7be8f::t_a614bdcbe042cd 28,122-126,217,248,281,314,345,377,400,517-523,699
+src/routes/privacy_.oauth.consent.tsx
+  s_d53f61cea7be8f::t_67ac3a380931bc 1-112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "6702f5fea8dd7fb5ef49313301683cf1810b8b01",
+  "prompts": {},
+  "sessions": {
+    "s_d53f61cea7be8f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c2b02475-93c7-4fef-955a-f8730a7dd1f6",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Kris Solo <glkglob@users.noreply.github.com>"
+    }
+  }
+}
