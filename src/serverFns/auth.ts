@@ -153,8 +153,12 @@ export async function createSupabaseServerClient() {
   const { getCookies } = await import("@tanstack/react-start/server");
   const { createServerSupabase } = await import("@repo/supabase/server");
 
-  // Passing the Database generic gives us typed table access for the whole app.
-  return createServerSupabase<Database>(getCookies());
+  // cookieName MUST match the value used by the browser client in
+  // src/services/supabase/_client.ts — both must be "pip-auth" so that
+  // @supabase/ssr uses the same storageKey on client and server.
+  // Without this the server would look for the default "sb-<project>-auth-token"
+  // cookie and return null for every authenticated user.
+  return createServerSupabase<Database>(getCookies(), { cookieName: "pip-auth" });
 }
 
 /**

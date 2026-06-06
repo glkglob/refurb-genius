@@ -40,10 +40,30 @@ export type CookieMap = Record<string, string>;
  * const supabase = createServerSupabase<Database>(map);
  * ```
  */
-export function createServerSupabase<DB = unknown>(cookies: CookieMap): SupabaseClient<DB> {
+export interface ServerSupabaseOptions {
+  /**
+   * The cookie name prefix used by the browser Supabase client.
+   *
+   * MUST match the `cookieName` passed to `createBrowserSupabase` in your
+   * app (currently "pip-auth"). Without this, `@supabase/ssr` derives the
+   * storage key from the Supabase project URL — a different key than the one
+   * the browser client wrote — and `auth.getUser()` returns null even when the
+   * user is authenticated.
+   *
+   * This maps to `cookieOptions.name` on the underlying `createServerClient`,
+   * which sets `storageKey` in `@supabase/supabase-js`'s auth layer.
+   */
+  cookieName?: string;
+}
+
+export function createServerSupabase<DB = unknown>(
+  cookies: CookieMap,
+  options?: ServerSupabaseOptions,
+): SupabaseClient<DB> {
   const { supabaseUrl, supabaseAnonKey } = assertSupabaseEnv();
 
   return _createServerClient<DB>(supabaseUrl, supabaseAnonKey, {
+    ...(options?.cookieName ? { cookieOptions: { name: options.cookieName } } : {}),
     cookies: {
       getAll() {
         return Object.entries(cookies).map(([name, value]) => ({ name, value }));

@@ -1,6 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
-import { useNavigate, useSearch } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/services/supabase";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
+import { identifyAnalyticsUser, trackEvent, trackSignupCompleted } from "@/lib/analytics";
+
+// Client-side lockout after repeated failures.
+const MAX_ATTEMPTS = 3;
+const LOCKOUT_MS = 60_000;
 
 export const Route = createFileRoute("/auth")({
   validateSearch: (
@@ -28,7 +33,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { mode = "signin" } = useSearch({ from: "/auth" });
+  const { mode = "signin", redirect } = useSearch({ from: "/auth" });
 
   const [isSignIn, setIsSignIn] = useState(mode !== "signup");
   const [email, setEmail] = useState("");
@@ -37,15 +42,17 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [error, setError] = useState("");
+  // Show verification prompt after sign-up when email confirmation is required.
+  const [awaitingVerification, setAwaitingVerification] = useState(false);
 
-  // Rate limiting state
+  // Rate-limiting state
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
 
   const isLocked = remainingSeconds > 0;
 
-  // Countdown timer — ticks every second, drives remainingSeconds display
+  // Countdown timer — ticks every second, drives remainingSeconds display.
   useEffect(() => {
     if (lockedUntil === null) {
       setRemainingSeconds(0);
@@ -64,12 +71,16 @@ function AuthPage() {
     };
 
     tick(); // run immediately so the display is correct on first render
-    const interval = setInterval(tick, 1000);
+    const interval = setInterval(tick, 1_000);
     return () => clearInterval(interval);
   }, [lockedUntil]);
 
-  // supabase client from centralized service (replaces createBrowserClient)
-  const supabase = createBrowserClient(); // or your centralized client
+  /** Navigate to the originally requested URL, falling back to /dashboard. */
+  const navigateAfterAuth = () => {
+    const destination =
+      redirect && !redirect.startsWith("/auth") ? redirect : "/dashboard";
+    void navigate({ to: destination, replace: true });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,52 +100,68 @@ function AuthPage() {
 
     try {
       if (isSignIn) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
         if (signInError) throw signInError;
+
+        identifyAnalyticsUser(data.user?.id);
+        trackEvent("user_signed_in", { provider: "email" });
+
+        // Reset rate-limit counters on success.
+        setFailedAttempts(0);
+        setLockedUntil(null);
+
+        toast.success("Signed in successfully");
+        navigateAfterAuth();
       } else {
-        // Sign up
-        const { error: signUpError } = await supabase.auth.signUp({
+        // Sign-up — Supabase may or may not return a session depending on
+        // whether email confirmation is enabled in the project settings.
+        const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: { data: { full_name: fullName } },
         });
 
         if (signUpError) throw signUpError;
+
+        identifyAnalyticsUser(data.user?.id);
+        trackSignupCompleted("email", data.user?.id);
+
+        setFailedAttempts(0);
+        setLockedUntil(null);
+
+        if (data.session) {
+          // Email confirmation is disabled — user is immediately signed in.
+          toast.success("Account created! Welcome to Refurb Genius.");
+          navigateAfterAuth();
+        } else {
+          // Email confirmation is required — stay on the auth page and
+          // prompt the user to check their inbox.
+          setAwaitingVerification(true);
+          toast.success("Account created! Please check your email to confirm your address.");
+        }
       }
-
-      // Success → reset rate limit
-      setFailedAttempts(0);
-      setLockedUntil(null);
-
-      toast.success(isSignIn ? "Signed in successfully" : "Account created! Check your email.");
-      navigate({ to: "/dashboard" });
     } catch (err) {
-      console.error(err);
+      logger.error("[auth] authentication failed", { error: String(err) });
 
       const message = err instanceof Error ? err.message : "Authentication failed";
 
-      // Handle rate limit from Supabase
+      const newAttempts = failedAttempts + 1;
+      setFailedAttempts(newAttempts);
+
       if (
         message.toLowerCase().includes("rate limit") ||
         message.toLowerCase().includes("too many requests")
       ) {
         setError("Too many sign-in attempts. Please wait a moment and try again.");
+      } else if (newAttempts >= MAX_ATTEMPTS) {
+        setLockedUntil(Date.now() + LOCKOUT_MS);
+        setError("Too many failed attempts. Please wait 60 seconds.");
       } else {
         setError(message);
-      }
-
-      // Increment failed attempts
-      const newAttempts = failedAttempts + 1;
-      setFailedAttempts(newAttempts);
-
-      if (newAttempts >= 3) {
-        const lockTime = Date.now() + 60_000; // 60 seconds lockout
-        setLockedUntil(lockTime);
-        setError(`Too many failed attempts. Please wait 60 seconds.`);
       }
     } finally {
       setLoading(false);
@@ -144,20 +171,46 @@ function AuthPage() {
   const handleGoogleSignIn = async () => {
     setOauthLoading(true);
     setError("");
+    trackEvent("oauth_sign_in_initiated", { provider: "google" });
 
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: redirect ? { redirect_to: redirect } : undefined,
+        },
       });
 
       if (error) throw error;
     } catch (err) {
+      logger.error("[auth] Google sign-in failed", { error: String(err) });
       setError(err instanceof Error ? err.message : "Google sign in failed");
-    } finally {
       setOauthLoading(false);
     }
   };
+
+  // Email-verification holding screen
+  if (awaitingVerification) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+        <Card className="w-full max-w-md text-center">
+          <CardHeader>
+            <CardTitle>Check your email</CardTitle>
+            <CardDescription>
+              We sent a confirmation link to <strong>{email}</strong>. Click it to activate your
+              account, then sign in below.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" className="w-full" onClick={() => setAwaitingVerification(false)}>
+              Back to sign in
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
@@ -179,7 +232,7 @@ function AuthPage() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="John Smith"
-                  required={!isSignIn}
+                  required
                 />
               </div>
             )}
@@ -223,7 +276,7 @@ function AuthPage() {
             )}
 
             <Button type="submit" className="w-full" disabled={loading || oauthLoading || isLocked}>
-              {loading ? "Processing..." : isSignIn ? "Sign In" : "Create Account"}
+              {loading ? "Processing…" : isSignIn ? "Sign In" : "Create Account"}
             </Button>
           </form>
 
@@ -234,16 +287,20 @@ function AuthPage() {
               onClick={handleGoogleSignIn}
               disabled={oauthLoading || isLocked}
             >
-              {oauthLoading ? "Connecting..." : "Continue with Google"}
+              {oauthLoading ? "Connecting…" : "Continue with Google"}
             </Button>
           </div>
 
           <div className="mt-6 text-center text-sm">
             {isSignIn ? (
               <p>
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <button
-                  onClick={() => setIsSignIn(false)}
+                  type="button"
+                  onClick={() => {
+                    setIsSignIn(false);
+                    setError("");
+                  }}
                   className="text-blue-600 hover:underline"
                 >
                   Sign up
@@ -252,7 +309,14 @@ function AuthPage() {
             ) : (
               <p>
                 Already have an account?{" "}
-                <button onClick={() => setIsSignIn(true)} className="text-blue-600 hover:underline">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSignIn(true);
+                    setError("");
+                  }}
+                  className="text-blue-600 hover:underline"
+                >
                   Sign in
                 </button>
               </p>
@@ -262,8 +326,4 @@ function AuthPage() {
       </Card>
     </div>
   );
-}
-
-function createBrowserClient() {
-  return supabase;
 }
