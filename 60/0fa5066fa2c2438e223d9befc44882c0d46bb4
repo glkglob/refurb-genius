@@ -1,0 +1,21 @@
+public/google67171f4fb953058a.html
+  s_d53f61cea7be8f::t_16b2351fc03fe8 1
+src/routes/__root.tsx
+  s_d53f61cea7be8f::t_437bc9954c0625 122-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "600fa5066fa2c2438e223d9befc44882c0d46bb4",
+  "prompts": {},
+  "sessions": {
+    "s_d53f61cea7be8f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c2b02475-93c7-4fef-955a-f8730a7dd1f6",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Kris Solo <glkglob@users.noreply.github.com>"
+    }
+  }
+}
