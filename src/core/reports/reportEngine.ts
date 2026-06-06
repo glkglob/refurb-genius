@@ -61,7 +61,7 @@ export type ReportBranding = {
 
 const DEFAULT_BRANDING: ReportBranding = {
   product: "Refurb Genius",
-  domain: "refurbgenius.com",
+  domain: "refurbgenius.info",
   tagline: "AI-first UK refurbishment analysis",
 };
 

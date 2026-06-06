@@ -79,11 +79,11 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 // VITE_PUBLIC_URL must be set in Vercel project settings for both production and preview
-// environments (e.g. https://www.refurbgenius.site). Without it, og:image and og:url
+// environments (e.g. https://www.refurbgenius.info). Without it, og:image and og:url
 // fall back to the production domain so social cards still render on preview deployments.
 const SITE_URL =
   (import.meta.env.VITE_PUBLIC_URL as string | undefined)?.replace(/\/$/, "") ??
-  "https://www.refurbgenius.site";
+  "https://www.refurbgenius.info";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
