@@ -1,0 +1,21 @@
+src/services/supabase/_client.ts
+  s_d53f61cea7be8f::t_8a0118fe2dbfce 23
+src/routes/auth.tsx
+  s_d53f61cea7be8f::t_8a0118fe2dbfce 80,205-209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "62d317c2aaa3449b70f5cf30379798b5d4918824",
+  "prompts": {},
+  "sessions": {
+    "s_d53f61cea7be8f": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c2b02475-93c7-4fef-955a-f8730a7dd1f6",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Kris Solo <glkglob@users.noreply.github.com>"
+    }
+  }
+}
