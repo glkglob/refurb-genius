@@ -29,20 +29,20 @@ On first mount (including hard refresh or deep link) it performs a real server r
 **Always perform the actual authentication action through the legacy singleton.**
 
 ```ts
-import { auth } from "@/lib/auth";                    // ← the mutation layer
+import { auth } from "@/lib/auth"; // ← the mutation layer
 import { useQueryClient } from "@tanstack/react-query";
 import { AUTH_USER_QUERY_KEY } from "@/hooks/useAuth";
 
 // Example inside a form handler (recommended pattern for /auth.tsx)
 const qc = useQueryClient();
 
-const user = await auth.signIn(email, password);      // does Supabase signInWithPassword internally + fires listeners
+const user = await auth.signIn(email, password); // does Supabase signInWithPassword internally + fires listeners
 // Immediately reflect the result in the Query cache (instant UI update everywhere)
 qc.setQueryData(AUTH_USER_QUERY_KEY, user);
 
 // For sign-out the hook provides a convenience wrapper:
 const { signOut } = useAuth();
-await signOut();   // internally: auth.signOut() + sets cache to null
+await signOut(); // internally: auth.signOut() + sets cache to null
 // (You can also call auth.signOut() directly and let the bridge handle it.)
 ```
 
@@ -115,13 +115,13 @@ For the callback route (`auth_.callback.tsx`) prefer `invalidateQueries` because
 
 ## Summary cheat sheet
 
-| Goal                              | Recommended code                                                                 |
-|-----------------------------------|----------------------------------------------------------------------------------|
-| Sign the user in                  | `const u = await auth.signIn(e, p); qc.setQueryData(AUTH_USER_QUERY_KEY, u);`   |
-| Sign the user out                 | `const { signOut } = useAuth(); await signOut();` (or direct + set null)         |
-| Read user anywhere (incl. public) | `const { user, isLoading, isAuthenticated } = useAuth();`                        |
-| Force a fresh server check        | `await qc.invalidateQueries({ queryKey: AUTH_USER_QUERY_KEY });`                 |
-| Inside a serverFn                 | `const { user } = await getCurrentUserServerFn();` or `requireUser()`            |
+| Goal                              | Recommended code                                                              |
+| --------------------------------- | ----------------------------------------------------------------------------- |
+| Sign the user in                  | `const u = await auth.signIn(e, p); qc.setQueryData(AUTH_USER_QUERY_KEY, u);` |
+| Sign the user out                 | `const { signOut } = useAuth(); await signOut();` (or direct + set null)      |
+| Read user anywhere (incl. public) | `const { user, isLoading, isAuthenticated } = useAuth();`                     |
+| Force a fresh server check        | `await qc.invalidateQueries({ queryKey: AUTH_USER_QUERY_KEY });`              |
+| Inside a serverFn                 | `const { user } = await getCurrentUserServerFn();` or `requireUser()`         |
 
 See also (primary sources):
 

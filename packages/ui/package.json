@@ -23,7 +23,9 @@
       "default": "./src/components/*.tsx"
     }
   },
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "dependencies": {
     "@radix-ui/react-accordion": "*",
     "@radix-ui/react-alert-dialog": "*",

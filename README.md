@@ -7,6 +7,7 @@ Refurb Genius is a property refurbishment analysis platform built with **TanStac
 This repository is a **pnpm workspace monorepo**. The active application runtime lives in the root `src/` directory, with shared logic extracted into workspace packages under `packages/`.
 
 ## Stack
+
 - TanStack Start + Vite
 - React 19 + TypeScript
 - Tailwind CSS
@@ -16,21 +17,23 @@ This repository is a **pnpm workspace monorepo**. The active application runtime
 > **Note:** This is a TanStack Start application. It is **not** a Next.js project.
 
 ## Repository Layout
-src/                  → Main TanStack Start application
+
+src/ → Main TanStack Start application
 packages/
-core/               → Shared constants and utilities
-services/           → Shared deterministic business logic
-types/              → Shared types and contracts
-ui/                 → Shared UI components
-supabase/           → Shared Supabase clients/helpers, database migrations, policies, and Edge Functions
-integrations/       → Shared integration boundaries
-eslint-config/      → Shared ESLint config
-typescript-config/  → Shared TypeScript config
-docs/                 → Architecture and product documentation
-tests/invariants/     → Invariant and contract tests
-ios/                  → Capacitor iOS project
+core/ → Shared constants and utilities
+services/ → Shared deterministic business logic
+types/ → Shared types and contracts
+ui/ → Shared UI components
+supabase/ → Shared Supabase clients/helpers, database migrations, policies, and Edge Functions
+integrations/ → Shared integration boundaries
+eslint-config/ → Shared ESLint config
+typescript-config/ → Shared TypeScript config
+docs/ → Architecture and product documentation
+tests/invariants/ → Invariant and contract tests
+ios/ → Capacitor iOS project
 
 ## Workspace Packages
+
 - `@repo/types` — Shared domain types and contracts
 - `@repo/core` — Shared constants and framework-light utilities
 - `@repo/services` — Shared deterministic business logic (pricing, ROI, etc.)
@@ -41,6 +44,7 @@ ios/                  → Capacitor iOS project
 - `@repo/typescript-config` — Shared TypeScript configuration
 
 ## Key Architecture Principles
+
 - Financial and investment calculations must remain **deterministic** (code-driven).
 - AI is used to assist with analysis and drafting, but should **not** be treated as the source of truth for pricing, ROI, or profit calculations.
 - OpenAI keys and Supabase service role keys must remain **server-only**. Never expose them with `VITE_` prefixes.
@@ -66,6 +70,7 @@ pnpm build:vercel
 ```
 
 **For reliable deploys:** Always use `pnpm install --frozen-lockfile`. The project pins pnpm@9.15.9 via `packageManager` and uses idempotent Supabase migrations (policies/tables guarded against duplicates).
+
 ```
 
 ## Environment Variables
@@ -99,3 +104,4 @@ Start with:
 - Run `pnpm typecheck && pnpm lint && pnpm test:invariants` before committing (matches CI + pre-commit).
 - Supabase migrations and pnpm config are hardened for repeatable deploys (see CLAUDE.md).
 - Update documentation when architecture or behavior changes.
+```

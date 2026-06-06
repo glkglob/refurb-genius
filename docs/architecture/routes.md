@@ -16,6 +16,8 @@ No authentication required. These must **never** be wrapped in `RequireAuth` or 
 | `/terms`         | `src/routes/terms.tsx`          | Terms of service. Uses `Navbar`.                            |
 | `/support`       | `src/routes/support.tsx`        | Support & contact. Uses `Navbar`.                           |
 | `/trades`        | `src/routes/trades.tsx`         | Public trades marketplace listing. Uses `Navbar`.           |
+| `/gallery`       | `src/routes/gallery.tsx`        | Public project gallery showcase. Uses `Navbar`.             |
+| `/gallery/:slug` | `src/routes/gallery.$slug.tsx`  | Individual gallery project detail + investor lead capture.  |
 
 ## Authenticated Routes
 
@@ -24,25 +26,25 @@ Unauthenticated visitors are redirected to `/auth?redirect=<path>` and returned 
 
 ### Dashboard
 
-| Path         | File                       |
-| ------------ | -------------------------- |
-| `/dashboard` | `src/routes/_authed/dashboard.tsx` (protected by _authed layout) |
+| Path         | File                                                              |
+| ------------ | ----------------------------------------------------------------- |
+| `/dashboard` | `src/routes/_authed/dashboard.tsx` (protected by \_authed layout) |
 
 ### Projects
 
-| Path                     | File                                   |
-| ------------------------ | -------------------------------------- |
-| `/projects/new`          | `src/routes/_authed/projects.new.tsx` (protected by _authed layout) |
-| `/projects/:id`          | `src/routes/_authed/projects.$id.index.tsx` |
-| `/projects/:id/upload`   | `src/routes/_authed/projects.$id.upload.tsx` |
-| `/projects/:id/estimate` | `src/routes/_authed/projects.$id.estimate.tsx` |
-| `/projects/:id/analysis` | `src/routes/_authed/projects.$id.analysis.tsx` |
-| `/projects/:id/report`   | `src/routes/_authed/projects.$id.report.tsx` |
+| Path                     | File                                                                 |
+| ------------------------ | -------------------------------------------------------------------- |
+| `/projects/new`          | `src/routes/_authed/projects.new.tsx` (protected by \_authed layout) |
+| `/projects/:id`          | `src/routes/_authed/projects.$id.index.tsx`                          |
+| `/projects/:id/upload`   | `src/routes/_authed/projects.$id.upload.tsx`                         |
+| `/projects/:id/estimate` | `src/routes/_authed/projects.$id.estimate.tsx`                       |
+| `/projects/:id/analysis` | `src/routes/_authed/projects.$id.analysis.tsx`                       |
+| `/projects/:id/report`   | `src/routes/_authed/projects.$id.report.tsx`                         |
 
 ### Deal Copilot
 
-| Path                                | File                                              |
-| ----------------------------------- | ------------------------------------------------- |
+| Path                                | File                                                      |
+| ----------------------------------- | --------------------------------------------------------- |
 | `/deal-copilot`                     | `src/routes/_authed/deal-copilot/index.tsx`               |
 | `/deal-copilot/new`                 | `src/routes/_authed/deal-copilot/new.tsx`                 |
 | `/deal-copilot/:opportunityId`      | `src/routes/_authed/deal-copilot/$opportunityId.tsx`      |
@@ -60,6 +62,12 @@ Unauthenticated visitors are redirected to `/auth?redirect=<path>` and returned 
 | `/trades/profile`     | `src/routes/trades_.profile.tsx`      |
 | `/trades/:jobId`      | `src/routes/trades_.$jobId.tsx`       |
 | `/trades/:jobId/edit` | `src/routes/trades_.$jobId_.edit.tsx` |
+
+### Marketplace
+
+| Path           | File                                    | Notes                                                   |
+| -------------- | --------------------------------------- | ------------------------------------------------------- |
+| `/marketplace` | `src/routes/_authed/marketplace.tsx`    | Trades marketplace for investors. Browse tradespeople, request quotes, favorite, and message. |
 
 ### Settings & Admin
 
@@ -87,6 +95,7 @@ Unauthenticated visitors are redirected to `/auth?redirect=<path>` and returned 
 | New Project  | `/projects/new` |
 | Deal Copilot | `/deal-copilot` |
 | Trades       | `/trades`       |
+| Marketplace  | `/marketplace`  |
 | Settings     | `/settings`     |
 
 ### Navbar (public, `src/components/Navbar.tsx`)

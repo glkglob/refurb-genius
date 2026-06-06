@@ -29,6 +29,7 @@ Refurb Genius has been brought to a stable, secure, professionally polished stat
 ## What Was Improved (Phases 0-4)
 
 ### Phase 0: Final Assessment
+
 Full codebase exploration performed (routes, AI pipeline, Deal Copilot, projects, hooks, RLS migrations, error boundaries, empty/loading states, pricing shims, analytics, Capacitor/PWA, serverFns, packages).
 
 **Documented in:** [docs/PHASE0-FINDINGS.md](PHASE0-FINDINGS.md)
@@ -36,7 +37,9 @@ Full codebase exploration performed (routes, AI pipeline, Deal Copilot, projects
 Key positives: strong server auth, AI fallbacks+retries+validation+coercion everywhere, deterministic engines protected by invariants + re-export shims, RLS user-scoped on all sensitive tables/storage, root + route error UI, PWA ready, no raw client secrets.
 
 ### Phase 1: Bugs & Stability
+
 Surgical fixes:
+
 - Converted opportunity delete path (`useDeleteOpportunity`, `opportunityStore.delete`) to `deleteDealOpportunityServerFn` (consistent with save/create; hard-refresh / direct-nav safe + RLS defense-in-depth).
 - Added success toast + clear feedback on Deal Copilot opportunity save.
 - Added inline + toast feedback + state for redesign concept generation failures (analysis page) instead of silent fallback to static.
@@ -47,6 +50,7 @@ Surgical fixes:
 AI pipeline was already robust (withRetry, timeouts, mocks/fallbacks on every provider, Zod + safeParse + coercion, Sentry breadcrumbs, diagnostics counters). No changes needed beyond UX surfacing.
 
 ### Phase 2: UX Polish & Professional Finish
+
 - Polished the AI Estimate Suggestion box inside Deal Copilot (`DealIntakeForm`): clearer "ADVISORY ONLY" badge, improved total label, stronger call-to-action to full Project flow for accurate photo-based editable estimates. Uses same deterministic pricing engine.
 - Dashboard "My projects" section: added explicit loading state (prevents premature "No projects yet" flash) + loading indicator in stat card (consistent with trades/interests).
 - Existing EmptyState / LoadingState / toast patterns leveraged and extended.
@@ -56,7 +60,9 @@ AI pipeline was already robust (withRetry, timeouts, mocks/fallbacks on every pr
 - Report export, project creation, analysis step already had good progress toasts/loading.
 
 ### Phase 3: Security & Production Hardening
+
 **Largely complete prior to this session (uncommitted changes on branch) + reinforced:**
+
 - Rate limiting on **all four AI serverFns** (vision, redesign, estimate, scope): per-user per-action (e.g. "ai-estimate"), 10/min default, in-memory with retryAfter. Errors thrown early before expensive OpenAI calls. (Limitation noted: process-local on serverless; sufficient for launch abuse protection.)
 - Server env validation (`validateServerEnv`): requires OPENAI_API_KEY in NODE_ENV=production, wired to `server.ts` startup (logs but does not crash dev).
 - Client env stub in `start.ts`.
@@ -64,16 +70,17 @@ AI pipeline was already robust (withRetry, timeouts, mocks/fallbacks on every pr
 - Analytics/telemetry: PostHog (prod-only, key-gated), key events wired (`deal_analyzed`, `report_exported`, project create proxy, onboarding/signup funnels + abandonment). Graceful degradation.
 - Auth/RLS/input validation: already excellent (beforeLoad server gates, requireUser/serverSupabase in all write serverFns, Zod on every createServerFn, full RLS "all_own" + admin policies on projects/photos/estimates/room_analyses/deal_opportunities/trades/storage). Reviewed all migrations.
 - Delete path now also serverFn (hardening consistency).
-- No VITE_ secret usage (invariants enforce).
+- No VITE\_ secret usage (invariants enforce).
 - Rate limit + auth errors are user-actionable.
 
 **Known limitation (documented):** In-memory rate limiter is best-effort per Vercel edge instance. For high-scale, replace with shared store (Upstash, Supabase table + RPC, or similar). 10/min is generous for launch.
 
 ### Phase 4: Final Verification & Release Prep
+
 - **Pre-commit:** `pnpm typecheck && pnpm lint && pnpm test:invariants` → ✅ all clean (53/53 invariants).
 - **Production build:** `pnpm build:vercel` → ✅ succeeded (Nitro/Vercel output generated cleanly in ~9-18s).
 - **Smoke / journey review (code + path analysis, no interactive browser in this env):**
-  1. Public site + auth (login, signup, callback, redirect) — protected routes via _authed beforeLoad.
+  1. Public site + auth (login, signup, callback, redirect) — protected routes via \_authed beforeLoad.
   2. Dashboard (post-login): live stats (trades/jobs/interests/projects), quick actions, "My projects" grid with ProjectCard + empty state, trades sections.
   3. Deal Copilot `/new`: form inputs → live deterministic score/ROI/risk/estimate section (from @repo/services) → "Run AI Property Estimate" (rate limited, advisory preview with polished UI, regional multiplier applied via pricing engine) → "Save opportunity" (serverFn, toast success, persisted, visible in list).
   4. Projects `/new`: full validation (postcode regex, ranges), serverFn create, navigate on success + analytics.
@@ -88,6 +95,7 @@ AI pipeline was already robust (withRetry, timeouts, mocks/fallbacks on every pr
 - No new generated files edited; shims preserved; logger used.
 
 **Docs updates:**
+
 - Created [docs/PHASE0-FINDINGS.md](PHASE0-FINDINGS.md) (detailed exploration).
 - This report.
 - Minor: README already accurately reflected "Ready for public launch"; status line remains appropriate.
@@ -96,6 +104,7 @@ AI pipeline was already robust (withRetry, timeouts, mocks/fallbacks on every pr
 ---
 
 ## Remaining Known Limitations (Low Risk, Acceptable for Launch)
+
 - Rate limiter is in-memory (not cross-instance). Mitigated by: low launch volume expected, generous 10/min, early rejection before cost, monitoring via Sentry/diagnostics.
 - No Vitest/React Testing Library component tests (only invariants + build-time). Core flows covered by manual + invariants.
 - UI migration incomplete (Sidebar and a few others still local shims; @repo/ui has many components). No functional impact.
@@ -110,6 +119,7 @@ These are tracked and non-blocking for public beta/launch.
 ---
 
 ## Final Recommendations Before Deploy
+
 1. **Vercel env:** Ensure `OPENAI_API_KEY` (server), Supabase vars, `VITE_POSTHOG_KEY` (optional but recommended for telemetry), `VITE_PUBLIC_URL` for OG.
 2. **Sentry:** Verify DSN wired (already in lib/sentry).
 3. **Smoke on preview:** After `pnpm build:vercel` + deploy preview, manually walk the 4-5 core journeys on desktop + mobile Safari/Chrome (real device or Simulator).
@@ -122,4 +132,4 @@ These are tracked and non-blocking for public beta/launch.
 
 ---
 
-*End of Report. All findings, changes, and verification steps captured above and in PHASE0-FINDINGS.md.*
+_End of Report. All findings, changes, and verification steps captured above and in PHASE0-FINDINGS.md._

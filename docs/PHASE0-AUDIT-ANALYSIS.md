@@ -6,10 +6,11 @@
 This is a fresh, comprehensive audit following the orchestrator prompt. It builds upon but is not limited to prior PHASE0-FINDINGS.md and RELEASE-READINESS-REPORT.md.
 
 ## 1. Codebase Structure Overview
+
 - Monorepo (pnpm + Turborepo): root app (TanStack Start) + 8 packages with strict one-way deps (`@repo/types` → `@repo/core` → `@repo/services` → root + `@repo/ui` + `@repo/supabase`).
 - `src/routes/`: File-based TanStack Router (~26 files). Public + `_authed` layout for protected.
 - `src/core/`: Domain (ai/, dealCopilot/, pricing/, projects/, roi/, reports/, trades/).
-- `src/core/ai/`: Pipeline (serverFns + server/*.server.ts + platform/ + validation + mocks).
+- `src/core/ai/`: Pipeline (serverFns + server/\*.server.ts + platform/ + validation + mocks).
 - `packages/services/`: Canonical deterministic engines (pricing, roi, deal-analysis).
 - Supabase: migrations with RLS, Edge Functions (limited use now).
 - Tests: only `tests/invariants/` (53 strong contract tests).
@@ -21,6 +22,7 @@ This is a fresh, comprehensive audit following the orchestrator prompt. It build
 ## 2. Analysis of Major Functions & Flows
 
 ### Authentication & Protected Routes
+
 - `_authed.tsx`: `beforeLoad` calls `getCurrentUserServerFn()` (createServerFn), redirects to /auth with `redirect` param preserving full path+search. Returns `{ user }` in context. Excellent SSR/hard-refresh safety.
 - `serverFns/auth.ts`: Central, well-documented primitives (`requireUser`, `getCurrentUserServerFn`, `createSupabaseServerClient`). Dynamic imports only. Maps Supabase User to AuthUser.
 - Client: `lib/auth.ts` + `useAuth` hook (for reactive UI), `RequireAuth` component (secondary client guard + loading).
@@ -29,6 +31,7 @@ This is a fresh, comprehensive audit following the orchestrator prompt. It build
 - Minor: `RequireAuth` still present in AppLayout (double protection, but client-only).
 
 ### Dashboard
+
 - Fetches trades jobs (local state + services), interests, projects (via useProjects / React Query).
 - Stats with loading "…" handling.
 - Quick actions (4 cards).
@@ -38,6 +41,7 @@ This is a fresh, comprehensive audit following the orchestrator prompt. It build
 - Observations: Uses custom local state machines for jobs/interests (not RQ). Functional.
 
 ### Deal Copilot (Core Flow)
+
 - **new.tsx** + **DealIntakeForm.tsx** (large ~560 lines component):
   - Form state (title, urls, money strings, region, condition).
   - `parseMoney` + validation helpers.
@@ -46,11 +50,12 @@ This is a fresh, comprehensive audit following the orchestrator prompt. It build
   - Optional AI estimate: `useGenerateEstimate` (serverFn) → normalize with regional multiplier + `calculate*` from pricing → compact (recently improved) preview with rooms in bordered sections, totals, strong "ADVISORY ONLY" + guidance.
   - Save: creates domain object, calls `saveDealOpportunity` (serverFn path), shows saved state + toast (recent).
   - Telemetry on score/AI.
-- **index.tsx / $opportunityId.* **: List of saved opportunities (useOpportunities), view/edit. Lighter UX than intake.
+- **index.tsx / $opportunityId.\* **: List of saved opportunities (useOpportunities), view/edit. Lighter UX than intake.
 - Strengths: Scoring/ROI always deterministic. AI is optional text-only estimate (no photos here). ServerFn for save. Good progressive disclosure.
 - Polish done: AI preview now more scannable with mini room cards + grid items.
 
 ### Project Lifecycle
+
 - **new.tsx**: Controlled form + client validation (postcode regex, ranges) + `useCreateProject` (serverFn) + track + navigate. Error display.
 - **$id/index.tsx**: Project detail with progress checklist (photos/analysis/estimate/report), links to steps. Good visual flow.
 - **upload.tsx**: Drag/drop + input, file guards (10MB image), useUploadPhotos, "Ready for analysis" (recent label), stage advance.
@@ -62,15 +67,17 @@ This is a fresh, comprehensive audit following the orchestrator prompt. It build
 - Observations: sessionStorage handoff is a bit hacky but isolated. Report engine central.
 
 ### Trades (Post Job, Browse Marketplace)
+
 - Public `/trades` + `$jobId`: Browse + details.
 - Authed: post new, edit, profile, interests.
 - Uses services/trades stores, local state in dashboard.
 - Functional per prior QA docs (trades-marketplace-qa.md).
 - Less focus in this audit but no obvious breakage.
 
-### AI Pipeline (src/core/ai/* + serverFns)
+### AI Pipeline (src/core/ai/\* + serverFns)
+
 - **serverFns.ts**: 4 createServerFns with Zod inputValidator. `requireServerAuth` (now returns user id) + `checkRateLimit` (per "ai-vision" etc., 10/min default, in-memory) before delegating to secure impls. Excellent.
-- Individual servers (openAi*.server.ts):
+- Individual servers (openAi\*.server.ts):
   - Vision, Estimate, Scope, Redesign: prompts, fetch to gpt-4o (json mode), timeout, withRetry (transient only), parse + coerce + Zod safeParse + manual fallback paths.
   - Explicit `buildMock*` / `staticFallback` when no key or failure.
   - Source tagging, Sentry captureAiError + breadcrumbs, provider-diagnostics counters.
@@ -80,6 +87,7 @@ This is a fresh, comprehensive audit following the orchestrator prompt. It build
 - Concerns: Orchestrator not wired (per comments). In-memory rate limit (documented limitation).
 
 ### Pricing & ROI Engines (@repo/services — canonical)
+
 - **pricing/pricingEngine.ts**: `runPricingEngine` — pure, multipliers from @repo/core/utilities/pricingData (REGION, CONDITION, FINISH), size clamp, line items, contingency/VAT, low/mid/high, assumptions/warnings/confidence. Returns full result.
 - Helpers: `getRegionalMultiplier`, `calculateLineItem`, `calculateEstimateTotals`.
 - **roi/roiEngine.ts**: `runRoiEngine` — pure, total cost/profit, ROI, yield, rental uplift, investment_score (1-10), risk_level. Uses regional rent strength + condition risk.
@@ -90,19 +98,23 @@ This is a fresh, comprehensive audit following the orchestrator prompt. It build
 ## 3. Identified Issues (Code Smells, Duplication, Performance, Maintainability)
 
 **Duplication (biggest maintainability item):**
-- rowTo* mappers (e.g. rowToOpportunity / rowToDealOpportunity) duplicated across opportunityStore.ts, useOpportunities.ts, and inlined (with comments) in serverFns/dealCopilot.ts. Same pattern likely for projects/estimates. Trade-off explicitly for "no browser Supabase in server modules."
+
+- rowTo\* mappers (e.g. rowToOpportunity / rowToDealOpportunity) duplicated across opportunityStore.ts, useOpportunities.ts, and inlined (with comments) in serverFns/dealCopilot.ts. Same pattern likely for projects/estimates. Trade-off explicitly for "no browser Supabase in server modules."
 - Pricing shims (src/core/pricing re-exports @repo/services).
 
 **Component Size / Complexity:**
+
 - DealIntakeForm.tsx (~560 lines): mixes form, derived scoring/AI, side panel.
 - AIEstimateBuilder.tsx: rich but long (editable rooms, normalization logic, multiple handlers).
 - Some route pages (analysis, report, estimate) have significant local state + effects + sessionStorage.
 
 **Loading / Empty States:**
+
 - Basic but functional. Used in many places. Recent improvements (dashboard projects loading).
 - No rich skeleton variants for lists/tables (text "Loading..." or full card).
 
 **Mobile / UX Polish Areas:**
+
 - MobileTopBar: functional but compact stacked buttons (improved in this session for targets).
 - Sidebar: desktop only, still local (not migrated).
 - ProjectCard, QuickActionCard: good hover, added active:scale in this audit.
@@ -110,6 +122,7 @@ This is a fresh, comprehensive audit following the orchestrator prompt. It build
 - Some "Coming soon" placeholders.
 
 **Other:**
+
 - useEffect heavy in stateful pages (expected for data loading + side effects like analytics, redesign trigger).
 - No raw `console` in app code (logger only).
 - Very few `any`.
@@ -119,12 +132,14 @@ This is a fresh, comprehensive audit following the orchestrator prompt. It build
 - Rate limit: in-memory (process local) — best effort on Vercel.
 
 **Visual/Current State:**
+
 - Modern, trustworthy property-tech: Tailwind v4, rounded-xl, accent, shadows, lucide icons.
 - Recent hardening/polish already landed (rate limit errors, advisory badges, toasts on save/export, dashboard live projects).
 - Consistent disclaimer footer on authed pages.
 - Good progressive enhancement (instant score before AI).
 
 ## 4. Strengths (Launch-Ready Foundations)
+
 - Deterministic financials never compromised.
 - Server-first auth + writes.
 - Defensive AI with fallbacks everywhere + rate limiting.
@@ -135,6 +150,7 @@ This is a fresh, comprehensive audit following the orchestrator prompt. It build
 - Build/pre-commit always clean in this session.
 
 ## 5. Summary for This Audit
+
 The app is in excellent shape for public launch. Most "Phase 0" concerns from earlier audits have been addressed (serverFns, rate limits, dashboard reality, error surfacing). Remaining items are mostly maintainability (mapper duplication — accepted trade-off) and polish opportunities (which are addressed in Phase 1 of this run).
 
 No blocking bugs, performance cliffs, or architecture violations found.
@@ -142,4 +158,5 @@ No blocking bugs, performance cliffs, or architecture violations found.
 (Full prior detailed findings in docs/PHASE0-FINDINGS.md and RELEASE-READINESS-REPORT.md.)
 
 ---
-*Audit performed via systematic file reads, greps, structure listing, and flow tracing.*
+
+_Audit performed via systematic file reads, greps, structure listing, and flow tracing._

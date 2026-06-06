@@ -9,6 +9,7 @@
 ## 1. General Rules
 
 ### Must Follow
+
 - Always use semantic design tokens (`bg-card`, `text-foreground`, `border-border`, `ring-ring`, etc.).
 - Prefer our custom components (`<Button>`, `<Card>`, `<Input>`, etc.) over raw HTML elements.
 - Use `rounded-xl` for interactive elements (buttons, inputs) and `rounded-2xl` for surfaces (cards, dialogs).
@@ -16,6 +17,7 @@
 - Focus rings must be visible (`focus-visible:ring-2 ring-ring`).
 
 ### Forbidden Patterns
+
 - Hardcoded colors: `bg-white`, `bg-gray-*`, `text-gray-*`, `bg-teal-*`, `text-teal-*`, `border-teal-*`
 - Using `rounded-md` or `rounded-sm` on cards and major surfaces
 - Raw `<button>` or `<input>` in new code (use our components)
@@ -48,6 +50,7 @@
 ```
 
 **Do not:**
+
 - Use `bg-teal-600` or similar on buttons.
 - Use very small buttons (`size="sm"`) for primary actions.
 
@@ -62,9 +65,7 @@
   <CardHeader>
     <CardTitle>Project Details</CardTitle>
   </CardHeader>
-  <CardContent>
-    {/* content */}
-  </CardContent>
+  <CardContent>{/* content */}</CardContent>
 </Card>
 ```
 
@@ -75,13 +76,13 @@
 
 ## 4. Form Controls
 
-| Component   | Recommended Classes / Usage                  | Notes |
-|-------------|----------------------------------------------|-------|
-| Input       | Use `<Input />` directly                     | `rounded-xl`, strong focus ring |
-| Textarea    | Use `<Textarea />`                           | Minimum `min-h-[80px]` |
-| Select      | Use `<Select>` from our wrapper              | `rounded-xl` trigger |
-| Checkbox    | Use `<Checkbox />`                           | `rounded-md` |
-| Switch      | Use `<Switch />`                             | Larger size (`h-6`) |
+| Component | Recommended Classes / Usage     | Notes                           |
+| --------- | ------------------------------- | ------------------------------- |
+| Input     | Use `<Input />` directly        | `rounded-xl`, strong focus ring |
+| Textarea  | Use `<Textarea />`              | Minimum `min-h-[80px]`          |
+| Select    | Use `<Select>` from our wrapper | `rounded-xl` trigger            |
+| Checkbox  | Use `<Checkbox />`              | `rounded-md`                    |
+| Switch    | Use `<Switch />`                | Larger size (`h-6`)             |
 
 ---
 
@@ -121,6 +122,7 @@
 ## 9. When to Create New Components
 
 Create a new component only when:
+
 - The pattern is used in 3+ places, **or**
 - The logic is complex (e.g., DataTable, DealScoreCard)
 
@@ -138,6 +140,7 @@ Otherwise, compose existing components + Tailwind.
 
 **Next Step Recommendation:**
 Start a systematic audit + migration of the most visible pages:
+
 1. Dashboard
 2. Deal Copilot pages
 3. Projects list + detail pages

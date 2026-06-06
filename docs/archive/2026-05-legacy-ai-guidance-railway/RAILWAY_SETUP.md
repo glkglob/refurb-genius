@@ -12,6 +12,7 @@ This document prepares the **FastAPI/CrewAI backend** for deployment on Railway 
 ## 1. Railway Configuration
 
 ### Root Directory
+
 **Set this in Railway project settings (or during first deploy):**
 
 ```
@@ -21,6 +22,7 @@ This document prepares the **FastAPI/CrewAI backend** for deployment on Railway 
 This tells Railway to treat `backend/` as the app root (so `Procfile`, `requirements.txt`, and `main.py` are found directly).
 
 ### Start Command
+
 Railway auto-detects the `Procfile`. The command is:
 
 ```
@@ -28,6 +30,7 @@ web: uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
 
 **Alternative (if overriding in Railway dashboard):**
+
 ```
 uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
@@ -35,6 +38,7 @@ uvicorn main:app --host 0.0.0.0 --port $PORT
 **Never hardcode a port.** Always use `$PORT`.
 
 ### Build Command (Railway)
+
 Default (`pip install -r requirements.txt`) is usually sufficient. If you add a `runtime.txt`, set:
 
 ```
@@ -46,22 +50,24 @@ python-3.11
 ## 2. Required Environment Variables
 
 ### Railway (Backend)
+
 Add these in Railway → Project → Variables (or per-environment):
 
-| Variable                        | Example / Source                              | Required | Notes |
-|--------------------------------|-----------------------------------------------|----------|-------|
-| `SUPABASE_URL`                 | https://YOUR_REF.supabase.co                  | Yes      | From Supabase project settings |
-| `SUPABASE_SERVICE_ROLE_KEY`    | eyJ... (service_role jwt)                     | Yes      | **Server-only**. Use for admin/privileged operations. Never expose to browser. |
-| `OPENAI_API_KEY`               | sk-...                                        | Yes      | For CrewAI + direct OpenAI calls |
-| `ENVIRONMENT`                  | production                                    | No       | Defaults to "production" |
-| `FRONTEND_URL`                 | https://www.refurbgenius.site                 | No       | Used for CORS |
+| Variable                    | Example / Source              | Required | Notes                                                                          |
+| --------------------------- | ----------------------------- | -------- | ------------------------------------------------------------------------------ |
+| `SUPABASE_URL`              | https://YOUR_REF.supabase.co  | Yes      | From Supabase project settings                                                 |
+| `SUPABASE_SERVICE_ROLE_KEY` | eyJ... (service_role jwt)     | Yes      | **Server-only**. Use for admin/privileged operations. Never expose to browser. |
+| `OPENAI_API_KEY`            | sk-...                        | Yes      | For CrewAI + direct OpenAI calls                                               |
+| `ENVIRONMENT`               | production                    | No       | Defaults to "production"                                                       |
+| `FRONTEND_URL`              | https://www.refurbgenius.site | No       | Used for CORS                                                                  |
 
 ### Vercel (Frontend)
+
 Add this so the frontend knows where to call the Railway backend:
 
-| Variable                  | Value Example                                      | Notes |
-|---------------------------|----------------------------------------------------|-------|
-| `VITE_API_BASE_URL`       | https://your-backend.up.railway.app                | **Use `VITE_` prefix** (this is a Vite/TanStack project, not Next.js). Add to both Production and Preview environments. |
+| Variable            | Value Example                       | Notes                                                                                                                   |
+| ------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `VITE_API_BASE_URL` | https://your-backend.up.railway.app | **Use `VITE_` prefix** (this is a Vite/TanStack project, not Next.js). Add to both Production and Preview environments. |
 
 > **Note on prefixes**: The codebase supports both `VITE_*` and `NEXT_PUBLIC_*` in many places for compatibility, but prefer `VITE_API_BASE_URL` for new public client vars.
 
@@ -82,11 +88,13 @@ uvicorn main:app --reload --port 8000
 ```
 
 Or via the script in main.py:
+
 ```bash
 python main.py
 ```
 
 ### Health Check (local)
+
 ```bash
 curl http://localhost:8000/health
 # Expected:
@@ -94,12 +102,14 @@ curl http://localhost:8000/health
 ```
 
 ### Readiness
+
 ```bash
 curl http://localhost:8000/ready
 ```
 
 ### API Docs (local)
-http://localhost:8000/docs  (Swagger UI)
+
+http://localhost:8000/docs (Swagger UI)
 
 ## 4. CORS Configuration (Already Implemented Safely)
 
@@ -119,8 +129,9 @@ In `backend/main.py`:
 When you extract or add new endpoints (e.g. `/v1/crew/property-intel`):
 
 1. In frontend code, read the base:
+
    ```ts
-   const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+   const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
    ```
 
 2. Call it from client or (preferred) from a new `createServerFn` that proxies to Railway (keeps keys server-only).
@@ -128,6 +139,7 @@ When you extract or add new endpoints (e.g. `/v1/crew/property-intel`):
 3. Gradually move heavy CrewAI work (long-running crews, many tool calls) from Vercel server functions to Railway.
 
 Existing patterns to port:
+
 - `property-intel/property_intelligence.py` (CrewAI + Grok + tools)
 - `src/core/ai/server/*.server.ts` (current OpenAI + structured outputs)
 
@@ -149,18 +161,21 @@ Existing patterns to port:
 ### 1. Run the Railway backend locally
 
 **Recommended (easiest):**
+
 ```bash
 cd backend
 ./start.sh
 ```
 
 This script will:
+
 - Create a `.venv` if needed
 - Install dependencies
 - Warn you if `.env` is missing
 - Start uvicorn with reload
 
 **Manual setup (if you prefer):**
+
 ```bash
 cd backend
 
@@ -175,11 +190,13 @@ uvicorn main:app --reload --port 8000
 ```
 
 ### 2. Test health
+
 ```bash
 curl http://localhost:8000/health
 ```
 
 ### 3. Start a property analysis job (replace the UUID with a real auth user id in production)
+
 ```bash
 curl -X POST http://localhost:8000/analyze-property \
   -H "Content-Type: application/json" \
@@ -196,16 +213,19 @@ curl -X POST http://localhost:8000/analyze-property \
 ```
 
 ### 4. Poll status
+
 ```bash
 curl http://localhost:8000/analysis-status/<job_id>
 ```
 
 ### 5. Fetch result (once completed)
+
 ```bash
 curl http://localhost:8000/analysis-result/<job_id>
 ```
 
 ### 6. Run the frontend locally against the local backend
+
 ```bash
 # In project root
 VITE_API_BASE_URL=http://localhost:8000 pnpm dev
@@ -232,17 +252,21 @@ You should see the job move pending → processing → completed and a result JS
 ## 8. Files Added / Changed in Async Wiring
 
 **Backend**
+
 - `backend/main.py` — Added `/analyze-property`, status & result endpoints, Supabase service-role job persistence, background processor, working OpenAI-based analysis runner (safe placeholder for the broken CrewAI script).
 
 **Supabase**
+
 - `supabase/migrations/20260524100000_create_analysis_jobs.sql` — New table with status enum constraint, jsonb payloads, timestamps, RLS policies.
 
 **Frontend (smallest safe additions)**
+
 - `src/lib/api/railwayAnalysis.ts` — Client with `startAnalysis`, `getAnalysisStatus`, `getAnalysisResult`, `pollAnalysisResult` using `VITE_API_BASE_URL`.
 - `src/hooks/useRailwayPropertyAnalysis.ts` — Hook encapsulating the full start + poll + state machine.
 - `src/routes/projects.$id.scope.tsx` — Added one secondary "Run Full Property Intelligence (Railway)" button + minimal status/result display (existing direct AI paths untouched).
 
 **Docs**
+
 - `RAILWAY_SETUP.md` — Extended with local testing commands, updated file list, and current architecture notes.
 
 ## Support

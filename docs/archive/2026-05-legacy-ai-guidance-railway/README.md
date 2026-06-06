@@ -7,7 +7,9 @@ This directory preserves historical artifacts that were previously active in the
 ## Contents
 
 ### Cursor Rules (9 files)
+
 These were custom rules for the Cursor AI coding assistant:
+
 - 00-project-overview.mdc
 - 01-tech-stack.mdc
 - 02-safe-agent-behaviour.mdc
@@ -21,7 +23,9 @@ These were custom rules for the Cursor AI coding assistant:
 Originally located at `.cursor/rules/`
 
 ### Claude Commands (6 files)
+
 These were custom slash commands for Claude Code:
+
 - add-email-notifications.md
 - add-pdf-export.md
 - expand-admin-panel.md
@@ -32,6 +36,7 @@ These were custom slash commands for Claude Code:
 Originally located at `.claude/commands/`
 
 ### Railway Backend Experiment
+
 - `RAILWAY_SETUP.md` — This document described an experimental attempt to run a separate FastAPI + CrewAI backend on Railway while keeping the TanStack Start frontend on Vercel. The corresponding `backend/` directory and related files were removed as part of decommissioning this experiment.
 
 ## Purpose of This Archive
@@ -42,4 +47,4 @@ These files are retained purely for historical reference. They document earlier 
 
 ---
 
-*This archive was created during the cleanup of legacy AI tooling artifacts and experimental deployment documentation.*
+_This archive was created during the cleanup of legacy AI tooling artifacts and experimental deployment documentation._

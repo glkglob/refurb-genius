@@ -22,21 +22,21 @@ coverage and UI package migration are the main gaps.
 
 ## Tech Stack
 
-| Layer          | Technology                                              |
-| -------------- | ------------------------------------------------------- |
-| Framework      | TanStack Start (React 19 meta-framework)                |
-| Build          | Vite 7 + Nitro (SSR/server preset)                     |
-| Language       | TypeScript 5.8 (strict mode, ES2022 target)             |
-| Styling        | Tailwind CSS v4 + Radix UI primitives                   |
-| UI Components  | shadcn/ui pattern, migrating to `@repo/ui` package      |
-| State          | TanStack Router (URL state) + React hooks               |
-| Backend        | Supabase (Postgres, Auth, Storage, Edge Functions)      |
-| AI             | OpenAI Vision (gpt-4o) via `createServerFn`             |
-| Deployment     | Vercel (`vite.vercel.config.ts` + Nitro `vercel` preset)|
-| Error Tracking | Sentry (`@sentry/react` + `@sentry/vite-plugin`)       |
-| Monorepo       | pnpm workspaces + Turborepo                             |
-| CI             | GitHub Actions (typecheck + lint + build + invariants)  |
-| Validation     | Zod (runtime schema validation on all external data)    |
+| Layer          | Technology                                               |
+| -------------- | -------------------------------------------------------- |
+| Framework      | TanStack Start (React 19 meta-framework)                 |
+| Build          | Vite 7 + Nitro (SSR/server preset)                       |
+| Language       | TypeScript 5.8 (strict mode, ES2022 target)              |
+| Styling        | Tailwind CSS v4 + Radix UI primitives                    |
+| UI Components  | shadcn/ui pattern, migrating to `@repo/ui` package       |
+| State          | TanStack Router (URL state) + React hooks                |
+| Backend        | Supabase (Postgres, Auth, Storage, Edge Functions)       |
+| AI             | OpenAI Vision (gpt-4o) via `createServerFn`              |
+| Deployment     | Vercel (`vite.vercel.config.ts` + Nitro `vercel` preset) |
+| Error Tracking | Sentry (`@sentry/react` + `@sentry/vite-plugin`)         |
+| Monorepo       | pnpm workspaces + Turborepo                              |
+| CI             | GitHub Actions (typecheck + lint + build + invariants)   |
+| Validation     | Zod (runtime schema validation on all external data)     |
 
 ---
 
@@ -97,16 +97,16 @@ Application Shell (root src/)
 @repo/types          Domain types, DTOs (no runtime deps)
 ```
 
-| Package                  | What it owns                                   |
-| ------------------------ | ---------------------------------------------- |
-| `@repo/types`            | Domain types, DTOs, contracts. Zero deps.      |
-| `@repo/core`             | Constants, formatting, mock data, utilities    |
-| `@repo/services`         | Pure business logic (pricing, ROI, deals)      |
-| `@repo/ui`               | Shared UI components (17 migrated of 46)       |
-| `@repo/supabase`         | Supabase client factories (browser + server)   |
-| `@repo/integrations`     | Reserved — not yet used                        |
-| `@repo/eslint-config`    | Shared ESLint configuration                    |
-| `@repo/typescript-config` | Shared tsconfig base files                    |
+| Package                   | What it owns                                 |
+| ------------------------- | -------------------------------------------- |
+| `@repo/types`             | Domain types, DTOs, contracts. Zero deps.    |
+| `@repo/core`              | Constants, formatting, mock data, utilities  |
+| `@repo/services`          | Pure business logic (pricing, ROI, deals)    |
+| `@repo/ui`                | Shared UI components (17 migrated of 46)     |
+| `@repo/supabase`          | Supabase client factories (browser + server) |
+| `@repo/integrations`      | Reserved — not yet used                      |
+| `@repo/eslint-config`     | Shared ESLint configuration                  |
+| `@repo/typescript-config` | Shared tsconfig base files                   |
 
 **Dependency rule:** Lower packages cannot import from higher ones.
 `@repo/types` imports nothing. `@repo/core` imports only `@repo/types`.
@@ -146,7 +146,7 @@ const inputSchema = z.object({ id: z.string().min(1) });
 export const myServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data }) => {
-    await requireServerAuth();  // Always verify auth first
+    await requireServerAuth(); // Always verify auth first
     // Server-only code here
   });
 ```
@@ -160,7 +160,10 @@ async function requireServerAuth(): Promise<void> {
   const { getCookies } = await import("@tanstack/react-start/server");
   const { createServerSupabase } = await import("@repo/supabase/server");
   const supabase = createServerSupabase(getCookies());
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
   if (error || !user) throw new Error("Unauthorized");
 }
 ```
@@ -199,17 +202,19 @@ Currently **17 of 46** components are migrated to `@repo/ui`.
 1. **App components** import from `@repo/ui` (or `@repo/ui/<component>` for
    components involved in circular deps through the barrel — currently
    tooltip, dialog, and any component imported by sidebar):
+
    ```ts
    import { Button, Card } from "@repo/ui";
    import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@repo/ui/tooltip";
    import { Dialog, DialogContent, DialogTrigger } from "@repo/ui/dialog";
-   import { Input } from "@repo/ui/input";           // used by sidebar
-   import { Separator } from "@repo/ui/separator";   // used by sidebar
-   import { Skeleton } from "@repo/ui/skeleton";      // used by sidebar
+   import { Input } from "@repo/ui/input"; // used by sidebar
+   import { Separator } from "@repo/ui/separator"; // used by sidebar
+   import { Skeleton } from "@repo/ui/skeleton"; // used by sidebar
    ```
 
 2. **Shim files** in `src/components/ui/` re-export from `@repo/ui` for backward
    compatibility:
+
    ```ts
    export { Button } from "@repo/ui";
    ```
@@ -237,8 +242,8 @@ All UI components follow the shadcn/ui + Radix pattern:
 
 `@repo/supabase` provides subpath exports for different contexts:
 
-| Context      | Import                                              |
-| ------------ | --------------------------------------------------- |
+| Context      | Import                                                |
+| ------------ | ----------------------------------------------------- |
 | Browser/hook | `createBrowserSupabase` from `@repo/supabase/browser` |
 | Server fn    | `createServerSupabase` from `@repo/supabase/server`   |
 | Token-based  | `createTokenSupabase` from `@repo/supabase/server`    |
@@ -253,6 +258,7 @@ Or import everything from the root: `from "@repo/supabase"`.
 
 2. **Server auth** — always use `createServerSupabase` + `getCookies()` in
    server functions, **never** `createBrowserSupabase`:
+
    ```ts
    const { getCookies } = await import("@tanstack/react-start/server");
    const { createServerSupabase } = await import("@repo/supabase/server");
@@ -312,14 +318,14 @@ stable lockfile (no more pnpmfileChecksum mismatches).
 
 Six invariant tests in `tests/invariants/` validate architectural rules:
 
-| Test                             | What it checks                              |
-| -------------------------------- | ------------------------------------------- |
-| `auth-env.invariant.test.ts`     | Auth environment configuration              |
-| `dealScore.test.ts`              | Deal scoring algorithm correctness          |
-| `pricing-authority.test.ts`      | Pricing authority data integrity            |
-| `pricing.invariant.test.ts`      | Pricing calculation invariants              |
-| `routes.invariant.test.ts`       | Route files exist and match docs            |
-| `scoring.invariant.test.ts`      | Scoring algorithm invariants                |
+| Test                         | What it checks                     |
+| ---------------------------- | ---------------------------------- |
+| `auth-env.invariant.test.ts` | Auth environment configuration     |
+| `dealScore.test.ts`          | Deal scoring algorithm correctness |
+| `pricing-authority.test.ts`  | Pricing authority data integrity   |
+| `pricing.invariant.test.ts`  | Pricing calculation invariants     |
+| `routes.invariant.test.ts`   | Route files exist and match docs   |
+| `scoring.invariant.test.ts`  | Scoring algorithm invariants       |
 
 Run with: `pnpm test:invariants`
 
@@ -390,21 +396,21 @@ Vercel + CI are now pinned for reproducible lockfile behavior.
 
 ## Common Mistakes to Avoid
 
-| Mistake                                         | Correct Approach                                         |
-| ----------------------------------------------- | -------------------------------------------------------- |
-| `import { supabase } from "@/integrations/..."` | Use `@repo/supabase` or hooks                            |
-| `createBrowserSupabase` in a server function    | `createServerSupabase(getCookies())`                     |
-| `console.log("debug")`                          | `logger.debug("message", { context })`                   |
-| `from "@repo/ui"` for Tooltip or Dialog         | `from "@repo/ui/tooltip"` / `from "@repo/ui/dialog"`    |
-| Importing directly from Radix in app code       | Import from `@repo/ui` which wraps Radix                 |
-| Deleting a UI shim file                         | Replace contents with `export { X } from "@repo/ui"`     |
-| Using `key={index}` in dynamic lists            | Use a stable unique identifier                            |
-| Skipping Zod on server function input           | Always use `.inputValidator()` with Zod `.parse()`       |
-| Adding `"use server"` directive                 | TanStack Start uses `createServerFn`, not directives      |
-| Running `pnpm build` for deployment             | Use `pnpm build:vercel` (uses `vite.vercel.config.ts`)   |
-| Mixing feature + cleanup in one commit          | Split into separate focused commits                       |
-| Editing `src/routeTree.gen.ts`                  | Auto-generated by TanStack Router — never edit            |
-| Adding bare `create policy` in migrations       | Always wrap in DO $$ IF NOT EXISTS (pg_policies) or use IF NOT EXISTS for tables/indexes/columns |
+| Mistake                                         | Correct Approach                                                                                        |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `import { supabase } from "@/integrations/..."` | Use `@repo/supabase` or hooks                                                                           |
+| `createBrowserSupabase` in a server function    | `createServerSupabase(getCookies())`                                                                    |
+| `console.log("debug")`                          | `logger.debug("message", { context })`                                                                  |
+| `from "@repo/ui"` for Tooltip or Dialog         | `from "@repo/ui/tooltip"` / `from "@repo/ui/dialog"`                                                    |
+| Importing directly from Radix in app code       | Import from `@repo/ui` which wraps Radix                                                                |
+| Deleting a UI shim file                         | Replace contents with `export { X } from "@repo/ui"`                                                    |
+| Using `key={index}` in dynamic lists            | Use a stable unique identifier                                                                          |
+| Skipping Zod on server function input           | Always use `.inputValidator()` with Zod `.parse()`                                                      |
+| Adding `"use server"` directive                 | TanStack Start uses `createServerFn`, not directives                                                    |
+| Running `pnpm build` for deployment             | Use `pnpm build:vercel` (uses `vite.vercel.config.ts`)                                                  |
+| Mixing feature + cleanup in one commit          | Split into separate focused commits                                                                     |
+| Editing `src/routeTree.gen.ts`                  | Auto-generated by TanStack Router — never edit                                                          |
+| Adding bare `create policy` in migrations       | Always wrap in DO $$ IF NOT EXISTS (pg_policies) or use IF NOT EXISTS for tables/indexes/columns        |
 | Relying on .pnpmfile.cjs or unpinned pnpm       | Use "pnpm.onlyBuiltDependencies" + "packageManager" in package.json; keep .npmrc + clean workspace.yaml |
 
 ---
