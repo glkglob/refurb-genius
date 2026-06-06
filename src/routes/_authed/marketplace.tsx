@@ -1,7 +1,8 @@
 "use client";
 
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { AppLayout } from "@/components/AppLayout";
@@ -29,6 +30,10 @@ export const Route = createFileRoute("/_authed/marketplace")({
 function MarketplacePage() {
   const { projectId } = Route.useSearch();
   const { user } = useAuth();
+
+  useEffect(() => {
+    trackEvent("marketplace_listing_viewed");
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [specialtyFilter, setSpecialtyFilter] = useState("All");

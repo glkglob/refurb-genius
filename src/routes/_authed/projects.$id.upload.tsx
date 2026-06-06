@@ -9,6 +9,7 @@ import { Upload, ImagePlus, X, Sparkles, Loader2, AlertCircle, ArrowRight } from
 import { useRef, useState } from "react";
 import { useProject, useSetProjectStage } from "@/hooks/useProjects";
 import { usePhotos, useUploadPhotos, useRemovePhoto } from "@/hooks/usePhotos";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/_authed/projects/$id/upload")({
   head: () => ({ meta: [{ title: "Upload photos — Refurb Genius" }] }),
@@ -67,6 +68,7 @@ function UploadPage() {
     setError(null);
     try {
       await uploadPhotos.mutateAsync(files);
+      trackEvent("photos_uploaded", { photo_count: files.length });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
     } finally {
@@ -75,6 +77,7 @@ function UploadPage() {
   };
 
   const handleAnalyse = () => {
+    trackEvent("ai_analysis_started");
     setStage.mutate({ id, stage: "photos", value: true });
     navigate({ to: "/projects/$id/analysis", params: { id } });
   };

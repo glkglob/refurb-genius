@@ -1,3 +1,4 @@
+import "./lib/posthog-otel";
 import "./lib/error-capture";
 
 import { consumeLastCapturedError } from "./lib/error-capture";

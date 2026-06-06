@@ -11,7 +11,16 @@ export type AnalyticsEventName =
   | "pricing_band_selected"
   | "onboarding_started"
   | "onboarding_completed"
-  | "session_abandoned";
+  | "session_abandoned"
+  | "user_signed_in"
+  | "oauth_sign_in_initiated"
+  | "project_created"
+  | "photos_uploaded"
+  | "ai_analysis_started"
+  | "ai_analysis_completed"
+  | "estimate_viewed"
+  | "trades_job_posted"
+  | "marketplace_listing_viewed";
 
 type FunnelState = {
   started: boolean;
@@ -21,12 +30,7 @@ type FunnelState = {
   startedAt: string;
 };
 
-const posthogKey =
-  import.meta.env.VITE_POSTHOG_KEY || import.meta.env.NEXT_PUBLIC_POSTHOG_KEY || undefined;
-const posthogHost =
-  import.meta.env.VITE_POSTHOG_HOST ||
-  import.meta.env.NEXT_PUBLIC_POSTHOG_HOST ||
-  "https://us.i.posthog.com";
+const posthogKey = import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN || undefined;
 
 const enabled = Boolean(typeof window !== "undefined" && import.meta.env.PROD && posthogKey);
 const funnelStorageKey = "refurb-genius:funnel";
@@ -99,15 +103,8 @@ function bindSessionAbandonment(): void {
 export function initializeAnalytics(): void {
   if (!enabled || initialized) return;
 
-  posthog.init(posthogKey!, {
-    api_host: posthogHost,
-    autocapture: false,
-    capture_pageview: false,
-    capture_pageleave: false,
-    persistence: "localStorage+cookie",
-    person_profiles: "identified_only",
-  });
-
+  // posthog-js is initialized by PostHogProvider in __root.tsx;
+  // this function only wires the session-abandonment listener.
   bindSessionAbandonment();
   initialized = true;
 }

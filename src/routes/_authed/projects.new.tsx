@@ -82,7 +82,7 @@ function NewProject() {
       },
       {
         onSuccess: (project) => {
-          trackEvent("deal_analyzed", { surface: "project-create" }); // proxy for project start
+          trackEvent("project_created", { region, property_type: propertyType });
           navigate({
             to: "/projects/$id",
             params: { id: project.id },

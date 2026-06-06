@@ -50,6 +50,7 @@ import {
 import { runRoiEngine, type RoiRiskLevel as RiskLevel } from "@/core/roi";
 import { logger } from "@/lib/logger";
 import { saveProjectEstimate } from "@/lib/estimates";
+import { trackEvent } from "@/lib/analytics";
 import {
   UK_REGIONS,
   CONDITION_LEVELS,
@@ -129,6 +130,10 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
   const [condition, setCondition] = useState<ConditionLevel>("Dated");
   const [finish, setFinish] = useState<FinishLevel>("Standard");
   const [categories, setCategories] = useState<EstimateCategory[]>(DEFAULT_CATEGORIES);
+
+  useEffect(() => {
+    trackEvent("estimate_viewed");
+  }, []);
 
   useEffect(() => {
     setRegion(project.region);

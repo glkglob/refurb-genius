@@ -21,6 +21,7 @@ import type { RedesignConcept } from "@/core/ai";
 import { DISCLAIMER } from "@/core/reports";
 import { REDESIGN_CONCEPTS } from "@/core/ai";
 import { useProject, useSetProjectStage } from "@/hooks/useProjects";
+import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/_authed/projects/$id/analysis")({
   head: () => ({ meta: [{ title: "AI analysis — Refurb Genius" }] }),
@@ -55,6 +56,7 @@ function AnalysisPage() {
       setResults(r);
       setLoading(false);
       setStage.mutate({ id, stage: "analysis", value: true });
+      trackEvent("ai_analysis_completed", { room_count: r.length });
 
       setConceptsLoading(true);
       setRedesignError(null);
