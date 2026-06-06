@@ -241,26 +241,24 @@ function ProjectDetail() {
           {/* Find Trades CTA */}
           <div className="mt-8">
             <h2 className="text-lg font-semibold mb-4">Get the work done</h2>
-            <Link to="/marketplace" search={{ projectId: id }}>
-              <Card className="hover:shadow-md transition cursor-pointer border-accent/30">
-                <CardContent className="p-5 flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold flex items-center gap-2">
-                      Find local tradespeople{" "}
-                      <span className="text-xs bg-accent/10 px-1.5 py-0.5 rounded">
-                        Marketplace
-                      </span>
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Browse verified trades, save favorites, request quotes for this refurb
-                    </p>
-                  </div>
-                  <Button variant="outline" size="sm">
+            <Card className="hover:shadow-md transition border-accent/30">
+              <CardContent className="p-5 flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold flex items-center gap-2">
+                    Find local tradespeople{" "}
+                    <span className="text-xs bg-accent/10 px-1.5 py-0.5 rounded">Marketplace</span>
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Browse verified trades, save favorites, request quotes for this refurb
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="/marketplace" search={{ projectId: id }}>
                     Browse Trades →
-                  </Button>
-                </CardContent>
-              </Card>
-            </Link>
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 

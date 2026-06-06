@@ -71,8 +71,6 @@ pnpm build:vercel
 
 **For reliable deploys:** Always use `pnpm install --frozen-lockfile`. The project pins pnpm@9.15.9 via `packageManager` and uses idempotent Supabase migrations (policies/tables guarded against duplicates).
 
-```
-
 ## Environment Variables
 
 Copy `.env.example` and configure the required values.
@@ -104,4 +102,3 @@ Start with:
 - Run `pnpm typecheck && pnpm lint && pnpm test:invariants` before committing (matches CI + pre-commit).
 - Supabase migrations and pnpm config are hardened for repeatable deploys (see CLAUDE.md).
 - Update documentation when architecture or behavior changes.
-```

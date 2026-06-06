@@ -47,7 +47,7 @@ export function QuoteRequestDialog({
       if (!message.trim()) throw new Error("Message is required");
 
       const { error } = await supabase.from("quote_requests").insert({
-        project_id: (projectId ?? "") as string,
+        project_id: projectId ?? "",
         tradesperson_id: tradespersonId,
         user_id: user.id,
         status: "pending",

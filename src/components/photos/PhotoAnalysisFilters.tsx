@@ -93,14 +93,19 @@ export function PhotoAnalysisFilters({
 
       <div className="flex gap-1 items-center">
         {(["all", "analyzed", "unanalyzed"] as const).map((s) => (
-          <Badge
+          <button
             key={s}
-            variant={statusFilter === s ? "default" : "outline"}
-            className="cursor-pointer capitalize"
+            type="button"
             onClick={() => setStatusFilter(s)}
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full"
           >
-            {s}
-          </Badge>
+            <Badge
+              variant={statusFilter === s ? "default" : "outline"}
+              className="cursor-pointer capitalize pointer-events-none"
+            >
+              {s}
+            </Badge>
+          </button>
         ))}
       </div>
     </div>

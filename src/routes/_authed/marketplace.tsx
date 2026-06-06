@@ -3,6 +3,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { z } from "zod";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@repo/ui";
 import { Card, CardContent } from "@repo/ui";
@@ -19,16 +20,14 @@ import {
 
 export const Route = createFileRoute("/_authed/marketplace")({
   head: () => ({ meta: [{ title: "Trades Marketplace — Refurb Genius" }] }),
-  validateSearch: (search: Record<string, unknown>) => {
-    const pid = typeof search.projectId === "string" ? search.projectId : undefined;
-    return { projectId: pid } as { projectId?: string };
-  },
+  validateSearch: z.object({
+    projectId: z.string().optional(),
+  }),
   component: MarketplacePage,
 });
 
 function MarketplacePage() {
-  const search = Route.useSearch() as { projectId?: string };
-  const { projectId } = search;
+  const { projectId } = Route.useSearch();
   const { user } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -65,11 +64,13 @@ function MarketplacePage() {
 
       const matchesRating = (t.rating ?? 0) >= minRating;
 
+      // Specialties are loaded per-card so we approximate by matching the
+      // filter value against business name and bio rather than the search term.
+      const specialtyLower = specialtyFilter.toLowerCase();
       const matchesSpecialty =
         specialtyFilter === "All" ||
-        // Note: specialties loaded per-card; we approximate here with name/bio match for the filter term
-        (specialtyFilter !== "All" && term.includes(specialtyFilter.toLowerCase())) ||
-        t.business_name.toLowerCase().includes(specialtyFilter.toLowerCase());
+        t.business_name.toLowerCase().includes(specialtyLower) ||
+        (t.bio && t.bio.toLowerCase().includes(specialtyLower));
 
       return matchesSearch && matchesPostcode && matchesRating && matchesSpecialty;
     })

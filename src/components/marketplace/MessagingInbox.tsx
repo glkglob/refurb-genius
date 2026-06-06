@@ -25,6 +25,12 @@ export function MessagingInbox({ projectId }: MessagingInboxProps) {
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const queryClient = useQueryClient();
+
+  // Reset selected conversation when the project changes so stale thread IDs
+  // from a different project aren't left selected.
+  useEffect(() => {
+    setSelectedQuoteId(null);
+  }, [projectId]);
   const user = auth.getUser();
 
   const { data: quotes = [], isLoading: quotesLoading } = useQuery({
@@ -215,6 +221,7 @@ export function MessagingInbox({ projectId }: MessagingInboxProps) {
                 <Button
                   type="submit"
                   size="icon"
+                  aria-label="Send message"
                   disabled={!newMessage.trim() || sendMessageMutation.isPending}
                 >
                   <Send className="h-4 w-4" />

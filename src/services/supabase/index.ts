@@ -12,9 +12,15 @@ import { env } from "@/core/config/env";
 
 const isDev = import.meta.env.DEV;
 
+// Only pin the cookie domain when running on the production hostname.
+// Preview deployments (*.vercel.app) and localhost must not have a
+// domain attribute or the cookie will be silently rejected.
+const hostname = typeof window !== "undefined" ? window.location.hostname : "";
+const isProdHostname = hostname === "refurbgenius.info" || hostname.endsWith(".refurbgenius.info");
+
 export const supabase = createBrowserSupabase<Database>({
   cookieName: "pip-auth",
-  cookieDomain: isDev ? undefined : ".refurbgenius.info",
+  cookieDomain: !isDev && isProdHostname ? ".refurbgenius.info" : undefined,
   secure: !isDev,
 });
 

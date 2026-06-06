@@ -138,7 +138,7 @@ export function PhotoAnalysisCard({
                 </div>
                 <ul className="space-y-0.5 pl-1 text-muted-foreground">
                   {defects.slice(0, 2).map((d, i) => (
-                    <li key={i} className="truncate">
+                    <li key={`${d.description}-${i}`} className="truncate">
                       • {d.description} ({d.severity})
                     </li>
                   ))}

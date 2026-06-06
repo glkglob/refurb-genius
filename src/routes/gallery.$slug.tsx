@@ -38,9 +38,10 @@ function GalleryDetailPage() {
   const { data: gallery, isLoading: galleryLoading } = useQuery(
     publicGalleryProjectByIdQueryOptions(slug),
   );
-  const { data: photos = [], isLoading: photosLoading } = useQuery(
-    publicProjectPhotosQueryOptions(gallery?.project_id || ""),
-  );
+  const { data: photos = [], isLoading: photosLoading } = useQuery({
+    ...publicProjectPhotosQueryOptions(gallery?.project_id || ""),
+    enabled: !!gallery?.project_id,
+  });
 
   if (galleryLoading) {
     return (
@@ -220,7 +221,7 @@ function GalleryDetailPage() {
                       key={ph.id}
                       href={ph.url}
                       target="_blank"
-                      rel="noopener"
+                      rel="noopener noreferrer"
                       className="block overflow-hidden rounded-lg border"
                     >
                       <img

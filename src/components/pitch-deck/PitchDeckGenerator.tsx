@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@repo/ui";
 import { Progress } from "@repo/ui";
@@ -39,6 +39,13 @@ export function PitchDeckGenerator({
   const [progress, setProgress] = useState(0);
   const [progressStage, setProgressStage] = useState("");
   const queryClient = useQueryClient();
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
+  }, []);
 
   const handleGenerate = async () => {
     if (isGenerating) return;
@@ -152,7 +159,7 @@ export function PitchDeckGenerator({
           (err instanceof Error ? err.message : null) || "Please try again or contact support.",
       });
     } finally {
-      setTimeout(() => {
+      resetTimerRef.current = setTimeout(() => {
         setIsGenerating(false);
         setProgress(0);
         setProgressStage("");

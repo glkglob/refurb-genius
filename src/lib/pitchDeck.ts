@@ -218,14 +218,18 @@ export async function generatePitchDeckPDF(
         y = ((doc as any).lastAutoTable?.finalY ?? y + 20) + 4;
       }
 
-      const roomTotal = room.items?.reduce((s: number, i) => s + i.quantity * i.unit_cost, 0) || 0;
+      const roomTotal =
+        room.items?.reduce((s: number, i) => s + (i.quantity ?? 1) * (i.unit_cost ?? 0), 0) || 0;
       doc.setFontSize(9);
       doc.text(`Room subtotal: £${Math.round(roomTotal).toLocaleString()}`, margin, y);
       y += 8;
     });
 
     const total = estimate.rooms.reduce((s: number, r) => {
-      return s + (r.items || []).reduce((is: number, i) => is + i.quantity * i.unit_cost, 0);
+      return (
+        s +
+        (r.items || []).reduce((is: number, i) => is + (i.quantity ?? 1) * (i.unit_cost ?? 0), 0)
+      );
     }, 0);
     doc.setFontSize(10);
     doc.text(
@@ -322,7 +326,7 @@ export async function generatePitchDeckPDF(
   onProgress?.("generating-pdf", 70);
 
   const blob = doc.output("blob");
-  const filename = `refurb-genius-pitch-${project.id.slice(0, 8)}-${new Date().toISOString().slice(0, 10)}.pdf`;
+  const filename = `refurb-genius-pitch-${project.id.slice(0, 8)}-${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.pdf`;
 
   const duration = Date.now() - start;
   addDiagnosticBreadcrumb("pitch-deck:generate:complete", {
