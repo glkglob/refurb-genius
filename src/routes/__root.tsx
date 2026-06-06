@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { Component, useEffect } from "react";
 import type { ErrorInfo, ReactNode } from "react";
+import { PostHogProvider } from "@posthog/react";
 
 import { Toaster } from "@/components/ui/sonner";
 import { captureException } from "@/lib/sentry";
@@ -114,6 +115,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "theme-color", content: "#ffffff" },
+      {
+        name: "google-site-verification",
+        content: "NAteh4Jb4nPdtyDxEBNBcGOYM8H0TTO37zO5yCtQnPU",
+      },
     ],
     links: [
       {
@@ -156,7 +161,20 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
+        <PostHogProvider
+          apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN as string}
+          options={{
+            api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST as string,
+            autocapture: false,
+            capture_pageview: false,
+            capture_pageleave: false,
+            persistence: "localStorage+cookie",
+            person_profiles: "identified_only",
+            capture_exceptions: true,
+          }}
+        >
+          {children}
+        </PostHogProvider>
         <Scripts />
       </body>
     </html>
