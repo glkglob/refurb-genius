@@ -155,11 +155,11 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
         if (!catMatch) return false;
       }
 
-      // Severity (max in defects)
-      if (severityFilter !== "all" && hasAnalysis) {
+      // Severity — unanalyzed photos never match a specific severity filter
+      if (severityFilter !== "all") {
+        if (!hasAnalysis) return false;
         const defects: ParsedDefect[] = data.defects || [];
-        const hasSev = defects.some((d) => d.severity === severityFilter);
-        if (!hasSev) return false;
+        if (!defects.some((d) => d.severity === severityFilter)) return false;
       }
 
       return true;

@@ -137,7 +137,7 @@ pnpm test:ui:watch
 - List (/gallery): public, no login. Cards from publicGalleryProjectsQuery (with project join for GDV/ROI calc in card).
 - Filters: search (title/desc/location), region, min GDV slider, min ROI buttons → client-side filter.
 - Cards: cover (from gallery or placeholder), badges for ROI/GDV/size/location, "View Project".
-- Detail (/gallery/{id}): loads via publicGalleryProjectById (join), shows cover, summary, financials cards (calc ROI etc), photos (cover + publicProjectPhotos if any), 3D teaser, **Lead form**.
+- Detail (/gallery/$slug): loads via publicGalleryProjectById(slug) (join), shows cover, summary, financials cards (calc ROI etc), photos (cover + publicProjectPhotos if any), 3D teaser, **Lead form**.
 - Lead form: name/email required, optional phone/msg. Honeypot (hidden "website" input) blocks bots. 30s client rate limit. Submits directly to investor_leads (public policy). Success toast.
 - SEO: route head has title/desc/OG. Dynamic in detail via slug + data.
 - No private data: only is_public=true rows + basic project fields; no user_id, full analyses, etc.
