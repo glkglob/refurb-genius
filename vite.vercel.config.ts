@@ -38,8 +38,9 @@ export default defineConfig({
         // Target only client-side static chunks — Nitro's server function
         // bundles in .vercel/output/functions/ have no source maps and
         // produce "could not determine source map reference" noise.
-        assets: "./.vercel/output/static/**/*.js",
-        filesToDeleteAfterUpload: "./.vercel/output/static/**/*.js.map",
+        assets: "./.vercel/output/**",
+        ignore: ["**/node_modules/**"],
+        filesToDeleteAfterUpload: "./.vercel/output/**/*.map",
       },
     }),
   ],
