@@ -1,0 +1,19 @@
+vite.config.ts
+  s_77b5d4cf8ce63d::t_fc093843b6165a 1-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "78bf81dd9f63b0e38b851e5cbece5d9286f02d6d",
+  "prompts": {},
+  "sessions": {
+    "s_77b5d4cf8ce63d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "70996314-76bc-4668-b57d-aac1af89e969",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Kris Solo <glkglob@users.noreply.github.com>"
+    }
+  }
+}
