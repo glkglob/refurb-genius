@@ -25,6 +25,7 @@ import { Route as AuthedMarketplaceRouteImport } from './routes/_authed/marketpl
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as AuthedAdminRouteImport } from './routes/_authed/admin'
 import { Route as AuthedDealCopilotIndexRouteImport } from './routes/_authed/deal-copilot/index'
+import { Route as PrivacyOauthConsentRouteImport } from './routes/privacy_.oauth.consent'
 import { Route as AuthedTradesProfileRouteImport } from './routes/_authed/trades_.profile'
 import { Route as AuthedTradesNewRouteImport } from './routes/_authed/trades_.new'
 import { Route as AuthedProjectsNewRouteImport } from './routes/_authed/projects.new'
@@ -118,6 +119,11 @@ const AuthedDealCopilotIndexRoute = AuthedDealCopilotIndexRouteImport.update({
   path: '/deal-copilot/',
   getParentRoute: () => AuthedRoute,
 } as any)
+const PrivacyOauthConsentRoute = PrivacyOauthConsentRouteImport.update({
+  id: '/privacy_/oauth/consent',
+  path: '/privacy/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthedTradesProfileRoute = AuthedTradesProfileRouteImport.update({
   id: '/trades_/profile',
   path: '/trades/profile',
@@ -208,6 +214,7 @@ export interface FileRoutesByFullPath {
   '/projects/new': typeof AuthedProjectsNewRoute
   '/trades/new': typeof AuthedTradesNewRoute
   '/trades/profile': typeof AuthedTradesProfileRoute
+  '/privacy/oauth/consent': typeof PrivacyOauthConsentRoute
   '/deal-copilot/': typeof AuthedDealCopilotIndexRoute
   '/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
   '/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
@@ -238,6 +245,7 @@ export interface FileRoutesByTo {
   '/projects/new': typeof AuthedProjectsNewRoute
   '/trades/new': typeof AuthedTradesNewRoute
   '/trades/profile': typeof AuthedTradesProfileRoute
+  '/privacy/oauth/consent': typeof PrivacyOauthConsentRoute
   '/deal-copilot': typeof AuthedDealCopilotIndexRoute
   '/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
   '/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
@@ -270,6 +278,7 @@ export interface FileRoutesById {
   '/_authed/projects/new': typeof AuthedProjectsNewRoute
   '/_authed/trades_/new': typeof AuthedTradesNewRoute
   '/_authed/trades_/profile': typeof AuthedTradesProfileRoute
+  '/privacy_/oauth/consent': typeof PrivacyOauthConsentRoute
   '/_authed/deal-copilot/': typeof AuthedDealCopilotIndexRoute
   '/_authed/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
   '/_authed/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
@@ -302,6 +311,7 @@ export interface FileRouteTypes {
     | '/projects/new'
     | '/trades/new'
     | '/trades/profile'
+    | '/privacy/oauth/consent'
     | '/deal-copilot/'
     | '/deal-copilot/$opportunityId/edit'
     | '/projects/$id/analysis'
@@ -332,6 +342,7 @@ export interface FileRouteTypes {
     | '/projects/new'
     | '/trades/new'
     | '/trades/profile'
+    | '/privacy/oauth/consent'
     | '/deal-copilot'
     | '/deal-copilot/$opportunityId/edit'
     | '/projects/$id/analysis'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/_authed/projects/new'
     | '/_authed/trades_/new'
     | '/_authed/trades_/profile'
+    | '/privacy_/oauth/consent'
     | '/_authed/deal-copilot/'
     | '/_authed/deal-copilot/$opportunityId/edit'
     | '/_authed/projects/$id/analysis'
@@ -385,6 +397,7 @@ export interface RootRouteChildren {
   TradesRoute: typeof TradesRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
   TradesJobIdRoute: typeof TradesJobIdRoute
+  PrivacyOauthConsentRoute: typeof PrivacyOauthConsentRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -500,6 +513,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/deal-copilot/'
       preLoaderRoute: typeof AuthedDealCopilotIndexRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/privacy_/oauth/consent': {
+      id: '/privacy_/oauth/consent'
+      path: '/privacy/oauth/consent'
+      fullPath: '/privacy/oauth/consent'
+      preLoaderRoute: typeof PrivacyOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authed/trades_/profile': {
       id: '/_authed/trades_/profile'
@@ -676,17 +696,8 @@ const rootRouteChildren: RootRouteChildren = {
   TradesRoute: TradesRoute,
   AuthCallbackRoute: AuthCallbackRoute,
   TradesJobIdRoute: TradesJobIdRoute,
+  PrivacyOauthConsentRoute: PrivacyOauthConsentRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
