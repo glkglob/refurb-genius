@@ -347,7 +347,7 @@ export function DealIntakeForm() {
           </div>
         )}
 
-        {/* AI estimate via native TypeScript + OpenAI pipeline (replaces former Railway path) */}
+        {/* AI estimate via native TypeScript + OpenAI pipeline */}
         <div className="mt-4 border-t pt-4">
           <Button
             type="button"

@@ -137,7 +137,6 @@ export const runScopeAnalysisServerFn = createServerFn({ method: "POST" })
     if (!rl.allowed) {
       throw new Error(`Rate limit exceeded. Try again in ${rl.retryAfter || 60}s.`);
     }
-    // Native TypeScript + OpenAI implementation (single source of truth after Railway removal).
     const { runSecureScopeAnalysis } = await import("./server/openAiScopeAnalysis.server");
     return runSecureScopeAnalysis(data);
   });
