@@ -65,9 +65,9 @@ Unauthenticated visitors are redirected to `/auth?redirect=<path>` and returned 
 
 ### Marketplace
 
-| Path           | File                                    | Notes                                                   |
-| -------------- | --------------------------------------- | ------------------------------------------------------- |
-| `/marketplace` | `src/routes/_authed/marketplace.tsx`    | Trades marketplace for investors. Browse tradespeople, request quotes, favorite, and message. |
+| Path           | File                                 | Notes                                                                                         |
+| -------------- | ------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `/marketplace` | `src/routes/_authed/marketplace.tsx` | Trades marketplace for investors. Browse tradespeople, request quotes, favorite, and message. |
 
 ### Settings & Admin
 

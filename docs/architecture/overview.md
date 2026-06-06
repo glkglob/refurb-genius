@@ -151,8 +151,8 @@ Packages do not have separate build outputs. This is intentional and appropriate
 
 ## Validation Pipeline
 
-| Check       | Command                | Status                            |
-| ----------- | ---------------------- | --------------------------------- |
+| Check       | Command             | Status                            |
+| ----------- | ------------------- | --------------------------------- |
 | Type safety | `pnpm typecheck`    | ✅ Pass                           |
 | Linting     | `pnpm lint`         | ✅ Pass (6 pre-existing warnings) |
 | Build       | `pnpm build:vercel` | ✅ Pass                           |
