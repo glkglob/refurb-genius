@@ -6,7 +6,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@repo/ui";
 describe("Resizable (migrated @repo/ui)", () => {
   it("renders resizable panel group with panels and handle", () => {
     render(
-      <ResizablePanelGroup direction="horizontal">
+      <ResizablePanelGroup orientation="horizontal">
         <ResizablePanel>Left</ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel>Right</ResizablePanel>
@@ -15,11 +15,7 @@ describe("Resizable (migrated @repo/ui)", () => {
 
     expect(screen.getByText("Left")).toBeInTheDocument();
     expect(screen.getByText("Right")).toBeInTheDocument();
-    // Handle/panel structure: the group container should be present (data attrs may vary under jsdom)
-    const group =
-      document.querySelector("[data-panel-group]") ||
-      document.querySelector("div[style*='display:flex']") ||
-      screen.getByText("Left").parentElement;
+    const group = document.querySelector("[data-group]");
     expect(group).toBeTruthy();
   });
 });
