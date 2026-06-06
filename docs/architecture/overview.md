@@ -1,6 +1,6 @@
 # Refurb Genius Architecture Overview
 
-## Current State (May 2026)
+## Current State (June 2026)
 
 Refurb Genius is a **real pnpm workspace monorepo** hosting a single TanStack Start SSR application with extracted shared libraries organized as workspace packages.
 
@@ -115,13 +115,13 @@ The root `src/` directory is not just application code—it is the **production 
 - Zero external dependencies (copies pricingData locally)
 - **Responsibility**: Pure business logic that can be tested, reasoned about, and potentially reused across future products
 
-### @repo/ui (re-export layer, 51 LOC)
+### @repo/ui (migrating component library)
 
-- Facade re-exporting all components from `src/components/ui/`
-- Not a true isolated component library (components remain in root)
-- Provides convenient import path: `import { Button } from "@repo/ui"` vs. `import { Button } from "@/components/ui/button"`
-- 36 external dependencies (Radix UI, TailwindCSS, etc.)
-- **Responsibility**: Provide ergonomic monorepo-friendly import path while keeping component implementation at root
+- 17 of 46 UI components have been moved into `packages/ui/src/components/` (source of truth for migrated components)
+- Remaining 29 components still live in `src/components/ui/` as shims that re-export from `@repo/ui`
+- Provides a stable import path `import { Button } from "@repo/ui"` regardless of migration state
+- Target: complete migration of all 46 components. High-value next targets: sidebar, sheet, dropdown-menu, command
+- **Responsibility**: Shared design-system components with Radix UI primitives, cva variants, and Tailwind v4 styling
 
 ### @repo/integrations (placeholder)
 
@@ -133,7 +133,7 @@ The root `src/` directory is not just application code—it is the **production 
 **Build orchestration**: pnpm + Turbo
 
 ```bash
-npm run build:vercel
+pnpm build:vercel
 # Executes: vite build --config vite.vercel.config.ts
 # - Runs TypeScript plugin (@lovable.dev/vite-tanstack-config)
 # - Generates TanStack route tree (requires src/ at root)
@@ -153,9 +153,9 @@ Packages do not have separate build outputs. This is intentional and appropriate
 
 | Check       | Command                | Status                            |
 | ----------- | ---------------------- | --------------------------------- |
-| Type safety | `npm run typecheck`    | ✅ Pass                           |
-| Linting     | `npm run lint`         | ✅ Pass (6 pre-existing warnings) |
-| Build       | `npm run build:vercel` | ✅ Pass                           |
+| Type safety | `pnpm typecheck`    | ✅ Pass                           |
+| Linting     | `pnpm lint`         | ✅ Pass (6 pre-existing warnings) |
+| Build       | `pnpm build:vercel` | ✅ Pass                           |
 
 All checks pass without errors. The monorepo is production-ready.
 

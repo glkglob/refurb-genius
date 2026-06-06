@@ -71,33 +71,25 @@ Extract shared code from a monolithic TanStack Start application into reusable w
 
 ---
 
-## Phase 3: Extract @repo/ui (Completed)
+## Phase 3: Extract @repo/ui (In Progress — 17/46 Migrated)
 
-**Objective**: Provide ergonomic monorepo import path for UI components.
+**Objective**: Move UI components into `packages/ui/src/components/` as the shared design-system library.
 
-**Initial approach (FAILED):**
+**Initial approach (pivot required):**
 
-- Attempted to move 45 component files from `src/components/ui/` to `packages/ui/src/`
-- Created shim files with `export * from "@repo/ui"`
-- **Error**: TypeScript path alias resolution failed
-- Message: `Module '"@repo/ui"' has no exported member 'Card'`
-- **Root cause**: Circular reference risk (src/components/ui → packages/ui → src/components/ui)
+- Early attempt to bulk-move 45 files failed due to TypeScript circular-reference risk (src/components/ui → packages/ui → src/components/ui)
+- Adopted a component-by-component migration strategy instead
 
-**Corrective action:**
+**Current implementation:**
 
-- Reverted all file movements
-- Changed strategy: Keep components at root, create re-export facade
-- Components belong in root (app-specific), not in package
-- Design is re-export layer, not isolation barrier
+- **Migrated (17/46):** Components fully moved to `packages/ui/src/components/`, exported from `packages/ui/src/index.ts`, shim in `src/components/ui/` replaced with a re-export
+- **Remaining (29/46):** Still live in `src/components/ui/` as shims re-exporting from `@repo/ui`; `packages/ui/src/index.ts` barrel covers all 46 so import paths are stable
+- **Import rule:** App code imports from `@repo/ui` (barrel) or `@repo/ui/<component>` (for tooltip, dialog, and sidebar dependencies that cause circular refs through the barrel)
+- **Tailwind v4:** `src/styles.css` includes `@source "../packages/ui/src/**/*"` so migrated component classes are picked up
 
-**Final implementation:**
+**Next targets (in priority order):** sidebar, sheet, dropdown-menu, command.
 
-- Components remain at `src/components/ui/` (source of truth)
-- Created `packages/ui/src/index.ts` as re-export barrel
-- 45 star exports: `export * from "@/components/ui/button"`, etc.
-- Plus utility: `export { cn } from "@/lib/utils"`
-
-**Result:** ✅ Pass (strategy adjusted mid-phase)
+**Result:** ✅ Pass (active, ongoing migration)
 
 ---
 
@@ -147,7 +139,7 @@ Extract shared code from a monolithic TanStack Start application into reusable w
 
 ---
 
-## The Failed Extraction: src/ Relocation (Phase 3 Pivot)
+## The Failed Extraction: src/ Relocation (Historical — Early Phase 3)
 
 ### What Happened
 
