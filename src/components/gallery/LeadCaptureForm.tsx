@@ -6,8 +6,8 @@ import { Input } from "@repo/ui";
 import { Textarea } from "@repo/ui";
 import { Label } from "@repo/ui";
 import { toast } from "sonner";
-import { supabase } from "@/services/supabase";
 import { logger } from "@/lib/logger";
+import { submitInvestorLead } from "@/core/gallery/serverFns";
 
 interface LeadCaptureFormProps {
   galleryProjectId: string;
@@ -46,16 +46,16 @@ export function LeadCaptureForm({ galleryProjectId, projectTitle }: LeadCaptureF
     setSubmitting(true);
 
     try {
-      const { error } = await supabase.from("investor_leads").insert({
-        gallery_project_id: galleryProjectId,
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone.trim() || null,
-        message:
-          message.trim() || `Interest in ${projectTitle || "this project"} via public gallery.`,
+      await submitInvestorLead({
+        data: {
+          gallery_project_id: galleryProjectId,
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone.trim() || null,
+          message:
+            message.trim() || `Interest in ${projectTitle || "this project"} via public gallery.`,
+        },
       });
-
-      if (error) throw error;
 
       localStorage.setItem("lastGalleryLead", Date.now().toString());
 
@@ -71,10 +71,12 @@ export function LeadCaptureForm({ galleryProjectId, projectTitle }: LeadCaptureF
       setHp("");
     } catch (err: unknown) {
       logger.error("[gallery] lead submit failed", {
-        error: (err as Error)?.message,
+        error: err instanceof Error ? err.message : String(err),
         galleryProjectId,
       });
-      toast.error("Failed to send inquiry. Please try again later.");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to send inquiry. Please try again later.",
+      );
     } finally {
       setSubmitting(false);
     }

@@ -11,7 +11,7 @@
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, basename } from "node:path";
 import test from "node:test";
 
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
@@ -161,7 +161,7 @@ test("@repo/ui package components and barrel do not import from app layer (@/ or
   const componentFiles = NEWLY_MIGRATED.map((n) => pkgComponentPath(n));
   for (const file of componentFiles) {
     if (!existsSync(file)) continue;
-    const base = file.split("/").pop()!;
+    const base = basename(file);
     if (BOUNDARY_EXCEPTIONS.has(base)) continue;
     const src = readFileSync(file, "utf8");
     assert.ok(

@@ -899,7 +899,7 @@ export type Database = {
         Row: {
           created_at: string;
           id: string;
-          metadata: Json;
+          metadata: Json | null;
           model_url: string | null;
           name: string;
           project_id: string;
