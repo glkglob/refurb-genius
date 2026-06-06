@@ -15,7 +15,7 @@ This document prepares the **FastAPI/CrewAI backend** for deployment on Railway 
 
 **Set this in Railway project settings (or during first deploy):**
 
-```text
+```
 /backend
 ```
 
@@ -25,13 +25,13 @@ This tells Railway to treat `backend/` as the app root (so `Procfile`, `requirem
 
 Railway auto-detects the `Procfile`. The command is:
 
-```text
+```
 web: uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
 
 **Alternative (if overriding in Railway dashboard):**
 
-```text
+```
 uvicorn main:app --host 0.0.0.0 --port $PORT
 ```
 
@@ -229,6 +229,8 @@ curl http://localhost:8000/analysis-result/<job_id>
 ```bash
 # In project root
 VITE_API_BASE_URL=http://localhost:8000 pnpm dev
+# or
+VITE_API_BASE_URL=http://localhost:8000 npm run dev
 ```
 
 Then navigate to a project → Scope page and click **"Run Full Property Intelligence (Railway)"**.
