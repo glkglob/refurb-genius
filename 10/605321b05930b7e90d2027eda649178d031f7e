@@ -1,0 +1,42 @@
+packages/ui/src/components/form.tsx
+  s_77b5d4cf8ce63d::t_da0a956d44ed24 171-172
+packages/supabase/src/database.types.ts
+  s_77b5d4cf8ce63d::t_265ef8a35dbba4 902
+tests/invariants/ui-migration.invariant.test.ts
+  s_77b5d4cf8ce63d::t_84421bb6de93a8 164
+  s_77b5d4cf8ce63d::t_65f3402209064a 14
+packages/supabase/README.md
+  s_77b5d4cf8ce63d::t_9d9059d0ad3558 35,39-40
+docs/qa-checklist.md
+  s_77b5d4cf8ce63d::t_0457cb2bbd3570 140
+src/core/gallery/serverFns.ts
+  s_77b5d4cf8ce63d::t_ce8decbf8d0893 28
+  s_77b5d4cf8ce63d::t_e2bf1f3556548d 1-8,10-27,29-46
+  s_77b5d4cf8ce63d::t_de2d4185b853eb 9
+src/components/photos/PhotoAnalysisViewer.tsx
+  s_77b5d4cf8ce63d::t_aef71b40cc17b6 158-160,162
+src/components/gallery/LeadCaptureForm.tsx
+  s_77b5d4cf8ce63d::t_9bc7a368a50860 10
+  s_77b5d4cf8ce63d::t_ecf4d22b341cd4 74,77-79
+  s_77b5d4cf8ce63d::t_aafa078d80f4f8 49-55,57
+  s_77b5d4cf8ce63d::t_18b63961db21c4 56
+docs/archive/2026-05-legacy-ai-guidance-railway/RAILWAY_SETUP.md
+  s_77b5d4cf8ce63d::t_4ba607a7303008 28,34
+  s_77b5d4cf8ce63d::t_ead40117ddc91d 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "10605321b05930b7e90d2027eda649178d031f7e",
+  "prompts": {},
+  "sessions": {
+    "s_77b5d4cf8ce63d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "70996314-76bc-4668-b57d-aac1af89e969",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Kris Solo <glkglob@users.noreply.github.com>"
+    }
+  }
+}
