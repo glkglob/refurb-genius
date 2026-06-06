@@ -314,6 +314,303 @@ export type Database = {
           },
         ];
       };
+      floorplan_annotations: {
+        Row: {
+          annotation_type: string;
+          created_at: string;
+          data: Json;
+          id: string;
+          model_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          annotation_type: string;
+          created_at?: string;
+          data?: Json;
+          id?: string;
+          model_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          annotation_type?: string;
+          created_at?: string;
+          data?: Json;
+          id?: string;
+          model_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "floorplan_annotations_model_id_fkey";
+            columns: ["model_id"];
+            isOneToOne: false;
+            referencedRelation: "floorplan_models";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      floorplan_measurements: {
+        Row: {
+          created_at: string;
+          id: string;
+          measurement_type: string;
+          model_id: string;
+          unit: string;
+          updated_at: string;
+          value: number;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          measurement_type: string;
+          model_id: string;
+          unit?: string;
+          updated_at?: string;
+          value: number;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          measurement_type?: string;
+          model_id?: string;
+          unit?: string;
+          updated_at?: string;
+          value?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "floorplan_measurements_model_id_fkey";
+            columns: ["model_id"];
+            isOneToOne: false;
+            referencedRelation: "floorplan_models";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      floorplan_models: {
+        Row: {
+          created_at: string;
+          id: string;
+          metadata: Json | null;
+          model_url: string | null;
+          name: string;
+          project_id: string;
+          status: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          metadata?: Json | null;
+          model_url?: string | null;
+          name?: string;
+          project_id: string;
+          status?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          metadata?: Json | null;
+          model_url?: string | null;
+          name?: string;
+          project_id?: string;
+          status?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "floorplan_models_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      investor_leads: {
+        Row: {
+          created_at: string;
+          email: string;
+          gallery_project_id: string;
+          id: string;
+          message: string | null;
+          name: string;
+          phone: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          email: string;
+          gallery_project_id: string;
+          id?: string;
+          message?: string | null;
+          name: string;
+          phone?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          email?: string;
+          gallery_project_id?: string;
+          id?: string;
+          message?: string | null;
+          name?: string;
+          phone?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "investor_leads_gallery_project_id_fkey";
+            columns: ["gallery_project_id"];
+            isOneToOne: false;
+            referencedRelation: "public_gallery_projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      photo_analysis_results: {
+        Row: {
+          analysis_data: Json;
+          confidence: number | null;
+          created_at: string;
+          id: string;
+          photo_id: string | null;
+          project_id: string;
+          source: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          analysis_data?: Json;
+          confidence?: number | null;
+          created_at?: string;
+          id?: string;
+          photo_id?: string | null;
+          project_id: string;
+          source?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          analysis_data?: Json;
+          confidence?: number | null;
+          created_at?: string;
+          id?: string;
+          photo_id?: string | null;
+          project_id?: string;
+          source?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "photo_analysis_results_photo_id_fkey";
+            columns: ["photo_id"];
+            isOneToOne: false;
+            referencedRelation: "photos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "photo_analysis_results_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      pitch_deck_exports: {
+        Row: {
+          created_at: string;
+          export_url: string | null;
+          file_size_bytes: number | null;
+          format: string;
+          id: string;
+          project_id: string;
+          title: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          export_url?: string | null;
+          file_size_bytes?: number | null;
+          format?: string;
+          id?: string;
+          project_id: string;
+          title?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          export_url?: string | null;
+          file_size_bytes?: number | null;
+          format?: string;
+          id?: string;
+          project_id?: string;
+          title?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pitch_deck_exports_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      public_gallery_projects: {
+        Row: {
+          cover_image_url: string | null;
+          created_at: string;
+          description: string | null;
+          featured: boolean;
+          id: string;
+          is_public: boolean;
+          project_id: string;
+          title: string | null;
+          updated_at: string;
+          view_count: number;
+        };
+        Insert: {
+          cover_image_url?: string | null;
+          created_at?: string;
+          description?: string | null;
+          featured?: boolean;
+          id?: string;
+          is_public?: boolean;
+          project_id: string;
+          title?: string | null;
+          updated_at?: string;
+          view_count?: number;
+        };
+        Update: {
+          cover_image_url?: string | null;
+          created_at?: string;
+          description?: string | null;
+          featured?: boolean;
+          id?: string;
+          is_public?: boolean;
+          project_id?: string;
+          title?: string | null;
+          updated_at?: string;
+          view_count?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "public_gallery_projects_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: true;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       photos: {
         Row: {
           content_type: string | null;
@@ -767,6 +1064,198 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      quote_requests: {
+        Row: {
+          created_at: string;
+          id: string;
+          message: string | null;
+          project_id: string;
+          proposed_price: number | null;
+          status: string;
+          tradesperson_id: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          message?: string | null;
+          project_id: string;
+          proposed_price?: number | null;
+          status?: string;
+          tradesperson_id: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          message?: string | null;
+          project_id?: string;
+          proposed_price?: number | null;
+          status?: string;
+          tradesperson_id?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "quote_requests_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "quote_requests_tradesperson_id_fkey";
+            columns: ["tradesperson_id"];
+            isOneToOne: false;
+            referencedRelation: "tradespeople";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      trade_favorites: {
+        Row: {
+          created_at: string;
+          id: string;
+          tradesperson_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          tradesperson_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          tradesperson_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "trade_favorites_tradesperson_id_fkey";
+            columns: ["tradesperson_id"];
+            isOneToOne: false;
+            referencedRelation: "tradespeople";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      trade_messages: {
+        Row: {
+          content: string;
+          created_at: string;
+          id: string;
+          quote_request_id: string;
+          sender_id: string;
+        };
+        Insert: {
+          content: string;
+          created_at?: string;
+          id?: string;
+          quote_request_id: string;
+          sender_id: string;
+        };
+        Update: {
+          content?: string;
+          created_at?: string;
+          id?: string;
+          quote_request_id?: string;
+          sender_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "trade_messages_quote_request_id_fkey";
+            columns: ["quote_request_id"];
+            isOneToOne: false;
+            referencedRelation: "quote_requests";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      trade_specialties: {
+        Row: {
+          created_at: string;
+          id: string;
+          specialty: string;
+          tradesperson_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          specialty: string;
+          tradesperson_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          specialty?: string;
+          tradesperson_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "trade_specialties_tradesperson_id_fkey";
+            columns: ["tradesperson_id"];
+            isOneToOne: false;
+            referencedRelation: "tradespeople";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      tradespeople: {
+        Row: {
+          bio: string | null;
+          business_name: string;
+          contact_name: string;
+          created_at: string;
+          email: string | null;
+          id: string;
+          insurance_status: string;
+          phone: string | null;
+          postcode: string | null;
+          rating: number | null;
+          review_count: number | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          bio?: string | null;
+          business_name: string;
+          contact_name: string;
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          insurance_status?: string;
+          phone?: string | null;
+          postcode?: string | null;
+          rating?: number | null;
+          review_count?: number | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          bio?: string | null;
+          business_name?: string;
+          contact_name?: string;
+          created_at?: string;
+          email?: string | null;
+          id?: string;
+          insurance_status?: string;
+          phone?: string | null;
+          postcode?: string | null;
+          rating?: number | null;
+          review_count?: number | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
       };
       trade_profiles: {
         Row: {

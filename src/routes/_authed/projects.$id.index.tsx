@@ -28,6 +28,7 @@ import {
   Ruler,
   Home,
   BarChart3,
+  type LucideIcon,
 } from "lucide-react";
 
 import { estimatedRefurbCost, estimatedProfit } from "@/core/projects";
@@ -277,15 +278,7 @@ function ProjectDetail() {
 }
 
 // Helper components (preserved from your version)
-function Detail({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  icon?: React.ElementType;
-}) {
+function Detail({ label, value, icon: Icon }: { label: string; value: string; icon?: LucideIcon }) {
   return (
     <div>
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
