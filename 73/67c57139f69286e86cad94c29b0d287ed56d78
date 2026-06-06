@@ -1,0 +1,66 @@
+pnpm-lock.yaml
+  s_b93c69eaad2c89::t_28ce9da3025999 26-31,185-187,1411-1423,1427-1429,4276-4284,6034-6044,6047-6048,8926-8928
+src/routes/_authed/projects.new.tsx
+  s_b93c69eaad2c89::t_28ce9da3025999 21,85-86
+docs/README.md
+  s_77b5d4cf8ce63d::t_19da74de0af451 5-18,22-24,29-35,39-40,45-46,48
+src/hooks/useAuth.ts
+  s_b93c69eaad2c89::t_28ce9da3025999 56,186-190
+src/routes/auth.tsx
+  s_b93c69eaad2c89::t_28ce9da3025999 4,32,94,100-104,107,114-118,167-168
+.posthog-events.json
+  s_b93c69eaad2c89::t_28ce9da3025999 1-47
+docs/architecture/overview.md
+  s_77b5d4cf8ce63d::t_19da74de0af451 154-155
+src/routes/_authed/trades_.new.tsx
+  s_b93c69eaad2c89::t_28ce9da3025999 18,78
+src/routes/_authed/projects.$id.estimate.tsx
+  s_b93c69eaad2c89::t_28ce9da3025999 53,215-218
+src/lib/analytics.ts
+  s_115e73ab2684a8::t_2d0473b53da79a 35
+src/routes/__root.tsx
+  s_115e73ab2684a8::t_fdef904aa64521 22-33,253-256,258-260
+src/lib/posthog-server.ts
+  s_115e73ab2684a8::t_acd4a9374b3e05 8-17
+package.json
+  s_115e73ab2684a8::t_81a373ca7e17cc 38
+  s_77b5d4cf8ce63d::t_19da74de0af451 35
+docs/architecture/routes.md
+  s_77b5d4cf8ce63d::t_19da74de0af451 68-70
+src/routes/_authed/projects.$id.analysis.tsx
+  s_b93c69eaad2c89::t_28ce9da3025999 24,58
+src/routes/_authed/projects.$id.upload.tsx
+  s_b93c69eaad2c89::t_28ce9da3025999 12,71,80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "7367c57139f69286e86cad94c29b0d287ed56d78",
+  "prompts": {},
+  "sessions": {
+    "s_115e73ab2684a8": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "5b1ddcbd-4532-4d44-980c-19c4aaff2cd3",
+        "model": "unknown"
+      },
+      "human_author": "Kris Solo <glkglob@users.noreply.github.com>"
+    },
+    "s_77b5d4cf8ce63d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "70996314-76bc-4668-b57d-aac1af89e969",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Kris Solo <glkglob@users.noreply.github.com>"
+    },
+    "s_b93c69eaad2c89": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6b4266c5-ce74-4aa4-8501-decc3fb688b9",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Kris Solo <glkglob@users.noreply.github.com>"
+    }
+  }
+}
