@@ -28,6 +28,8 @@ const PUBLIC_ROUTES: [string, string][] = [
   ["terms.tsx", "/terms"],
   ["support.tsx", "/support"],
   ["trades.tsx", "/trades"],
+  ["gallery.tsx", "/gallery"],
+  ["gallery.$slug.tsx", "/gallery/:slug"],
 ];
 
 test("all public route files exist", () => {
@@ -59,6 +61,7 @@ const AUTHENTICATED_ROUTES: [string, string][] = [
   // trades_.$jobId.tsx (public job detail view) remains at root for unauthenticated marketplace visitors
   ["trades_.$jobId.tsx", "/trades/:jobId"],
   ["_authed/trades_.$jobId_.edit.tsx", "/trades/:jobId/edit"],
+  ["_authed/marketplace.tsx", "/marketplace"],
 ];
 
 test("all authenticated route files exist", () => {
@@ -190,4 +193,13 @@ test("routes.md notes /trades public vs /trades/new authenticated distinction", 
     doc.includes("/trades") && doc.includes("/trades/new"),
     "routes.md must mention both /trades and /trades/new to document the distinction",
   );
+});
+
+test("public gallery routes exist", () => {
+  assert.ok(routeExists("gallery.tsx"), "Public gallery list route must exist");
+  assert.ok(routeExists("gallery.$slug.tsx"), "Public gallery detail route must exist");
+});
+
+test("authenticated marketplace route exists", () => {
+  assert.ok(routeExists("_authed/marketplace.tsx"), "Authenticated marketplace route must exist");
 });

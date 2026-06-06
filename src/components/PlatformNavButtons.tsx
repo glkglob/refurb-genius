@@ -6,7 +6,7 @@ interface NavEntry {
   to: string;
   label: string;
   description: string;
-  icon: React.ElementType;
+  icon: React.ElementType<{ className?: string }>;
   colorClass: string;
   iconColorClass: string;
 }

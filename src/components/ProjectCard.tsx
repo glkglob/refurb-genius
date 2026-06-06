@@ -12,7 +12,12 @@ export type ProjectCardProps = {
 
 function ProjectCardComponent({ project }: ProjectCardProps) {
   return (
-    <Link to="/projects/$id" params={{ id: project.id }} search={{ tab: "overview" }} className="group block">
+    <Link
+      to="/projects/$id"
+      params={{ id: project.id }}
+      search={{ tab: "overview" }}
+      className="group block"
+    >
       <Card className="h-full overflow-hidden border border-border/60 bg-card transition-all hover:border-accent/30 hover:shadow-lg active:scale-[0.985]">
         <div className="h-28 bg-gradient-to-br from-primary via-primary to-accent/90" />
         <CardContent className="p-5">

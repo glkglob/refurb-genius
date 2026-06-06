@@ -1,6 +1,6 @@
 // src/routes/_authed/projects.$id.index.tsx
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/LoadingState";
@@ -13,6 +13,8 @@ import { EstimateBuilder } from "@/components/EstimateBuilder";
 import { BulkPhotoUpload } from "@/components/BulkPhotoUpload";
 import { SensitivityAnalysis } from "@/components/SensitivityAnalysis";
 import { FloorplanViewer } from "@/components/floorplan";
+import { PhotoAnalysisViewer } from "@/components/photos/PhotoAnalysisViewer";
+import { PitchDeckGenerator } from "@/components/pitch-deck";
 
 import {
   Camera,
@@ -41,6 +43,8 @@ import {
 } from "@/lib/queries/projects";
 
 import { floorplansByProjectQueryOptions } from "@/lib/queries/floorplans";
+import { photoAnalysisByProjectQueryOptions } from "@/lib/queries/photo-analysis";
+import { pitchDecksByProjectQueryOptions } from "@/lib/queries/pitch-decks";
 
 import type { ProjectWithProgress } from "@/lib/mappers";
 
@@ -70,6 +74,8 @@ export const Route = createFileRoute("/_authed/projects/$id/")({
       queryClient.prefetchQuery(photosQueryOptions(id)),
       queryClient.prefetchQuery(financialsQueryOptions(id)),
       queryClient.prefetchQuery(floorplansByProjectQueryOptions(id)),
+      queryClient.prefetchQuery(photoAnalysisByProjectQueryOptions(id)),
+      queryClient.prefetchQuery(pitchDecksByProjectQueryOptions(id)),
     ]);
   },
 
@@ -85,6 +91,7 @@ function ProjectDetail() {
   const { data: project } = useSuspenseQuery(projectQueryOptions(id));
   const { data: financials } = useSuspenseQuery(financialsQueryOptions(id));
   const { data: photos = [] } = useSuspenseQuery(photosQueryOptions(id));
+  const { data: analyses = [] } = useQuery(photoAnalysisByProjectQueryOptions(id));
 
   const progress = useProjectProgress(id);
 
@@ -139,20 +146,11 @@ function ProjectDetail() {
 
   const nextStage = workflow.find((w) => !progress[w.stage]) ?? workflow[workflow.length - 1];
 
-  const handleGeneratePitchDeck = () => {
-    // Will be fully implemented in Pitch Deck Agent (Prompt 8)
-    console.log("Generating pitch deck for project", id);
-  };
-
   return (
     <AppLayout
       title={project.name || project.address}
       subtitle={`${project.address} · ${project.postcode}`}
-      actions={
-        <Button onClick={handleGeneratePitchDeck}>
-          Generate Investor Pitch Deck <FileText className="ml-2 h-4 w-4" />
-        </Button>
-      }
+      actions={<PitchDeckGenerator projectId={id} project={project} trigger="header" />}
     >
       {/* Property Summary */}
       <Card className="mb-6">
@@ -181,7 +179,11 @@ function ProjectDetail() {
       </div>
 
       {/* Tabs */}
-      <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mb-8">
+      <Tabs
+        value={tab}
+        onValueChange={(v) => setTab(v as z.infer<typeof TabSchema>)}
+        className="mb-8"
+      >
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">
           <TabsTrigger value="overview" onMouseEnter={() => prefetchTab("overview")}>
             Overview
@@ -235,13 +237,48 @@ function ProjectDetail() {
               );
             })}
           </div>
+
+          {/* Find Trades CTA */}
+          <div className="mt-8">
+            <h2 className="text-lg font-semibold mb-4">Get the work done</h2>
+            <Link to="/marketplace" search={{ projectId: id }}>
+              <Card className="hover:shadow-md transition cursor-pointer border-accent/30">
+                <CardContent className="p-5 flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold flex items-center gap-2">
+                      Find local tradespeople{" "}
+                      <span className="text-xs bg-accent/10 px-1.5 py-0.5 rounded">
+                        Marketplace
+                      </span>
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Browse verified trades, save favorites, request quotes for this refurb
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm">
+                    Browse Trades →
+                  </Button>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
         </TabsContent>
 
-        {/* Photos & AI - Fully Wired */}
-        <TabsContent value="photos" className="mt-6">
+        {/* Photos & AI - Enhanced with rich AI Analysis Results Viewer */}
+        <TabsContent value="photos" className="mt-6 space-y-8">
           <Suspense fallback={<LoadingState />}>
             <BulkPhotoUpload projectId={id} />
           </Suspense>
+
+          <div>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              AI Photo Analysis Results
+              <span className="text-xs font-normal text-muted-foreground">
+                ({analyses.length} analyses)
+              </span>
+            </h3>
+            <PhotoAnalysisViewer projectId={id} photos={photos} analyses={analyses} />
+          </div>
         </TabsContent>
 
         {/* Estimate Builder */}
@@ -254,7 +291,64 @@ function ProjectDetail() {
         {/* Financials */}
         <TabsContent value="financials" className="mt-6">
           <Suspense fallback={<LoadingState />}>
-            {/* Financials content + quick sensitivity placeholder preserved */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Financial Summary</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Key metrics, ROI and investment case
+                  </p>
+                </div>
+                <PitchDeckGenerator projectId={id} project={project} trigger="financials" />
+              </div>
+
+              {/* Simple metrics cards (full details in Sensitivity tab) */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardContent className="p-5">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Purchase Price
+                    </p>
+                    <p className="mt-1 text-2xl font-semibold tracking-tight">
+                      £{project.purchase_price.toLocaleString()}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-5">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Est. Refurb
+                    </p>
+                    <p className="mt-1 text-2xl font-semibold tracking-tight">
+                      £{(financials?.refurbBudget ?? 0).toLocaleString()}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-5">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Est. Profit
+                    </p>
+                    <p className="mt-1 text-2xl font-semibold tracking-tight">
+                      £{(financials?.estimatedProfit ?? 0).toLocaleString()}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-5">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">ROI</p>
+                    <p className="mt-1 text-2xl font-semibold tracking-tight">
+                      {financials?.roiPercent ?? 0}%
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                Full sensitivity analysis, charts and scenario modeling available in the Sensitivity
+                tab. Use the Pitch Deck button above to generate a complete investor document.
+              </p>
+            </div>
           </Suspense>
         </TabsContent>
 
@@ -284,7 +378,7 @@ function Detail({
 }: {
   label: string;
   value: string;
-  icon?: React.ElementType;
+  icon?: React.ElementType<{ className?: string }>;
 }) {
   return (
     <div>

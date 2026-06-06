@@ -369,6 +369,41 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
     toast.success("Annotation data exported");
   };
 
+  // Cross-feature sync: 3D Floorplan annotations -> Estimate rooms (hardening for integration)
+  // Collects unique tag labels and appends as rooms to the estimate query data (optimistic + invalidate)
+  const syncTagsToEstimate = () => {
+    if (!annotations.length) return;
+    const labels = Array.from(
+      new Set(
+        annotations
+          .map((a) => (a.data as Record<string, unknown>)?.label)
+          .filter((l: unknown): l is string => typeof l === "string" && !!l),
+      ),
+    );
+    if (!labels.length) return;
+
+    const estimateKey = estimateQueryOptions(projectId).queryKey;
+    const current = queryClient.getQueryData<{ rooms?: Array<{ name: string }> }>(estimateKey);
+    const existingNames = new Set((current?.rooms || []).map((r) => r.name));
+    const newRooms = labels
+      .filter((l) => !existingNames.has(l))
+      .map((label) => ({ id: `fp-${Date.now()}-${label}`, name: label, items: [] }));
+
+    if (!newRooms.length) {
+      toast.info("All tags already in Estimate");
+      return;
+    }
+
+    const mergedRooms = [...(current?.rooms || []), ...newRooms];
+    queryClient.setQueryData(
+      estimateKey,
+      // mergedRooms are optimistic placeholders; full shape will be populated on invalidation
+      (current ? { ...current, rooms: mergedRooms } : { rooms: mergedRooms }) as never,
+    );
+    queryClient.invalidateQueries({ queryKey: estimateKey });
+    toast.success(`Synced ${newRooms.length} room tags from 3D to Estimate Builder`);
+  };
+
   const handleResetMode = () => {
     setMode("view");
     setMeasurePoints([]);
@@ -582,14 +617,24 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
                 <CardTitle className="text-base flex items-center justify-between">
                   <span>Tags ({annotations.length})</span>
                   {annotations.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleExportData}
-                      className="h-6 px-2 text-xs"
-                    >
-                      Export
-                    </Button>
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleExportData}
+                        className="h-6 px-2 text-xs"
+                      >
+                        Export
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={syncTagsToEstimate}
+                        className="h-6 px-2 text-xs"
+                      >
+                        Sync to Estimate
+                      </Button>
+                    </>
                   )}
                 </CardTitle>
               </CardHeader>

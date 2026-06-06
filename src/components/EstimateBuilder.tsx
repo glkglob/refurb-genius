@@ -85,20 +85,22 @@ export function EstimateBuilder({ projectId, project, onSaved }: EstimateBuilder
         const parsed = JSON.parse(draft);
         if (Array.isArray(parsed) && parsed.length) return parsed;
       }
-    } catch {}
+    } catch (_e) {
+      // ignore localStorage parse errors
+    }
 
     if (savedEstimate?.rooms?.length) {
-      return savedEstimate.rooms.map((r: any, idx: number) => ({
+      return savedEstimate.rooms.map((r, idx: number) => ({
         id: crypto.randomUUID(),
         name: r.name || `Room ${idx + 1}`,
         area_sqm: r.area_sqm,
-        items: (r.items || []).map((it: any) => ({
+        items: (r.items || []).map((it) => ({
           id: crypto.randomUUID(),
           name: it.name,
           category: it.category || "Kitchen",
           quantity: Number(it.quantity) || 1,
           unit: it.unit || "item",
-          unit_cost: Number(it.base_unit_cost ?? it.unit_cost) || 0,
+          unit_cost: Number((it as Record<string, unknown>).base_unit_cost ?? it.unit_cost) || 0,
           notes: it.notes,
         })),
       }));
@@ -438,8 +440,9 @@ export function EstimateBuilder({ projectId, project, onSaved }: EstimateBuilder
           theme: "grid",
         });
 
-        // @ts-expect-error - jspdf-autotable augments the instance at runtime
-        y = (doc as any).lastAutoTable?.finalY + 8 ?? y + 20;
+        // jspdf-autotable augments doc at runtime; no static type available
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        y = ((doc as any).lastAutoTable?.finalY ?? y + 20) + 8;
 
         doc.setFontSize(10);
         doc.text(`Room subtotal: ${formatGBP(roomCalc.subtotal)}`, 14, y);
