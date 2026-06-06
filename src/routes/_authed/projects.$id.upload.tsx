@@ -88,7 +88,7 @@ function UploadPage() {
       actions={
         <div className="flex gap-2">
           <Button asChild variant="outline">
-            <Link to="/projects/$id" params={{ id }}>
+            <Link to="/projects/$id" params={{ id }} search={{ tab: "overview" }}>
               Back
             </Link>
           </Button>
