@@ -20,8 +20,7 @@ const isDev = import.meta.env.DEV;
 // Preview deployments (*.vercel.app) and localhost must not have a
 // domain attribute or the cookie will be silently rejected.
 const hostname = typeof window !== "undefined" ? window.location.hostname : "";
-const isProdHostname =
-  hostname === "refurbgenius.info" || hostname.endsWith(".refurbgenius.info");
+const isProdHostname = hostname === "refurbgenius.info" || hostname.endsWith(".refurbgenius.info");
 
 export const supabase = createBrowserSupabase<Database>({
   cookieName: "pip-auth",

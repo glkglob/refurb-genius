@@ -77,8 +77,7 @@ function AuthPage() {
 
   /** Navigate to the originally requested URL, falling back to /dashboard. */
   const navigateAfterAuth = () => {
-    const destination =
-      redirect && !redirect.startsWith("/auth") ? redirect : "/dashboard";
+    const destination = redirect && !redirect.startsWith("/auth") ? redirect : "/dashboard";
     void navigate({ to: destination, replace: true });
   };
 
@@ -203,7 +202,11 @@ function AuthPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" className="w-full" onClick={() => setAwaitingVerification(false)}>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setAwaitingVerification(false)}
+            >
               Back to sign in
             </Button>
           </CardContent>
