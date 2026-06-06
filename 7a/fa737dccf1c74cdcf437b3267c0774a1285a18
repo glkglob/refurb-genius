@@ -1,0 +1,12 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "7afa737dccf1c74cdcf437b3267c0774a1285a18",
+  "prompts": {},
+  "humans": {
+    "h_a499fc460c02a2": {
+      "author": "Kris Solo <glkglob@users.noreply.github.com>"
+    }
+  }
+}
