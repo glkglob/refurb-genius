@@ -14,9 +14,10 @@
 // The old client-only `supabase.auth.getUser()` + insert pattern that caused the bugs fixed by APPLY_THIS is no longer used
 // for the two critical paths (project create, deal save). Other call sites should be migrated opportunistically.
 //
-// Uses the centralized service boundary (which now creates the client via @repo/supabase/browser).
-// This removes the direct deprecated client import.
-import { supabase } from "@/services/supabase";
+// Imports the singleton client directly from the sub-module (not the barrel)
+// to prevent any future circular dependency if @/services/supabase/index.ts
+// ever re-exports something from this file again.
+import { supabase } from "@/services/supabase/_client";
 import { captureAuthError, addDiagnosticBreadcrumb } from "./sentry";
 import { logger } from "./logger";
 
