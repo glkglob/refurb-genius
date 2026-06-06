@@ -53,7 +53,6 @@ export * from "./components/chart";
 export * from "./components/context-menu";
 export * from "./components/drawer";
 export * from "./components/form";
-export * from "./components/form.hooks";
 export * from "./components/input-otp";
 export * from "./components/menubar";
 export * from "./components/navigation-menu";

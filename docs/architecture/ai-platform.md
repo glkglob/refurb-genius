@@ -4,6 +4,7 @@
 **Status:** Pure TypeScript serverFns + OpenAI is the single source of truth.
 **Owners:** AI systems + full-stack engineering
 **Related:**
+
 - `docs/architecture/analysis-paths.md` (now pure TS)
 - `CLAUDE.md` (serverFns patterns, package boundaries, never hallucinate pricing)
 - `src/core/ai/` (implementation)
@@ -41,18 +42,20 @@ See git history and `docs/archive/2026-05-legacy-ai-guidance-railway/` for old a
 ## Current TS + OpenAI Pipeline (Single Source of Truth)
 
 ### Core Files
+
 - `src/core/ai/serverFns.ts`: createServerFn wrappers (runPhotoAnalysisServerFn, runScopeAnalysisServerFn, generateEstimateServerFn, generateRedesignConceptsServerFn) + auth + input Zod.
 - `src/core/ai/server/openAiVision.server.ts`: per-photo gpt-4o Vision + SYSTEM_PROMPT with enums + timeout + classify + fallback.
 - `src/core/ai/server/openAiScopeAnalysis.server.ts`: multi-photo gpt-4o → ScopeAnalysisResult (rooms, issues with severity, recommended_items with base costs).
 - `src/core/ai/server/openAiEstimate.server.ts`: text gpt-4o → AIGeneratedRoom[] line items (base costs).
 - `src/core/ai/server/openAiRedesign.server.ts`: text gpt-4o per style → tagline/palette/flooring/lighting/furniture + uplift.
-- `src/core/ai/validation.ts` (Phase 1): shared Zod schemas + safeParse* helpers for strong post-JSON validation.
+- `src/core/ai/validation.ts` (Phase 1): shared Zod schemas + safeParse\* helpers for strong post-JSON validation.
 - `src/core/ai/platform/retry.ts`: withRetry for transient failures.
 - `src/core/ai/normalizers.ts` (Phase 2): `normalizeAIEstimate` — maps to CATEGORY_BASE where possible, risk uplift from condition/scope criticals, clamps, warnings.
 - Providers in `photoAnalysis.ts`, `redesignConcepts.ts` etc. abstract mock vs real.
 - `useScopeAnalysis`, `useGenerateEstimate`, `useAIEstimate` etc. for React.
 
 ### Strengths (Current)
+
 - Single deployment, uniform serverFns + auth.
 - Output validation + retries + rich diagnostics (counters, health in admin).
 - Pricing never hallucinated raw: AI suggests work/qty/notes; normalizer + `calculateLineItem` + engine provide rates + regional × condition × risk.
@@ -61,6 +64,7 @@ See git history and `docs/archive/2026-05-legacy-ai-guidance-railway/` for old a
 - Deal Copilot "AI Estimate" uses same native path.
 
 ### Error Handling / UX
+
 - Server: timeout (60-90s), rate, parse → fallback + telemetry.
 - Client: mutations expose isPending, isError, data; toasts on failure.
 - No silent "AI" that is actually mock without trace (diagnostics + source badge).

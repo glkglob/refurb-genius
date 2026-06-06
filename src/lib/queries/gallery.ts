@@ -5,7 +5,7 @@ import type { Tables } from "@repo/supabase";
 import type { PublicGalleryProject, InvestorLead } from "@repo/types";
 import { projectKeys } from "./projects";
 
-type PublicGalleryProjectRow = Tables<"public_gallery_projects">;
+export type PublicGalleryProjectRow = Tables<"public_gallery_projects">;
 type InvestorLeadRow = Tables<"investor_leads">;
 
 /**
@@ -30,7 +30,24 @@ export const publicGalleryProjectsQueryOptions = () =>
     queryFn: async () => {
       const { data, error } = await supabase
         .from("public_gallery_projects")
-        .select("*")
+        .select(
+          `
+          *,
+          project:projects (
+            id,
+            name,
+            address,
+            postcode,
+            region,
+            property_type,
+            bedrooms,
+            bathrooms,
+            size_sqm,
+            purchase_price,
+            estimated_gdv
+          )
+        `,
+        )
         .eq("is_public", true)
         .order("featured", { ascending: false })
         .order("view_count", { ascending: false })
@@ -107,3 +124,75 @@ export const investorLeadsQueryOptions = (galleryProjectId: string) =>
  * Public insert helper note: leads are inserted directly via supabase.from("investor_leads").insert(...)
  * (public policy allows anon insert; no query helper needed for write).
  */
+
+export const publicGalleryProjectByIdQueryOptions = (galleryId: string) =>
+  queryOptions<PublicGalleryProjectRow | null>({
+    queryKey: [...galleryKeys.all, "byId", galleryId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("public_gallery_projects")
+        .select(
+          `
+          *,
+          project:projects (
+            id,
+            name,
+            address,
+            postcode,
+            region,
+            property_type,
+            bedrooms,
+            bathrooms,
+            size_sqm,
+            purchase_price,
+            estimated_gdv
+          )
+        `,
+        )
+        .eq("id", galleryId)
+        .eq("is_public", true)
+        .maybeSingle();
+
+      if (error) {
+        logger.error("[queries] public gallery by id fetch failed", {
+          galleryId,
+          error: error.message,
+        });
+        throw new Error(error.message);
+      }
+      return (data as PublicGalleryProjectRow) ?? null;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 1,
+  });
+
+/**
+ * Public photos for a gallery project (limited public view for demo; in prod may be restricted or use cover only).
+ * Falls back gracefully if RLS blocks.
+ */
+export const publicProjectPhotosQueryOptions = (projectId: string) =>
+  queryOptions<Array<{ id: string; url: string; name: string }>>({
+    queryKey: ["publicPhotos", projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("photos")
+        .select("id, url, name")
+        .eq("project_id", projectId)
+        .order("uploaded_at", { ascending: true })
+        .limit(12);
+
+      if (error) {
+        // Public may not have RLS access to all photos; return empty gracefully
+        return [];
+      }
+      return (data ?? []).map((p) => ({
+        id: p.id as string,
+        url: p.url as string,
+        name: p.name as string,
+      }));
+    },
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 1,
+  });

@@ -20,20 +20,20 @@ pnpm add @repo/supabase
 ### Browser Client
 
 ```ts
-import { createBrowserSupabase } from '@repo/supabase/browser';
-import type { Database } from './generated/supabase-types'; // Your app's generated types
+import { createBrowserSupabase } from "@repo/supabase/browser";
+import type { Database } from "./generated/supabase-types"; // Your app's generated types
 
 export const supabase = createBrowserSupabase<Database>({
-  cookieName: 'rg-auth',              // Optional: defaults to 'sb-auth'
-  cookieDomain: '.refurbgenius.info', // Optional
+  cookieName: "rg-auth", // Optional: defaults to 'sb-auth'
+  cookieDomain: ".refurbgenius.info", // Optional
 });
 ```
 
 ### Server Client (TanStack Start / SSR)
 
 ```ts
-import { createServerSupabase } from '@repo/supabase/server';
-import type { Database } from './generated/supabase-types';
+import { createServerSupabase } from "@repo/supabase/server";
+import type { Database } from "./generated/supabase-types";
 
 export async function getSupabase(cookies: Record<string, string>) {
   return createServerSupabase<Database>(cookies);
@@ -43,8 +43,8 @@ export async function getSupabase(cookies: Record<string, string>) {
 ### Token-based Client (for Edge Functions / API routes)
 
 ```ts
-import { createTokenSupabase } from '@repo/supabase/server';
-import type { Database } from './generated/supabase-types';
+import { createTokenSupabase } from "@repo/supabase/server";
+import type { Database } from "./generated/supabase-types";
 
 const supabase = createTokenSupabase<Database>(accessToken);
 ```

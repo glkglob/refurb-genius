@@ -5,7 +5,7 @@ import type { Tables } from "@repo/supabase";
 import type { PitchDeckExport } from "@repo/types";
 import { projectKeys } from "./projects";
 
-type PitchDeckExportRow = Tables<"pitch_deck_exports">;
+export type PitchDeckExportRow = Tables<"pitch_deck_exports">;
 
 /**
  * Pitch deck exports keys (project scoped).

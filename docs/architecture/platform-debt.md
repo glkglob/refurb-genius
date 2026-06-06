@@ -97,47 +97,31 @@ import type { UKRegion } from "@/lib/projects";
 
 ---
 
-### 3. @repo/ui as Facade (Current)
+### 3. @repo/ui Partial Migration (Active Work — Not Debt)
 
-**Status**: By design, not debt
+**Status**: Migration in progress. 17/46 components moved; 29 remaining.
 
-**What:** Components remain at `src/components/ui/*` but accessible via `@repo/ui`:
+**Current state:**
 
-- Source of truth: `src/components/ui/button.tsx`, `src/components/ui/card.tsx`, etc.
-- Facade layer: `packages/ui/src/index.ts` re-exports all components
-- Result: `import { Button } from "@repo/ui"` works (imports from root)
+- Migrated components (17): fully in `packages/ui/src/components/` — `@repo/ui` is the source of truth
+- Remaining components (29): still in `src/components/ui/` as shim files that re-export from `@repo/ui`
+- All components accessible via `import { X } from "@repo/ui"` regardless of migration state
 
-**Why this design (not extraction):**
+**Why partial:**
 
-- Phase 3 initial attempt: Move 45 component files to `packages/ui/src/`
-- Failure: Created circular reference in TypeScript resolution
-- Correction: Kept components at root (app-specific), created re-export layer
-- Decision: UI components belong in app, not in shared package
+- Migration is done component-by-component to avoid bulk-move circular-reference risk
+- Each component gets moved, tested, and the shim replaced with a re-export
 
-**Impact:**
+**Next targets (priority order):** sidebar, sheet, dropdown-menu, command
 
-- Components not truly "in the package"
-- Pure re-export layer (51 LOC in packages/ui)
-- Provides ergonomic import path: `import { Button } from "@repo/ui"` vs `import { Button } from "@/components/ui/button"`
+**Resolution path:**
 
-**Why this is correct:**
+1. Move component to `packages/ui/src/components/<name>.tsx`
+2. Export from `packages/ui/src/index.ts`
+3. Replace `src/components/ui/<name>.tsx` shim with bare re-export
+4. Run typecheck + lint
 
-- UI components are app-specific (Refurb Genius design system)
-- Deal Copilot will have own UI components
-- Sharing Radix UI primitives via @repo/ui is enough
-- True isolation would require copying components to multiple apps
-
-**This is NOT debt:**
-
-- Intentional design decision documented in migration-history.md
-- Provides value (convenient import path) with no maintenance burden
-- Works perfectly for current and future architecture
-
-**Prevention for future:**
-
-- Do NOT try to move components to packages/ui
-- Do NOT try to share specific app components (Button, Card) across apps
-- Do share design tokens and themes via packages if needed later
+**This is tracked work, not design debt.** See CLAUDE.md "UI System Rules" for the full migration protocol.
 
 ---
 

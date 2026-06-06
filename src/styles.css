@@ -5,7 +5,6 @@
 /* Scan the shared UI package for Tailwind classes (Tailwind v4 @source directive) */
 @source "../packages/ui/src/**/*";
 
-
 /*
  * Design system definition.
  *

@@ -83,7 +83,11 @@ function NewProject() {
       {
         onSuccess: (project) => {
           trackEvent("deal_analyzed", { surface: "project-create" }); // proxy for project start
-          navigate({ to: "/projects/$id", params: { id: project.id }, search: { tab: "overview" } });
+          navigate({
+            to: "/projects/$id",
+            params: { id: project.id },
+            search: { tab: "overview" },
+          });
         },
         onError: (err) => {
           setError(err instanceof Error ? err.message : "Could not create project.");

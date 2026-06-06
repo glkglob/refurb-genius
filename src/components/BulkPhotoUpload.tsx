@@ -124,12 +124,15 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
 
           // Optionally trigger broader project analysis (non-blocking)
           // e.g. triggerScopeAnalysis(projectId) but keep non-breaking here.
-        } catch (err: any) {
-          logger.error("[BulkPhotoUpload] item failed", { id: item.id, error: err?.message });
+        } catch (err: unknown) {
+          logger.error("[BulkPhotoUpload] item failed", {
+            id: item.id,
+            error: (err as Error)?.message,
+          });
           captureUploadError(err, { projectId });
           updateItem(item.id, {
             status: "failed",
-            error: err?.message || "Upload failed",
+            error: (err instanceof Error ? err.message : null) || "Upload failed",
           });
         }
       }),

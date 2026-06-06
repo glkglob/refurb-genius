@@ -5,7 +5,7 @@ import type { Tables } from "@repo/supabase";
 import type { PhotoAnalysisResult } from "@repo/types";
 import { projectKeys } from "./projects";
 
-type PhotoAnalysisResultRow = Tables<"photo_analysis_results">;
+export type PhotoAnalysisResultRow = Tables<"photo_analysis_results">;
 
 /**
  * Photo analysis query keys (tied to project + optional photo).

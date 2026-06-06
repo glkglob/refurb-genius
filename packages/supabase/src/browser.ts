@@ -15,7 +15,7 @@ export interface BrowserClientOptions {
   cookieName?: string;
   /**
    * Cookie domain — omit in development (defaults to current host).
-   * In production, set to your shared domain (e.g. ".refurbgenius.space")
+   * In production, set to your shared domain (e.g. ".refurbgenius.info")
    * so the cookie is sent across subdomains.
    */
   cookieDomain?: string;
@@ -39,7 +39,7 @@ export interface BrowserClientOptions {
  *
  * export const supabase = createBrowserSupabase<Database>({
  *   cookieName: "pip-auth",
- *   cookieDomain: import.meta.env.DEV ? undefined : ".refurbgenius.space",
+ *   cookieDomain: import.meta.env.DEV ? undefined : ".refurbgenius.info",
  * });
  * ```
  */
