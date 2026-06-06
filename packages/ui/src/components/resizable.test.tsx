@@ -15,7 +15,6 @@ describe("Resizable (migrated @repo/ui)", () => {
 
     expect(screen.getByText("Left")).toBeInTheDocument();
     expect(screen.getByText("Right")).toBeInTheDocument();
-    // Handle/panel structure: the group container should be present
     const group = document.querySelector("[data-group]");
     expect(group).toBeTruthy();
   });
