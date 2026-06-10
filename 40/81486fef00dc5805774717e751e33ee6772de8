@@ -1,0 +1,23 @@
+src/routes/index.tsx
+  s_d3d1fa6e29ac8b::t_fa05b1eb61685b 3,83
+src/components/AppLayout.tsx
+  s_d3d1fa6e29ac8b::t_52eb33dee64686 5,54
+src/components/Footer.tsx
+  s_d3d1fa6e29ac8b::t_5d148fa9616981 1-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "4081486fef00dc5805774717e751e33ee6772de8",
+  "prompts": {},
+  "sessions": {
+    "s_d3d1fa6e29ac8b": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "2b21ce67-969e-4171-b46a-1cfc001ce457",
+        "model": "unknown"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
