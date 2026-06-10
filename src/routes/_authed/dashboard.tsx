@@ -22,7 +22,6 @@ import {
   Calculator,
   TrendingUp,
   BookMarked,
-  Lock,
   HandshakeIcon,
   DollarSign,
 } from "lucide-react";
@@ -269,27 +268,36 @@ function DashboardContent() {
         )}
       </DashboardSection>
 
-      {/* Section 6 — Roadmap placeholders */}
+      {/* Section 6 — Feasibility features */}
       <section>
         <Card className="bg-muted/40 p-6">
           <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
-            Coming soon
+            Feasibility workspace
           </h2>
           <div className="grid gap-4 sm:grid-cols-3">
-            <RoadmapCard
+            <LiveFeatureCard
               icon={Calculator}
               title="Refurb Estimates"
               description="AI-generated line-item cost estimates across all UK regions, attached to your properties."
+              to="/analyze"
+              cta="Start New Estimate"
+              detail="Regional pricing · 12 UK areas · Instant line items"
             />
-            <RoadmapCard
+            <LiveFeatureCard
               icon={TrendingUp}
               title="ROI Reports"
               description="Full deal analysis with GDV, yield, ROI and investor-ready PDF export."
+              to="/analyze"
+              cta="Run Full ROI Analysis"
+              detail="Sensitivity analysis · Investor-ready export"
             />
-            <RoadmapCard
+            <LiveFeatureCard
               icon={BookMarked}
               title="Saved Feasibility Studies"
               description="Store and revisit your feasibility studies. Share with lenders or JV partners."
+              to="/studies"
+              cta="View All Studies"
+              detail="Resume drafts · Share with lenders/JV · Version history"
             />
           </div>
         </Card>
@@ -655,28 +663,35 @@ function QuickActionCard({
   );
 }
 
-function RoadmapCard({
+function LiveFeatureCard({
   icon: Icon,
   title,
   description,
+  to,
+  cta,
+  detail,
 }: {
   icon: typeof Calculator;
   title: string;
   description: string;
+  to: string;
+  cta: string;
+  detail: string;
 }) {
   return (
-    <Card className="relative overflow-hidden bg-muted/50 opacity-60">
+    <Card className="relative overflow-hidden border-border/60 bg-card/70">
       <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
             <Icon className="h-5 w-5" />
           </div>
-          <span className="flex items-center gap-1 rounded-full border border-border bg-secondary px-2 py-0.5 text-xs text-muted-foreground">
-            <Lock className="h-3 w-3" /> Coming soon
-          </span>
+          <Button asChild size="sm" variant="outline">
+            <Link to={to}>{cta}</Link>
+          </Button>
         </div>
         <h3 className="mt-4 font-semibold text-foreground">{title}</h3>
         <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        <p className="mt-3 text-xs text-muted-foreground">{detail}</p>
       </CardContent>
     </Card>
   );

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { z } from "zod";
 import {
   AlertCircle,
@@ -9,7 +9,6 @@ import {
   Loader2,
   PlayCircle,
   Save,
-  Upload,
 } from "lucide-react";
 import type { Project } from "@repo/types";
 import { AppLayout } from "@/components/AppLayout";
@@ -19,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { usePhotos, useUploadPhotos } from "@/features/ai-upload";
+import { usePhotos, useUploadPhotos, PhotoUploadZone } from "@/features/ai-upload";
 import { useExportFeasibilityReport } from "@/features/export";
 import {
   useQueueFeasibilityExport,
@@ -52,6 +51,7 @@ export const Route = createFileRoute("/_authed/analyze")({
 });
 
 function AnalyzeRoute() {
+  const [selectedUploadFiles, setSelectedUploadFiles] = useState<File[]>([]);
   const navigate = useNavigate();
   const search = Route.useSearch();
   const { data: projects = [], isLoading: loadingProjects } = useProjectCatalog();
@@ -227,27 +227,29 @@ function AnalyzeRoute() {
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <Label htmlFor="photo-upload" className="sr-only">
-                  Upload photos
-                </Label>
-                <Input
-                  id="photo-upload"
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(event) => {
-                    const files = Array.from(event.target.files ?? []);
-                    if (files.length > 0) {
-                      uploadPhotos.mutate(files);
-                    }
+                <div className="w-full">
+                  <PhotoUploadZone
+                    photos={selectedUploadFiles}
+                    onPhotosSelected={setSelectedUploadFiles}
+                    isLoading={!selectedProject || uploadPhotos.isPending}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={
+                    !selectedProject || selectedUploadFiles.length === 0 || uploadPhotos.isPending
+                  }
+                  onClick={() => {
+                    uploadPhotos.mutate(selectedUploadFiles, {
+                      onSuccess: () => setSelectedUploadFiles([]),
+                    });
                   }}
-                  disabled={!selectedProject || uploadPhotos.isPending}
-                  className="max-w-sm"
-                />
-                <Badge variant="secondary">
-                  <Upload className="mr-1 h-3.5 w-3.5" />{" "}
-                  {uploadPhotos.isPending ? "Uploading..." : "Upload source photos"}
-                </Badge>
+                >
+                  {uploadPhotos.isPending
+                    ? "Uploading photos..."
+                    : `Upload Selected (${selectedUploadFiles.length})`}
+                </Button>
               </div>
             </CardContent>
           </Card>

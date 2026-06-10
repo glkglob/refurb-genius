@@ -15,4 +15,10 @@ export {
 } from "./photo-analysis.provider";
 export { useRoomAnalyses, useRunPhotoAnalysis, photoAnalysisKeys } from "./hooks/usePhotoAnalysis";
 export { usePhotos, useUploadPhotos, useRemovePhoto } from "./hooks/usePhotos";
-export { PhotoAnalysisViewer, PhotoAnalysisCard, PhotoAnalysisFilters } from "./components";
+export {
+  PhotoAnalysisViewer,
+  PhotoAnalysisCard,
+  PhotoAnalysisFilters,
+  PhotoUploadZone,
+  type PhotoUploadZoneProps,
+} from "./components";
