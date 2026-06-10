@@ -532,9 +532,9 @@ npm run build && npx cap sync ios
 
 - **Capacitor Docs:** https://capacitorjs.com/docs
 - **Xcode Signing Guide:** https://developer.apple.com/support/xcode/
-- **Refurb Genius Architecture:** `/docs/architecture.md`
-- **Mobile Readiness:** `/docs/mobile-readiness.md`
-- **Financial Invariant:** `/docs/architecture.md#-core-principle-deterministic-financial-authority`
+- **Refurb Genius Architecture:** `docs/architecture/overview.md`
+- **Mobile Readiness:** `docs/mobile-readiness.md`
+- **Financial Invariant:** `docs/invariant-protection-report.md`
 
 ---
 

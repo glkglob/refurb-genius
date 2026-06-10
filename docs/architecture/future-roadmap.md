@@ -8,8 +8,10 @@
 - ✅ All builds passing, production-ready
 - ✅ Phase 4.5 stabilization complete — deployed, Vercel CI clean, invariants passing
 - ✅ Railway backend fully decommissioned — pure TypeScript + OpenAI serverFns only
+- ✅ Feature slices migrated: `estimate`, `ai-upload`, `ai-design`
+- ✅ Platform boundary: OpenAI, Supabase, PostHog via `src/platform/`
 - ✅ UI migration in progress: 17/46 components migrated to `@repo/ui`
-- 🔄 **Active**: UI component migration (29 remaining; next: sidebar, sheet, dropdown-menu, command)
+- 🔄 **Active**: UI migration (29 remaining); legacy shim cleanup; `export` + `gallery` slices
 
 ---
 
@@ -21,7 +23,7 @@ Production deployed and stable. All validation criteria met:
 - ✅ Deployment to Vercel succeeds
 - ✅ Auth initialization works correctly
 - ✅ Route discovery and SSR work
-- ✅ 58 invariant tests passing
+- ✅ 81 invariant tests passing
 - ✅ Architecture documented (CLAUDE.md, docs/architecture/)
 
 ---

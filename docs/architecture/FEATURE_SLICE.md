@@ -37,9 +37,11 @@ src/
 │   ├── export/                # PDF / CSV export                    (planned)
 │   ├── gallery/               # Public project gallery              (planned)
 │   └── ...
-├── platform/                  # Vendor abstractions (Supabase, OpenAI, …)
-│   ├── supabase/              # browser.ts / server.ts — never both in one barrel
-│   └── openai/                # server.ts only (server-only SDK)
+├── platform/                  # Vendor abstractions (Supabase, OpenAI, PostHog, …)
+│   ├── browser.ts / server.ts # separate aggregates — never a mixed index barrel
+│   ├── supabase/              # browser.ts / server.ts
+│   ├── openai/                # server.ts only (server-only SDK)
+│   └── posthog/               # browser.ts / server.ts / otel.server.ts
 ├── routes/                    # TanStack Start file routes (thin: delegate to slices)
 ├── components/                # Cross-cutting app shell + legacy (shrinks over time)
 ├── lib/                       # Legacy shared utilities (shrinks over time)
@@ -113,13 +115,20 @@ client bundles can never accidentally pull server-only SDKs:
 ```
 src/platform/
 ├── browser.ts       # typed `platform` aggregate — browser-safe vendors only
-├── server.ts        # typed `platform` aggregate — server-only (adds OpenAI)
+├── server.ts        # typed `platform` aggregate — server-only (adds OpenAI + PostHog)
 ├── supabase/
 │   ├── browser.ts   # re-exports createBrowserSupabase (+ env helpers)
 │   └── server.ts    # re-exports createServerSupabase / createTokenSupabase
-└── openai/
-    └── server.ts    # re-exports getOpenAIClient (server-only; no browser entry)
+├── openai/
+│   └── server.ts    # getOpenAIClient + Sentry instrumentation (server-only)
+└── posthog/
+    ├── browser.ts   # posthog-js + PostHogProvider
+    ├── server.ts    # getPostHogServerClient
+    └── otel.server.ts
 ```
+
+Full usage patterns, approved layers, and vendor migration status:
+[platform-boundary.md](./platform-boundary.md).
 
 The aggregates expose **factories, not instances** (nothing is constructed at
 module scope, so SSR/build never eagerly instantiates a client):
@@ -139,6 +148,19 @@ Rules:
 - Adding a vendor (Stripe, Qdrant, …) means adding a directory here first.
 - `@repo/supabase` remains the actual factory implementation; `src/platform/`
   is the app-side seam that lets a slice swap vendors in one place.
+- Enforced by `tests/invariants/platform-boundary.invariant.test.ts` (no direct
+  `openai`, `posthog-*`, or `@supabase/*` imports outside `src/platform/`).
+
+### Platform vendor migration (2026-06)
+
+| Vendor           | Platform entry                   | Migrated     | Legacy shim                           |
+| ---------------- | -------------------------------- | ------------ | ------------------------------------- |
+| OpenAI           | `@/platform/openai/server`       | ✅           | `src/core/ai/server/openai-client.ts` |
+| Supabase browser | `@/platform/supabase/browser`    | ✅ slices    | `src/services/supabase`               |
+| Supabase server  | `@/platform/supabase/server`     | ✅ serverFns | —                                     |
+| PostHog browser  | `@/platform/posthog/browser`     | ✅           | —                                     |
+| PostHog server   | `@/platform/posthog/server`      | ✅           | `src/lib/posthog-server.ts`           |
+| PostHog OTEL     | `@/platform/posthog/otel.server` | ✅           | `src/lib/posthog-otel.ts`             |
 
 ---
 

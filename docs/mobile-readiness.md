@@ -450,7 +450,8 @@ Use any device (phone/tablet) or simulator:
 ## 📚 Further Reading
 
 - `README.md` — Platform overview
-- `docs/architecture.md` — Financial invariant & system design
+- `docs/architecture/overview.md` — System design & financial invariant
+- `docs/invariant-protection-report.md` — Deterministic pricing → ROI protection
 - `docs/invariant-protection-report.md` — Security audit findings
 - `/privacy`, `/terms`, `/support` — Legal pages
 

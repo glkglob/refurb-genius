@@ -76,7 +76,7 @@ import type { UKRegion } from "@/lib/projects";
 // ❌ FORBIDDEN
 import { Button } from "@repo/ui";
 import { Dialog } from "@repo/ui";
-import { aiProvider } from "@/integrations/openai";
+import { getOpenAIClient } from "@/platform/openai/server";
 ```
 
 ### What @repo/ui can depend on:

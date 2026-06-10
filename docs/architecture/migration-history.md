@@ -158,14 +158,14 @@ Extract shared code from a monolithic TanStack Start application into reusable w
 
 ```
 Error: Cannot find route definitions
-TanStack Start plugin failed to resolve src/app/
+TanStack Start plugin failed to resolve routes at the new location
 Route tree generation aborted
 ```
 
 **Root cause:** TanStack Start's plugin architecture works as follows:
 
 1. **Plugin initialization** (very early): Plugin code runs, tries to discover routes
-2. **Plugin looks for routes**: Searches for `src/app/` in project root
+2. **Plugin looks for routes**: Searches for `src/routes/` at project root
 3. **Before Vite config applies**: Plugin scans file system, resolves import paths
 4. **Vite bundler starts**: After plugin completes (or fails)
 
@@ -278,7 +278,7 @@ When we moved `src/` to `apps/main/src/`, the plugin couldn't find routes becaus
 | Check                  | Status                                 |
 | ---------------------- | -------------------------------------- |
 | TypeScript compilation | ✅ Pass                                |
-| ESLint                 | ✅ Pass (6 pre-existing warnings)      |
+| ESLint                 | ✅ Pass                                |
 | Vite build             | ✅ Pass                                |
 | Nitro SSR              | ✅ Pass                                |
 | Route discovery        | ✅ Pass                                |

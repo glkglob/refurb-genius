@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { Component, useEffect } from "react";
 import type { ErrorInfo, ReactNode } from "react";
-import { PostHogProvider } from "@posthog/react";
+import { PostHogProvider } from "@/platform/posthog/browser";
 
 import { Toaster } from "@/components/ui/sonner";
 import { captureException } from "@/lib/sentry";

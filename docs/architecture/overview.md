@@ -2,180 +2,131 @@
 
 ## Current State (June 2026)
 
-Refurb Genius is a **real pnpm workspace monorepo** hosting a single TanStack Start SSR application with extracted shared libraries organized as workspace packages.
+Refurb Genius is a **pnpm workspace monorepo** hosting a single **TanStack Start** SSR
+application (React 19 + Vite 7 + Nitro) with extracted shared libraries and an
+incremental **feature-slice** layout inside `src/features/`.
+
+**Canonical agent guide:** [`CLAUDE.md`](../../CLAUDE.md) at repo root.
+
+---
 
 ## High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                   Production Shell (root)               │
-│                                                          │
-│  TanStack Start + Vite 7 + Nitro SSR + React 19       │
-│  Authentication hydration + Supabase initialization     │
-│  Route tree generation + Server runtime orchestration   │
-│                                                          │
-│  src/                                                   │
-│  ├── app/                   (route definitions)          │
-│  ├── components/            (app-specific UI)           │
-│  ├── integrations/          (Supabase + OpenAI)        │
-│  ├── lib/                   (app domain logic)          │
-│  ├── server.ts              (SSR error wrapper)         │
-│  └── routes/                (TanStack route tree)       │
-└─────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│              Production shell (root src/)                    │
+│  TanStack Start + Vite 7 + Nitro SSR + React 19            │
+│  Auth hydration, route tree, server entry, app components   │
+│                                                             │
+│  src/                                                       │
+│  ├── features/          Vertical slices (estimate, ai-*)    │
+│  ├── platform/          Vendor SDK seams (OpenAI, etc.)    │
+│  ├── routes/            TanStack file routes (thin)        │
+│  ├── components/        App shell + legacy UI              │
+│  ├── core/              Legacy domain (migrating → slices) │
+│  ├── lib/               Shared utilities (shrinking)       │
+│  ├── integrations/      Generated Supabase types only      │
+│  └── server.ts          Nitro entry + OTEL bootstrap       │
+└─────────────────────────────────────────────────────────────┘
                               ▲
-                              │ imports
-                              │
         ┌─────────────────────┼─────────────────────┐
         │                     │                     │
    ┌────▼────────┐    ┌──────▼──────┐    ┌────────▼────┐
    │  @repo/ui   │    │ @repo/core  │    │@repo/services
-   │             │    │             │    │
-   │ Re-export   │    │ Constants   │    │ Business logic
-   │ layer:      │    │ Utilities   │    │
-   │ - Radix UI  │    │ Mock data   │    │ - Pricing engine
-   │ - tailwind  │    │             │    │ - ROI engine
-   │ - lucide    │    │             │    │ - Deal scoring
-   │             │    │ (facade     │    │ - AI summaries
-   └────┬────────┘    │  to root)   │    │
-        │             └──────┬──────┘    └────────┬────┘
-        │                    │                    │
-        └────────────┬───────┴────────────────────┘
-                     │ imports
-                     │
-                ┌────▼────────────┐
-                │  @repo/types    │
-                │                 │
-                │ Domain types    │
-                │ Entity contracts│
-                │                 │
-                └─────────────────┘
+   │  (17/46)    │    │ constants   │    │ pricing, ROI
+   └─────────────┘    └─────────────┘    │ deal scoring │
+        │                    │           └──────────────┘
+        └────────────┬───────┴──────────────────┘
+                     ▼
+              ┌─────────────┐     ┌──────────────┐
+              │ @repo/types │     │ @repo/supabase│
+              └─────────────┘     └──────────────┘
 ```
 
-## Package Hierarchy (Dependency Flow)
+See also:
 
-**Allowed direction: downward only**
+- [Feature-Slice Architecture](./FEATURE_SLICE.md)
+- [Platform Boundary](./platform-boundary.md)
+- [Dependency Rules](./dependency-rules.md)
+- [Routes](./routes.md)
+
+---
+
+## Financial Authority (Critical Invariant)
+
+Deterministic engines in `@repo/services` are the **only** source of financial truth.
+AI is advisory — it suggests work and quantities; pricing/ROI/score never trust raw
+AI unit costs.
 
 ```
-@repo/types
-    ▲
-    │ (types import from here)
-    │
-@repo/core
-    ▲
-    │ (constants/utilities import from here)
-    │
-@repo/services        @repo/ui
-    │                   │
-    └─────────┬─────────┘
-              │
-          (both import from)
-              │
-          @repo/types
-              +
-          root @/lib (types only)
+User inputs → scoreDealOpportunity() → runPricingEngine()
+  → pricing.mid_total (authoritative refurb budget)
+  → runRoiEngine(refurb_budget: pricing.mid_total)
+  → ROI%, yield, profit, score
 ```
+
+Rules:
+
+1. ROI runs only after pricing succeeds (`pricing.mid_total` must be non-null).
+2. User-entered refurb budget is **never** passed directly to the ROI engine.
+3. No fallback operators (`??`, `||`) on `refurb_budget` selection.
+4. Enforced by invariant tests — see [Invariant Protection Report](../invariant-protection-report.md).
+
+Implementation: `src/lib/deal-copilot/dealAnalysis.ts` (Deal Copilot);
+`@repo/services` engines for pricing/ROI/deal scoring.
+
+---
+
+## Package Hierarchy
+
+**Allowed direction: downward only** — see [dependency-rules.md](./dependency-rules.md).
+
+| Package          | Role                                                   |
+| ---------------- | ------------------------------------------------------ |
+| `@repo/types`    | Domain types, DTOs — zero runtime deps                 |
+| `@repo/core`     | Constants, formatting, mock data                       |
+| `@repo/services` | Deterministic pricing, ROI, deal scoring, AI summaries |
+| `@repo/supabase` | Browser/server Supabase client factories               |
+| `@repo/ui`       | Shared UI components (migration in progress: 17/46)    |
+| `src/platform/`  | App-side vendor seams above `@repo/supabase`           |
+
+---
 
 ## Runtime Shell (Immovable)
 
-The root `src/` directory is not just application code—it is the **production runtime bootstrap**:
+Root `src/` is the production bootstrap — **do not relocate**. TanStack Start's
+plugin resolves routes at build time from `src/routes/` at repo root.
 
-- **TanStack Start plugin** requires `src/` at repository root (pre-plugin architecture constraint)
-- **Vite bundler** resolves `import.meta.env.VITE_*` at build time into both client and server bundles
-- **Nitro SSR engine** must initialize during Vite build, reading environment variables
-- **Supabase client** hydration happens in server context (premature extraction breaks auth)
-- **TanStack Router** route tree generation runs at build time (premature extraction breaks routing)
+Details: [runtime-boundaries.md](./runtime-boundaries.md).
 
-**Lesson learned**: Attempted extraction of `src/` in Phase 3 failed because TanStack Start's plugin system resolves import paths before Vite's configuration applies. The plugin is immutable. Do not attempt relocation again.
+---
 
-## What Each Package Does
-
-### @repo/types (525 LOC, 17 files)
-
-- Domain entity definitions (Project, Deal, Estimate, Analysis, etc.)
-- Type contracts for business objects
-- Zero runtime code
-- Zero external dependencies
-- **Responsibility**: Define the shape of data across the platform
-
-### @repo/core (238 LOC, 13 files)
-
-- Constants: UK regions, property types, pricing tiers, capabilities
-- Formatting helpers: currency, date, status formatters
-- Mock data: demo datasets for testing/design
-- Pure utility functions
-- Zero external dependencies
-- **Responsibility**: Reusable primitives that appear in multiple contexts
-
-### @repo/services (541 LOC, 10 files)
-
-- **Pricing engine**: deterministic refurbishment cost calculations (pure function)
-- **ROI engine**: deterministic investment metrics (pure function)
-- **Deal scoring**: acquisition opportunity intelligence (pure function)
-- **AI summaries**: natural language wording helpers (pure function)
-- Zero external dependencies (copies pricingData locally)
-- **Responsibility**: Pure business logic that can be tested, reasoned about, and potentially reused across future products
-
-### @repo/ui (migrating component library)
-
-- 17 of 46 UI components have been moved into `packages/ui/src/components/` (source of truth for migrated components)
-- Remaining 29 components still live in `src/components/ui/` as shims that re-export from `@repo/ui`
-- Provides a stable import path `import { Button } from "@repo/ui"` regardless of migration state
-- Target: complete migration of all 46 components. High-value next targets: sidebar, sheet, dropdown-menu, command
-- **Responsibility**: Shared design-system components with Radix UI primitives, cva variants, and Tailwind v4 styling
-
-### @repo/integrations (placeholder)
-
-- Reserved namespace for future Supabase and external API client extractions
-- Currently empty (integrations remain tightly coupled to root runtime)
-
-## Build Process
-
-**Build orchestration**: pnpm + Turbo
+## Build & Validation
 
 ```bash
-pnpm build:vercel
-# Executes: vite build --config vite.vercel.config.ts
-# - Runs TypeScript plugin (@lovable.dev/vite-tanstack-config)
-# - Generates TanStack route tree (requires src/ at root)
-# - Bundles client + server
-# - Outputs to .vercel/output/ (Nitro format)
+pnpm typecheck && pnpm lint && pnpm test:invariants && pnpm build:vercel
 ```
 
-**Build artifacts**:
+| Check            | Command                           |
+| ---------------- | --------------------------------- |
+| Type safety      | `pnpm typecheck`                  |
+| Lint             | `pnpm lint`                       |
+| Invariant tests  | `pnpm test:invariants` (81 tests) |
+| UI tests         | `pnpm test:ui`                    |
+| Production build | `pnpm build:vercel`               |
 
-- Client bundle: `.vercel/output/static/`
-- Server bundle: `.vercel/output/functions/__server.func/`
-- Single deployment unit (all packages built together)
+---
 
-Packages do not have separate build outputs. This is intentional and appropriate for an SSR monorepo (not a library monorepo).
+## Product Surfaces (Live)
 
-## Validation Pipeline
+| Surface            | Routes                 | Notes                               |
+| ------------------ | ---------------------- | ----------------------------------- |
+| Refurb Genius      | `/projects/*`          | Estimates, photos, scope, reports   |
+| Deal Copilot       | `/deal-copilot/*`      | Do not rename to `/deals`           |
+| Trades Marketplace | `/trades`, `/trades/*` | Public browse; post/edit auth-gated |
+| Gallery            | `/gallery`             | Public                              |
+| Admin              | `/admin`               | AI diagnostics, user admin          |
 
-| Check       | Command             | Status                            |
-| ----------- | ------------------- | --------------------------------- |
-| Type safety | `pnpm typecheck`    | ✅ Pass                           |
-| Linting     | `pnpm lint`         | ✅ Pass (6 pre-existing warnings) |
-| Build       | `pnpm build:vercel` | ✅ Pass                           |
+Product IDs: `refurb-genius`, `deal-copilot`, `refurb-iq`, `trades-marketplace`.
 
-All checks pass without errors. The monorepo is production-ready.
-
-## Why This Architecture?
-
-1. **Monorepo, not multi-repo**: Single codebase, single deployment unit. Easier to coordinate changes, atomic transactions, simpler rollbacks.
-
-2. **Package extraction, not full isolation**: Services are extracted to improve code organization, not to enable independent distribution. This is appropriate for an SSR app.
-
-3. **Strict dependency hierarchy**: Prevents circular dependencies and maintains clear module boundaries. Types layer exists so that services, core, and UI can depend on shared contracts without circular imports.
-
-4. **Runtime shell at root**: TanStack Start's architecture makes relocation infeasible. Decision is final.
-
-5. **Backward compatibility shims**: Old import paths still work (`@/core/pricing/pricingEngine`). New paths encouraged (`@repo/services`). Gradual migration path.
-
-## Key Metrics
-
-- **Total LOC**: ~18,650 (root: 92.9%, packages: 7.1%)
-- **Packages**: 7 real workspace packages
-- **Dependencies between packages**: 28 imports, all follow defined hierarchy
-- **Circular dependencies**: 0
-- **Build failures**: 0
-- **Type errors**: 0
+Multi-product strategy: [Repo Convergence Plan](../repo-convergence-plan.md).

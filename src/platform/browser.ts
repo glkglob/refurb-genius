@@ -8,11 +8,15 @@
  */
 import { createBrowserSupabase } from "@repo/supabase/browser";
 import { resolveSupabaseEnv } from "@repo/supabase/env";
+import { posthog } from "@/platform/posthog/browser";
 
 export const platform = {
   supabase: {
     createClient: createBrowserSupabase,
     resolveEnv: resolveSupabaseEnv,
+  },
+  posthog: {
+    client: posthog,
   },
 } as const;
 

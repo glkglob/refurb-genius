@@ -1,20 +1,5 @@
-import { PostHog } from "posthog-node";
-
-let posthogClient: PostHog | null = null;
-
-export function getPostHogServerClient(): PostHog {
-  if (!posthogClient) {
-    posthogClient = new PostHog(
-      process.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN ??
-        (import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN as string),
-      {
-        host:
-          process.env.VITE_PUBLIC_POSTHOG_HOST ??
-          (import.meta.env.VITE_PUBLIC_POSTHOG_HOST as string | undefined),
-        flushAt: 1,
-        flushInterval: 0,
-      },
-    );
-  }
-  return posthogClient;
-}
+/**
+ * Backward compatibility shim — PostHog server client lives in the platform layer.
+ * TODO(feature-slice): remove when all callers import from @/platform/posthog/server.
+ */
+export { getPostHogServerClient, type PostHog } from "@/platform/posthog/server";

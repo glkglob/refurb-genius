@@ -8,18 +8,19 @@ The goal is to avoid accidental duplicate logic while Refurb Genius moves toward
 
 ## Files Reviewed
 
-| File                                             | Current Role                                                       |
-| ------------------------------------------------ | ------------------------------------------------------------------ |
-| `src/core/pricing/pricingEngine.ts`              | Canonical refurb cost engine                                       |
-| `src/core/roi/roiEngine.ts`                      | Canonical ROI, profit, yield, score, and risk engine               |
-| `src/core/dealCopilot/dealScore.ts`              | Deal scoring wrapper that delegates to `runRoiEngine`              |
-| `src/lib/estimate.ts`                            | Legacy wrapper around `runPricingEngine`                           |
-| `src/lib/metrics.ts`                             | Deprecated investor metrics helper with duplicate ROI/profit logic |
-| `src/lib/projects.ts`                            | Rough project fallback helpers                                     |
-| `src/core/projects/projectHelpers.ts`            | Re-exports project helper functions                                |
-| `src/routes/projects.$id.report.tsx`             | Reads pre-computed report values                                   |
-| `src/routes/projects.$id.index.tsx`              | Uses project fallback helpers                                      |
-| `src/components/deal-copilot/DealIntakeForm.tsx` | Collects inputs and passes them to Deal Copilot scoring            |
+| File                                             | Current Role                                                             |
+| ------------------------------------------------ | ------------------------------------------------------------------------ |
+| `@repo/services` (`runPricingEngine`)            | Canonical refurb cost engine (shim: `src/core/pricing/pricingEngine.ts`) |
+| `@repo/services` (`runRoiEngine`)                | Canonical ROI, profit, yield, score, and risk engine                     |
+| `@repo/services` (`scoreDealOpportunity`)        | Deal scoring (shim: `src/core/dealCopilot/dealScore.ts`)                 |
+| `src/features/estimate/`                         | Estimate slice (persistence + AI adapter + serverFns)                    |
+| `src/lib/estimate.ts`                            | Legacy shim — prefer `@/features/estimate`                               |
+| `src/lib/metrics.ts`                             | Deprecated investor metrics helper with duplicate ROI/profit logic       |
+| `src/lib/projects.ts`                            | Rough project fallback helpers                                           |
+| `src/core/projects/projectHelpers.ts`            | Re-exports project helper functions                                      |
+| `src/routes/projects.$id.report.tsx`             | Reads pre-computed report values                                         |
+| `src/routes/projects.$id.index.tsx`              | Uses project fallback helpers                                            |
+| `src/components/deal-copilot/DealIntakeForm.tsx` | Collects inputs and passes them to Deal Copilot scoring                  |
 
 ## Canonical Engines
 
@@ -27,7 +28,7 @@ The goal is to avoid accidental duplicate logic while Refurb Genius moves toward
 
 Canonical location:
 
-`src/core/pricing/pricingEngine.ts`
+`packages/services/src/pricing/pricingEngine.ts` (import via `@repo/services`)
 
 Canonical function:
 
@@ -47,7 +48,7 @@ This engine handles deterministic refurb pricing logic, including:
 
 Canonical location:
 
-`src/core/roi/roiEngine.ts`
+`packages/services/src/roi/roiEngine.ts` (import via `@repo/services`)
 
 Canonical function:
 

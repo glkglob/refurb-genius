@@ -1,4 +1,4 @@
-import posthog from "posthog-js";
+import { posthog } from "@/platform/posthog/browser";
 
 import { logger } from "./logger";
 import { sanitizeIdentifier, sanitizeTelemetryMetadata, type TelemetryMetadata } from "./telemetry";

@@ -15,12 +15,11 @@ The root `src/` directory contains the **production bootstrap and orchestration 
 - `vite.config.ts` (entry point for build system)
 - `vite.vercel.config.ts` (Vercel-specific build config)
 - `package.json` (workspace root, build scripts)
-- `src/app/` (route definitions, auto-discovery pattern)
-- `src/routes/` (route tree)
+- `src/routes/` (TanStack Start file-based route tree)
 
 **Why immovable:**
 
-- TanStack Start plugin resolves `src/app` and `src/routes` at build time
+- TanStack Start plugin resolves `src/routes/` at build time
 - Route tree generation (`routeTree.gen.ts`) requires files to be discoverable
 - Vite bundler must run from workspace root
 - If moved, the plugin cannot find routes
@@ -95,7 +94,6 @@ export const client = createClient(supabaseUrl, supabaseKey);
 **Files:**
 
 - `src/lib/providers.tsx` (context providers)
-- `src/integrations/openai/client.ts` (OpenAI initialization)
 - Zustand stores (if any)
 - TanStack Query client setup
 
@@ -137,8 +135,8 @@ export async function loader({ context }) {
 
 **Files:**
 
-- `src/integrations/supabase/` (Supabase client setup, types)
-- `src/integrations/openai/` (OpenAI client, models)
+- `src/integrations/supabase/` (generated types only — clients via `@repo/supabase` / `src/platform/`)
+- `src/platform/openai/server.ts` (server-only OpenAI factory — never in client bundle)
 
 **Why cannot be fully extracted:**
 
@@ -211,7 +209,6 @@ ls src/server.ts
 ls vite.config.ts
 ls vite.vercel.config.ts
 ls tsconfig.json
-ls src/app/
 ls src/routes/
 
 # These should NOT be in packages/:

@@ -1,6 +1,14 @@
 # Railway Backend Deployment Setup (FastAPI + CrewAI)
 
-This document prepares the **FastAPI/CrewAI backend** for deployment on Railway while the **frontend (TanStack Start / Vite)** remains on Vercel.
+> **ARCHIVED — May 2026.** The Railway/Python backend was decommissioned and removed
+> from the repo. Current AI architecture: pure TypeScript `createServerFn` + OpenAI.
+> See [`docs/architecture/ai-platform.md`](../../architecture/ai-platform.md) and
+> [`docs/archive/2026-05-legacy-ai-guidance-railway/README.md`](./README.md).
+> **Do not follow deployment steps below.**
+
+---
+
+This document prepared the **FastAPI/CrewAI backend** for deployment on Railway while the **frontend (TanStack Start / Vite)** remained on Vercel.
 
 ## Current State (as of setup)
 

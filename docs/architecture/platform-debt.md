@@ -227,11 +227,11 @@ import { runPricingEngine } from "@repo/services";
 
 **Status**: By design, cannot move
 
-**What:** Supabase and OpenAI clients initialize at root:
+**What:** Supabase browser client initializes at root:
 
-- `src/lib/auth.ts` → Creates Supabase client
-- `src/integrations/supabase/client.ts` → Client initialization
-- `src/integrations/openai/client.ts` → Client initialization
+- `src/lib/auth.ts` → Auth hydration
+- `src/services/supabase/` → Browser singleton (re-exported via `@/platform/supabase/browser`)
+- OpenAI is server-only via `src/platform/openai/server.ts` (no browser client)
 
 **Why cannot extract:**
 

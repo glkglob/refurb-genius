@@ -6,8 +6,9 @@
 **Related:**
 
 - `docs/architecture/analysis-paths.md` (now pure TS)
+- `docs/architecture/FEATURE_SLICE.md` (estimate, ai-upload, ai-design slices)
+- `docs/architecture/platform-boundary.md` (OpenAI via `src/platform/`)
 - `CLAUDE.md` (serverFns patterns, package boundaries, never hallucinate pricing)
-- `src/core/ai/` (implementation)
 
 ---
 
@@ -41,18 +42,32 @@ See git history and `docs/archive/2026-05-legacy-ai-guidance-railway/` for old a
 
 ## Current TS + OpenAI Pipeline (Single Source of Truth)
 
-### Core Files
+### Core Files (2026-06 — feature slices + platform)
 
-- `src/core/ai/serverFns.ts`: createServerFn wrappers (runPhotoAnalysisServerFn, runScopeAnalysisServerFn, generateEstimateServerFn, generateRedesignConceptsServerFn) + auth + input Zod.
-- `src/core/ai/server/openAiVision.server.ts`: per-photo gpt-4o Vision + SYSTEM_PROMPT with enums + timeout + classify + fallback.
-- `src/core/ai/server/openAiScopeAnalysis.server.ts`: multi-photo gpt-4o → ScopeAnalysisResult (rooms, issues with severity, recommended_items with base costs).
-- `src/core/ai/server/openAiEstimate.server.ts`: text gpt-4o → AIGeneratedRoom[] line items (base costs).
-- `src/core/ai/server/openAiRedesign.server.ts`: text gpt-4o per style → tagline/palette/flooring/lighting/furniture + uplift.
-- `src/core/ai/validation.ts` (Phase 1): shared Zod schemas + safeParse\* helpers for strong post-JSON validation.
-- `src/core/ai/platform/retry.ts`: withRetry for transient failures.
-- `src/core/ai/normalizers.ts` (Phase 2): `normalizeAIEstimate` — maps to CATEGORY_BASE where possible, risk uplift from condition/scope criticals, clamps, warnings.
-- Providers in `photoAnalysis.ts`, `redesignConcepts.ts` etc. abstract mock vs real.
-- `useScopeAnalysis`, `useGenerateEstimate`, `useAIEstimate` etc. for React.
+**RPC surface (slice presentation):**
+
+- `src/features/ai-upload/presentation/serverFns.ts` — `runPhotoAnalysisServerFn`
+- `src/features/ai-design/presentation/serverFns.ts` — `runScopeAnalysisServerFn`, `generateRedesignConceptsServerFn`
+- `src/features/estimate/presentation/serverFns.ts` — `generateEstimateServerFn`
+- `src/core/ai/serverFns.ts` — thin re-export barrel for legacy importers
+
+**Server-only AI adapters (OpenAI via `@/platform/openai/server`):**
+
+- `src/features/ai-upload/infrastructure/adapters/ai-vision.adapter.server.ts`
+- `src/features/ai-design/infrastructure/adapters/ai-scope.adapter.server.ts`
+- `src/features/ai-design/infrastructure/adapters/ai-redesign.adapter.server.ts`
+- `src/features/estimate/infrastructure/adapters/ai-estimate.adapter.server.ts`
+
+**Platform + shared logic:**
+
+- `src/platform/openai/server.ts` — `getOpenAIClient` (Sentry-instrumented)
+- `src/core/ai/validation.ts` — shared Zod schemas + safeParse helpers
+- `src/core/ai/platform/retry.ts` — `withRetry` for transient failures
+- `src/core/ai/platform/orchestrator.ts` — vision→scope→estimate chaining via slice serverFns
+- `src/core/ai/normalizers.ts` — `normalizeAIEstimate` (maps to `@repo/services` pricing authority)
+
+**Legacy shims** (`src/core/ai/server/openAi*.server.ts`, `photoAnalysis.ts`, etc.) re-export
+slice modules — marked `TODO(feature-slice)`.
 
 ### Strengths (Current)
 
@@ -106,6 +121,6 @@ See git history and `docs/archive/2026-05-legacy-ai-guidance-railway/` for old a
 
 - Full pre-commit must pass (see Phase 3).
 - If analysis_jobs table cleanup desired in DB, do via separate migration (not in app code).
-- Future enhancements stay inside `src/core/ai/` + `@repo/services` pricing.
+- Future enhancements stay in feature slices + `src/platform/` + `@repo/services` pricing.
 
 This is now a clean, maintainable, single-stack AI platform.

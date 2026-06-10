@@ -7,7 +7,8 @@
  * factories with `getCookies()` from `@tanstack/react-start/server`.
  */
 import { createServerSupabase, createTokenSupabase } from "@repo/supabase/server";
-import { getOpenAIClient } from "@/core/ai/server/openai-client";
+import { getOpenAIClient } from "@/platform/openai/server";
+import { getPostHogServerClient } from "@/platform/posthog/server";
 
 export const platform = {
   supabase: {
@@ -16,6 +17,9 @@ export const platform = {
   },
   ai: {
     getOpenAIClient,
+  },
+  posthog: {
+    getServerClient: getPostHogServerClient,
   },
 } as const;
 

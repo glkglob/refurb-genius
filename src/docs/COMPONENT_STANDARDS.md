@@ -1,8 +1,9 @@
 # Refurb Genius — Component Standards
 
-**Version:** 1.0  
-**Last Updated:** May 2026  
-**Purpose:** This document defines exactly how components should be used and built in this codebase.
+**Version:** 1.1  
+**Last Updated:** June 2026  
+**Purpose:** Component usage rules for this codebase. Import shared primitives from
+`@repo/ui` (migrating from `src/components/ui/` shims). Index: `docs/README.md`.
 
 ---
 

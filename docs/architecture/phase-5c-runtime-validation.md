@@ -491,7 +491,7 @@ auth.onChange(() => {
 - src/routes/projects.$id.upload.tsx (upload UI)
 - src/routes/projects.$id.report.tsx (PDF export UI)
 - src/routes/projects.$id.analysis.tsx (analysis UI)
-- src/core/ai/openAiVisionProvider.ts (AI provider)
+- src/features/ai-upload/infrastructure/adapters/ai-vision.adapter.server.ts (AI adapter)
 - Plus 2 more integration files
 
 **Stress Scenarios:** 8  

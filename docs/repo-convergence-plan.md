@@ -7,8 +7,11 @@ Deal Copilot and Refurb IQ are source-asset products that will be integrated int
 ## Current decision
 
 - Refurb Genius remains the live app and deployment target.
-- Shared business logic lives under `src/core`.
-- Product UI lives under `src/routes` and `src/components`.
+- Deterministic engines live in `@repo/services` (pricing, ROI, deal scoring).
+- Feature work migrates into `src/features/<slice>/` (see `docs/architecture/FEATURE_SLICE.md`).
+- Legacy shared logic still under `src/core/` (shrinking via strangler shims).
+- Product UI lives under `src/routes/` and `src/components/`.
+- Vendor SDKs isolated in `src/platform/` (see `docs/architecture/platform-boundary.md`).
 - Deal Copilot will start as a lightweight manual deal-analysis module.
 - Refurb IQ will start as a downstream BOQ and cost-plan module fed by Refurb Genius estimates.
 

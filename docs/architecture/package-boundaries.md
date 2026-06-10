@@ -2,14 +2,15 @@
 
 ## Responsibility Matrix
 
-| Package            | Owns                              | Imports From                           | Exports                   | Cannot Import                      |
-| ------------------ | --------------------------------- | -------------------------------------- | ------------------------- | ---------------------------------- |
-| @repo/types        | Domain types, contracts, DTOs     | (nothing)                              | Types only                | Services, core, UI, root app       |
-| @repo/core         | Constants, utilities, mock data   | @repo/types, @/lib (types)             | Constants, utils, types   | Services, UI, root runtime logic   |
-| @repo/services     | Pure business logic               | @repo/core, @repo/types, @/lib (types) | Business engines, helpers | UI, root stores, root integrations |
-| @repo/ui           | UI component re-export facade     | @/components/ui/\*, @/lib/utils        | Components                | Services, core, types              |
-| @repo/integrations | (Reserved)                        | (nothing yet)                          | (nothing yet)             | (TBD)                              |
-| Root runtime       | SSR, auth, routing, orchestration | All packages (@repo/\*)                | Fully integrated app      | (none, top-level)                  |
+| Package            | Owns                              | Imports From                             | Exports                   | Cannot Import                      |
+| ------------------ | --------------------------------- | ---------------------------------------- | ------------------------- | ---------------------------------- |
+| @repo/types        | Domain types, contracts, DTOs     | (nothing)                                | Types only                | Services, core, UI, root app       |
+| @repo/core         | Constants, utilities, mock data   | @repo/types, @/lib (types)               | Constants, utils, types   | Services, UI, root runtime logic   |
+| @repo/services     | Pure business logic               | @repo/core, @repo/types, @/lib (types)   | Business engines, helpers | UI, root stores, root integrations |
+| @repo/ui           | Shared UI components (migrating)  | Radix, cva, `@repo/ui/lib/utils`         | Components                | Services, core, root app logic     |
+| @repo/supabase     | Supabase client factories         | `@supabase/ssr`, `@supabase/supabase-js` | Browser/server clients    | UI, root business logic            |
+| @repo/integrations | (Reserved — unused)               | (nothing yet)                            | (nothing yet)             | (TBD)                              |
+| Root runtime       | SSR, auth, routing, orchestration | All packages (@repo/\*)                  | Fully integrated app      | (none, top-level)                  |
 
 ## What Belongs Where?
 
@@ -149,7 +150,7 @@ import { Button, Dialog, Input, cn } from "@repo/ui";
    - Auth context providers
    - Lovable auth wrapper
 
-3. **Route tree and TanStack Router** (`src/app`, `routes/`)
+3. **Route tree** (`src/routes/`)
    - Route definitions
    - Loaders
    - Route-specific logic
@@ -161,11 +162,10 @@ import { Button, Dialog, Input, cn } from "@repo/ui";
    - TanStack Query client
    - Error boundaries
 
-5. **Integrations** (`src/integrations/supabase/`)
-   - Supabase client instances
-   - API clients
-   - External service initialization
-   - These are tightly coupled to runtime
+5. **Platform + integrations**
+   - `src/platform/` — vendor SDK seams (OpenAI, PostHog, Supabase re-exports)
+   - `src/integrations/supabase/` — generated types only (do not import in app code)
+   - `@repo/supabase` — actual client factories
 
 6. **App-specific components** (`src/components/`)
    - Most UI components belong here

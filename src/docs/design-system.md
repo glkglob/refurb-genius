@@ -1,7 +1,8 @@
 # Refurb Genius — Design System
 
-**Status:** Work in progress (as of May 2026)  
-**Goal:** Create a consistent, modern, professional design language suitable for a property investment & refurbishment SaaS.
+**Status:** Work in progress (June 2026)  
+**Goal:** Consistent design language for property investment & refurbishment SaaS.  
+**Related:** `src/docs/COMPONENT_STANDARDS.md`, `packages/ui/`, `docs/README.md`.
 
 ---
 
