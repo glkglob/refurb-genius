@@ -2,8 +2,9 @@
 // Files live in the public `project-photos` bucket under
 // `{user_id}/{project_id}/{uuid}.{ext}` so storage RLS scopes ownership by
 // the leading folder. Metadata is mirrored into the `photos` table.
+import { isImageFile } from "@/features/ai-upload/domain";
 import { supabase } from "@/platform/supabase/browser";
-import { auth } from "./auth";
+import { auth, fromSupabaseUser, type AuthUser } from "./auth";
 import { captureUploadError, addDiagnosticBreadcrumb } from "./sentry";
 import { logger } from "./logger";
 import { timeoutPromise, isTimeoutError } from "./timeout";
@@ -25,6 +26,25 @@ export type ProjectPhoto = {
 };
 
 const BUCKET = "project-photos";
+
+/**
+ * Resolve the authenticated user for uploads.
+ * useAuth() can be hydrated from the server before the legacy auth singleton;
+ * always prefer the Supabase session, then fall back to the cached listener.
+ */
+async function resolveUploadUser(): Promise<AuthUser> {
+  const {
+    data: { user: sessionUser },
+    error,
+  } = await supabase.auth.getUser();
+  const fromSession = fromSupabaseUser(sessionUser);
+  if (fromSession && !error) return fromSession;
+
+  const cached = auth.getUser();
+  if (cached) return cached;
+
+  throw new Error("You must be signed in to upload photos.");
+}
 
 const cacheByProject = new Map<string, ProjectPhoto[]>();
 const loadedProjects = new Set<string>();
@@ -84,6 +104,23 @@ function fileExt(name: string): string {
   return i >= 0 ? name.slice(i + 1).toLowerCase() : "jpg";
 }
 
+function inferContentType(file: File): string {
+  if (file.type) return file.type;
+  const ext = fileExt(file.name);
+  const byExt: Record<string, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    webp: "image/webp",
+    heic: "image/heic",
+    heif: "image/heif",
+    bmp: "image/bmp",
+    avif: "image/avif",
+  };
+  return byExt[ext] ?? "image/jpeg";
+}
+
 export const photoStore = {
   list(projectId: string): ProjectPhoto[] {
     ensureLoaded(projectId);
@@ -93,8 +130,7 @@ export const photoStore = {
     await fetchProjectPhotos(projectId);
   },
   async upload(projectId: string, files: File[]): Promise<ProjectPhoto[]> {
-    const user = auth.getUser();
-    if (!user) throw new Error("You must be signed in to upload photos.");
+    const user = await resolveUploadUser();
 
     addDiagnosticBreadcrumb("photos:upload:start", {
       projectId,
@@ -109,7 +145,7 @@ export const photoStore = {
 
     // Process all files through the concurrency limiter
     const uploadPromises = files.map(async (file) => {
-      if (!file.type.startsWith("image/")) {
+      if (!isImageFile(file)) {
         errors.push({ file: file.name, error: "Not an image file" });
         return;
       }
@@ -130,7 +166,7 @@ export const photoStore = {
           const uploadResult = await timeoutPromise(
             supabase.storage
               .from(BUCKET)
-              .upload(path, file, { contentType: file.type, upsert: false }),
+              .upload(path, file, { contentType: inferContentType(file), upsert: false }),
             UPLOAD_TIMEOUT_MS,
             `Upload ${file.name} to storage`,
           );

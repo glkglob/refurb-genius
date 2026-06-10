@@ -6,9 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
 import { formatFileSize } from "@/core/projects";
 import { Upload, ImagePlus, X, Sparkles, Loader2, AlertCircle, ArrowRight } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { useProject, useSetProjectStage } from "@/hooks/useProjects";
-import { usePhotos, useUploadPhotos, useRemovePhoto } from "@/features/ai-upload";
+import { usePhotos, useUploadPhotos, useRemovePhoto, isImageFile } from "@/features/ai-upload";
 import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/_authed/projects/$id/upload")({
@@ -21,7 +21,8 @@ const MAX_BYTES = 10 * 1024 * 1024;
 function UploadPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const libraryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { data: project, isLoading: projectLoading, error: projectError } = useProject(id);
@@ -60,9 +61,9 @@ function UploadPage() {
       setError(`"${tooBig.name}" is over 10MB.`);
       return;
     }
-    const nonImage = files.find((f) => !f.type.startsWith("image/"));
+    const nonImage = files.find((f) => !isImageFile(f));
     if (nonImage) {
-      setError(`"${nonImage.name}" is not an image.`);
+      setError(`"${nonImage.name || "Selected file"}" is not an image.`);
       return;
     }
     setError(null);
@@ -72,8 +73,17 @@ function UploadPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
     } finally {
-      if (inputRef.current) inputRef.current.value = "";
+      if (libraryInputRef.current) libraryInputRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
     }
+  };
+
+  const handleLibraryChange = (event: ChangeEvent<HTMLInputElement>) => {
+    void handleFiles(event.target.files);
+  };
+
+  const handleCameraChange = (event: ChangeEvent<HTMLInputElement>) => {
+    void handleFiles(event.target.files);
   };
 
   const handleAnalyse = () => {
@@ -104,12 +114,12 @@ function UploadPage() {
     >
       <Card>
         <CardContent className="p-6">
-          <label
-            className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-secondary/40 p-10 text-center transition-colors hover:bg-secondary"
+          <div
+            className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-secondary/40 p-10 text-center transition-colors hover:bg-secondary"
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => {
               e.preventDefault();
-              handleFiles(e.dataTransfer.files);
+              void handleFiles(e.dataTransfer.files);
             }}
           >
             {uploading ? (
@@ -118,19 +128,52 @@ function UploadPage() {
               <Upload className="h-8 w-8 text-muted-foreground" />
             )}
             <p className="mt-3 text-sm font-medium text-foreground">
-              {uploading ? "Uploading…" : "Click or drag photos to upload"}
+              {uploading ? "Uploading…" : "Take photos or upload from your library"}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">JPG or PNG, up to 10MB each</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              JPG, PNG, or HEIC — up to 10MB each
+            </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                disabled={uploading}
+                onClick={() => cameraInputRef.current?.click()}
+              >
+                <ImagePlus className="h-4 w-4" />
+                Take Photo
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploading}
+                onClick={() => libraryInputRef.current?.click()}
+              >
+                <Upload className="h-4 w-4" />
+                Choose Files
+              </Button>
+            </div>
             <input
-              ref={inputRef}
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleCameraChange}
+              disabled={uploading}
+            />
+            <input
+              ref={libraryInputRef}
               type="file"
               accept="image/*"
               multiple
               className="hidden"
-              onChange={(e) => handleFiles(e.target.files)}
+              onChange={handleLibraryChange}
               disabled={uploading}
             />
-          </label>
+          </div>
 
           {error && (
             <div className="mt-4 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">

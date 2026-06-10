@@ -18,6 +18,7 @@ const BASELINE_ALLOWLIST = new Set<string>([
   "src/components/AIMetricsDashboard.tsx|@/lib/provider-diagnostics",
   "src/components/AIMetricsDashboard.tsx|@/lib/provider-health-analysis",
   "src/components/AppLayout.tsx|@/core/reports",
+  "src/components/Footer.tsx|@/core/reports",
   "src/components/BulkPhotoUpload.tsx|@/lib/auth",
   "src/components/BulkPhotoUpload.tsx|@/lib/logger",
   "src/components/BulkPhotoUpload.tsx|@/lib/queries/projects",

@@ -7,7 +7,7 @@ import { Button } from "@repo/ui";
 import { toast } from "sonner";
 import pLimit from "p-limit";
 import { supabase } from "@/platform/supabase/browser";
-import { auth } from "@/lib/auth";
+import { fromSupabaseUser } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { photosQueryOptions } from "@/lib/queries/projects";
 import { captureUploadError } from "@/lib/sentry";
@@ -64,8 +64,12 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
         try {
           updateItem(item.id, { status: "uploading", progress: 10 });
 
-          const user = auth.getUser();
-          if (!user) throw new Error("Not authenticated");
+          const {
+            data: { user: sessionUser },
+            error: sessionError,
+          } = await supabase.auth.getUser();
+          const user = fromSupabaseUser(sessionUser);
+          if (!user || sessionError) throw new Error("Not authenticated");
 
           const ext = item.file.name.split(".").pop() || "jpg";
           const path = `${user.id}/${projectId}/${item.id}.${ext}`;

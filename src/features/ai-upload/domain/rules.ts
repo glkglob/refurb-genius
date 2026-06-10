@@ -6,6 +6,25 @@
  */
 import type { RoomAnalysis } from "./types";
 
+const IMAGE_EXTENSIONS = new Set([
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
+  "heic",
+  "heif",
+  "bmp",
+  "avif",
+]);
+
+/** Accept camera/library picks where MIME is missing (common on mobile) or HEIC. */
+export function isImageFile(file: File): boolean {
+  if (file.type.startsWith("image/")) return true;
+  const ext = file.name.includes(".") ? file.name.split(".").pop()?.toLowerCase() : undefined;
+  return ext ? IMAGE_EXTENSIONS.has(ext) : false;
+}
+
 /** A single analysis succeeded when the model returned a non-zero confidence. */
 export function isSuccessfulAnalysis(analysis: RoomAnalysis): boolean {
   return analysis.confidence_score > 0 && analysis.source !== "fallback";

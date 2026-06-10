@@ -3,6 +3,7 @@ import { Camera, Image, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { isImageFile } from "@/features/ai-upload";
 
 export interface PhotoUploadZoneProps {
   onPhotosSelected: (files: File[]) => void;
@@ -56,7 +57,7 @@ export function PhotoUploadZone({
     (fileList: FileList | null) => {
       if (!fileList || fileList.length === 0) return;
 
-      const files = Array.from(fileList).filter((file) => file.type.startsWith("image/"));
+      const files = Array.from(fileList).filter(isImageFile);
 
       if (files.length === 0) {
         toast.error("Please select image files only.");

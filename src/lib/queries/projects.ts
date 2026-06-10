@@ -91,7 +91,7 @@ export const estimateQueryOptions = (projectId: string) =>
 
 /**
  * Query options for project photos.
- * Uses direct Supabase select for latest data (consistent with usePhotos hook).
+ * Canonical photos query — shared by usePhotos and project tab prefetch.
  */
 export const photosQueryOptions = (projectId: string) =>
   queryOptions<ProjectPhoto[]>({
