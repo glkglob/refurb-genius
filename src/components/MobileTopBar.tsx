@@ -38,7 +38,7 @@ export function MobileTopBar() {
           variant="ghost"
           className="flex h-9 min-w-[52px] flex-col items-center justify-center gap-0 px-1.5 py-0.5 text-[9px] leading-none active:scale-[0.97]"
         >
-          <Link to="/projects/new" aria-label="New project">
+          <Link to="/analyze" aria-label="New study analysis">
             <Plus className="h-3.5 w-3.5" />
             <span className="mt-px">New</span>
           </Link>

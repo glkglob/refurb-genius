@@ -1,4 +1,6 @@
 import { runVisionThenScope } from "@/core/ai";
+import { hasProAccess } from "@/features/payment";
+import { auth } from "@/lib/auth";
 import type { FeasibilityStudy } from "../domain";
 import { isFeasibilityStudyComplete } from "../domain";
 import type {
@@ -88,7 +90,7 @@ export function makeOrchestrateFeasibility({
 
     const studySnapshot = await repository.saveSnapshot(study);
 
-    if (exportService) {
+    if (exportService && hasProAccess(auth.getUser())) {
       await exportService.queueFeasibilityReport(study.id);
     }
 

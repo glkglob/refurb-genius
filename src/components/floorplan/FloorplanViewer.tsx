@@ -426,7 +426,7 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4" data-floorplan-stage>
       {/* Top controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

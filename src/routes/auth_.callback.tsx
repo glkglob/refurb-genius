@@ -12,6 +12,7 @@ const callbackSearchSchema = z.object({
   type: z.string().optional(),
   error: z.string().optional(),
   error_description: z.string().optional(),
+  redirect_to: z.string().optional(),
 });
 
 export const Route = createFileRoute("/auth_/callback")({
@@ -23,8 +24,9 @@ export const Route = createFileRoute("/auth_/callback")({
 function AuthCallback() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { code, type, error: urlError, error_description } = Route.useSearch();
+  const { code, type, error: urlError, error_description, redirect_to } = Route.useSearch();
   const [error, setError] = useState<string | null>(null);
+  const destination = redirect_to && redirect_to.startsWith("/") ? redirect_to : "/dashboard";
 
   useEffect(() => {
     if (urlError) {
@@ -41,7 +43,7 @@ function AuthCallback() {
           // "signed out" cache entry and bounce back to /auth. See the
           // matching comment in src/routes/auth.tsx for full context.
           queryClient.setQueryData(AUTH_USER_QUERY_KEY, fromSupabaseUser(data.session.user));
-          void navigate({ to: "/dashboard", replace: true });
+          void navigate({ to: destination, replace: true });
         } else {
           setError("No authentication code received. Please try signing in again.");
         }
@@ -62,14 +64,13 @@ function AuthCallback() {
           // Seed the auth query cache before navigating — see comment above
           // and the matching fix in src/routes/auth.tsx.
           queryClient.setQueryData(AUTH_USER_QUERY_KEY, fromSupabaseUser(data.user));
-          void navigate({ to: "/dashboard", replace: true });
+          void navigate({ to: destination, replace: true });
         }
       })
       .catch((e: unknown) => {
         setError(e instanceof Error ? e.message : "Auth callback failed.");
       });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [code, destination, error_description, navigate, queryClient, redirect_to, type, urlError]);
 
   if (error) {
     return (

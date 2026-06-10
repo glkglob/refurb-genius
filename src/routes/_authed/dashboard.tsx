@@ -206,10 +206,11 @@ function DashboardContent() {
         <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
           Quick actions
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <QuickActionCard icon={Calculator} label="Start Deal Analysis" to="/deal-copilot/new" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <QuickActionCard icon={Calculator} label="New Study Analysis" to="/analyze" />
           <QuickActionCard icon={Briefcase} label="Post a Trades Job" to="/trades/new" />
           <QuickActionCard icon={HardHat} label="Browse Marketplace" to="/trades" />
+          <QuickActionCard icon={BookMarked} label="Saved Studies" to="/studies" />
           <QuickActionCard icon={FolderPlus} label="Create Project" to="/projects/new" />
         </div>
       </div>

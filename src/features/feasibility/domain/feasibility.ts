@@ -8,6 +8,8 @@ import type {
   ScopeAnalysisResult,
 } from "@repo/types";
 
+export type StudyStatus = FeasibilityStatus;
+
 export type FeasibilityStudy = {
   id: string;
   projectId: string;

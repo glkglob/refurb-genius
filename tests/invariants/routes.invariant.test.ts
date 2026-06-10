@@ -44,6 +44,8 @@ const AUTHENTICATED_ROUTES: [string, string][] = [
   // Auth modernization: protected routes now live under the _authed pathless layout.
   // The generator strips the _authed prefix so public URLs are unchanged.
   ["_authed/dashboard.tsx", "/dashboard"],
+  ["_authed/analyze.tsx", "/analyze"],
+  ["_authed/studies.tsx", "/studies"],
   ["_authed/settings.tsx", "/settings"],
   ["_authed/admin.tsx", "/admin"],
   ["_authed/projects.new.tsx", "/projects/new"],

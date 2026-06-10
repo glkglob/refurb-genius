@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CreateFeasibilityStudyCommand } from "../../application";
 import { defaultFeasibilityService as feasibilityService } from "../service";
+import { trackEvent } from "@/lib/analytics";
 
 export function useFeasibilityStudies(projectId: string) {
   return useQuery({
@@ -26,6 +27,10 @@ export function useCreateFeasibilityStudy() {
   return useMutation({
     mutationFn: (command: CreateFeasibilityStudyCommand) => feasibilityService.orchestrate(command),
     onSuccess: (result) => {
+      trackEvent("study_created", {
+        project_id: result.study.projectId,
+        study_id: result.study.id,
+      });
       void queryClient.invalidateQueries({
         queryKey: ["feasibility-studies", result.study.projectId],
       });
@@ -59,6 +64,7 @@ export function useShareFeasibilityStudy(projectId: string) {
   return useMutation({
     mutationFn: (studyId: string) => feasibilityService.share({ studyId }),
     onSuccess: () => {
+      trackEvent("study_shared", { project_id: projectId });
       void queryClient.invalidateQueries({ queryKey: ["feasibility-studies", projectId] });
     },
   });
@@ -69,6 +75,7 @@ export function useQueueFeasibilityExport(projectId: string) {
   return useMutation({
     mutationFn: (studyId: string) => feasibilityService.queueExport({ studyId }),
     onSuccess: () => {
+      trackEvent("report_exported", { surface: "studies" });
       void queryClient.invalidateQueries({ queryKey: ["feasibility-studies", projectId] });
     },
   });

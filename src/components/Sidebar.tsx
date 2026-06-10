@@ -15,7 +15,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 
 const items = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/projects/new", label: "New Project", icon: FolderPlus },
+  { to: "/analyze", label: "New Study", icon: FolderPlus },
+  { to: "/studies", label: "Studies", icon: FolderPlus },
   { to: "/deal-copilot", label: "Deal Copilot", icon: LineChart },
   { to: "/trades", label: "Trades", icon: Briefcase },
   { to: "/settings", label: "Settings", icon: Settings },

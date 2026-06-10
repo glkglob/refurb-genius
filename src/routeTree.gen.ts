@@ -21,13 +21,16 @@ import { Route as TradesJobIdRouteImport } from './routes/trades_.$jobId'
 import { Route as OauthConsentRouteImport } from './routes/oauth.consent'
 import { Route as GallerySlugRouteImport } from './routes/gallery.$slug'
 import { Route as AuthCallbackRouteImport } from './routes/auth_.callback'
+import { Route as AuthedStudiesRouteImport } from './routes/_authed/studies'
 import { Route as AuthedSettingsRouteImport } from './routes/_authed/settings'
 import { Route as AuthedMarketplaceRouteImport } from './routes/_authed/marketplace'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
+import { Route as AuthedAnalyzeRouteImport } from './routes/_authed/analyze'
 import { Route as AuthedAdminRouteImport } from './routes/_authed/admin'
 import { Route as AuthedDealCopilotIndexRouteImport } from './routes/_authed/deal-copilot/index'
 import { Route as AuthedTradesProfileRouteImport } from './routes/_authed/trades_.profile'
 import { Route as AuthedTradesNewRouteImport } from './routes/_authed/trades_.new'
+import { Route as AuthedStudiesIdRouteImport } from './routes/_authed/studies.$id'
 import { Route as AuthedProjectsNewRouteImport } from './routes/_authed/projects.new'
 import { Route as AuthedDealCopilotNewRouteImport } from './routes/_authed/deal-copilot/new'
 import { Route as AuthedDealCopilotOpportunityIdRouteImport } from './routes/_authed/deal-copilot/$opportunityId'
@@ -99,6 +102,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthedStudiesRoute = AuthedStudiesRouteImport.update({
+  id: '/studies',
+  path: '/studies',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedSettingsRoute = AuthedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -112,6 +120,11 @@ const AuthedMarketplaceRoute = AuthedMarketplaceRouteImport.update({
 const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedAnalyzeRoute = AuthedAnalyzeRouteImport.update({
+  id: '/analyze',
+  path: '/analyze',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedAdminRoute = AuthedAdminRouteImport.update({
@@ -133,6 +146,11 @@ const AuthedTradesNewRoute = AuthedTradesNewRouteImport.update({
   id: '/trades_/new',
   path: '/trades/new',
   getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedStudiesIdRoute = AuthedStudiesIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => AuthedStudiesRoute,
 } as any)
 const AuthedProjectsNewRoute = AuthedProjectsNewRouteImport.update({
   id: '/projects/new',
@@ -203,9 +221,11 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/trades': typeof TradesRoute
   '/admin': typeof AuthedAdminRoute
+  '/analyze': typeof AuthedAnalyzeRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/marketplace': typeof AuthedMarketplaceRoute
   '/settings': typeof AuthedSettingsRoute
+  '/studies': typeof AuthedStudiesRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/gallery/$slug': typeof GallerySlugRoute
   '/oauth/consent': typeof OauthConsentRoute
@@ -213,6 +233,7 @@ export interface FileRoutesByFullPath {
   '/deal-copilot/$opportunityId': typeof AuthedDealCopilotOpportunityIdRouteWithChildren
   '/deal-copilot/new': typeof AuthedDealCopilotNewRoute
   '/projects/new': typeof AuthedProjectsNewRoute
+  '/studies/$id': typeof AuthedStudiesIdRoute
   '/trades/new': typeof AuthedTradesNewRoute
   '/trades/profile': typeof AuthedTradesProfileRoute
   '/deal-copilot/': typeof AuthedDealCopilotIndexRoute
@@ -234,9 +255,11 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/trades': typeof TradesRoute
   '/admin': typeof AuthedAdminRoute
+  '/analyze': typeof AuthedAnalyzeRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/marketplace': typeof AuthedMarketplaceRoute
   '/settings': typeof AuthedSettingsRoute
+  '/studies': typeof AuthedStudiesRouteWithChildren
   '/auth/callback': typeof AuthCallbackRoute
   '/gallery/$slug': typeof GallerySlugRoute
   '/oauth/consent': typeof OauthConsentRoute
@@ -244,6 +267,7 @@ export interface FileRoutesByTo {
   '/deal-copilot/$opportunityId': typeof AuthedDealCopilotOpportunityIdRouteWithChildren
   '/deal-copilot/new': typeof AuthedDealCopilotNewRoute
   '/projects/new': typeof AuthedProjectsNewRoute
+  '/studies/$id': typeof AuthedStudiesIdRoute
   '/trades/new': typeof AuthedTradesNewRoute
   '/trades/profile': typeof AuthedTradesProfileRoute
   '/deal-copilot': typeof AuthedDealCopilotIndexRoute
@@ -267,9 +291,11 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/trades': typeof TradesRoute
   '/_authed/admin': typeof AuthedAdminRoute
+  '/_authed/analyze': typeof AuthedAnalyzeRoute
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/marketplace': typeof AuthedMarketplaceRoute
   '/_authed/settings': typeof AuthedSettingsRoute
+  '/_authed/studies': typeof AuthedStudiesRouteWithChildren
   '/auth_/callback': typeof AuthCallbackRoute
   '/gallery/$slug': typeof GallerySlugRoute
   '/oauth/consent': typeof OauthConsentRoute
@@ -277,6 +303,7 @@ export interface FileRoutesById {
   '/_authed/deal-copilot/$opportunityId': typeof AuthedDealCopilotOpportunityIdRouteWithChildren
   '/_authed/deal-copilot/new': typeof AuthedDealCopilotNewRoute
   '/_authed/projects/new': typeof AuthedProjectsNewRoute
+  '/_authed/studies/$id': typeof AuthedStudiesIdRoute
   '/_authed/trades_/new': typeof AuthedTradesNewRoute
   '/_authed/trades_/profile': typeof AuthedTradesProfileRoute
   '/_authed/deal-copilot/': typeof AuthedDealCopilotIndexRoute
@@ -300,9 +327,11 @@ export interface FileRouteTypes {
     | '/terms'
     | '/trades'
     | '/admin'
+    | '/analyze'
     | '/dashboard'
     | '/marketplace'
     | '/settings'
+    | '/studies'
     | '/auth/callback'
     | '/gallery/$slug'
     | '/oauth/consent'
@@ -310,6 +339,7 @@ export interface FileRouteTypes {
     | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
+    | '/studies/$id'
     | '/trades/new'
     | '/trades/profile'
     | '/deal-copilot/'
@@ -331,9 +361,11 @@ export interface FileRouteTypes {
     | '/terms'
     | '/trades'
     | '/admin'
+    | '/analyze'
     | '/dashboard'
     | '/marketplace'
     | '/settings'
+    | '/studies'
     | '/auth/callback'
     | '/gallery/$slug'
     | '/oauth/consent'
@@ -341,6 +373,7 @@ export interface FileRouteTypes {
     | '/deal-copilot/$opportunityId'
     | '/deal-copilot/new'
     | '/projects/new'
+    | '/studies/$id'
     | '/trades/new'
     | '/trades/profile'
     | '/deal-copilot'
@@ -363,9 +396,11 @@ export interface FileRouteTypes {
     | '/terms'
     | '/trades'
     | '/_authed/admin'
+    | '/_authed/analyze'
     | '/_authed/dashboard'
     | '/_authed/marketplace'
     | '/_authed/settings'
+    | '/_authed/studies'
     | '/auth_/callback'
     | '/gallery/$slug'
     | '/oauth/consent'
@@ -373,6 +408,7 @@ export interface FileRouteTypes {
     | '/_authed/deal-copilot/$opportunityId'
     | '/_authed/deal-copilot/new'
     | '/_authed/projects/new'
+    | '/_authed/studies/$id'
     | '/_authed/trades_/new'
     | '/_authed/trades_/profile'
     | '/_authed/deal-copilot/'
@@ -486,6 +522,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authed/studies': {
+      id: '/_authed/studies'
+      path: '/studies'
+      fullPath: '/studies'
+      preLoaderRoute: typeof AuthedStudiesRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/settings': {
       id: '/_authed/settings'
       path: '/settings'
@@ -505,6 +548,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthedDashboardRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/analyze': {
+      id: '/_authed/analyze'
+      path: '/analyze'
+      fullPath: '/analyze'
+      preLoaderRoute: typeof AuthedAnalyzeRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/admin': {
@@ -534,6 +584,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/trades/new'
       preLoaderRoute: typeof AuthedTradesNewRouteImport
       parentRoute: typeof AuthedRoute
+    }
+    '/_authed/studies/$id': {
+      id: '/_authed/studies/$id'
+      path: '/$id'
+      fullPath: '/studies/$id'
+      preLoaderRoute: typeof AuthedStudiesIdRouteImport
+      parentRoute: typeof AuthedStudiesRoute
     }
     '/_authed/projects/new': {
       id: '/_authed/projects/new'
@@ -615,6 +672,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthedStudiesRouteChildren {
+  AuthedStudiesIdRoute: typeof AuthedStudiesIdRoute
+}
+
+const AuthedStudiesRouteChildren: AuthedStudiesRouteChildren = {
+  AuthedStudiesIdRoute: AuthedStudiesIdRoute,
+}
+
+const AuthedStudiesRouteWithChildren = AuthedStudiesRoute._addFileChildren(
+  AuthedStudiesRouteChildren,
+)
+
 interface AuthedDealCopilotOpportunityIdRouteChildren {
   AuthedDealCopilotOpportunityIdEditRoute: typeof AuthedDealCopilotOpportunityIdEditRoute
 }
@@ -632,9 +701,11 @@ const AuthedDealCopilotOpportunityIdRouteWithChildren =
 
 interface AuthedRouteChildren {
   AuthedAdminRoute: typeof AuthedAdminRoute
+  AuthedAnalyzeRoute: typeof AuthedAnalyzeRoute
   AuthedDashboardRoute: typeof AuthedDashboardRoute
   AuthedMarketplaceRoute: typeof AuthedMarketplaceRoute
   AuthedSettingsRoute: typeof AuthedSettingsRoute
+  AuthedStudiesRoute: typeof AuthedStudiesRouteWithChildren
   AuthedDealCopilotOpportunityIdRoute: typeof AuthedDealCopilotOpportunityIdRouteWithChildren
   AuthedDealCopilotNewRoute: typeof AuthedDealCopilotNewRoute
   AuthedProjectsNewRoute: typeof AuthedProjectsNewRoute
@@ -652,9 +723,11 @@ interface AuthedRouteChildren {
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedAdminRoute: AuthedAdminRoute,
+  AuthedAnalyzeRoute: AuthedAnalyzeRoute,
   AuthedDashboardRoute: AuthedDashboardRoute,
   AuthedMarketplaceRoute: AuthedMarketplaceRoute,
   AuthedSettingsRoute: AuthedSettingsRoute,
+  AuthedStudiesRoute: AuthedStudiesRouteWithChildren,
   AuthedDealCopilotOpportunityIdRoute:
     AuthedDealCopilotOpportunityIdRouteWithChildren,
   AuthedDealCopilotNewRoute: AuthedDealCopilotNewRoute,

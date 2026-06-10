@@ -9,6 +9,10 @@ import {
 import { makeGenerateFeasibilityReport, makeGenerateProjectReport } from "../../application";
 import { legacyPdfExporter, supabaseExportRepository } from "../../infrastructure";
 import { createDefaultFeasibilityService } from "@/features/feasibility";
+import { hasProAccess } from "@/features/payment";
+import { auth } from "@/lib/auth";
+import { trackEvent } from "@/lib/analytics";
+import { captureElementScreenshot } from "../../infrastructure";
 
 const generateProjectReport = makeGenerateProjectReport({
   exporter: legacyPdfExporter,
@@ -68,6 +72,31 @@ export function useExportFeasibilityReport() {
       saveToProject?: { userId: string };
     }
   >({
-    mutationFn: async (request) => generateFeasibilityReport(request),
+    mutationFn: async (request) => {
+      if (!hasProAccess(auth.getUser())) {
+        throw new Error("Feasibility export is a Pro feature. Please upgrade to continue.");
+      }
+
+      const screenshots = request.screenshots ?? (await collectAppendixScreenshots());
+      const result = await generateFeasibilityReport({
+        ...request,
+        screenshots,
+      });
+      trackEvent("report_exported", {
+        report_type: "feasibility-study",
+        study_id: request.studyId,
+      });
+      return result;
+    },
   });
+}
+
+async function collectAppendixScreenshots(): Promise<FeasibilityScreenshot[]> {
+  if (typeof document === "undefined") return [];
+
+  const floorplanElement = document.querySelector<HTMLElement>("[data-floorplan-stage] canvas");
+  if (!floorplanElement) return [];
+
+  const image = await captureElementScreenshot(floorplanElement);
+  return [{ title: "3D Floorplan Snapshot", dataUrl: image.dataUrl }];
 }

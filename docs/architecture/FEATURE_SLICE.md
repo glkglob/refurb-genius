@@ -14,8 +14,8 @@
 | `payment`   | Scaffolded   | —                                           | Slice scaffolded; checkout + webhook application stubs added  |
 | `gallery`     | Scaffolded   | —                                           | Slice scaffolded; owner/publishing application stubs added    |
 
-Remaining work: full UI route wiring for `feasibility` + payment-gated premium exports,
-plus cleanup of legacy `core/` and `lib/` call paths that now have slice equivalents.
+Remaining work: end-to-end browser automation coverage and cleanup of legacy `core/`
+and `lib/` call paths that now have slice equivalents.
 
 **Key rules** (details below):
 

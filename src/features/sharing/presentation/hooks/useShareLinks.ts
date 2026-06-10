@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { makeCreateShareLink, makeListShareLinks, makeRevokeShareLink } from "../../application";
 import type { CreateShareLinkInput, ShareLink } from "../../domain";
 import { supabaseShareLinkRepository } from "../../infrastructure";
+import { trackEvent } from "@/lib/analytics";
 
 const createShareLink = makeCreateShareLink({ repository: supabaseShareLinkRepository });
 const listShareLinks = makeListShareLinks({ repository: supabaseShareLinkRepository });
@@ -20,6 +21,7 @@ export function useCreateShareLink(studyId: string) {
   return useMutation<ShareLink, Error, Omit<CreateShareLinkInput, "studyId">>({
     mutationFn: (input) => createShareLink({ ...input, studyId }),
     onSuccess: () => {
+      trackEvent("study_shared", { study_id: studyId });
       void queryClient.invalidateQueries({ queryKey: ["share-links", studyId] });
     },
   });

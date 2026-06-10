@@ -156,7 +156,21 @@ function ProjectDetail() {
     <AppLayout
       title={project.name || project.address}
       subtitle={`${project.address} · ${project.postcode}`}
-      actions={<PitchDeckGenerator projectId={id} project={project} trigger="header" />}
+      actions={
+        <div className="flex flex-wrap gap-2">
+          <Button asChild>
+            <Link to="/analyze" search={{ projectId: id }}>
+              Analyze project
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/studies" search={{ projectId: id }}>
+              Saved studies
+            </Link>
+          </Button>
+          <PitchDeckGenerator projectId={id} project={project} trigger="header" />
+        </div>
+      }
     >
       {/* Property Summary */}
       <Card className="mb-6">

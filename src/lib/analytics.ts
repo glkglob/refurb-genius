@@ -20,7 +20,9 @@ export type AnalyticsEventName =
   | "ai_analysis_completed"
   | "estimate_viewed"
   | "trades_job_posted"
-  | "marketplace_listing_viewed";
+  | "marketplace_listing_viewed"
+  | "study_created"
+  | "study_shared";
 
 type FunnelState = {
   started: boolean;

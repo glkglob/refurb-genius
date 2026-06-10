@@ -30,6 +30,13 @@ Unauthenticated visitors are redirected to `/auth?redirect=<path>` and returned 
 | ------------ | ----------------------------------------------------------------- |
 | `/dashboard` | `src/routes/_authed/dashboard.tsx` (protected by \_authed layout) |
 
+### Unified Feasibility Workflow
+
+| Path       | File                                                            |
+| ---------- | --------------------------------------------------------------- |
+| `/analyze` | `src/routes/_authed/analyze.tsx` (single end-to-end study flow) |
+| `/studies` | `src/routes/_authed/studies.tsx` (study dashboard + lifecycle) |
+
 ### Projects
 
 | Path                     | File                                                                 |

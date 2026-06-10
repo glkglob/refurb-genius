@@ -3,3 +3,4 @@
  */
 export * from "./application/createCheckout";
 export * from "./application/verifyWebhook";
+export * from "./application/hasProAccess";
