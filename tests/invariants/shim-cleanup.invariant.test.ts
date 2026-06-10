@@ -3,6 +3,10 @@
  *
  * Deleted strangler shims must not be recreated. Importers use feature slices
  * and src/platform/ directly. See docs/architecture/FEATURE_SLICE.md.
+ *
+ * For broader architectural boundary enforcement (preventing direct legacy imports
+ * outside features/platform), see tests/invariants/no-legacy-imports.invariant.test.ts
+ * and docs/architecture/audit-2026-06-10.md.
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
