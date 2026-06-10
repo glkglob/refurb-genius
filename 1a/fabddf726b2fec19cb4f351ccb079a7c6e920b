@@ -1,0 +1,24 @@
+supabase/migrations/20260610120000_ensure_project_photos_bucket.sql
+  s_debe98bf7f7649::t_4caf04de5fa2c0 1-2,6-85
+  s_debe98bf7f7649::t_243ffcf8a676ef 3-5
+supabase/migrations/20260610122000_converge_public_gallery_projects.sql
+  s_debe98bf7f7649::t_cb80b084e2e2ef 1-46
+supabase/migrations/20260610121000_fix_storage_policy_function_grants.sql
+  s_debe98bf7f7649::t_645704b56fde72 1-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "1afabddf726b2fec19cb4f351ccb079a7c6e920b",
+  "prompts": {},
+  "sessions": {
+    "s_debe98bf7f7649": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "971f7469-b63e-4115-8f20-032c842078fb",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
