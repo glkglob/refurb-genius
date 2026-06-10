@@ -4,8 +4,11 @@ export {
   type ExportMetadata,
   type ProjectReportExportRequest,
   type PitchDeckExportRequest,
+  type FeasibilityStudyExportRequest,
   type ExportReportRequest,
   type ExportReportResult,
+  type FeasibilityScreenshot,
+  type FeasibilityReportStudy,
 } from "./types";
 export {
   isValidExportFilename,

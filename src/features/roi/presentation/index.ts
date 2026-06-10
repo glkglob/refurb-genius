@@ -1,0 +1,1 @@
+export { makeRoiService } from "../application";

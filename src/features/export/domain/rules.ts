@@ -5,7 +5,7 @@ export function isValidExportFilename(value: string): boolean {
 }
 
 export function isSupportedReportType(value: string): boolean {
-  return value === "project-report" || value === "pitch-deck";
+  return value === "project-report" || value === "pitch-deck" || value === "feasibility-study";
 }
 
 export function ensureValidExportRequest(request: ExportReportRequest): void {
@@ -19,6 +19,10 @@ export function ensureValidExportRequest(request: ExportReportRequest): void {
 
   if (request.type === "pitch-deck" && !isValidExportFilename(request.filenamePrefix)) {
     throw new Error(`Invalid pitch deck filename prefix: ${request.filenamePrefix}`);
+  }
+
+  if (request.type === "feasibility-study" && !isValidExportFilename(request.filename)) {
+    throw new Error(`Invalid feasibility report filename: ${request.filename}`);
   }
 }
 

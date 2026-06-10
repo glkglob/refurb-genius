@@ -26,6 +26,22 @@ export function makeGenerateProjectReport({ exporter, repository }: GenerateProj
       return exporter.exportProjectReport(command);
     }
 
+    if (command.type === "feasibility-study") {
+      const generated = await exporter.exportFeasibilityStudy(command);
+      if (!repository) return generated;
+
+      await repository.saveFeasibilityStudyExport({
+        studyId: command.studyId,
+        filename: generated.filename,
+        blob: generated.blob,
+        pageCount: generated.pageCount,
+        metadata: generated.metadata,
+        userId: command.saveToProject?.userId,
+      });
+
+      return generated;
+    }
+
     const generated = await exporter.exportPitchDeck(command);
     if (!command.saveToProject || !repository || !generated.blob || !generated.pageCount) {
       return generated;

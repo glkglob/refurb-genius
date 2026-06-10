@@ -54,6 +54,8 @@ export type { AiSummariesProvider, ProjectSummaryInput } from "./aiSummaries";
 
 export { generateEstimateServerFn } from "@/features/estimate";
 export type { GenerateEstimateInput, AIGeneratedRoom, AIGeneratedItem } from "@/features/estimate";
+export { createDefaultFeasibilityService } from "@/features/feasibility";
+export type { FeasibilityStudy } from "@/features/feasibility";
 
 export { analysisStore } from "@/features/ai-upload/infrastructure";
 export { ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/features/ai-upload";

@@ -100,6 +100,12 @@ test("public API boundary — required slice public barrels exist", () => {
     "src/features/ai-design/infrastructure/index.ts",
     "src/features/export/index.ts",
     "src/features/export/infrastructure/index.ts",
+    "src/features/roi/index.ts",
+    "src/features/roi/infrastructure/index.ts",
+    "src/features/feasibility/index.ts",
+    "src/features/feasibility/infrastructure/index.ts",
+    "src/features/sharing/index.ts",
+    "src/features/sharing/infrastructure/index.ts",
   ] as const;
 
   const missing = required

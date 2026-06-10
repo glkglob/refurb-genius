@@ -2,17 +2,20 @@
 
 ## Migration Status (June 10, 2026)
 
-| Slice       | Status       | Key commits                                 | Notes / Blockers                                              |
-| ----------- | ------------ | ------------------------------------------- | ------------------------------------------------------------- |
-| `estimate`  | Standardized | `354e556`, `3acf34e3`, `735787c`            | All layers in place; public API enforced                      |
-| `ai-upload` | Standardized | `354e556`, `3acf34e3`, `b2c5827`, `735787c` | Photo pipeline wired; domain enums pending `@repo/types` move |
-| `ai-design` | Standardized | `354e556`, `3acf34e3`, `735787c`            | Redesign catalog + orchestrator still in legacy `lib`/`core`  |
-| `export`    | Scaffolded   | —                                           | Slice scaffolded; initial PDF export pipeline added           |
+| Slice         | Status       | Key commits                                 | Notes / Blockers                                              |
+| ------------- | ------------ | ------------------------------------------- | ------------------------------------------------------------- |
+| `estimate`    | Standardized | `354e556`, `3acf34e3`, `735787c`            | All layers in place; public API enforced                      |
+| `ai-upload`   | Standardized | `354e556`, `3acf34e3`, `b2c5827`, `735787c` | Photo pipeline wired; domain enums pending `@repo/types` move |
+| `ai-design`   | Standardized | `354e556`, `3acf34e3`, `735787c`            | Redesign catalog + orchestrator still in legacy `lib`/`core`  |
+| `export`      | Scaffolded   | —                                           | Slice scaffolded; initial PDF export pipeline added           |
+| `roi`         | Standardized | —                                           | Deterministic ROI service + sensitivity analysis in slice     |
+| `feasibility` | Standardized | —                                           | End-to-end orchestrator + immutable Supabase snapshot repo    |
+| `sharing`   | Standardized | —                                           | Share links with role/expiry controls and RLS-backed ownership |
 | `payment`   | Scaffolded   | —                                           | Slice scaffolded; checkout + webhook application stubs added  |
-| `gallery`   | Scaffolded   | —                                           | Slice scaffolded; owner/publishing application stubs added    |
+| `gallery`     | Scaffolded   | —                                           | Slice scaffolded; owner/publishing application stubs added    |
 
-Remaining work: full layer isolation for `ai-*` slices (types-package cleanup,
-orchestrator extraction), then wiring `export`, `payment`, and `gallery` implementations.
+Remaining work: full UI route wiring for `feasibility` + payment-gated premium exports,
+plus cleanup of legacy `core/` and `lib/` call paths that now have slice equivalents.
 
 **Key rules** (details below):
 
@@ -105,6 +108,9 @@ src/
 │   ├── ai-upload/             # Photo upload + vision analysis      (★ migrated)
 │   ├── ai-design/             # Redesign concepts + scope analysis  (★ migrated)
 │   ├── export/                # PDF / CSV export                    (scaffolded)
+│   ├── roi/                   # Deterministic ROI + sensitivity      (★ migrated)
+│   ├── feasibility/           # End-to-end study orchestration       (★ migrated)
+│   ├── sharing/               # Share links + access controls        (★ migrated)
 │   ├── payment/               # Checkout + webhook flows            (scaffolded)
 │   ├── gallery/               # Public project gallery              (scaffolded)
 │   └── ...
@@ -208,6 +214,26 @@ presentation ──▶ application ──▶ domain
 `application/` defines **ports** (TypeScript interfaces) for everything that
 does IO. `infrastructure/` implements them. `presentation/` (or a serverFn)
 performs the wiring — i.e. plain constructor injection, no DI framework.
+
+## Feasibility orchestrator rules (new)
+
+The `feasibility` slice is the supervisor capability for the Property
+Feasibility Study flow:
+
+1. Property + photos intake
+2. Photo analysis (`ai-upload`)
+3. Scope analysis (`ai-design`)
+4. Deterministic estimate + ROI (`estimate`, `roi`)
+5. Snapshot persistence + share/export references
+
+Boundary constraints for orchestrators:
+
+- Orchestrators may import other slices only through `@/features/<slice>` or
+  `@/features/<slice>/infrastructure` barrels.
+- No cross-slice deep imports from `domain/`, `application/`, `presentation/`,
+  or `infrastructure/adapters|repositories`.
+- Feasibility persistence is immutable-by-default: state changes append snapshots
+  instead of mutating prior study records.
 
 ---
 

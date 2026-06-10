@@ -47,7 +47,7 @@ import {
   type EstimateCategory,
   type FinishLevel,
 } from "@/core/pricing";
-import { runRoiEngine, type RoiRiskLevel as RiskLevel } from "@/core/roi";
+import { runRoiEngine, type RoiRiskLevel as RiskLevel } from "@/features/roi";
 import { logger } from "@/lib/logger";
 import { saveProjectEstimate } from "@/features/estimate/infrastructure";
 import { trackEvent } from "@/lib/analytics";

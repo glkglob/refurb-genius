@@ -127,7 +127,6 @@ const BASELINE_ALLOWLIST = new Set<string>([
   "src/routes/_authed/projects.$id.estimate.tsx|@/core/projects",
   "src/routes/_authed/projects.$id.estimate.tsx|@/core/constants",
   "src/routes/_authed/projects.$id.estimate.tsx|@/core/pricing",
-  "src/routes/_authed/projects.$id.estimate.tsx|@/core/roi",
   "src/routes/_authed/projects.$id.estimate.tsx|@/lib/analytics",
   "src/routes/_authed/projects.$id.estimate.tsx|@/lib/logger",
   "src/routes/_authed/projects.$id.index.tsx|@/core/projects",

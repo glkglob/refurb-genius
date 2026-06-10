@@ -18,7 +18,7 @@ import {
   type EstimateCategory,
   type FinishLevel,
 } from "@/core/pricing";
-import { runRoiEngine, type RoiEngineResult } from "@/core/roi";
+import { runRoiEngine, type RoiEngineResult } from "@/features/roi";
 import { reportHeadline, executiveSummary, recommendedWorks } from "@/core/ai/aiSummaries";
 import { listRedesignConcepts } from "@/features/ai-design";
 import { DISCLAIMER } from "@/lib/mockData";

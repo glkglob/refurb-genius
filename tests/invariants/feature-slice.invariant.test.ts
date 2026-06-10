@@ -48,6 +48,27 @@ const SLICES = [
     infrastructureDir: join(ROOT, "src/features/export/infrastructure"),
     indexFile: join(ROOT, "src/features/export/index.ts"),
   },
+  {
+    name: "roi",
+    domainDir: join(ROOT, "src/features/roi/domain"),
+    applicationDir: join(ROOT, "src/features/roi/application"),
+    infrastructureDir: join(ROOT, "src/features/roi/infrastructure"),
+    indexFile: join(ROOT, "src/features/roi/index.ts"),
+  },
+  {
+    name: "feasibility",
+    domainDir: join(ROOT, "src/features/feasibility/domain"),
+    applicationDir: join(ROOT, "src/features/feasibility/application"),
+    infrastructureDir: join(ROOT, "src/features/feasibility/infrastructure"),
+    indexFile: join(ROOT, "src/features/feasibility/index.ts"),
+  },
+  {
+    name: "sharing",
+    domainDir: join(ROOT, "src/features/sharing/domain"),
+    applicationDir: join(ROOT, "src/features/sharing/application"),
+    infrastructureDir: join(ROOT, "src/features/sharing/infrastructure"),
+    indexFile: join(ROOT, "src/features/sharing/index.ts"),
+  },
 ] as const;
 
 function listTsFiles(dir: string): string[] {
@@ -144,4 +165,15 @@ test("estimate presentation serverFns validates input and uses dynamic adapter i
   assert.match(serverFns, /requireServerAuth/);
   assert.match(serverFns, /ai-estimate\.adapter\.server/);
   assert.match(serverFns, /await import\(/);
+});
+
+test("feasibility orchestration imports cross-slice features only via public APIs", () => {
+  const orchestrator = readTrimmed(
+    join(ROOT, "src/features/feasibility/infrastructure/adapters/capabilities.ts"),
+  );
+  assert.doesNotMatch(orchestrator, /@\/features\/[^"']+\/(domain|application|presentation)\//);
+  assert.doesNotMatch(
+    orchestrator,
+    /@\/features\/[^"']+\/infrastructure\/(adapters|repositories)\//,
+  );
 });

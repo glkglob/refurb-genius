@@ -475,6 +475,176 @@ export type Database = {
         };
         Relationships: [];
       };
+      feasibility_studies: {
+        Row: {
+          created_at: string;
+          current_snapshot_version: number;
+          id: string;
+          last_computed_at: string;
+          project_id: string;
+          status: string;
+          title: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          current_snapshot_version?: number;
+          id?: string;
+          last_computed_at?: string;
+          project_id: string;
+          status?: string;
+          title?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          current_snapshot_version?: number;
+          id?: string;
+          last_computed_at?: string;
+          project_id?: string;
+          status?: string;
+          title?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "feasibility_studies_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      share_links: {
+        Row: {
+          access_role: string;
+          created_at: string;
+          expires_at: string | null;
+          id: string;
+          owner_user_id: string;
+          revoked_at: string | null;
+          study_id: string;
+          token: string;
+          visibility: string;
+        };
+        Insert: {
+          access_role?: string;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          owner_user_id: string;
+          revoked_at?: string | null;
+          study_id: string;
+          token: string;
+          visibility?: string;
+        };
+        Update: {
+          access_role?: string;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          owner_user_id?: string;
+          revoked_at?: string | null;
+          study_id?: string;
+          token?: string;
+          visibility?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "share_links_study_id_fkey";
+            columns: ["study_id"];
+            isOneToOne: false;
+            referencedRelation: "feasibility_studies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      study_exports: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          error_message: string | null;
+          export_type: string;
+          id: string;
+          queued_at: string;
+          status: string;
+          storage_path: string | null;
+          study_id: string;
+          user_id: string;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          error_message?: string | null;
+          export_type: string;
+          id?: string;
+          queued_at?: string;
+          status?: string;
+          storage_path?: string | null;
+          study_id: string;
+          user_id: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          error_message?: string | null;
+          export_type?: string;
+          id?: string;
+          queued_at?: string;
+          status?: string;
+          storage_path?: string | null;
+          study_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "study_exports_study_id_fkey";
+            columns: ["study_id"];
+            isOneToOne: false;
+            referencedRelation: "feasibility_studies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      study_snapshots: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          id: string;
+          snapshot: Json;
+          study_id: string;
+          version: number;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          snapshot: Json;
+          study_id: string;
+          version: number;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          snapshot?: Json;
+          study_id?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "study_snapshots_study_id_fkey";
+            columns: ["study_id"];
+            isOneToOne: false;
+            referencedRelation: "feasibility_studies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       redesign_concepts: {
         Row: {
           created_at: string;

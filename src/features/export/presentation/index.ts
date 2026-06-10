@@ -1,1 +1,5 @@
-export { useExportProjectReport, useExportPitchDeck } from "./hooks/useExportReport";
+export {
+  useExportProjectReport,
+  useExportPitchDeck,
+  useExportFeasibilityReport,
+} from "./hooks/useExportReport";

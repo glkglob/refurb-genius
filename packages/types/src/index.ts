@@ -25,6 +25,15 @@ export type {
 export type { InvestmentMetrics, RiskLevel } from "./metrics";
 export type { Report } from "./report";
 export type { ReportMetadata } from "./report";
+export type {
+  RoiReport,
+  SensitivityScenario,
+  SensitivityScenarioAssumptions,
+  GdvBreakdown,
+  CashFlowModel,
+} from "./roi";
+export type { FeasibilityStudy, FeasibilityStatus, ExportReference } from "./feasibility";
+export type { ShareLink, ShareVisibility, ShareAccessRole } from "./sharing";
 
 // Deal types
 export type {
@@ -132,6 +141,7 @@ export type {
   ConditionLevel,
   RefurbLevel,
   AnalysisSource,
+  ScopeAnalysisInput,
   ScopeAnalysisResult,
   ScopeRoom,
   ScopeIssue,
