@@ -1,16 +1,5 @@
-import { useMutation } from "@tanstack/react-query";
-import { runScopeAnalysisServerFn } from "@/core/ai/serverFns";
-import type {
-  ScopeAnalysisInput,
-  ScopeAnalysisResult,
-} from "@/core/ai/server/openAiScopeAnalysis.server";
-
 /**
- * Mutation: analyse property photos and generate a professional
- * condition report with costed scope of works.
+ * Legacy shim — moved to the ai-design feature slice.
+ * TODO(feature-slice): delete once no importers remain.
  */
-export function useScopeAnalysis() {
-  return useMutation<ScopeAnalysisResult, Error, ScopeAnalysisInput>({
-    mutationFn: (input) => runScopeAnalysisServerFn({ data: input }),
-  });
-}
+export { useScopeAnalysis } from "@/features/ai-design/presentation/hooks/useScopeAnalysis";

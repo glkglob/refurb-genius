@@ -33,7 +33,7 @@ src/
 │   │   ├── presentation/      # Components, hooks, serverFns, route wiring
 │   │   └── index.ts           # Slice public API (domain + application + presentation)
 │   ├── ai-upload/             # Photo upload + vision analysis      (★ migrated)
-│   ├── ai-design/             # AI redesign concept generation      (planned)
+│   ├── ai-design/             # Redesign concepts + scope analysis  (★ migrated)
 │   ├── export/                # PDF / CSV export                    (planned)
 │   ├── gallery/               # Public project gallery              (planned)
 │   └── ...
@@ -265,6 +265,32 @@ cache, Supabase `room_analyses`, and a client-side provider:
   `runPhotoAnalysisServerFn` from the slice; scope/estimate steps stay legacy
   until `ai-design` / further slices migrate.
 
+### ai-design deviations (deliberate)
+
+These differ from estimate/ai-upload because redesign + scope share orchestration
+with other slices but own distinct AI outputs:
+
+- **Redesign static catalog** (`REDESIGN_CONCEPTS`, gradients) stays in
+  `src/lib/redesign` — slice `domain/types.ts` re-exports `RedesignStyle` /
+  `RedesignConcept` types only. Image-gen URLs are a future `ai-design` infra pass.
+- **Scope mock data** lives in `domain/scopeMockData.ts` — deterministic dev
+  fallback when `OPENAI_API_KEY` is absent (not `@repo/services`; base costs in
+  scope items are AI suggestions, normalized via `src/core/ai/normalizers.ts`).
+- **Cross-slice dependency on ai-upload** — redesign generation reads
+  `analysisStore` (room vision cache) from `@/features/ai-upload/infrastructure`
+  for prompt context. Slices may import each other's _public_ or _infrastructure_
+  barrels, never internal folders.
+- **Client redesign provider** in `presentation/redesign.provider.ts` (not
+  infrastructure) — must call `generateRedesignConceptsServerFn` without layer
+  violations.
+- **Scope persistence** (`scope_analyses` + child tables) in
+  `infrastructure/repositories/scope-analysis.repository.ts`; hooks in presentation.
+- **Estimate validation schemas** (`aiEstimateResponseSchema`) remain in
+  `src/core/ai/validation.ts` until estimate slice absorbs them.
+- **Orchestrator** (`runVisionThenScope`, `runScopeThenEstimate`) stays in
+  `src/core/ai/platform/orchestrator.ts` — imports slice serverFns; moves when a
+  dedicated `ai-orchestration` pass is justified.
+
 ---
 
 ## Worked example: `CreateEstimate`
@@ -355,6 +381,44 @@ Routes and components import from `@/features/ai-upload` (public API). Legacy
 
 ---
 
+## Worked example: `GenerateRedesign` + `RunScopeAnalysis` (ai-design)
+
+The `ai-design` slice ships the third complete worked example. Files:
+
+- [`domain/types.ts`](../../src/features/ai-design/domain/types.ts) — scope
+  entities + redesign type re-exports.
+- [`domain/scopeMockData.ts`](../../src/features/ai-design/domain/scopeMockData.ts)
+  — deterministic mock scope for dev / no-API-key fallback.
+- [`domain/validation.ts`](../../src/features/ai-design/domain/validation.ts) —
+  Zod schemas for scope + redesign text outputs.
+- [`application/ports.ts`](../../src/features/ai-design/application/ports.ts) —
+  `AiRedesignPort`, `AiScopePort`, `ScopeAnalysisRepository`.
+- [`infrastructure/adapters/ai-redesign.adapter.server.ts`](../../src/features/ai-design/infrastructure/adapters/ai-redesign.adapter.server.ts)
+  - [`ai-scope.adapter.server.ts`](../../src/features/ai-design/infrastructure/adapters/ai-scope.adapter.server.ts)
+    — server-only OpenAI adapters (via `@/platform/openai/server`).
+- [`presentation/serverFns.ts`](../../src/features/ai-design/presentation/serverFns.ts)
+  — `generateRedesignConceptsServerFn`, `runScopeAnalysisServerFn`.
+- [`presentation/redesign.provider.ts`](../../src/features/ai-design/presentation/redesign.provider.ts)
+  — client-side redesign wiring.
+
+Usage shape:
+
+```ts
+import { makeRunScopeAnalysis } from "@/features/ai-design";
+import { runScopeAnalysisServerFn } from "@/features/ai-design";
+
+// Hook (presentation):
+const scope = useScopeAnalysis();
+
+// Direct RPC:
+const result = await runScopeAnalysisServerFn({ data: scopeInput });
+```
+
+Legacy `src/core/ai/serverFns.ts` is now a thin re-export barrel for all three
+AI slices. Scope/redesign server modules are strangler shims.
+
+---
+
 ## Migration plan (incremental, slice by slice)
 
 Order (highest value first): **estimate → ai-upload → ai-design → export → gallery**.
@@ -386,7 +450,7 @@ What does **not** move:
 | ----------- | -------- | -------------- | ----------------- | -------------------- |
 | `estimate`  | ✅       | ✅             | ✅ (¹)            | —                    |
 | `ai-upload` | ✅       | ✅             | ✅ (²)            | —                    |
-| `ai-design` | —        | —              | —                 | —                    |
+| `ai-design` | ✅       | ✅             | ✅ (³)            | —                    |
 | `export`    | —        | —              | —                 | —                    |
 | `gallery`   | —        | —              | —                 | —                    |
 
@@ -398,7 +462,12 @@ through shims for scope/redesign/estimate cross-calls.
 routes import from `@/features/ai-upload`. Legacy shims:
 `mockAnalysis.ts`, `openAiVision.server.ts`, `photoAnalysis.ts`, `lib/analysis.ts`,
 `hooks/usePhotos.ts`. Orchestrator imports slice `runPhotoAnalysisServerFn`.
-Scope/redesign serverFns remain in `src/core/ai/serverFns.ts` until `ai-design`.
+
+³ Redesign + scope pipelines, persistence, hooks, and scope/analysis/estimate
+routes import from `@/features/ai-design`. Legacy shims:
+`openAiRedesign.server.ts`, `openAiScopeAnalysis.server.ts`, `redesignConcepts.ts`,
+`lib/scopeAnalysis.ts`, `hooks/useScopeAnalysis.ts`. `src/core/ai/serverFns.ts`
+is a thin re-export barrel for all three AI slices.
 
 ---
 

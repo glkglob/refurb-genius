@@ -39,7 +39,7 @@ import {
 } from "lucide-react";
 import { type UKRegion } from "@/core/projects";
 import { type ConditionLevel } from "@/features/ai-upload";
-import type { ScopeRoom } from "@/core/ai/server/openAiScopeAnalysis.server";
+import type { ScopeRoom } from "@/features/ai-design";
 import { useProject, useSetProjectStage, type ProjectWithProgress } from "@/hooks/useProjects";
 import {
   runPricingEngine,

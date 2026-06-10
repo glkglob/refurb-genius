@@ -1,18 +1,6 @@
-// AI surface: photo analysis, redesign concepts, summary wording, and
-// AI-generated refurbishment estimates. Mock today, real models tomorrow —
-// UI imports only from here.
-//
-// Boundary: AI generates language, visuals, and line-item estimate
-// suggestions (base costs). Financial calculations (regional adjustment,
-// ROI, profit) still live in `@/core/pricing` and `@/core/roi`.
-//
-// TODO(deal-copilot): listing parsing, deal narratives, and inbox triage
-// extend this module via new providers.
-//
-// TODO(refurb-iq): specification writer, scope-of-works prose, and snag
-// descriptions extend this module via new providers.
+// AI surface — legacy barrel re-exporting feature slices.
+// New code should import from @/features/ai-upload, @/features/ai-design, @/features/estimate.
 
-// Photo analysis — moved to the ai-upload feature slice (shim re-exports).
 export {
   photoAnalysisProvider,
   mockPhotoAnalysisProvider,
@@ -37,8 +25,22 @@ export {
   mockRedesignProvider,
   listRedesignConcepts,
   generateRedesignConcepts,
-} from "./redesignConcepts";
-export type { RedesignProvider, RedesignInput } from "./redesignConcepts";
+  generateRedesignConceptsServerFn,
+  runScopeAnalysisServerFn,
+  REDESIGN_CONCEPTS,
+  REDESIGN_STYLES,
+} from "@/features/ai-design";
+export type {
+  RedesignProvider,
+  RedesignInput,
+  RedesignConcept,
+  RedesignStyle,
+  ScopeAnalysisInput,
+  ScopeAnalysisResult,
+  ScopeRoom,
+  ScopeIssue,
+  ScopeRecommendedItem,
+} from "@/features/ai-design";
 
 export {
   aiSummariesProvider,
@@ -50,7 +52,6 @@ export {
 } from "./aiSummaries";
 export type { AiSummariesProvider, ProjectSummaryInput } from "./aiSummaries";
 
-// AI estimate generation — server function for the estimate builder.
 export { generateEstimateServerFn } from "./serverFns";
 export type {
   GenerateEstimateInput,
@@ -58,25 +59,9 @@ export type {
   AIGeneratedItem,
 } from "./server/openAiEstimate.server";
 
-// AI scope analysis — photo → condition + costed scope of works.
-export { runScopeAnalysisServerFn } from "./serverFns";
-export type {
-  ScopeAnalysisInput,
-  ScopeAnalysisResult,
-  ScopeRoom,
-  ScopeIssue,
-  ScopeRecommendedItem,
-} from "./server/openAiScopeAnalysis.server";
-
-// Legacy exports — pages currently import these directly. New code should
-// prefer `@/features/ai-upload`.
 export { analysisStore } from "@/features/ai-upload/infrastructure";
 export { ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/features/ai-upload/domain";
 
-export { REDESIGN_CONCEPTS, REDESIGN_STYLES } from "@/lib/redesign";
-export type { RedesignConcept, RedesignStyle } from "@/lib/redesign";
-
-// Phase 1: shared validation schemas + safe parsers for stronger structured outputs
 export {
   roomAnalysisSchema,
   scopeAnalysisResultSchema,
@@ -91,21 +76,14 @@ export {
   refurbLevelSchema,
 } from "./validation";
 
-// Phase 1 retry + classification (used by enhanced server paths)
 export { withRetry, classifyError } from "./platform/retry";
-
-// Basic cache (project-aware, used by providers in later phases)
 export { getCached, setCached, clearProjectCache, getCacheStats } from "./platform/cache";
-
-// Orchestrator stubs (Phase 1+; expand as chaining + normalizers land)
 export {
   runVisionThenScope,
   runScopeThenEstimate,
   runFullRefurbIntel,
 } from "./platform/orchestrator";
 export type { AIOrchestrationMode, FullIntelResult } from "./platform/orchestrator";
-
-// Estimate normalizer (Phase 2): AI suggestions → deterministic pricing authority
 export { normalizeAIEstimate } from "./normalizers";
 export type {
   EstimateNormalizationInput,

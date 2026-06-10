@@ -5,10 +5,11 @@
 // direct serverFns remain available for simple/fast paths.
 // All steps go through existing serverFns (auth + per-action rate limiting + fallbacks).
 
-import type { ScopeAnalysisInput, ScopeAnalysisResult } from "../server/openAiScopeAnalysis.server";
+import type { ScopeAnalysisInput, ScopeAnalysisResult } from "@/features/ai-design/domain";
 import type { GenerateEstimateInput, AIGeneratedRoom } from "../server/openAiEstimate.server";
 import { runPhotoAnalysisServerFn } from "@/features/ai-upload/presentation/serverFns";
-import { runScopeAnalysisServerFn, generateEstimateServerFn } from "../serverFns";
+import { runScopeAnalysisServerFn } from "@/features/ai-design/presentation/serverFns";
+import { generateEstimateServerFn } from "../serverFns";
 
 export type AIOrchestrationMode = "fast" | "balanced" | "high-quality";
 

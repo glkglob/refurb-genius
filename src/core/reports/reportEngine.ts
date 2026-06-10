@@ -20,7 +20,7 @@ import {
 } from "@/core/pricing";
 import { runRoiEngine, type RoiEngineResult } from "@/core/roi";
 import { reportHeadline, executiveSummary, recommendedWorks } from "@/core/ai/aiSummaries";
-import { listRedesignConcepts } from "@/core/ai/redesignConcepts";
+import { listRedesignConcepts } from "@/features/ai-design";
 import { DISCLAIMER } from "@/lib/mockData";
 
 const DEFAULT_CATEGORIES: EstimateCategory[] = [

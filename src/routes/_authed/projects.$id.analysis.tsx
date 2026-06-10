@@ -16,7 +16,11 @@ import {
   runPhotoAnalysis,
   type RoomAnalysis,
 } from "@/features/ai-upload";
-import { generateRedesignConcepts, type RedesignConcept, REDESIGN_CONCEPTS } from "@/core/ai";
+import {
+  generateRedesignConcepts,
+  type RedesignConcept,
+  REDESIGN_CONCEPTS,
+} from "@/features/ai-design";
 import { DISCLAIMER } from "@/core/reports";
 import { useProject, useSetProjectStage } from "@/hooks/useProjects";
 import { trackEvent } from "@/lib/analytics";

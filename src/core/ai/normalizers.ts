@@ -5,7 +5,7 @@
 // Always call before persisting or showing "final" numbers in reports.
 
 import type { AIGeneratedRoom, AIGeneratedItem } from "./server/openAiEstimate.server";
-import type { ScopeAnalysisResult } from "./server/openAiScopeAnalysis.server";
+import type { ScopeAnalysisResult } from "@/features/ai-design/domain";
 import {
   getRegionalMultiplier,
   calculateLineItem,

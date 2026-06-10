@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Palette, Sofa, Lightbulb, Layers } from "lucide-react";
-import type { RedesignConcept } from "@/core/ai";
+import type { RedesignConcept } from "@/features/ai-design";
 import { formatGBP } from "@/core/pricing";
 
 export type RedesignCardProps = {

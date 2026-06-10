@@ -21,15 +21,14 @@ import { addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 import { useProject } from "@/hooks/useProjects";
-import { usePhotos } from "@/hooks/usePhotos";
-import { useScopeAnalysis } from "@/hooks/useScopeAnalysis";
-import { useSavedScopeAnalysis, useSaveScopeAnalysis } from "@/hooks/useScopeAnalysisPersistence";
+import { usePhotos } from "@/features/ai-upload";
+import {
+  useScopeAnalysis,
+  useSavedScopeAnalysis,
+  useSaveScopeAnalysis,
+} from "@/features/ai-design";
 import { formatGBP, getRegionalMultiplier, calculateLineItem } from "@/core/pricing";
-import type {
-  ScopeAnalysisResult,
-  ScopeRoom,
-  ScopeIssue,
-} from "@/core/ai/server/openAiScopeAnalysis.server";
+import type { ScopeAnalysisResult, ScopeRoom, ScopeIssue } from "@/features/ai-design";
 
 export const Route = createFileRoute("/_authed/projects/$id/scope")({
   head: () => ({ meta: [{ title: "AI scope analysis — Refurb Genius" }] }),
