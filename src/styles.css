@@ -177,6 +177,46 @@
     background-color: color-mix(in oklch, var(--color-card) 80%, transparent);
     backdrop-filter: blur(10px);
   }
+
+  .confetti-burst {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .confetti-burst::before,
+  .confetti-burst::after {
+    content: "";
+    position: absolute;
+    inset: -40% -10% auto;
+    height: 180%;
+    background:
+      radial-gradient(circle at 10% 10%, oklch(0.8 0.13 165 / 0.8) 0 2px, transparent 2px),
+      radial-gradient(circle at 30% 22%, oklch(0.83 0.16 90 / 0.8) 0 2px, transparent 2px),
+      radial-gradient(circle at 50% 14%, oklch(0.74 0.2 30 / 0.8) 0 2px, transparent 2px),
+      radial-gradient(circle at 70% 22%, oklch(0.8 0.12 250 / 0.8) 0 2px, transparent 2px),
+      radial-gradient(circle at 88% 10%, oklch(0.78 0.16 171 / 0.8) 0 2px, transparent 2px);
+    animation: confetti-fall 4s linear infinite;
+    pointer-events: none;
+  }
+
+  .confetti-burst::after {
+    animation-delay: 0.6s;
+    opacity: 0.75;
+  }
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-20%);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(68%);
+    opacity: 0;
+  }
 }
 
 @media print {

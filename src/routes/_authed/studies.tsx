@@ -120,7 +120,7 @@ function StudiesRoute() {
         <EmptyState
           icon={FileText}
           title="No feasibility studies yet"
-          description="Start a unified feasibility analysis and your snapshots will appear here."
+          description="Start a guided analysis to create immutable snapshots, ROI summaries, and investor-ready exports."
           action={
             <Button asChild size="touch">
               <Link to="/analyze" search={projectId ? { projectId } : undefined}>
@@ -149,6 +149,7 @@ function StudiesRoute() {
                     <Link
                       to="/analyze"
                       search={{ projectId: snapshot.projectId, studyId: snapshot.studyId }}
+                      title="Resume this study in the guided analyze flow"
                     >
                       Resume
                     </Link>
@@ -156,6 +157,7 @@ function StudiesRoute() {
                   <Button
                     size="sm"
                     variant="outline"
+                    title="Create a copy of this study snapshot"
                     onClick={() => duplicateStudy.mutate(snapshot.studyId)}
                     disabled={duplicateStudy.isPending}
                   >
@@ -165,6 +167,7 @@ function StudiesRoute() {
                   <Button
                     size="sm"
                     variant="outline"
+                    title="Queue investor export generation"
                     onClick={() => queueExport.mutate(snapshot.studyId)}
                     disabled={queueExport.isPending}
                   >
@@ -174,6 +177,7 @@ function StudiesRoute() {
                   <Button
                     size="sm"
                     variant="outline"
+                    title="Generate secure share link"
                     onClick={() => shareStudy.mutate(snapshot.studyId)}
                     disabled={shareStudy.isPending}
                   >
@@ -183,6 +187,7 @@ function StudiesRoute() {
                   <Button
                     size="sm"
                     variant="outline"
+                    title="Archive this study snapshot"
                     onClick={() => archiveStudy.mutate(snapshot.studyId)}
                     disabled={archiveStudy.isPending}
                   >

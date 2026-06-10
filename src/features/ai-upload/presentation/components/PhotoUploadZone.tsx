@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Image, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
 export interface PhotoUploadZoneProps {
-  photos?: File[];
   onPhotosSelected: (files: File[]) => void;
+  photos?: File[];
   maxPhotos?: number;
   isLoading?: boolean;
 }
@@ -18,8 +18,8 @@ type PreviewPhoto = {
 };
 
 export function PhotoUploadZone({
-  photos,
   onPhotosSelected,
+  photos,
   maxPhotos = 20,
   isLoading = false,
 }: PhotoUploadZoneProps) {
@@ -44,75 +44,81 @@ export function PhotoUploadZone({
     };
   }, [previewPhotos]);
 
-  function setPhotos(next: File[]) {
-    if (!photos) {
-      setInternalPhotos(next);
-    }
-    onPhotosSelected(next);
-  }
+  const setPhotos = useCallback(
+    (next: File[]) => {
+      if (!photos) setInternalPhotos(next);
+      onPhotosSelected(next);
+    },
+    [onPhotosSelected, photos],
+  );
 
-  function processFiles(selectedFiles: FileList | null) {
-    if (!selectedFiles || selectedFiles.length === 0) return;
+  const processFiles = useCallback(
+    (fileList: FileList | null) => {
+      if (!fileList || fileList.length === 0) return;
 
-    const selected = Array.from(selectedFiles);
-    const validFiles = selected.filter((file) => file.type.startsWith("image/"));
-    if (validFiles.length !== selectedFiles.length) {
-      toast.error("Only image files can be uploaded.");
-    }
+      const files = Array.from(fileList).filter((file) => file.type.startsWith("image/"));
 
-    const nextPhotos = [...currentPhotos, ...validFiles];
-    if (nextPhotos.length > maxPhotos) {
-      toast.error(`Maximum ${maxPhotos} photos allowed.`);
-      return;
-    }
+      if (files.length === 0) {
+        toast.error("Please select image files only.");
+        return;
+      }
 
-    setPhotos(nextPhotos);
-  }
+      if (currentPhotos.length + files.length > maxPhotos) {
+        toast.error(`Maximum ${maxPhotos} photos allowed.`);
+        return;
+      }
 
-  function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
-    processFiles(event.target.files);
-    event.currentTarget.value = "";
-  }
+      const newPhotos = [...currentPhotos, ...files];
+      setPhotos(newPhotos);
 
-  function removePhoto(index: number) {
-    const next = currentPhotos.filter((_, currentIndex) => currentIndex !== index);
-    setPhotos(next);
-  }
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      if (cameraInputRef.current) cameraInputRef.current.value = "";
+    },
+    [currentPhotos, maxPhotos, setPhotos],
+  );
 
-  function clearAll() {
-    setPhotos([]);
-  }
+  const triggerLibrary = () => fileInputRef.current?.click();
+  const triggerCamera = () => cameraInputRef.current?.click();
+
+  const removePhoto = (index: number) => {
+    const updated = currentPhotos.filter((_, i) => i !== index);
+    setPhotos(updated);
+  };
 
   return (
     <Card className="border-border/60 bg-card/75">
-      <CardContent className="space-y-4 p-4 sm:p-5">
-        <div className="space-y-1">
-          <h3 className="text-sm font-semibold tracking-tight">Capture Property Photos</h3>
-          <p className="text-xs text-muted-foreground sm:text-sm">
-            Take photos directly with your camera or upload from your library.
-          </p>
+      <CardContent className="p-6 sm:p-8">
+        <div className="mb-6 text-center">
+          <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-teal-500/10">
+            <Camera className="h-10 w-10 text-teal-500" />
+          </div>
+          <h3 className="text-2xl font-semibold">Capture Property Photos</h3>
+          <p className="mt-1 text-slate-400">Take photos or choose from library</p>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Button
             type="button"
-            onClick={() => cameraInputRef.current?.click()}
+            onClick={triggerCamera}
+            size="lg"
             disabled={isLoading}
-            size="touch"
-            className="w-full justify-start"
+            className="h-14"
+            title="Open camera to take a photo"
           >
-            <Camera className="h-4 w-4" />
-            Take Photo (Camera)
+            <Camera className="mr-3 h-6 w-6" />
+            Take Photo
           </Button>
+
           <Button
             type="button"
+            onClick={triggerLibrary}
             variant="outline"
-            onClick={() => fileInputRef.current?.click()}
+            size="lg"
             disabled={isLoading}
-            size="touch"
-            className="w-full justify-start"
+            className="h-14"
+            title="Choose photos from your library"
           >
-            <Image className="h-4 w-4" />
+            <Upload className="mr-3 h-6 w-6" />
             Upload from Library
           </Button>
         </div>
@@ -124,7 +130,7 @@ export function PhotoUploadZone({
           capture="environment"
           multiple
           className="hidden"
-          onChange={handleFileSelect}
+          onChange={(event) => processFiles(event.target.files)}
         />
         <input
           ref={fileInputRef}
@@ -132,39 +138,38 @@ export function PhotoUploadZone({
           accept="image/*"
           multiple
           className="hidden"
-          onChange={handleFileSelect}
+          onChange={(event) => processFiles(event.target.files)}
         />
 
         {currentPhotos.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
-                Selected photos: {currentPhotos.length}/{maxPhotos}
-              </p>
-              <Button type="button" variant="ghost" size="sm" onClick={clearAll}>
-                Clear All
+          <div className="mt-8">
+            <div className="mb-4 flex justify-between">
+              <h4 className="font-medium">
+                Selected ({currentPhotos.length}/{maxPhotos})
+              </h4>
+              <Button variant="ghost" size="sm" onClick={() => setPhotos([])}>
+                Clear
               </Button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-              {previewPhotos.map((preview, index) => (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              {previewPhotos.map((photo, index) => (
                 <div
-                  key={preview.key}
-                  className="group relative overflow-hidden rounded-lg border border-border/60 bg-background/50"
+                  key={photo.key}
+                  className="relative aspect-square overflow-hidden rounded-xl border border-slate-700"
                 >
                   <img
-                    src={preview.url}
-                    alt={preview.file.name}
-                    className="h-28 w-full object-cover"
-                    loading="lazy"
+                    src={photo.url}
+                    alt={`Photo ${index + 1}`}
+                    className="h-full w-full object-cover"
                   />
                   <button
                     type="button"
                     onClick={() => removePhoto(index)}
-                    className="absolute right-1 top-1 rounded-full bg-black/65 p-1.5 text-white opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100"
-                    aria-label={`Remove ${preview.file.name}`}
+                    className="absolute -right-1 -top-1 rounded-full bg-red-600 p-1 text-white shadow hover:bg-red-700"
+                    aria-label={`Remove ${photo.file.name}`}
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-4 w-4" />
                   </button>
                 </div>
               ))}
@@ -172,9 +177,9 @@ export function PhotoUploadZone({
           </div>
         )}
 
-        <div className="flex items-start gap-2 rounded-md border border-border/60 bg-background/40 p-2 text-xs text-muted-foreground sm:text-sm">
-          <Upload className="mt-0.5 h-3.5 w-3.5 text-accent" />
-          Use good lighting and multiple room angles for best AI analysis quality.
+        <div className="mt-6 flex items-start gap-2 rounded-md border border-border/60 bg-background/40 p-2 text-xs text-muted-foreground sm:text-sm">
+          <Image className="mt-0.5 h-3.5 w-3.5 text-accent" />
+          Good lighting and multiple angles per room give the best AI results.
         </div>
       </CardContent>
     </Card>

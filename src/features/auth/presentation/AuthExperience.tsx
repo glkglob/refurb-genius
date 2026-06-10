@@ -31,6 +31,7 @@ export type AuthMode = "signin" | "signup" | "reset";
 
 const MAX_ATTEMPTS = 3;
 const LOCKOUT_MS = 60_000;
+const NEW_USER_ONBOARDING_KEY = "refurb-genius:onboarding:new-user";
 
 type AuthExperienceProps = {
   initialMode: AuthMode;
@@ -48,6 +49,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
+  const [onboardingGoal, setOnboardingGoal] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
@@ -189,7 +191,11 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
         email,
         password,
         options: {
-          data: { full_name: name, company_name: company || undefined },
+          data: {
+            full_name: name,
+            company_name: company || undefined,
+            onboarding_goal: onboardingGoal || undefined,
+          },
         },
       });
       if (signUpError) throw signUpError;
@@ -198,6 +204,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
       trackSignupCompleted("email", data.user?.id);
 
       if (data.session) {
+        window.localStorage.setItem(NEW_USER_ONBOARDING_KEY, "1");
         queryClient.setQueryData(AUTH_USER_QUERY_KEY, fromSupabaseUser(data.user));
         toast.success("Account created. Welcome to Refurb Genius.");
         await navigateAfterAuth();
@@ -472,6 +479,22 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                     placeholder="Northbridge Property Ltd"
                     autoComplete="organization"
                   />
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label htmlFor="onboarding-goal">What do you want to do first?</Label>
+                  <Input
+                    id="onboarding-goal"
+                    list="onboarding-goals"
+                    value={onboardingGoal}
+                    onChange={(event) => setOnboardingGoal(event.target.value)}
+                    placeholder="Run my first feasibility study"
+                  />
+                  <datalist id="onboarding-goals">
+                    <option value="Run my first feasibility study" />
+                    <option value="Estimate refurb costs on a project" />
+                    <option value="Model ROI for an investment deal" />
+                    <option value="Prepare an investor report export" />
+                  </datalist>
                 </div>
               </div>
             )}

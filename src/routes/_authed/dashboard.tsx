@@ -13,6 +13,7 @@ import { ProjectCard } from "@/components/ProjectCard";
 import { useEffect, useState } from "react";
 import {
   Briefcase,
+  CheckCircle2,
   FolderPlus,
   HardHat,
   Loader2,
@@ -42,6 +43,9 @@ export const Route = createFileRoute("/_authed/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Refurb Genius" }] }),
   component: Dashboard,
 });
+
+const NEW_USER_ONBOARDING_KEY = "refurb-genius:onboarding:new-user";
+const FIRST_STUDY_CELEBRATION_KEY = "refurb-genius:first-study-celebration";
 
 // ---------------------------------------------------------------------------
 // Data hook
@@ -154,10 +158,20 @@ function Dashboard() {
 }
 
 function DashboardContent() {
-  const { user: _user } = useAuth();
+  const { user } = useAuth();
   const [jobsState, applyUpdate] = useMyTradesJobs();
   const interestsState = useMyInterests();
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
+  const [showOnboardingCard, setShowOnboardingCard] = useState(false);
+  const [hasCompletedFirstStudy, setHasCompletedFirstStudy] = useState(false);
+
+  useEffect(() => {
+    if (window.localStorage.getItem(NEW_USER_ONBOARDING_KEY) === "1") {
+      setShowOnboardingCard(true);
+      window.localStorage.removeItem(NEW_USER_ONBOARDING_KEY);
+    }
+    setHasCompletedFirstStudy(window.localStorage.getItem(FIRST_STUDY_CELEBRATION_KEY) === "1");
+  }, []);
 
   const jobCount =
     jobsState.status === "ready" ? jobsState.jobs.filter((j) => j.status !== "closed").length : 0;
@@ -172,6 +186,45 @@ function DashboardContent() {
       title="Dashboard"
       subtitle="Manage refurbishment projects, trades jobs, and feasibility work from one premium workspace."
     >
+      {showOnboardingCard && (
+        <Card className="mb-6 border-accent/40 bg-accent/10">
+          <CardContent className="space-y-3 p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  Welcome{user?.fullName ? `, ${user.fullName.split(" ")[0]}` : ""} 👋
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Complete this checklist to get value from Refurb Genius in under 10 minutes.
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setShowOnboardingCard(false)}>
+                Dismiss
+              </Button>
+            </div>
+            <div className="grid gap-2 md:grid-cols-3">
+              <OnboardingCheckItem done={projectCount > 0} label="Create your first project" />
+              <OnboardingCheckItem
+                done={jobsState.status === "ready" && jobsState.jobs.length > 0}
+                label="Add a trades job or shortlist"
+              />
+              <OnboardingCheckItem
+                done={hasCompletedFirstStudy}
+                label="Run your first full feasibility study"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button asChild size="sm">
+                <Link to="/analyze">Start first study</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline">
+                <Link to="/projects/new">Create project</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Section 1 — Stats */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -303,6 +356,19 @@ function DashboardContent() {
         </Card>
       </section>
     </AppLayout>
+  );
+}
+
+function OnboardingCheckItem({ done, label }: { done: boolean; label: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-background/60 px-3 py-2 text-sm">
+      {done ? (
+        <CheckCircle2 className="h-4 w-4 text-success" />
+      ) : (
+        <span className="h-2 w-2 rounded-full bg-muted-foreground/60" />
+      )}
+      <span className={done ? "text-foreground" : "text-muted-foreground"}>{label}</span>
+    </div>
   );
 }
 

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import {
   AlertCircle,
@@ -40,6 +40,8 @@ const searchSchema = z.object({
   projectId: z.string().optional(),
   studyId: z.string().optional(),
 });
+
+const FIRST_STUDY_CELEBRATION_KEY = "refurb-genius:first-study-celebration";
 
 const STAGE_META: ReadonlyArray<{
   stage: FeasibilityStage;
@@ -99,6 +101,8 @@ export const Route = createFileRoute("/_authed/analyze")({
 
 function AnalyzeRoute() {
   const [selectedUploadFiles, setSelectedUploadFiles] = useState<File[]>([]);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const celebrationTimeoutRef = useRef<number | null>(null);
   const navigate = useNavigate();
   const search = Route.useSearch();
   const { data: projects = [], isLoading: loadingProjects } = useProjectCatalog();
@@ -125,11 +129,26 @@ function AnalyzeRoute() {
     0,
     Math.min(100, ((activeStageIndex + (hasCompletedStudy ? 1 : 0)) / STAGE_META.length) * 100),
   );
+  const currentStageLabel = STAGE_META[Math.max(activeStageIndex, 0)]?.label ?? "Upload";
+
+  useEffect(() => {
+    return () => {
+      if (celebrationTimeoutRef.current !== null) {
+        window.clearTimeout(celebrationTimeoutRef.current);
+      }
+    };
+  }, []);
 
   async function handleRunFullAnalysis() {
     try {
       const study = await orchestrator.runFullAnalysis();
       if (study) {
+        const hasCelebrated = window.localStorage.getItem(FIRST_STUDY_CELEBRATION_KEY) === "1";
+        if (!hasCelebrated && study.status === "complete") {
+          window.localStorage.setItem(FIRST_STUDY_CELEBRATION_KEY, "1");
+          setShowCelebration(true);
+          celebrationTimeoutRef.current = window.setTimeout(() => setShowCelebration(false), 4200);
+        }
         await navigate({
           to: "/analyze",
           search: { projectId: study.projectId, studyId: study.id },
@@ -177,18 +196,32 @@ function AnalyzeRoute() {
         </Button>
       }
     >
+      {showCelebration && (
+        <Card className="confetti-burst mb-6 border-success/40 bg-success/10">
+          <CardContent className="p-4">
+            <p className="text-sm font-medium text-foreground">
+              First feasibility study completed 🎉
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Your investor-ready workflow is now active. Continue iterating or export the report.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="mb-6 border-border/60 bg-card/70">
         <CardContent className="space-y-3 p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <p className="text-sm font-medium">Workflow progress</p>
-              <p className="text-xs text-muted-foreground">
-                {STAGE_META[Math.max(activeStageIndex, 0)]?.label ?? "Upload"} stage active
-              </p>
+              <p className="text-xs text-muted-foreground">{currentStageLabel} stage active</p>
             </div>
             <Badge variant="secondary">{Math.round(progressValue)}% complete</Badge>
           </div>
           <Progress value={progressValue} />
+          <p className="sr-only" role="status" aria-live="polite">
+            Analyze stage {currentStageLabel}. Progress {Math.round(progressValue)} percent.
+          </p>
         </CardContent>
       </Card>
 
@@ -319,6 +352,7 @@ function AnalyzeRoute() {
                   type="button"
                   variant="outline"
                   size="touch"
+                  title="Upload selected photos to project storage"
                   disabled={
                     !selectedProject || selectedUploadFiles.length === 0 || uploadPhotos.isPending
                   }
@@ -335,6 +369,29 @@ function AnalyzeRoute() {
               </div>
             </CardContent>
           </Card>
+
+          {!orchestrator.study && (
+            <Card className="border-border/60 bg-card/70">
+              <CardHeader>
+                <CardTitle className="text-base">First-study checklist</CardTitle>
+                <CardDescription>
+                  Complete these steps to generate your first investor-grade feasibility report.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <ChecklistItem done={Boolean(selectedProject)} label="Select a project context" />
+                <ChecklistItem done={photos.length > 0} label="Upload source room photos" />
+                <ChecklistItem
+                  done={orchestrator.stage !== FeasibilityStage.Upload}
+                  label="Start orchestration from analysis stage"
+                />
+                <ChecklistItem
+                  done={hasCompletedStudy}
+                  label="Complete and export feasibility study"
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {orchestrator.isRunning && (
             <Card className="border-accent/40 bg-accent/10">
@@ -470,5 +527,18 @@ function StagePanel({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function ChecklistItem({ done, label }: { done: boolean; label: string }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-background/50 px-3 py-2">
+      {done ? (
+        <CheckCircle2 className="h-4 w-4 text-success" />
+      ) : (
+        <Clock3 className="h-4 w-4 text-muted-foreground" />
+      )}
+      <span className={done ? "text-foreground" : "text-muted-foreground"}>{label}</span>
+    </div>
   );
 }
