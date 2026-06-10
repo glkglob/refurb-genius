@@ -1,0 +1,21 @@
+.claude/launch.json
+  s_debe98bf7f7649::t_40acc869a45a39 8
+.mcp.json
+  s_debe98bf7f7649::t_899b35704fed10 1-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "fe5307eaa8d9c2df7d882fdc11512e7491984ac7",
+  "prompts": {},
+  "sessions": {
+    "s_debe98bf7f7649": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "971f7469-b63e-4115-8f20-032c842078fb",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
