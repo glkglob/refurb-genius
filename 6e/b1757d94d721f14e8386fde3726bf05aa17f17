@@ -1,0 +1,27 @@
+src/components/Navbar.tsx
+  s_debe98bf7f7649::t_91931f7ac6fa37 101-118
+  s_debe98bf7f7649::t_112df9fc64521b 65-75
+  s_debe98bf7f7649::t_410e2f13871190 42-60
+  s_debe98bf7f7649::t_b4155691c5276e 6
+  s_debe98bf7f7649::t_804b9020ba1c3f 17
+src/components/ThemeProvider.tsx
+  s_debe98bf7f7649::t_af6357d685cc80 46-62
+src/routes/index.tsx
+  s_debe98bf7f7649::t_97cf91ea2fa578 150,156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "6eb1757d94d721f14e8386fde3726bf05aa17f17",
+  "prompts": {},
+  "sessions": {
+    "s_debe98bf7f7649": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "971f7469-b63e-4115-8f20-032c842078fb",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
