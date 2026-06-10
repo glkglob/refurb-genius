@@ -1,0 +1,29 @@
+src/features/ai-upload/presentation/components/PhotoUploadZone.tsx
+  s_d3d1fa6e29ac8b::t_d3f2e2be282c0e 1-165
+src/routes/_authed/analyze.tsx
+  s_d3d1fa6e29ac8b::t_2438fd33f7c4bb 21,230-231,234-236
+  s_d3d1fa6e29ac8b::t_31fe16d48b7e37 2,54,232-233,237-239,243-246,248-252
+  s_d3d1fa6e29ac8b::t_cf4e63098f9a48 240-242
+src/routes/_authed/dashboard.tsx
+  s_d3d1fa6e29ac8b::t_523f7fc5c017ba 271,275,278,282-284,286,290-292,294,298-300,666,670-672,677-679,682,684-685,688-690,694
+src/features/ai-upload/presentation/index.ts
+  s_d3d1fa6e29ac8b::t_ed51d7f2f0fb49 18-24
+src/features/ai-upload/presentation/components/index.ts
+  s_d3d1fa6e29ac8b::t_29b457bf21bc12 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "87454b8529c75cf08b17486b14ff535dad11bba6",
+  "prompts": {},
+  "sessions": {
+    "s_d3d1fa6e29ac8b": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "2b21ce67-969e-4171-b46a-1cfc001ce457",
+        "model": "unknown"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
