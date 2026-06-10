@@ -4,7 +4,7 @@
  */
 import "@tanstack/react-start/server-only";
 
-import type { RoomAnalysis } from "@/features/ai-upload/domain";
+import type { RoomAnalysis } from "@/features/ai-upload";
 import { REDESIGN_CONCEPTS, REDESIGN_STYLES } from "@/lib/redesign";
 import type { RedesignConcept, RedesignStyle } from "../../domain";
 import { safeParseRedesignText } from "../../domain/validation";

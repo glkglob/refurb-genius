@@ -2,7 +2,7 @@ import { logger } from "./logger";
 import { addDiagnosticBreadcrumb } from "./sentry";
 import type { ProjectWithProgress } from "./mappers";
 import type { Financials } from "./queries/projects";
-import type { PersistedRoomEstimate } from "@/features/estimate/infrastructure/repositories/estimate.repository";
+import type { PersistedRoomEstimate } from "@/features/estimate/infrastructure";
 import type { ProjectPhoto } from "./photos";
 import type { PhotoAnalysisResultRow } from "./queries/photo-analysis";
 import type { PitchDeckExportRow } from "./queries/pitch-decks"; // for type

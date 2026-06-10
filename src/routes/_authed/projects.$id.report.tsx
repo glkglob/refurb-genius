@@ -25,9 +25,13 @@ import { addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
 import { ReportSection as Section } from "@/components/ReportSection";
 import { EstimateTable } from "@/components/EstimateTable";
-import { getPhotoAnalysis, runPhotoAnalysis, type RoomAnalysis } from "@/features/ai-upload";
+import {
+  getPhotoAnalysis,
+  runPhotoAnalysis,
+  usePhotos,
+  type RoomAnalysis,
+} from "@/features/ai-upload";
 import { useProject, useSetProjectStage } from "@/hooks/useProjects";
-import { usePhotos } from "@/features/ai-upload/presentation/hooks/usePhotos";
 import { formatGBP } from "@/core/pricing";
 import { buildReport } from "@/core/reports";
 import {

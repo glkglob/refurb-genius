@@ -28,9 +28,12 @@ import type { ScopeRoom } from "@/features/ai-design";
 import { useGenerateEstimate, useSaveAIEstimate } from "@/features/estimate";
 import type { UKRegion } from "@/core/projects";
 import { UK_REGIONS } from "@/core/constants";
-import { normalizeAIEstimate, type NormalizedEstimateResult } from "@/core/ai";
+import {
+  normalizeAIEstimate,
+  runScopeThenEstimate,
+  type NormalizedEstimateResult,
+} from "@/core/ai";
 import type { ConditionLevel } from "@/core/ai";
-import { runScopeThenEstimate } from "@/core/ai/platform/orchestrator";
 
 // ──────────────────────────────────────────────────────────────
 // Types

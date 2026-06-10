@@ -6,7 +6,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { REDESIGN_STYLES } from "@/lib/redesign";
 import { checkRateLimit, rateLimitKeyForUser } from "@/lib/rate-limit";
-import { roomAnalysisOutputSchema } from "@/features/ai-upload/presentation/serverFns";
+import { roomAnalysisOutputSchema } from "@/features/ai-upload";
 
 async function requireServerAuth(): Promise<{ id: string }> {
   const { getCookies } = await import("@tanstack/react-start/server");

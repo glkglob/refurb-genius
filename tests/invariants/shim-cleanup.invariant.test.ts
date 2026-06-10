@@ -74,6 +74,14 @@ const FORBIDDEN_IMPORT_PATTERNS: Array<{ name: string; pattern: RegExp }> = [
     name: "openAiRedesign.server shim",
     pattern: /\bfrom ["']@\/core\/ai\/server\/openAiRedesign\.server/,
   },
+  {
+    name: "@/core/ai/platform/orchestrator deep import",
+    pattern: /\bfrom ["']@\/core\/ai\/platform\/orchestrator/,
+  },
+  {
+    name: "@/integrations/supabase/client deprecated shim",
+    pattern: /\bfrom ["']@\/integrations\/supabase\/client/,
+  },
 ];
 
 function listTsFiles(dir: string): string[] {
@@ -128,4 +136,32 @@ test("shim cleanup — no TODO(feature-slice) markers remain in src", () => {
     }
   }
   assert.deepEqual(hits, [], `Stale TODO(feature-slice) markers:\n${hits.join("\n")}`);
+});
+
+test("shim cleanup — legacy compatibility shim imports stay constrained", () => {
+  const libEstimateImporters: string[] = [];
+  const integrationsClientImporters: string[] = [];
+
+  for (const file of listTsFiles(SRC)) {
+    const relPath = relative(ROOT, file);
+    const content = readFileSync(file, "utf8");
+    if (/\bfrom ["']@\/lib\/estimate["']/.test(content)) {
+      libEstimateImporters.push(relPath);
+    }
+    if (/\bfrom ["']@\/integrations\/supabase\/client["']/.test(content)) {
+      integrationsClientImporters.push(relPath);
+    }
+  }
+
+  assert.deepEqual(
+    libEstimateImporters,
+    ["src/core/pricing/index.ts"],
+    `@/lib/estimate should only be imported by core pricing compatibility barrel:\n${libEstimateImporters.join("\n")}`,
+  );
+
+  assert.deepEqual(
+    integrationsClientImporters,
+    [],
+    `@/integrations/supabase/client is deprecated and must not be imported:\n${integrationsClientImporters.join("\n")}`,
+  );
 });

@@ -2,24 +2,13 @@
 
 ## Migration Status (June 10, 2026)
 
-<<<<<<< /Users/dev/workspace/refurb-genius/docs/architecture/FEATURE_SLICE.md
-| Slice     | Status       | Last Commit        | Notes / Blockers                            |
-| --------- | ------------ | ------------------ | ------------------------------------------- |
-| estimate  | Standardized | 354e556 / 3acf34e3 | Layers mostly in place; public API enforced |
-| ai-upload | Standardized | 354e556 / 3acf34e3 | Photo pipeline wiring complete              |
-| ai-design | Standardized | 354e556 / 3acf34e3 | Needs domain/application separation polish  |
-| export    | Scaffolded   | -                  | In progress (Phase 5)                       |
-| ...       | ...          | ...                | ...                                         |
-=======
-## Migration Status (June 10, 2026)
-
-| Slice       | Status       | Key commits            | Notes / Blockers                                              |
-| ----------- | ------------ | ---------------------- | ------------------------------------------------------------- |
-| `estimate`  | Standardized | `735787c` (shims gone) | All layers in place; public API enforced                      |
-| `ai-upload` | Standardized | `b2c5827`, `735787c`   | Photo pipeline wired; domain enums pending `@repo/types` move |
-| `ai-design` | Standardized | `354e556`, `735787c`   | Redesign catalog + orchestrator still in legacy `lib`/`core`  |
-| `export`    | Planned      | —                      | Not started — no slice directory yet                          |
-| `gallery`   | Planned      | —                      | Not started                                                   |
+| Slice       | Status       | Key commits                                 | Notes / Blockers                                              |
+| ----------- | ------------ | ------------------------------------------- | ------------------------------------------------------------- |
+| `estimate`  | Standardized | `354e556`, `3acf34e3`, `735787c`            | All layers in place; public API enforced                      |
+| `ai-upload` | Standardized | `354e556`, `3acf34e3`, `b2c5827`, `735787c` | Photo pipeline wired; domain enums pending `@repo/types` move |
+| `ai-design` | Standardized | `354e556`, `3acf34e3`, `735787c`            | Redesign catalog + orchestrator still in legacy `lib`/`core`  |
+| `export`    | Scaffolded   | —                                           | Slice scaffolded; initial PDF export pipeline added           |
+| `gallery`   | Planned      | —                                           | Not started                                                   |
 
 Remaining work: full layer isolation for `ai-*` slices (types-package cleanup,
 orchestrator extraction), then `export` and `gallery` slices.
@@ -33,7 +22,8 @@ orchestrator extraction), then `export` and `gallery` slices.
 
 ### Known deep-import debt (June 10, 2026)
 
-Grep-confirmed violations of the public-API rule, to fix in a follow-up pass:
+Grep-confirmed violations identified during the June 10 audit and remediated in
+this pass:
 
 - `src/routes/_authed/projects.$id.report.tsx` imports
   `@/features/ai-upload/presentation/hooks/usePhotos` (should come from the
@@ -49,22 +39,56 @@ Grep-confirmed violations of the public-API rule, to fix in a follow-up pass:
   by the planned `@repo/types` canonical-union cleanup.
 
 ---
->>>>>>> /Users/dev/.windsurf/worktrees/refurb-genius/refurb-genius-3cb6ef38/docs/architecture/FEATURE_SLICE.md
 
-Remaining work: Full layer isolation for ai-\* slices, Export + Payment features.
+## Legacy Boundary Audit (2026-06-10)
 
-**Key Rules**:
+Feature-Slice Architecture violations were identified via grep-based audit
+across application entry surfaces.
 
-<<<<<<< /Users/dev/workspace/refurb-genius/docs/architecture/FEATURE_SLICE.md
-- Public API via `features/<slice>/index.ts` only.
-- Platform for vendors.
-- Invariants enforce boundaries.
-=======
+### High Priority
+
+- `src/routes/**`
+- `src/hooks/**`
+- `src/serverFns/**`
+
+### Medium Priority
+
+- `src/components/**`
+- `src/services/**`
+
+### Transitional Exceptions
+
+- `src/features/**`
+- `src/platform/**`
+- `src/core/**` (legacy internals only)
+
+## Public API Verification Audit (2026-06-10)
+
+Verified entry points:
+
+1. `src/core/ai/index.ts`
+2. `src/lib/estimate.ts`
+3. `src/integrations/supabase/client.ts`
+
+Findings:
+
+- `src/core/ai/index.ts` importers are components (`src/components/**`) and
+  consume the public barrel (`@/core/ai`) — approved boundary usage.
+- `src/lib/estimate.ts` is consumed only by `src/core/pricing/index.ts`
+  (legacy compatibility re-export) — transitional boundary usage.
+- `src/integrations/supabase/client.ts` has no importers — no active boundary
+  usage.
+
+Remediation checklist:
+
+- [ ] Migrate `src/core/pricing/index.ts` compatibility re-exports off
+      `@/lib/estimate`.
+- [ ] Remove `src/integrations/supabase/client.ts` after legacy import risk is
+      eliminated.
+
 Feature-Slice Architecture organises code by **business capability** (vertical
 slice), with **Clean Architecture** layering _inside_ each slice and a
 **platform boundary** that isolates vendor SDKs.
-
----
 
 ## Structure
 
@@ -121,20 +145,47 @@ src/features/* (slices)        src/routes (presentation shell)
 | `infrastructure/` | own `application/` ports + `domain/`, `src/platform/*`, shared kernel             | `presentation/`, other slices' internals                   |
 | `presentation/`   | own `application/` + `domain/` + `infrastructure/` (wiring only), React, TanStack | other slices' `infrastructure/`                            |
 
-Cross-slice rules:
+### Cross-Slice Import Rules
 
-1. **Slices import each other only via the slice's `index.ts` public API** —
-   never reach into another slice's internal folders.
-2. **Vendor SDKs are only touched in `src/platform/` and slice
+Allowed:
+
+- `features/<slice>/index.ts`
+- `features/<slice>/infrastructure/index.ts` (wiring and composition only)
+
+Forbidden:
+
+- `features/<slice>/domain/*`
+- `features/<slice>/application/*`
+- `features/<slice>/presentation/*`
+- `features/<slice>/infrastructure/repositories/*`
+- `features/<slice>/infrastructure/adapters/*`
+
+No deep imports across slices.
+
+Examples:
+
+```ts
+// ✅ allowed
+import { usePhotos } from "@/features/ai-upload";
+import { getLatestProjectEstimate } from "@/features/estimate/infrastructure";
+
+// ❌ forbidden
+import { usePhotos } from "@/features/ai-upload/presentation/hooks/usePhotos";
+import { PersistedRoomEstimate } from "@/features/estimate/infrastructure/repositories/estimate.repository";
+```
+
+Additional architecture rules:
+
+1. **Vendor SDKs are only touched in `src/platform/` and slice
    `infrastructure/`** — `import OpenAI from "openai"` or
    `createClient` from `@supabase/supabase-js` anywhere else is a violation.
-3. **Deterministic engines stay in `@repo/services`.** Slices treat
+2. **Deterministic engines stay in `@repo/services`.** Slices treat
    `runPricingEngine`, `analyzeDeal`, ROI math, etc. as shared-kernel domain
    services. The existing pricing/ROI invariant tests continue to pin them.
-4. **Server-only code keeps the existing conventions**: `*.server.ts` naming
+3. **Server-only code keeps the existing conventions**: `*.server.ts` naming
    and/or dynamic `import()` inside `createServerFn` handlers. A slice's
    `presentation/` may export serverFns (they are the RPC surface).
-5. **Routes stay in `src/routes/`** (TanStack Start requires it). Route files
+4. **Routes stay in `src/routes/`** (TanStack Start requires it). Route files
    should be thin: parse params/search, render the slice's presentation
    component. URLs never change (see `routes.md`).
 
@@ -518,7 +569,7 @@ What does **not** move:
 | `estimate`  | ✅       | ✅             | ✅                | ✅ (June 2026)       |
 | `ai-upload` | ✅       | ✅             | ✅                | ✅ (June 2026)       |
 | `ai-design` | ✅       | ✅             | ✅                | ✅ (June 2026)       |
-| `export`    | —        | —              | —                 | —                    |
+| `export`    | ✅       | ◐              | —                 | —                    |
 | `gallery`   | —        | —              | —                 | —                    |
 
 See the **Migration Status** table at the top of this document for per-slice
@@ -548,4 +599,3 @@ orchestrator) — not a strangler shim.
 - [ ] serverFns validate input with Zod `.inputValidator()` and call `requireServerAuth()` first.
 - [ ] Slice exposes one `index.ts`; no deep imports from other slices.
 - [ ] `pnpm typecheck && pnpm lint && pnpm test:invariants` pass before commit.
->>>>>>> /Users/dev/.windsurf/worktrees/refurb-genius/refurb-genius-3cb6ef38/docs/architecture/FEATURE_SLICE.md

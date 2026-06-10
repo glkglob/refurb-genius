@@ -52,15 +52,11 @@ export {
 } from "./aiSummaries";
 export type { AiSummariesProvider, ProjectSummaryInput } from "./aiSummaries";
 
-export { generateEstimateServerFn } from "@/features/estimate/presentation/serverFns";
-export type {
-  GenerateEstimateInput,
-  AIGeneratedRoom,
-  AIGeneratedItem,
-} from "@/features/estimate/domain";
+export { generateEstimateServerFn } from "@/features/estimate";
+export type { GenerateEstimateInput, AIGeneratedRoom, AIGeneratedItem } from "@/features/estimate";
 
 export { analysisStore } from "@/features/ai-upload/infrastructure";
-export { ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/features/ai-upload/domain";
+export { ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/features/ai-upload";
 
 export {
   roomAnalysisSchema,

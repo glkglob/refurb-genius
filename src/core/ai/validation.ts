@@ -3,10 +3,10 @@
 // Estimate schemas remain here until the estimate slice absorbs them.
 
 import { z } from "zod";
-import { scopeCategorySchema } from "@/features/ai-design/domain/validation";
+import { scopeCategorySchema } from "@/features/ai-design";
 
 // Vision schemas — canonical source is the ai-upload slice domain.
-export { ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/features/ai-upload/domain";
+export { ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/features/ai-upload";
 export {
   roomTypeSchema,
   conditionLevelSchema,
@@ -15,7 +15,7 @@ export {
   roomAnalysisSchema,
   safeParseRoomAnalysis,
   type ValidatedRoomAnalysisInput,
-} from "@/features/ai-upload/domain/validation";
+} from "@/features/ai-upload";
 
 // Scope + redesign schemas — canonical source is the ai-design slice domain.
 export {
@@ -31,7 +31,7 @@ export {
   safeParseRedesignText,
   type ValidatedScopeAnalysisResult,
   type ValidatedRedesignConceptText,
-} from "@/features/ai-design/domain/validation";
+} from "@/features/ai-design";
 
 // Estimate (room-based AI suggestions)
 export const aiGeneratedItemSchema = z.object({

@@ -5,7 +5,7 @@
  * and AI quality regressions over time.
  */
 
-import type { RoomAnalysis, RoomType, ConditionLevel } from "@/features/ai-upload/domain";
+import type { RoomAnalysis, RoomType, ConditionLevel } from "@/features/ai-upload";
 import type { RedesignConcept, RedesignStyle } from "@/lib/redesign";
 
 // Vision provider fixtures - various room types and conditions
