@@ -4,7 +4,7 @@ import { Navigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/useAuth";
 
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   // IMPORTANT: Defer all auth checks/redirects until after the component has
   // mounted on the client. On server (SSR) and on the very first client render
@@ -22,7 +22,10 @@ export function RequireAuth({ children }: { children: ReactNode }) {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
+  // Also wait for the auth query itself: on a fresh page load the query is
+  // still in flight after mount, so redirecting on `!isAuthenticated` alone
+  // would bounce signed-in users to /auth before the session check resolves.
+  if (!mounted || isLoading) {
     return <>{children}</>;
   }
   if (!isAuthenticated) {

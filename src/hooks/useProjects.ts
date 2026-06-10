@@ -32,6 +32,11 @@ export function useProject(id: string) {
   const { data: projects, ...rest } = useProjects();
   return {
     ...rest,
+    // `isLoading` is false while the query is *disabled* (auth still
+    // hydrating), which made pages treat "not loaded yet" as "not found"
+    // and bounce to /dashboard. `isPending` stays true until we actually
+    // have data, so report that instead.
+    isLoading: rest.isPending,
     data: projects?.find((p) => p.id === id),
   };
 }

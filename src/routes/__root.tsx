@@ -167,13 +167,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {posthogApiKey ? (
-          <PostHogProvider client={posthog}>
-            {children}
-          </PostHogProvider>
-        ) : (
-          children
-        )}
+        {posthogApiKey ? <PostHogProvider client={posthog}>{children}</PostHogProvider> : children}
         <Scripts />
       </body>
     </html>

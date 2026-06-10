@@ -183,7 +183,7 @@ export async function createSupabaseServerClient() {
  *   }
  */
 export const getCurrentUserServerFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => emptyInputSchema.parse(input))
+  .inputValidator((input: unknown) => emptyInputSchema.parse(input ?? {}))
   .handler(async () => {
     const supabase = await createSupabaseServerClient();
 
