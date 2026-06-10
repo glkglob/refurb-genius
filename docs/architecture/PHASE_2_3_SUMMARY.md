@@ -210,7 +210,7 @@ import type { AuthUser } from "@/lib/auth";  // FORBIDDEN
 
 ## Notes
 
-- The invariant test is **intentionally failing** to highlight current violations
+- The invariant test currently records enforcement as a `test.todo(...)` while the documented violations are being remediated
 - This is a **strangler fig pattern** - gradually migrate while preventing new violations
 - The test will pass once all violations are remediated
 - TypeScript lint errors in worktree mode are expected (dependencies not installed)
