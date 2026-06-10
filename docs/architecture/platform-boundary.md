@@ -101,16 +101,16 @@ AI adapters in `features/*/infrastructure/adapters/*.server.ts` import OpenAI vi
 
 ## Approved import layers
 
-| Layer                                 | May import vendor SDK? | How                                        |
-| ------------------------------------- | ---------------------- | ------------------------------------------ |
-| `src/platform/**`                     | ✅ Yes                 | Direct SDK imports live here only          |
-| `packages/supabase/**`                | ✅ Yes                 | Monorepo Supabase factory package          |
-| `src/features/*/infrastructure`       | ⚠️ Via platform        | `@/platform/<vendor>/*` subpaths           |
-| `src/features/*/domain`               | ❌ No                  | Pure logic only                            |
-| `src/features/*/application`          | ❌ No                  | Ports/interfaces only                      |
-| `src/lib/**`, `src/core/**`           | ❌ No                  | Import via `@/platform/*` or slice APIs    |
-| `src/routes/**`                       | ⚠️ Via platform        | Presentation wiring only                   |
-| `scripts/**`, `supabase/functions/**` | ✅ Yes                 | Standalone runtimes (exempt)               |
+| Layer                                 | May import vendor SDK? | How                                     |
+| ------------------------------------- | ---------------------- | --------------------------------------- |
+| `src/platform/**`                     | ✅ Yes                 | Direct SDK imports live here only       |
+| `packages/supabase/**`                | ✅ Yes                 | Monorepo Supabase factory package       |
+| `src/features/*/infrastructure`       | ⚠️ Via platform        | `@/platform/<vendor>/*` subpaths        |
+| `src/features/*/domain`               | ❌ No                  | Pure logic only                         |
+| `src/features/*/application`          | ❌ No                  | Ports/interfaces only                   |
+| `src/lib/**`, `src/core/**`           | ❌ No                  | Import via `@/platform/*` or slice APIs |
+| `src/routes/**`                       | ⚠️ Via platform        | Presentation wiring only                |
+| `scripts/**`, `supabase/functions/**` | ✅ Yes                 | Standalone runtimes (exempt)            |
 
 ---
 

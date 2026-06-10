@@ -5,6 +5,7 @@
 ### ✅ Phase 2: Legacy Dependency Audit
 
 **Audit Commands Executed:**
+
 ```bash
 # Find all imports of legacy modules
 grep -r --include="*.ts" --include="*.tsx" 'from ["'\'']@/(core|lib|services|integrations)' src/
@@ -14,6 +15,7 @@ grep -r --include="*.ts" --include="*.tsx" 'core/ai/index\|lib/estimate\|integra
 ```
 
 **Violations Documented:**
+
 - Created comprehensive audit report: `docs/architecture/audit-2026-06-10.md`
 - Categorized violations by priority:
   - **High Priority**: Routes (20+ files) and Server Functions (3 files)
@@ -22,6 +24,7 @@ grep -r --include="*.ts" --include="*.tsx" 'core/ai/index\|lib/estimate\|integra
   - **Allowed**: Features and Platform directories (no action needed)
 
 **Key Findings:**
+
 - Routes layer has extensive legacy imports (`@/lib/utils`, `@/lib/analytics`, `@/core/*`)
 - UI components depend on `@/lib/utils` for the `cn()` utility
 - Server functions import from `@/lib/auth`, `@/lib/mappers`
@@ -30,11 +33,13 @@ grep -r --include="*.ts" --include="*.tsx" 'core/ai/index\|lib/estimate\|integra
 ### ✅ Phase 3: New Architectural Invariant
 
 **Created Test:**
+
 - `tests/invariants/no-legacy-imports.invariant.test.ts`
 - Documents the architectural boundary in the `node:test` invariant suite
 - Defers automated enforcement until the documented migration baseline is remediated
 
 **Test Features:**
+
 - ✅ Records the intended boundary rule in the invariant suite
 - ✅ Documents forbidden import patterns: `@/core/*`, `@/lib/*`, `@/services/*`, `@/integrations/*`
 - ✅ Documents approved transitional directories
@@ -42,6 +47,7 @@ grep -r --include="*.ts" --include="*.tsx" 'core/ai/index\|lib/estimate\|integra
 - ✅ Self-documents the architectural rule during the migration
 
 **Updated Configurations:**
+
 - ✅ Updated `vitest.config.ts` to include invariant tests
 - ✅ Updated `tests/invariants/shim-cleanup.invariant.test.ts` with cross-reference
 - ✅ Test scripts already configured in `package.json`:
@@ -68,6 +74,7 @@ pnpm test:invariants
 **Current State**: Enforcement is deferred with `test.todo(...)` because the documented violations still exist.
 
 **Future Enforcement Output Example**:
+
 ```
 ❌ Legacy imports detected outside approved boundaries!
 
@@ -115,7 +122,9 @@ The enforcement check will only fail CI after the migration baseline is remediat
 ## Next Steps
 
 ### Immediate (Week 1-2)
+
 1. **Create Platform Utilities**
+
    ```
    src/platform/utils/cn.ts          # Move from @/lib/utils
    src/platform/logger/index.ts      # Move from @/lib/logger
@@ -128,6 +137,7 @@ The enforcement check will only fail CI after the migration baseline is remediat
    - This will eliminate ~60% of violations
 
 ### Short-term (Week 3-4)
+
 3. **Update UI Components**
    - Change `src/components/ui/*` to use `@/platform/utils/cn`
    - Eliminates ~10% of violations
@@ -137,11 +147,13 @@ The enforcement check will only fail CI after the migration baseline is remediat
    - Move to appropriate feature directories
 
 ### Medium-term (Month 2)
+
 5. **Component Migration**
    - Move `AIMetricsDashboard.tsx` to features or platform
    - Create feature facades for remaining components
 
 ### Long-term (Month 3+)
+
 6. **Services Migration**
    - Gradually migrate `src/services/*` to `@/features/*`
    - Final cleanup of legacy modules
@@ -151,43 +163,49 @@ The enforcement check will only fail CI after the migration baseline is remediat
 ### Allowed Import Patterns
 
 ✅ **Features can import from legacy** (transitional):
+
 ```typescript
 // src/features/estimate/infrastructure/adapters/ai-estimate.adapter.server.ts
-import { openai } from "@/core/ai/platform/openai-client";  // OK
+import { openai } from "@/core/ai/platform/openai-client"; // OK
 ```
 
 ✅ **Platform can import from legacy** (transitional):
+
 ```typescript
 // src/platform/supabase/browser.ts
-import { createBrowserClient } from "@/integrations/supabase/client";  // OK
+import { createBrowserClient } from "@/integrations/supabase/client"; // OK
 ```
 
 ✅ **Core can import from core/lib** (internal):
+
 ```typescript
 // src/core/pricing/index.ts
-import { calculateEstimate } from "@/lib/estimate";  // OK
+import { calculateEstimate } from "@/lib/estimate"; // OK
 ```
 
 ### Forbidden Import Patterns
 
 ❌ **Routes importing legacy**:
+
 ```typescript
 // src/routes/_authed/dashboard.tsx
-import { cn } from "@/lib/utils";  // FORBIDDEN
+import { cn } from "@/lib/utils"; // FORBIDDEN
 // Should be: import { cn } from "@/platform/utils";
 ```
 
 ❌ **Components importing legacy**:
+
 ```typescript
 // src/components/ui/button.tsx
-import { cn } from "@/lib/utils";  // FORBIDDEN
+import { cn } from "@/lib/utils"; // FORBIDDEN
 // Should be: import { cn } from "@/platform/utils";
 ```
 
 ❌ **Server functions importing legacy**:
+
 ```typescript
 // src/serverFns/auth.ts
-import type { AuthUser } from "@/lib/auth";  // FORBIDDEN
+import type { AuthUser } from "@/lib/auth"; // FORBIDDEN
 // Should be: import type { AuthUser } from "@/platform/auth";
 ```
 

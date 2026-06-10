@@ -8,7 +8,7 @@ export const Route = createFileRoute("/terms")({
     meta: [
       {
         name: "description",
-        content: "Terms of service for Refurb Genius — Please read before using our platform.",
+        content: "Terms of service for Refurb Genius — please read before using our platform.",
       },
       {
         property: "og:title",
@@ -27,64 +27,39 @@ function TermsPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground">Terms of Service</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Last updated: May 2026</p>
-          </div>
-
-          {/* Beta Notice */}
-          <div className="mb-8 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-            <p className="text-sm font-semibold text-yellow-900">⚠️ Controlled-Beta Notice</p>
-            <p className="mt-2 text-sm text-yellow-800">
-              Refurb Genius is in controlled-beta testing. By using this service, you acknowledge
-              that the platform is under active development, features may change rapidly, and
-              service interruptions may occur without notice. Please review these terms carefully.
-            </p>
+            <p className="mt-2 text-sm text-muted-foreground">Last updated: June 2026</p>
           </div>
 
           {/* Content */}
           <div className="space-y-8 text-foreground">
-            {/* Acceptance of Terms */}
+            {/* About Us */}
             <section>
-              <h2 className="text-2xl font-semibold">1. Acceptance of Terms</h2>
+              <h2 className="text-2xl font-semibold">1. About Us & These Terms</h2>
               <p className="mt-3 text-sm leading-relaxed">
-                By accessing and using Refurb Genius ("the Platform"), you agree to be bound by
-                these Terms of Service ("Terms"). If you do not agree to these Terms, you may not
-                use the Platform. We reserve the right to modify these Terms at any time. Your
-                continued use of the Platform following any changes constitutes your acceptance of
-                the new Terms.
+                Refurb Genius ("the Platform") is operated by Rissolol Ltd ("we," "us," or "our"), a
+                company registered in England and Wales (company number: [to be completed]),
+                registered office [registered office address — to be completed]. You can contact us
+                at support@refurbgenius.co.uk.
+              </p>
+              <p className="mt-3 text-sm leading-relaxed">
+                By accessing or using the Platform, you agree to be bound by these Terms of Service
+                ("Terms"). If you do not agree, you may not use the Platform. We may modify these
+                Terms from time to time; where changes are material we will give you reasonable
+                notice, and your continued use after the changes take effect constitutes acceptance.
+                Nothing in these Terms affects your statutory rights.
               </p>
             </section>
 
-            {/* Controlled-Beta Status */}
+            {/* Service Basis */}
             <section>
-              <h2 className="text-2xl font-semibold">2. Controlled-Beta Status & Disclaimer</h2>
-
-              <h3 className="mt-5 text-lg font-medium">Beta Service Disclaimer</h3>
-              <p className="mt-2 text-sm leading-relaxed">
-                Refurb Genius is provided on an "AS-IS" and "AS-AVAILABLE" basis during the
-                controlled-beta phase. We make no representations or warranties regarding:
-              </p>
-              <ul className="mt-2 space-y-1 text-sm leading-relaxed">
-                <li>• The accuracy, completeness, or reliability of analysis results</li>
-                <li>• Uninterrupted availability of the service</li>
-                <li>• Absence of errors, bugs, or vulnerabilities</li>
-                <li>• Persistence or safety of your data</li>
-                <li>• Future compatibility or support for stored data</li>
-              </ul>
-
-              <h3 className="mt-5 text-lg font-medium">Service Changes</h3>
-              <p className="mt-2 text-sm leading-relaxed">During beta, we may:</p>
-              <ul className="mt-2 space-y-1 text-sm leading-relaxed">
-                <li>• Modify, suspend, or discontinue features without notice</li>
-                <li>• Change data schemas or reset beta data</li>
-                <li>• Introduce breaking changes to workflows</li>
-                <li>• End the beta program and transition to paid service</li>
-              </ul>
-
-              <h3 className="mt-5 text-lg font-medium">No Guarantee of Continuation</h3>
-              <p className="mt-2 text-sm leading-relaxed">
-                We do not guarantee that the Platform will continue to operate beyond the
-                controlled-beta phase. Participation in the beta program does not entitle you to
-                access during general availability or production phases.
+              <h2 className="text-2xl font-semibold">2. The Service</h2>
+              <p className="mt-3 text-sm leading-relaxed">
+                Refurb Genius is an AI-assisted tool that helps UK property investors analyse
+                refurbishment scope and indicative costs, and model investment metrics. We provide
+                the Platform with reasonable care and skill. From time to time we may add, change,
+                or remove features, and we may carry out maintenance that temporarily affects
+                availability. We will aim to give reasonable notice of significant changes where we
+                can.
               </p>
             </section>
 
@@ -93,14 +68,15 @@ function TermsPage() {
               <h2 className="text-2xl font-semibold">3. No Financial Advice</h2>
               <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-4">
                 <p className="text-sm text-red-900 font-semibold">
-                  IMPORTANT: Refurb Genius does NOT provide financial advice.
+                  IMPORTANT: Refurb Genius does NOT provide financial, investment, legal, tax, or
+                  surveying advice.
                 </p>
               </div>
 
               <p className="mt-3 text-sm leading-relaxed">
-                All estimates, projections, and recommendations generated by Refurb Genius,
-                including ROI calculations, yield estimates, profit forecasts, and investment
-                scores, are:
+                All estimates, projections, and recommendations generated by Refurb Genius —
+                including ROI calculations, yield estimates, profit forecasts, and investment scores
+                — are:
               </p>
               <ul className="mt-2 space-y-1 text-sm leading-relaxed">
                 <li>• Approximate and based on simplified models</li>
@@ -115,20 +91,10 @@ function TermsPage() {
               <ul className="mt-2 space-y-1 text-sm leading-relaxed">
                 <li>• Verify all estimates independently with qualified professionals</li>
                 <li>• Conduct due diligence on all properties before investment</li>
-                <li>• Consult a qualified financial advisor before making investment decisions</li>
+                <li>• Consult a qualified financial adviser before making investment decisions</li>
                 <li>
                   • Account for market conditions, tax implications, and personal circumstances
                 </li>
-              </ul>
-
-              <p className="mt-3 text-sm leading-relaxed">
-                <strong>We are not responsible for:</strong>
-              </p>
-              <ul className="mt-2 space-y-1 text-sm leading-relaxed">
-                <li>• Investment losses or missed opportunities</li>
-                <li>• Inaccurate market estimates or regional assumptions</li>
-                <li>• Changes in property values, rental markets, or economic conditions</li>
-                <li>• Regulatory changes or tax implications you did not anticipate</li>
               </ul>
             </section>
 
@@ -149,7 +115,8 @@ function TermsPage() {
 
               <p className="mt-3 text-sm leading-relaxed">
                 <strong>These estimates may differ significantly from actual quotes.</strong> Always
-                obtain competitive quotes from licensed contractors before committing to a project.
+                obtain competitive quotes from suitably qualified contractors before committing to a
+                project.
               </p>
 
               <h3 className="mt-5 text-lg font-medium">ROI & Yield Disclaimers</h3>
@@ -167,9 +134,9 @@ function TermsPage() {
 
               <h3 className="mt-5 text-lg font-medium">Use at Your Own Risk</h3>
               <p className="mt-2 text-sm leading-relaxed">
-                You acknowledge that you are using these estimates at your own risk. We strongly
-                recommend conducting professional valuations, surveys, and financial analysis before
-                making any investment decisions.
+                You acknowledge that you use these estimates at your own risk. We strongly recommend
+                obtaining professional valuations, surveys, and financial analysis before making any
+                investment decision.
               </p>
             </section>
 
@@ -179,41 +146,46 @@ function TermsPage() {
 
               <h3 className="mt-5 text-lg font-medium">Accuracy of AI Analysis</h3>
               <p className="mt-2 text-sm leading-relaxed">
-                AI-generated analyses (photo interpretation, design suggestions, damage assessments)
-                are generated by machine learning models and may contain:
+                AI-generated analyses (photo interpretation, design suggestions, condition
+                assessments) are produced by machine-learning models and may contain:
               </p>
               <ul className="mt-2 space-y-1 text-sm leading-relaxed">
-                <li>• Misidentifications or incorrect room categorizations</li>
-                <li>• Overstated or understated damage severity</li>
+                <li>• Misidentifications or incorrect room categorisations</li>
+                <li>• Overstated or understated condition severity</li>
                 <li>• Irrelevant or impractical design suggestions</li>
-                <li>• Hallucinations or nonsensical recommendations</li>
+                <li>• Fabricated ("hallucinated") or nonsensical recommendations</li>
               </ul>
 
               <p className="mt-3 text-sm leading-relaxed">
                 <strong>
                   You must verify AI recommendations through professional inspection and assessment
                   before acting on them.
-                </strong>
-              </p>
-
-              <h3 className="mt-5 text-lg font-medium">No Liability for AI Errors</h3>
-              <p className="mt-2 text-sm leading-relaxed">
-                We are not liable for errors, omissions, or inaccuracies in AI-generated content.
-                The Platform is a tool to supplement (not replace) professional surveys and expert
-                review.
+                </strong>{" "}
+                The AI provides decision-support only; it does not make decisions for you. If you
+                believe an AI output is incorrect, you can request a human review at
+                support@refurbgenius.co.uk. See our{" "}
+                <a href="/privacy" className="text-primary hover:underline">
+                  Privacy Policy
+                </a>{" "}
+                for how AI processing and automated decision-making are handled.
               </p>
 
               <h3 className="mt-5 text-lg font-medium">Third-Party AI Providers</h3>
               <p className="mt-2 text-sm leading-relaxed">
-                AI analysis is powered by OpenAI APIs. Refer to OpenAI's terms of service for
-                information on how they process your data. We are not responsible for errors or
-                limitations in third-party AI services.
+                AI analysis is powered by OpenAI APIs. Their processing is subject to OpenAI's own
+                terms and privacy policy. We do not opt in to model training using your content.
               </p>
             </section>
 
             {/* User Responsibilities */}
             <section>
               <h2 className="text-2xl font-semibold">6. Your Responsibilities</h2>
+
+              <h3 className="mt-5 text-lg font-medium">Eligibility</h3>
+              <p className="mt-2 text-sm leading-relaxed">
+                You must be at least 18 years old and able to enter into a binding contract to use
+                the Platform.
+              </p>
 
               <h3 className="mt-5 text-lg font-medium">Verification of Information</h3>
               <p className="mt-2 text-sm leading-relaxed">You are solely responsible for:</p>
@@ -223,7 +195,7 @@ function TermsPage() {
                 <li>
                   • Conducting legal due diligence (title checks, planning, environmental surveys)
                 </li>
-                <li>• Validating AI recommendations through licensed professionals</li>
+                <li>• Validating AI recommendations through qualified professionals</li>
               </ul>
 
               <h3 className="mt-5 text-lg font-medium">Acceptable Use</h3>
@@ -233,12 +205,13 @@ function TermsPage() {
                   • Use the Platform for any unlawful purpose or in violation of applicable laws
                 </li>
                 <li>• Upload malicious files, viruses, or harmful content</li>
-                <li>• Attempt to gain unauthorized access to the Platform or other users' data</li>
+                <li>• Attempt to gain unauthorised access to the Platform or other users' data</li>
                 <li>• Use the Platform to harass, threaten, or abuse others</li>
                 <li>• Reverse engineer, decompile, or attempt to derive source code</li>
                 <li>• Scrape data or use automated tools to extract information at scale</li>
                 <li>
-                  • Bypass security measures or engage in penetration testing without authorization
+                  • Bypass security measures or carry out penetration testing without our written
+                  authorisation
                 </li>
               </ul>
 
@@ -253,14 +226,27 @@ function TermsPage() {
                   • Content does not infringe third-party intellectual property or privacy rights
                 </li>
                 <li>
-                  • Content does not contain personally identifiable information of third parties
+                  • Content does not contain special category data or identifiable information of
+                  third parties without a lawful basis
                 </li>
               </ul>
             </section>
 
+            {/* Intellectual Property */}
+            <section>
+              <h2 className="text-2xl font-semibold">7. Intellectual Property</h2>
+              <p className="mt-3 text-sm leading-relaxed">
+                The Platform, including its software, design, and branding, is owned by us or our
+                licensors and is protected by intellectual property laws. You retain ownership of
+                the content you upload. By uploading content, you grant us a limited licence to
+                process and store it solely to provide the service to you. We do not claim ownership
+                of your data and do not use it to train AI models.
+              </p>
+            </section>
+
             {/* Account Termination */}
             <section>
-              <h2 className="text-2xl font-semibold">7. Account Termination</h2>
+              <h2 className="text-2xl font-semibold">8. Account Termination</h2>
 
               <h3 className="mt-5 text-lg font-medium">Your Right to Delete</h3>
               <p className="mt-2 text-sm leading-relaxed">
@@ -269,110 +255,113 @@ function TermsPage() {
               <ul className="mt-2 space-y-1 text-sm leading-relaxed">
                 <li>• Your account and associated data will be marked for deletion</li>
                 <li>• You will lose access to all projects and analyses</li>
-                <li>• Deletion is processed within 7 business days</li>
+                <li>• Deletion is processed within 30 days</li>
               </ul>
 
-              <h3 className="mt-5 text-lg font-medium">Our Right to Terminate</h3>
+              <h3 className="mt-5 text-lg font-medium">Our Right to Suspend or Terminate</h3>
               <p className="mt-2 text-sm leading-relaxed">
-                We may terminate your account or suspend access if you:
+                We may suspend or terminate your access if you:
               </p>
               <ul className="mt-2 space-y-1 text-sm leading-relaxed">
-                <li>• Violate these Terms</li>
-                <li>• Engage in abusive or malicious behavior</li>
-                <li>• Attempt unauthorized access or attacks</li>
-                <li>• End the controlled-beta program or transition to paid service</li>
+                <li>• Materially breach these Terms</li>
+                <li>• Engage in abusive, fraudulent, or malicious behaviour</li>
+                <li>• Attempt unauthorised access or attacks</li>
               </ul>
-
               <p className="mt-3 text-sm leading-relaxed">
-                Upon termination by us, you will have 30 days to export or retrieve your data before
-                permanent deletion.
+                Where it is reasonable to do so, we will give you notice and an opportunity to put
+                things right. If we discontinue the Platform, we will give you at least 30 days'
+                notice and a reasonable opportunity to export your data, except where we are
+                prevented from doing so by law.
               </p>
             </section>
 
             {/* Limitation of Liability */}
             <section>
-              <h2 className="text-2xl font-semibold">8. Limitation of Liability</h2>
+              <h2 className="text-2xl font-semibold">9. Liability</h2>
 
               <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-4">
                 <p className="text-sm text-red-900 font-semibold">
-                  TO THE FULLEST EXTENT PERMITTED BY LAW:
+                  Nothing in these Terms limits liability that cannot be limited by law.
                 </p>
               </div>
 
               <p className="mt-3 text-sm leading-relaxed">
-                Refurb Genius and its owners, operators, and contributors are not liable for:
+                Nothing in these Terms excludes or limits our liability for: (a) death or personal
+                injury caused by our negligence; (b) fraud or fraudulent misrepresentation; (c) any
+                breach of the rights you have under the Consumer Rights Act 2015 (where you are a
+                consumer); or (d) any other liability that cannot be excluded or limited under the
+                laws of England and Wales.
+              </p>
+
+              <p className="mt-3 text-sm leading-relaxed">
+                Subject to the paragraph above, and to the fullest extent permitted by law, we are
+                not liable for:
               </p>
               <ul className="mt-2 space-y-1 text-sm leading-relaxed">
-                <li>• Any direct, indirect, incidental, or consequential damages</li>
                 <li>• Investment losses, missed profits, or opportunity costs</li>
-                <li>• Data loss, corruption, or unauthorized access</li>
-                <li>• Service interruptions or unavailability</li>
-                <li>• Third-party processor actions (OpenAI, Supabase, etc.)</li>
-                <li>• Errors in estimates, projections, or AI-generated content</li>
+                <li>• Decisions you make in reliance on estimates or AI-generated content</li>
+                <li>
+                  • Loss or corruption of data, except where caused by our failure to take
+                  reasonable care
+                </li>
+                <li>• Service interruptions outside our reasonable control</li>
+                <li>• The acts or omissions of third-party processors (e.g. OpenAI, Supabase)</li>
               </ul>
 
               <p className="mt-3 text-sm leading-relaxed">
-                <strong>
-                  Your total liability to us is limited to the amount you have paid for the Platform
-                  (if any).
-                </strong>{" "}
-                If you have not paid, your liability is £0.
+                <strong>If you are a business user,</strong> we exclude all implied warranties to
+                the extent permitted by law, and our total aggregate liability arising out of or in
+                connection with the Platform is limited to the greater of (i) the total amount you
+                paid us in the 12 months before the claim, or (ii) £100.
               </p>
 
               <p className="mt-3 text-sm leading-relaxed">
-                Some jurisdictions do not allow limitations of liability, so this provision may not
-                apply to you in full.
+                <strong>If you are a consumer,</strong> we are responsible for loss or damage you
+                suffer that is a foreseeable result of our breach of these Terms or our failure to
+                use reasonable care and skill, but we are not responsible for any loss or damage
+                that is not foreseeable. This does not affect your statutory rights.
               </p>
             </section>
 
             {/* Disclaimer of Warranties */}
             <section>
-              <h2 className="text-2xl font-semibold">9. Disclaimer of Warranties</h2>
-
+              <h2 className="text-2xl font-semibold">10. Service Availability</h2>
               <p className="mt-3 text-sm leading-relaxed">
-                The Platform is provided "AS-IS" without any warranties, express or implied,
-                including:
-              </p>
-              <ul className="mt-2 space-y-1 text-sm leading-relaxed">
-                <li>• Warranties of merchantability or fitness for a particular purpose</li>
-                <li>• Warranties of non-infringement or title</li>
-                <li>• Warranties of accuracy, completeness, or reliability</li>
-              </ul>
-
-              <p className="mt-3 text-sm leading-relaxed">
-                We do not warrant that the Platform will meet your specific needs, operate without
-                errors, or be available uninterrupted.
+                We provide the Platform with reasonable care and skill, but we do not warrant that
+                it will be uninterrupted, error-free, or that results will meet your specific
+                requirements. Where you are a business user, the Platform is otherwise provided "as
+                available" and we exclude implied warranties to the extent permitted by law. Where
+                you are a consumer, your statutory rights are not affected by this section.
               </p>
             </section>
 
             {/* Indemnification */}
             <section>
-              <h2 className="text-2xl font-semibold">10. Indemnification</h2>
+              <h2 className="text-2xl font-semibold">11. Indemnification (Business Users)</h2>
               <p className="mt-3 text-sm leading-relaxed">
-                You agree to indemnify and hold harmless Refurb Genius, its owners, operators,
-                contributors, and service providers from any claims, damages, or costs arising from:
+                If you use the Platform as a business user, you agree to indemnify and hold harmless
+                Rissolol Ltd, its officers, and service providers from any third-party claims,
+                damages, or reasonable costs arising from: your breach of these Terms, content you
+                upload that infringes third-party rights, or your unlawful use of the Platform. This
+                section does not apply to consumers.
               </p>
-              <ul className="mt-2 space-y-1 text-sm leading-relaxed">
-                <li>• Your use of the Platform or violation of these Terms</li>
-                <li>• Your investment decisions or reliance on Platform outputs</li>
-                <li>• Content you upload or share</li>
-                <li>• Infringement of third-party rights by your content</li>
-              </ul>
             </section>
 
             {/* Governing Law */}
             <section>
-              <h2 className="text-2xl font-semibold">11. Governing Law & Jurisdiction</h2>
+              <h2 className="text-2xl font-semibold">12. Governing Law & Jurisdiction</h2>
               <p className="mt-3 text-sm leading-relaxed">
-                These Terms are governed by and construed in accordance with the laws of England and
-                Wales. Any legal action or proceeding relating to these Terms shall be subject to
-                the exclusive jurisdiction of the courts of England and Wales.
+                These Terms are governed by the laws of England and Wales. If you are a business
+                user, the courts of England and Wales have exclusive jurisdiction. If you are a
+                consumer, you may bring proceedings in the courts of the part of the United Kingdom
+                in which you live, and you benefit from any mandatory consumer protections of that
+                jurisdiction.
               </p>
             </section>
 
             {/* Contact */}
             <section>
-              <h2 className="text-2xl font-semibold">12. Contact & Questions</h2>
+              <h2 className="text-2xl font-semibold">13. Contact & Questions</h2>
               <p className="mt-3 text-sm leading-relaxed">
                 If you have questions about these Terms, please contact:
               </p>

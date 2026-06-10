@@ -75,7 +75,7 @@ vite.config.ts               # Vite config with PostHog proxy
 
 ## Key integration points
 
-### Client-side initialization (routes/__root.tsx)
+### Client-side initialization (routes/\_\_root.tsx)
 
 PostHog is initialized using `PostHogProvider` from `@posthog/react`. The provider wraps the entire app in the root shell component and handles calling `posthog.init()` automatically:
 
@@ -101,26 +101,27 @@ import { PostHogProvider } from '@posthog/react'
 For server-side tracking, we use the `posthog-node` SDK with a singleton pattern:
 
 ```typescript
-import { PostHog } from 'posthog-node'
+import { PostHog } from "posthog-node";
 
 export function getPostHogClient() {
   if (!posthogClient) {
     posthogClient = new PostHog(
-      process.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN || import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN!,
+      process.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN ||
+        import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN!,
       {
         host: process.env.VITE_PUBLIC_POSTHOG_HOST || import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
         flushAt: 1,
         flushInterval: 0,
-      }
-    )
+      },
+    );
   }
-  return posthogClient
+  return posthogClient;
 }
 ```
 
 This client is used in API routes to track server-side events.
 
-### Server-side capture (routes/api/*)
+### Server-side capture (routes/api/\*)
 
 Server-side events include the client's `$session_id` so they appear in the same session in PostHog. The frontend sends it via a header:
 
@@ -138,20 +139,20 @@ await fetch('/api/burrito/consider', {
 
 ```typescript
 // Server: read session ID from header and include in capture
-import { getPostHogClient } from '../../utils/posthog-server'
+import { getPostHogClient } from "../../utils/posthog-server";
 
-const sessionId = request.headers.get('X-PostHog-Session-Id')
+const sessionId = request.headers.get("X-PostHog-Session-Id");
 
-const posthog = getPostHogClient()
+const posthog = getPostHogClient();
 posthog.capture({
   distinctId: username,
-  event: 'burrito_considered',
+  event: "burrito_considered",
   properties: {
     $session_id: sessionId || undefined,
     username: username,
-    source: 'api',
+    source: "api",
   },
-})
+});
 ```
 
 ### Reverse proxy configuration
@@ -174,32 +175,32 @@ server: {
 ### User identification (contexts/AuthContext.tsx)
 
 ```typescript
-import { usePostHog } from '@posthog/react'
+import { usePostHog } from "@posthog/react";
 
-const posthog = usePostHog()
+const posthog = usePostHog();
 
 posthog.identify(username, {
   username: username,
-})
+});
 ```
 
 ### Event tracking (routes/burrito.tsx)
 
 ```typescript
-import { usePostHog } from '@posthog/react'
+import { usePostHog } from "@posthog/react";
 
-const posthog = usePostHog()
+const posthog = usePostHog();
 
-posthog.capture('burrito_considered', {
+posthog.capture("burrito_considered", {
   total_considerations: user.burritoConsiderations + 1,
   username: user.username,
-})
+});
 ```
 
 ### Error tracking (routes/profile.tsx)
 
 ```typescript
-posthog.captureException(error)
+posthog.captureException(error);
 ```
 
 ## Learn more
@@ -245,7 +246,6 @@ const config = {
 };
 
 export default config;
-
 ```
 
 ---
@@ -264,11 +264,11 @@ Disallow:
 ## src/components/Header.tsx
 
 ```tsx
-import { Link } from '@tanstack/react-router'
-import { useAuth } from '../contexts/AuthContext'
+import { Link } from "@tanstack/react-router";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Header() {
-  const { user, logout } = useAuth()
+  const { user, logout } = useAuth();
 
   return (
     <header className="header">
@@ -296,9 +296,8 @@ export default function Header() {
         </div>
       </div>
     </header>
-  )
+  );
 }
-
 ```
 
 ---
@@ -306,131 +305,120 @@ export default function Header() {
 ## src/contexts/AuthContext.tsx
 
 ```tsx
-import {
-  createContext,
-  useContext,
-  useState,
-  ReactNode,
-} from 'react'
-import { usePostHog } from '@posthog/react'
+import { createContext, useContext, useState, ReactNode } from "react";
+import { usePostHog } from "@posthog/react";
 
 interface User {
-  username: string
-  burritoConsiderations: number
+  username: string;
+  burritoConsiderations: number;
 }
 
 interface AuthContextType {
-  user: User | null
-  login: (username: string, password: string) => Promise<boolean>
-  logout: () => void
-  incrementBurritoConsiderations: () => void
+  user: User | null;
+  login: (username: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  incrementBurritoConsiderations: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const users: Map<string, User> = new Map()
+const users: Map<string, User> = new Map();
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const posthog = usePostHog()
+  const posthog = usePostHog();
 
   // Use lazy initializer to read from localStorage only once on mount
   const [user, setUser] = useState<User | null>(() => {
-    if (typeof window === 'undefined') return null
+    if (typeof window === "undefined") return null;
 
-    const storedUsername = localStorage.getItem('currentUser')
+    const storedUsername = localStorage.getItem("currentUser");
     if (storedUsername) {
-      const existingUser = users.get(storedUsername)
+      const existingUser = users.get(storedUsername);
       if (existingUser) {
-        return existingUser
+        return existingUser;
       }
     }
-    return null
-  })
+    return null;
+  });
 
-  const login = async (
-    username: string,
-    password: string,
-  ): Promise<boolean> => {
+  const login = async (username: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'X-PostHog-Session-Id': posthog.get_session_id() ?? '',
+          "Content-Type": "application/json",
+          "X-PostHog-Session-Id": posthog.get_session_id() ?? "",
         },
         body: JSON.stringify({ username, password }),
-      })
+      });
 
       if (response.ok) {
-        const { user: userData } = await response.json()
+        const { user: userData } = await response.json();
 
         // Get or create user in local map
-        let localUser = users.get(username)
+        let localUser = users.get(username);
         if (!localUser) {
-          localUser = userData as User
-          users.set(username, localUser)
+          localUser = userData as User;
+          users.set(username, localUser);
         }
 
-        setUser(localUser)
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('currentUser', username)
+        setUser(localUser);
+        if (typeof window !== "undefined") {
+          localStorage.setItem("currentUser", username);
         }
 
         // Identify user in PostHog using username as distinct ID
         posthog.identify(username, {
           username: username,
-        })
+        });
 
         // Capture login event
-        posthog.capture('user_logged_in', {
+        posthog.capture("user_logged_in", {
           username: username,
-        })
+        });
 
-        return true
+        return true;
       }
-      return false
+      return false;
     } catch (error) {
-      console.error('Login error:', error)
-      return false
+      console.error("Login error:", error);
+      return false;
     }
-  }
+  };
 
   const logout = () => {
     // Capture logout event before resetting
-    posthog.capture('user_logged_out')
-    posthog.reset()
+    posthog.capture("user_logged_out");
+    posthog.reset();
 
-    setUser(null)
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('currentUser')
+    setUser(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("currentUser");
     }
-  }
+  };
 
   const incrementBurritoConsiderations = () => {
     if (user) {
-      user.burritoConsiderations++
-      users.set(user.username, user)
-      setUser({ ...user })
+      user.burritoConsiderations++;
+      users.set(user.username, user);
+      setUser({ ...user });
     }
-  }
+  };
 
   return (
-    <AuthContext.Provider
-      value={{ user, login, logout, incrementBurritoConsiderations }}
-    >
+    <AuthContext.Provider value={{ user, login, logout, incrementBurritoConsiderations }}>
       {children}
     </AuthContext.Provider>
-  )
+  );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context
+  return context;
 }
-
 ```
 
 ---
@@ -438,10 +426,10 @@ export function useAuth() {
 ## src/router.tsx
 
 ```tsx
-import { createRouter } from '@tanstack/react-router'
+import { createRouter } from "@tanstack/react-router";
 
 // Import the generated route tree
-import { routeTree } from './routeTree.gen'
+import { routeTree } from "./routeTree.gen";
 
 // Create a new router instance
 export const getRouter = () => {
@@ -449,50 +437,49 @@ export const getRouter = () => {
     routeTree,
     scrollRestoration: true,
     defaultPreloadStaleTime: 0,
-  })
-}
-
+  });
+};
 ```
 
 ---
 
-## src/routes/__root.tsx
+## src/routes/\_\_root.tsx
 
 ```tsx
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
-import { TanStackDevtools } from '@tanstack/react-devtools'
-import { PostHogProvider } from '@posthog/react'
+import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
+import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { TanStackDevtools } from "@tanstack/react-devtools";
+import { PostHogProvider } from "@posthog/react";
 
-import Header from '../components/Header'
-import { AuthProvider } from '../contexts/AuthContext'
+import Header from "../components/Header";
+import { AuthProvider } from "../contexts/AuthContext";
 
-import appCss from '../styles.css?url'
+import appCss from "../styles.css?url";
 
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       {
-        charSet: 'utf-8',
+        charSet: "utf-8",
       },
       {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
+        name: "viewport",
+        content: "width=device-width, initial-scale=1",
       },
       {
-        title: 'TanStack Start Starter',
+        title: "TanStack Start Starter",
       },
     ],
     links: [
       {
-        rel: 'stylesheet',
+        rel: "stylesheet",
         href: appCss,
       },
     ],
   }),
 
   shellComponent: RootDocument,
-})
+});
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
@@ -504,9 +491,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <PostHogProvider
           apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN!}
           options={{
-            api_host: '/ingest',
-            ui_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST || 'https://us.posthog.com',
-            defaults: '2025-05-24',
+            api_host: "/ingest",
+            ui_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.posthog.com",
+            defaults: "2025-05-24",
             capture_exceptions: true,
             debug: import.meta.env.DEV,
           }}
@@ -514,25 +501,24 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           <AuthProvider>
             <Header />
             {children}
-          <TanStackDevtools
-            config={{
-              position: 'bottom-right',
-            }}
-            plugins={[
-              {
-                name: 'Tanstack Router',
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-            ]}
-          />
+            <TanStackDevtools
+              config={{
+                position: "bottom-right",
+              }}
+              plugins={[
+                {
+                  name: "Tanstack Router",
+                  render: <TanStackRouterDevtoolsPanel />,
+                },
+              ]}
+            />
           </AuthProvider>
         </PostHogProvider>
         <Scripts />
       </body>
     </html>
-  )
+  );
 }
-
 ```
 
 ---
@@ -540,48 +526,45 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 ## src/routes/api/auth/login.ts
 
 ```ts
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-import { getPostHogClient } from '../../../utils/posthog-server'
+import { createFileRoute } from "@tanstack/react-router";
+import { json } from "@tanstack/react-start";
+import { getPostHogClient } from "../../../utils/posthog-server";
 
-export const Route = createFileRoute('/api/auth/login')({
+export const Route = createFileRoute("/api/auth/login")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const body = await request.json()
-        const { username, password } = body
+        const body = await request.json();
+        const { username, password } = body;
 
         // Simple validation (in production, you'd verify against a real database)
         if (!username || !password) {
-          return json(
-            { error: 'Username and password required' },
-            { status: 400 },
-          )
+          return json({ error: "Username and password required" }, { status: 400 });
         }
 
         // Check if this is a new user (simplified - in production use a database)
-        const isNewUser = !username
+        const isNewUser = !username;
 
         // Create or get user
         const user = {
           username,
           burritoConsiderations: 0,
-        }
+        };
 
-        const sessionId = request.headers.get('X-PostHog-Session-Id')
+        const sessionId = request.headers.get("X-PostHog-Session-Id");
 
         // Capture server-side login event
-        const posthog = getPostHogClient()
+        const posthog = getPostHogClient();
         posthog.capture({
           distinctId: username,
-          event: 'server_login',
+          event: "server_login",
           properties: {
             $session_id: sessionId || undefined,
             username: username,
             isNewUser: isNewUser,
-            source: 'api',
+            source: "api",
           },
-        })
+        });
 
         // Identify user on server side
         posthog.identify({
@@ -590,14 +573,13 @@ export const Route = createFileRoute('/api/auth/login')({
             username: username,
             createdAt: isNewUser ? new Date().toISOString() : undefined,
           },
-        })
+        });
 
-        return json({ success: true, user })
+        return json({ success: true, user });
       },
     },
   },
-})
-
+});
 ```
 
 ---
@@ -605,44 +587,40 @@ export const Route = createFileRoute('/api/auth/login')({
 ## src/routes/api/burrito/consider.ts
 
 ```ts
-import { createFileRoute } from '@tanstack/react-router'
-import { json } from '@tanstack/react-start'
-import { getPostHogClient } from '../../../utils/posthog-server'
+import { createFileRoute } from "@tanstack/react-router";
+import { json } from "@tanstack/react-start";
+import { getPostHogClient } from "../../../utils/posthog-server";
 
-export const Route = createFileRoute('/api/burrito/consider')({
+export const Route = createFileRoute("/api/burrito/consider")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const body = await request.json()
-        const { username, totalConsiderations } = body
+        const body = await request.json();
+        const { username, totalConsiderations } = body;
 
         if (!username) {
-          return json(
-            { error: 'Username is required' },
-            { status: 400 },
-          )
+          return json({ error: "Username is required" }, { status: 400 });
         }
 
-        const sessionId = request.headers.get('X-PostHog-Session-Id')
+        const sessionId = request.headers.get("X-PostHog-Session-Id");
 
-        const posthog = getPostHogClient()
+        const posthog = getPostHogClient();
         posthog.capture({
           distinctId: username,
-          event: 'burrito_considered',
+          event: "burrito_considered",
           properties: {
             $session_id: sessionId || undefined,
             total_considerations: totalConsiderations,
             username: username,
-            source: 'api',
+            source: "api",
           },
-        })
+        });
 
-        return json({ success: true })
+        return json({ success: true });
       },
     },
   },
-})
-
+});
 ```
 
 ---
@@ -650,66 +628,66 @@ export const Route = createFileRoute('/api/burrito/consider')({
 ## src/routes/burrito.tsx
 
 ```tsx
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
-import { usePostHog } from '@posthog/react'
-import { useAuth } from '../contexts/AuthContext'
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
+import { usePostHog } from "@posthog/react";
+import { useAuth } from "../contexts/AuthContext";
 
-export const Route = createFileRoute('/burrito')({
+export const Route = createFileRoute("/burrito")({
   component: BurritoPage,
   head: () => ({
     meta: [
       {
-        title: 'Burrito Consideration - Burrito Consideration App',
+        title: "Burrito Consideration - Burrito Consideration App",
       },
       {
-        name: 'description',
-        content: 'Consider the potential of burritos',
+        name: "description",
+        content: "Consider the potential of burritos",
       },
     ],
   }),
-})
+});
 
 function BurritoPage() {
-  const { user, incrementBurritoConsiderations } = useAuth()
-  const navigate = useNavigate()
-  const posthog = usePostHog()
-  const [hasConsidered, setHasConsidered] = useState(false)
+  const { user, incrementBurritoConsiderations } = useAuth();
+  const navigate = useNavigate();
+  const posthog = usePostHog();
+  const [hasConsidered, setHasConsidered] = useState(false);
 
   // Redirect to home if not logged in
   if (!user) {
-    navigate({ to: '/' })
-    return null
+    navigate({ to: "/" });
+    return null;
   }
 
   const handleClientConsideration = () => {
-    incrementBurritoConsiderations()
-    setHasConsidered(true)
-    setTimeout(() => setHasConsidered(false), 2000)
+    incrementBurritoConsiderations();
+    setHasConsidered(true);
+    setTimeout(() => setHasConsidered(false), 2000);
 
-    posthog.capture('burrito_considered', {
+    posthog.capture("burrito_considered", {
       total_considerations: user.burritoConsiderations + 1,
       username: user.username,
-    })
-  }
+    });
+  };
 
   const handleServerConsideration = async () => {
-    incrementBurritoConsiderations()
-    setHasConsidered(true)
-    setTimeout(() => setHasConsidered(false), 2000)
+    incrementBurritoConsiderations();
+    setHasConsidered(true);
+    setTimeout(() => setHasConsidered(false), 2000);
 
-    await fetch('/api/burrito/consider', {
-      method: 'POST',
+    await fetch("/api/burrito/consider", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'X-PostHog-Session-Id': posthog.get_session_id() ?? '',
+        "Content-Type": "application/json",
+        "X-PostHog-Session-Id": posthog.get_session_id() ?? "",
       },
       body: JSON.stringify({
         username: user.username,
         totalConsiderations: user.burritoConsiderations + 1,
       }),
-    })
-  }
+    });
+  };
 
   return (
     <main>
@@ -717,26 +695,32 @@ function BurritoPage() {
         <h1>Burrito consideration zone</h1>
         <p>Take a moment to truly consider the potential of burritos.</p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.125rem' }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "0.125rem",
+          }}
+        >
           <button
             onClick={handleClientConsideration}
             className="btn-burrito"
-            style={{ backgroundColor: '#e07c24', color: '#fff' }}
+            style={{ backgroundColor: "#e07c24", color: "#fff" }}
           >
             Consider burrito (client)
           </button>
           <button
             onClick={handleServerConsideration}
             className="btn-burrito"
-            style={{ backgroundColor: '#4a90d9', color: '#fff' }}
+            style={{ backgroundColor: "#4a90d9", color: "#fff" }}
           >
             Consider burrito (server)
           </button>
 
           {hasConsidered && (
             <p className="success">
-              Thank you for your consideration! Count:{' '}
-              {user.burritoConsiderations}
+              Thank you for your consideration! Count: {user.burritoConsiderations}
             </p>
           )}
         </div>
@@ -747,9 +731,8 @@ function BurritoPage() {
         </div>
       </div>
     </main>
-  )
+  );
 }
-
 ```
 
 ---
@@ -757,48 +740,48 @@ function BurritoPage() {
 ## src/routes/index.tsx
 
 ```tsx
-import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
-import { useAuth } from '../contexts/AuthContext'
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute("/")({
   component: Home,
   head: () => ({
     meta: [
       {
-        title: 'Burrito Consideration App',
+        title: "Burrito Consideration App",
       },
       {
-        name: 'description',
-        content: 'Consider the potential of burritos',
+        name: "description",
+        content: "Consider the potential of burritos",
       },
     ],
   }),
-})
+});
 
 function Home() {
-  const { user, login } = useAuth()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+  const { user, login } = useAuth();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
+    e.preventDefault();
+    setError("");
 
     try {
-      const success = await login(username, password)
+      const success = await login(username, password);
       if (success) {
-        setUsername('')
-        setPassword('')
+        setUsername("");
+        setPassword("");
       } else {
-        setError('Please provide both username and password')
+        setError("Please provide both username and password");
       }
     } catch (err) {
-      console.error('Login failed:', err)
-      setError('An error occurred during login')
+      console.error("Login failed:", err);
+      setError("An error occurred during login");
     }
-  }
+  };
 
   return (
     <main>
@@ -852,9 +835,8 @@ function Home() {
         </div>
       )}
     </main>
-  )
+  );
 }
-
 ```
 
 ---
@@ -862,45 +844,45 @@ function Home() {
 ## src/routes/profile.tsx
 
 ```tsx
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { usePostHog } from '@posthog/react'
-import { useAuth } from '../contexts/AuthContext'
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { usePostHog } from "@posthog/react";
+import { useAuth } from "../contexts/AuthContext";
 
-export const Route = createFileRoute('/profile')({
+export const Route = createFileRoute("/profile")({
   component: ProfilePage,
   head: () => ({
     meta: [
       {
-        title: 'Profile - Burrito Consideration App',
+        title: "Profile - Burrito Consideration App",
       },
       {
-        name: 'description',
-        content: 'Your burrito consideration profile',
+        name: "description",
+        content: "Your burrito consideration profile",
       },
     ],
   }),
-})
+});
 
 function ProfilePage() {
-  const { user } = useAuth()
-  const navigate = useNavigate()
-  const posthog = usePostHog()
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const posthog = usePostHog();
 
   // Redirect to home if not logged in
   if (!user) {
-    navigate({ to: '/' })
-    return null
+    navigate({ to: "/" });
+    return null;
   }
 
   const triggerTestError = () => {
     try {
-      throw new Error('Test error for PostHog error tracking')
+      throw new Error("Test error for PostHog error tracking");
     } catch (err) {
-      posthog.captureException(err)
-      console.error('Captured error:', err)
-      alert('Error captured and sent to PostHog!')
+      posthog.captureException(err);
+      console.error("Captured error:", err);
+      alert("Error captured and sent to PostHog!");
     }
-  }
+  };
 
   return (
     <main>
@@ -913,27 +895,26 @@ function ProfilePage() {
             <strong>Username:</strong> {user.username}
           </p>
           <p>
-            <strong>Burrito Considerations:</strong>{' '}
-            {user.burritoConsiderations}
+            <strong>Burrito Considerations:</strong> {user.burritoConsiderations}
           </p>
         </div>
 
-        <div style={{ marginTop: '2rem' }}>
+        <div style={{ marginTop: "2rem" }}>
           <button
             onClick={triggerTestError}
             className="btn-primary"
-            style={{ backgroundColor: '#dc3545' }}
+            style={{ backgroundColor: "#dc3545" }}
           >
             Trigger Test Error (for PostHog)
           </button>
         </div>
 
-        <div style={{ marginTop: '2rem' }}>
+        <div style={{ marginTop: "2rem" }}>
           <h3>Your Burrito Journey</h3>
           {user.burritoConsiderations === 0 ? (
             <p>
-              You haven't considered any burritos yet. Visit the Burrito
-              Consideration page to start!
+              You haven't considered any burritos yet. Visit the Burrito Consideration page to
+              start!
             </p>
           ) : user.burritoConsiderations === 1 ? (
             <p>You've considered the burrito potential once. Keep going!</p>
@@ -947,9 +928,8 @@ function ProfilePage() {
         </div>
       </div>
     </main>
-  )
+  );
 }
-
 ```
 
 ---
@@ -967,130 +947,114 @@ function ProfilePage() {
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as BurritoRouteImport } from './routes/burrito'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiBurritoConsiderRouteImport } from './routes/api/burrito/consider'
-import { Route as ApiAuthLoginRouteImport } from './routes/api/auth/login'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as ProfileRouteImport } from "./routes/profile";
+import { Route as BurritoRouteImport } from "./routes/burrito";
+import { Route as IndexRouteImport } from "./routes/index";
+import { Route as ApiBurritoConsiderRouteImport } from "./routes/api/burrito/consider";
+import { Route as ApiAuthLoginRouteImport } from "./routes/api/auth/login";
 
 const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
+  id: "/profile",
+  path: "/profile",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const BurritoRoute = BurritoRouteImport.update({
-  id: '/burrito',
-  path: '/burrito',
+  id: "/burrito",
+  path: "/burrito",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ApiBurritoConsiderRoute = ApiBurritoConsiderRouteImport.update({
-  id: '/api/burrito/consider',
-  path: '/api/burrito/consider',
+  id: "/api/burrito/consider",
+  path: "/api/burrito/consider",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ApiAuthLoginRoute = ApiAuthLoginRouteImport.update({
-  id: '/api/auth/login',
-  path: '/api/auth/login',
+  id: "/api/auth/login",
+  path: "/api/auth/login",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/burrito': typeof BurritoRoute
-  '/profile': typeof ProfileRoute
-  '/api/auth/login': typeof ApiAuthLoginRoute
-  '/api/burrito/consider': typeof ApiBurritoConsiderRoute
+  "/": typeof IndexRoute;
+  "/burrito": typeof BurritoRoute;
+  "/profile": typeof ProfileRoute;
+  "/api/auth/login": typeof ApiAuthLoginRoute;
+  "/api/burrito/consider": typeof ApiBurritoConsiderRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/burrito': typeof BurritoRoute
-  '/profile': typeof ProfileRoute
-  '/api/auth/login': typeof ApiAuthLoginRoute
-  '/api/burrito/consider': typeof ApiBurritoConsiderRoute
+  "/": typeof IndexRoute;
+  "/burrito": typeof BurritoRoute;
+  "/profile": typeof ProfileRoute;
+  "/api/auth/login": typeof ApiAuthLoginRoute;
+  "/api/burrito/consider": typeof ApiBurritoConsiderRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/burrito': typeof BurritoRoute
-  '/profile': typeof ProfileRoute
-  '/api/auth/login': typeof ApiAuthLoginRoute
-  '/api/burrito/consider': typeof ApiBurritoConsiderRoute
+  __root__: typeof rootRouteImport;
+  "/": typeof IndexRoute;
+  "/burrito": typeof BurritoRoute;
+  "/profile": typeof ProfileRoute;
+  "/api/auth/login": typeof ApiAuthLoginRoute;
+  "/api/burrito/consider": typeof ApiBurritoConsiderRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/burrito'
-    | '/profile'
-    | '/api/auth/login'
-    | '/api/burrito/consider'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/burrito'
-    | '/profile'
-    | '/api/auth/login'
-    | '/api/burrito/consider'
-  id:
-    | '__root__'
-    | '/'
-    | '/burrito'
-    | '/profile'
-    | '/api/auth/login'
-    | '/api/burrito/consider'
-  fileRoutesById: FileRoutesById
+  fileRoutesByFullPath: FileRoutesByFullPath;
+  fullPaths: "/" | "/burrito" | "/profile" | "/api/auth/login" | "/api/burrito/consider";
+  fileRoutesByTo: FileRoutesByTo;
+  to: "/" | "/burrito" | "/profile" | "/api/auth/login" | "/api/burrito/consider";
+  id: "__root__" | "/" | "/burrito" | "/profile" | "/api/auth/login" | "/api/burrito/consider";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  BurritoRoute: typeof BurritoRoute
-  ProfileRoute: typeof ProfileRoute
-  ApiAuthLoginRoute: typeof ApiAuthLoginRoute
-  ApiBurritoConsiderRoute: typeof ApiBurritoConsiderRoute
+  IndexRoute: typeof IndexRoute;
+  BurritoRoute: typeof BurritoRoute;
+  ProfileRoute: typeof ProfileRoute;
+  ApiAuthLoginRoute: typeof ApiAuthLoginRoute;
+  ApiBurritoConsiderRoute: typeof ApiBurritoConsiderRoute;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/burrito': {
-      id: '/burrito'
-      path: '/burrito'
-      fullPath: '/burrito'
-      preLoaderRoute: typeof BurritoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/burrito/consider': {
-      id: '/api/burrito/consider'
-      path: '/api/burrito/consider'
-      fullPath: '/api/burrito/consider'
-      preLoaderRoute: typeof ApiBurritoConsiderRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/auth/login': {
-      id: '/api/auth/login'
-      path: '/api/auth/login'
-      fullPath: '/api/auth/login'
-      preLoaderRoute: typeof ApiAuthLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
+    "/profile": {
+      id: "/profile";
+      path: "/profile";
+      fullPath: "/profile";
+      preLoaderRoute: typeof ProfileRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/burrito": {
+      id: "/burrito";
+      path: "/burrito";
+      fullPath: "/burrito";
+      preLoaderRoute: typeof BurritoRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/burrito/consider": {
+      id: "/api/burrito/consider";
+      path: "/api/burrito/consider";
+      fullPath: "/api/burrito/consider";
+      preLoaderRoute: typeof ApiBurritoConsiderRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/api/auth/login": {
+      id: "/api/auth/login";
+      path: "/api/auth/login";
+      fullPath: "/api/auth/login";
+      preLoaderRoute: typeof ApiAuthLoginRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
   }
 }
 
@@ -1100,20 +1064,19 @@ const rootRouteChildren: RootRouteChildren = {
   ProfileRoute: ProfileRoute,
   ApiAuthLoginRoute: ApiAuthLoginRoute,
   ApiBurritoConsiderRoute: ApiBurritoConsiderRoute,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();
 
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
+import type { getRouter } from "./router.tsx";
+import type { createStart } from "@tanstack/react-start";
+declare module "@tanstack/react-start" {
   interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
+    ssr: true;
+    router: Awaited<ReturnType<typeof getRouter>>;
   }
 }
-
 ```
 
 ---
@@ -1121,25 +1084,24 @@ declare module '@tanstack/react-start' {
 ## src/utils/posthog-server.ts
 
 ```ts
-import { PostHog } from 'posthog-node'
+import { PostHog } from "posthog-node";
 
-let posthogClient: PostHog | null = null
+let posthogClient: PostHog | null = null;
 
 export function getPostHogClient() {
   if (!posthogClient) {
     posthogClient = new PostHog(
-      process.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN || import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN!,
+      process.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN ||
+        import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN!,
       {
         host: process.env.VITE_PUBLIC_POSTHOG_HOST || import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
         flushAt: 1,
         flushInterval: 0,
       },
-    )
+    );
   }
-  return posthogClient
+  return posthogClient;
 }
-
-
 ```
 
 ---
@@ -1147,47 +1109,45 @@ export function getPostHogClient() {
 ## vite.config.ts
 
 ```ts
-import { defineConfig } from 'vite'
-import { tanstackStart } from '@tanstack/react-start/plugin/vite'
-import viteReact from '@vitejs/plugin-react'
-import viteTsConfigPaths from 'vite-tsconfig-paths'
+import { defineConfig } from "vite";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import viteReact from "@vitejs/plugin-react";
+import viteTsConfigPaths from "vite-tsconfig-paths";
 
 const config = defineConfig({
   plugins: [
     // this is the plugin that enables path aliases
     viteTsConfigPaths({
-      projects: ['./tsconfig.json'],
+      projects: ["./tsconfig.json"],
     }),
     tanstackStart(),
     viteReact(),
   ],
   server: {
     proxy: {
-      '/ingest/static': {
-        target: 'https://us-assets.i.posthog.com',
+      "/ingest/static": {
+        target: "https://us-assets.i.posthog.com",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/ingest/, ''),
+        rewrite: (path) => path.replace(/^\/ingest/, ""),
         secure: false,
       },
-      '/ingest/array': {
-        target: 'https://us-assets.i.posthog.com',
+      "/ingest/array": {
+        target: "https://us-assets.i.posthog.com",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/ingest/, ''),
+        rewrite: (path) => path.replace(/^\/ingest/, ""),
         secure: false,
       },
-      '/ingest': {
-        target: 'https://us.i.posthog.com',
+      "/ingest": {
+        target: "https://us.i.posthog.com",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/ingest/, ''),
+        rewrite: (path) => path.replace(/^\/ingest/, ""),
         secure: false,
       },
     },
   },
-})
+});
 
-export default config
-
+export default config;
 ```
 
 ---
-

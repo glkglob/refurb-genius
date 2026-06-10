@@ -10,14 +10,14 @@
 
 # Feature Slice Status
 
-| Slice | Status | Notes |
-| --- | --- | --- |
-| estimate | Standardized | Public barrel + infrastructure barrel present; invariant checks pass. |
-| ai-upload | Standardized | Public barrel + infrastructure barrel present; invariant checks pass. |
-| ai-design | Standardized | Public barrel + infrastructure barrel present; invariant checks pass. |
-| export | Scaffolded | Public barrel + infrastructure barrel present; layered structure exists. |
-| payment | Scaffolded | Scaffold present with public API barrel. |
-| gallery | Scaffolded | Scaffold present with public API barrel. |
+| Slice     | Status       | Notes                                                                    |
+| --------- | ------------ | ------------------------------------------------------------------------ |
+| estimate  | Standardized | Public barrel + infrastructure barrel present; invariant checks pass.    |
+| ai-upload | Standardized | Public barrel + infrastructure barrel present; invariant checks pass.    |
+| ai-design | Standardized | Public barrel + infrastructure barrel present; invariant checks pass.    |
+| export    | Scaffolded   | Public barrel + infrastructure barrel present; layered structure exists. |
+| payment   | Scaffolded   | Scaffold present with public API barrel.                                 |
+| gallery   | Scaffolded   | Scaffold present with public API barrel.                                 |
 
 Boundary checks run:
 
@@ -278,11 +278,10 @@ Prioritized:
 
 # Summary Metrics
 
-- Files changed (this validation pass):  
-  - `src/routes/__root.tsx` (lint formatting fix)  
+- Files changed (this validation pass):
+  - `src/routes/__root.tsx` (lint formatting fix)
   - `reports/architecture-validation-report.md` (new)
 - Tests added: none
 - Violations fixed during this run: 1 lint formatting violation
 - Violations remaining: legacy boundary violations listed above (64 `@/lib`, 6 `@/services`, 27 `@/core` outside allowed roots)
 - Overall architecture health score: **78 / 100**
-

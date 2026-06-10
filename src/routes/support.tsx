@@ -329,9 +329,12 @@ function SupportPage() {
                   <div>
                     <h4 className="font-medium text-sm text-foreground">Is my data backed up?</h4>
                     <p className="mt-1 text-sm text-foreground/80">
-                      Yes. Data is stored in Supabase (PostgreSQL on AWS) with automated backups.
-                      However, during controlled-beta, we may reset data without notice in
-                      exceptional circumstances.
+                      Yes. Data is stored in Supabase (PostgreSQL and object storage) hosted in the
+                      UK / EEA, with automated backups. See our{" "}
+                      <a href="/privacy" className="text-primary hover:underline">
+                        Privacy Policy
+                      </a>{" "}
+                      for storage, security, and retention details.
                     </p>
                   </div>
 
@@ -348,53 +351,38 @@ function SupportPage() {
                 </div>
               </div>
 
-              {/* Controlled-Beta */}
-              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-6">
-                <h3 className="text-lg font-semibold text-yellow-900">
-                  Controlled-Beta & Feedback
-                </h3>
+              {/* Feedback & Roadmap */}
+              <div className="rounded-lg border border-border p-6">
+                <h3 className="text-lg font-semibold text-foreground">Feedback & Roadmap</h3>
 
                 <div className="mt-4 space-y-3">
                   <div>
-                    <h4 className="font-medium text-sm text-yellow-900">
-                      Why is the platform still in beta?
-                    </h4>
-                    <p className="mt-1 text-sm text-yellow-800">
-                      We're actively developing features, gathering feedback, and hardening the
-                      platform for general availability. Your participation helps us improve.
-                    </p>
-                  </div>
-
-                  <div>
-                    <h4 className="font-medium text-sm text-yellow-900">
+                    <h4 className="font-medium text-sm text-foreground">
                       How can I provide feedback?
                     </h4>
-                    <p className="mt-1 text-sm text-yellow-800">
+                    <p className="mt-1 text-sm text-foreground/80">
                       Email us at support@refurbgenius.co.uk with feature suggestions, usability
-                      feedback, or general comments. We read all feedback and prioritize
+                      feedback, or general comments. We read all feedback and prioritise
                       improvements based on user input.
                     </p>
                   </div>
 
                   <div>
-                    <h4 className="font-medium text-sm text-yellow-900">
-                      Will the service remain free?
-                    </h4>
-                    <p className="mt-1 text-sm text-yellow-800">
-                      During controlled-beta, Refurb Genius is free. Pricing may change when we exit
-                      beta or introduce new features. We'll provide notice before any paid features
-                      are introduced.
+                    <h4 className="font-medium text-sm text-foreground">How is pricing handled?</h4>
+                    <p className="mt-1 text-sm text-foreground/80">
+                      We will always set out the price of any paid features clearly before you
+                      subscribe, and give you reasonable notice of any pricing changes. Your
+                      statutory rights as a consumer are unaffected.
                     </p>
                   </div>
 
                   <div>
-                    <h4 className="font-medium text-sm text-yellow-900">
-                      What if the platform shuts down?
+                    <h4 className="font-medium text-sm text-foreground">
+                      What happens if a service is discontinued?
                     </h4>
-                    <p className="mt-1 text-sm text-yellow-800">
-                      While we're committed to Refurb Genius, beta services can be discontinued. We
-                      will provide at least 30 days' notice and allow you to export your data before
-                      shutdown.
+                    <p className="mt-1 text-sm text-foreground/80">
+                      If we ever discontinue the platform, we will provide at least 30 days' notice
+                      and a reasonable opportunity to export your data before any data is removed.
                     </p>
                   </div>
                 </div>

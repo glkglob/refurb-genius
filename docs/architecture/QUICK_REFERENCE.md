@@ -3,6 +3,7 @@
 ## TL;DR
 
 **Rule**: Code outside `src/features/` and `src/platform/` **CANNOT** import from:
+
 - `@/core/*`
 - `@/lib/*`
 - `@/services/*`
@@ -13,43 +14,49 @@
 ## Common Violations & Fixes
 
 ### ❌ Route importing utility
+
 ```typescript
 // src/routes/_authed/dashboard.tsx
-import { cn } from "@/lib/utils";  // WRONG
+import { cn } from "@/lib/utils"; // WRONG
 ```
 
 ### ✅ Route importing from platform
+
 ```typescript
 // src/routes/_authed/dashboard.tsx
-import { cn } from "@/platform/utils";  // CORRECT
+import { cn } from "@/platform/utils"; // CORRECT
 ```
 
 ---
 
 ### ❌ Component importing legacy
+
 ```typescript
 // src/components/ui/button.tsx
-import { cn } from "@/lib/utils";  // WRONG
+import { cn } from "@/lib/utils"; // WRONG
 ```
 
 ### ✅ Component importing from platform
+
 ```typescript
 // src/components/ui/button.tsx
-import { cn } from "@/platform/utils";  // CORRECT
+import { cn } from "@/platform/utils"; // CORRECT
 ```
 
 ---
 
 ### ❌ Server function importing legacy
+
 ```typescript
 // src/serverFns/auth.ts
-import type { AuthUser } from "@/lib/auth";  // WRONG
+import type { AuthUser } from "@/lib/auth"; // WRONG
 ```
 
 ### ✅ Server function importing from platform
+
 ```typescript
 // src/serverFns/auth.ts
-import type { AuthUser } from "@/platform/auth";  // CORRECT
+import type { AuthUser } from "@/platform/auth"; // CORRECT
 ```
 
 ## Migration Checklist
