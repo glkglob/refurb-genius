@@ -1,0 +1,337 @@
+# Feature-Slice Architecture
+
+> Status: **Adopted (incremental)** — introduced 2026-06. The `estimate` slice is
+> the reference implementation. New feature work should follow this structure;
+> existing code migrates slice-by-slice (see Migration Plan below).
+
+---
+
+## Why
+
+The codebase currently organises code by technical layer (`src/core/`,
+`src/lib/`, `src/hooks/`, `src/components/`). One business capability — e.g.
+"generate an estimate" — is smeared across five directories, which makes
+onboarding slow, encourages god-modules (`src/lib/estimates.ts`,
+`src/core/ai/serverFns.ts`), and couples features to each other through shared
+grab-bag modules.
+
+Feature-Slice Architecture organises code by **business capability** (vertical
+slice), with **Clean Architecture** layering *inside* each slice and a
+**platform boundary** that isolates vendor SDKs.
+
+---
+
+## Structure
+
+```
+src/
+├── features/                  # Vertical slices — one per business capability
+│   ├── estimate/              # ★ Reference slice (refurb + new-build estimates)
+│   │   ├── domain/            # Pure business logic. No IO, no frameworks.
+│   │   ├── application/       # Use cases (commands/queries), ports (interfaces)
+│   │   ├── infrastructure/    # Port implementations: DB repos, AI adapters
+│   │   ├── presentation/      # Components, hooks, serverFns, route wiring
+│   │   └── index.ts           # Slice public API (domain + application + presentation)
+│   ├── ai-upload/             # Photo-to-estimate pipeline          (planned)
+│   ├── ai-design/             # AI redesign concept generation      (planned)
+│   ├── export/                # PDF / CSV export                    (planned)
+│   ├── gallery/               # Public project gallery              (planned)
+│   └── ...
+├── platform/                  # Vendor abstractions (Supabase, OpenAI, …)
+│   ├── supabase/              # browser.ts / server.ts — never both in one barrel
+│   └── openai/                # server.ts only (server-only SDK)
+├── routes/                    # TanStack Start file routes (thin: delegate to slices)
+├── components/                # Cross-cutting app shell + legacy (shrinks over time)
+├── lib/                       # Legacy shared utilities (shrinks over time)
+└── core/                      # Legacy domain dirs (migrate into slices over time)
+```
+
+The existing `@repo/*` workspace packages are unchanged and sit *below* the
+slices as a **shared kernel**:
+
+```
+src/features/* (slices)        src/routes (presentation shell)
+        ▲                              ▲
+        │                              │
+   src/platform  ──────────────────────
+        ▲
+        │
+  @repo/services   (deterministic pricing / ROI / deal engines — stays here)
+        ▲
+  @repo/core
+        ▲
+  @repo/types
+```
+
+---
+
+## Layer rules (inside a slice)
+
+| Layer            | May import                                                            | Must NOT import                                  |
+| ---------------- | --------------------------------------------------------------------- | ------------------------------------------------ |
+| `domain/`        | `@repo/types`, `@repo/core`, `@repo/services` (shared kernel)         | Anything with IO: platform, infra, React, Supabase, OpenAI |
+| `application/`   | own `domain/`, shared kernel                                          | `infrastructure/`, `presentation/`, vendor SDKs, React |
+| `infrastructure/`| own `application/` ports + `domain/`, `src/platform/*`, shared kernel | `presentation/`, other slices' internals          |
+| `presentation/`  | own `application/` + `domain/` + `infrastructure/` (wiring only), React, TanStack | other slices' `infrastructure/`         |
+
+Cross-slice rules:
+
+1. **Slices import each other only via the slice's `index.ts` public API** —
+   never reach into another slice's internal folders.
+2. **Vendor SDKs are only touched in `src/platform/` and slice
+   `infrastructure/`** — `import OpenAI from "openai"` or
+   `createClient` from `@supabase/supabase-js` anywhere else is a violation.
+3. **Deterministic engines stay in `@repo/services`.** Slices treat
+   `runPricingEngine`, `analyzeDeal`, ROI math, etc. as shared-kernel domain
+   services. The existing pricing/ROI invariant tests continue to pin them.
+4. **Server-only code keeps the existing conventions**: `*.server.ts` naming
+   and/or dynamic `import()` inside `createServerFn` handlers. A slice's
+   `presentation/` may export serverFns (they are the RPC surface).
+5. **Routes stay in `src/routes/`** (TanStack Start requires it). Route files
+   should be thin: parse params/search, render the slice's presentation
+   component. URLs never change (see `routes.md`).
+
+### Dependency direction (within a slice)
+
+```
+presentation ──▶ application ──▶ domain
+      │                ▲
+      └──▶ infrastructure ──┘   (infrastructure implements application ports)
+```
+
+`application/` defines **ports** (TypeScript interfaces) for everything that
+does IO. `infrastructure/` implements them. `presentation/` (or a serverFn)
+performs the wiring — i.e. plain constructor injection, no DI framework.
+
+---
+
+## Platform boundary (`src/platform/`)
+
+Each vendor gets a directory with **separate browser/server entry files** so
+client bundles can never accidentally pull server-only SDKs:
+
+```
+src/platform/
+├── browser.ts       # typed `platform` aggregate — browser-safe vendors only
+├── server.ts        # typed `platform` aggregate — server-only (adds OpenAI)
+├── supabase/
+│   ├── browser.ts   # re-exports createBrowserSupabase (+ env helpers)
+│   └── server.ts    # re-exports createServerSupabase / createTokenSupabase
+└── openai/
+    └── server.ts    # re-exports getOpenAIClient (server-only; no browser entry)
+```
+
+The aggregates expose **factories, not instances** (nothing is constructed at
+module scope, so SSR/build never eagerly instantiates a client):
+
+```ts
+// Server-side wiring inside a createServerFn handler:
+const { platform } = await import("@/platform/server");
+const supabase = platform.supabase.createServerClient(getCookies());
+const openai = platform.ai.getOpenAIClient(apiKey);
+```
+
+Rules:
+
+- **No `index.ts` barrel that mixes browser and server exports.**
+- Slices' `infrastructure/` imports from `src/platform/<vendor>/<context>`,
+  never directly from `openai`, `@supabase/supabase-js`, etc.
+- Adding a vendor (Stripe, Qdrant, …) means adding a directory here first.
+- `@repo/supabase` remains the actual factory implementation; `src/platform/`
+  is the app-side seam that lets a slice swap vendors in one place.
+
+---
+
+## Layer templates
+
+Patterns to copy when building a new slice. These mirror the `estimate`
+reference implementation.
+
+### 1. Domain — entities, value types, rules (pure)
+
+```ts
+// features/<slice>/domain/types.ts
+import type { ConditionLevel, UKRegion } from "@repo/types"; // canonical unions — never re-declare
+import type { PricingEngineResult, PricingLineItem } from "@repo/services";
+
+export type Property = {
+  id: string;
+  address?: string;
+  postcode?: string;
+  type: string;
+  sizeSqm?: number;
+  bedrooms: number;
+  condition: ConditionLevel;
+  region: UKRegion;
+};
+
+export type RefurbEstimate = {
+  id: string;
+  projectId: string;
+  pricing: PricingEngineResult; // engine result verbatim — never recomputed
+  createdAt: Date;
+};
+
+// features/<slice>/domain/rules.ts — pure functions over domain types
+export function isActionableEstimate(estimate: RefurbEstimate): boolean {
+  return estimate.pricing.lineItems.length > 0 && estimate.pricing.mid_total > 0;
+}
+```
+
+### 2. Application — commands, service interface, ports
+
+```ts
+// features/<slice>/application/createEstimate.ts
+export type CreateEstimateCommand = { projectId: string; inputs: PricingEngineInputs };
+
+// features/<slice>/application/ports.ts — IO as interfaces
+export interface EstimateRepository {
+  saveProjectEstimate(projectId: string, result: PricingEngineResult): Promise<SavedEstimateRef>;
+}
+
+// features/<slice>/application/estimateService.ts — use cases behind one interface
+export interface EstimateService {
+  createEstimate(command: CreateEstimateCommand): Promise<CreateEstimateResult>;
+}
+export function makeEstimateService(deps: { estimates: EstimateRepository }): EstimateService { /* … */ }
+```
+
+### 3. Infrastructure — port implementations
+
+```ts
+// features/<slice>/infrastructure/supabaseEstimateRepository.ts
+export class SupabaseEstimateRepository implements EstimateRepository {
+  async saveProjectEstimate(projectId: string, result: PricingEngineResult) {
+    // DB mapping only; client comes from @/platform/supabase, never
+    // directly from @supabase/supabase-js
+  }
+}
+```
+
+### 4. Presentation — hooks, serverFns, components
+
+```ts
+// features/<slice>/presentation/serverFns.ts — Zod-validated RPC surface
+export const createEstimateServerFn = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => inputSchema.parse(input))
+  .handler(async ({ data }) => {
+    await requireServerAuth();
+    const service = makeEstimateService({ estimates: supabaseEstimateRepository });
+    return service.createEstimate(data);
+  });
+```
+
+### Template deviations (deliberate)
+
+These differ from generic Clean Architecture templates because of hard
+project constraints:
+
+- **No `calculateROI` (or any cost/ROI math) in slice domains.** Deterministic
+  engines live in `@repo/services` and are pinned by invariant tests; slice
+  `domain/rules.ts` holds only slice-specific judgements the kernel doesn't own.
+- **No single `platform` object combining all vendors.** OpenAI is server-only;
+  one shared aggregate would leak server SDKs into client bundles. There are
+  two aggregates: `@/platform/browser` and `@/platform/server`.
+- **No `any` anywhere** (e.g. `constructor(private openai: any)`) — strict
+  mode; adapters take the concrete client type from the platform module.
+- **No direct `@supabase/supabase-js` imports in slices** — always via
+  `@/platform/supabase/*`.
+- **Union types (`UKRegion`, `ConditionLevel`, …) come from `@repo/types`** —
+  never re-declared as string literals in a slice.
+
+---
+
+## Worked example: `CreateEstimate`
+
+The `estimate` slice ships a complete worked example. Files:
+
+- [`domain/index.ts`](../../src/features/estimate/domain/index.ts) — the
+  slice's domain surface: estimate types + the deterministic pricing engine
+  re-exported from the shared kernel.
+- [`application/ports.ts`](../../src/features/estimate/application/ports.ts) —
+  `EstimateRepository` port (persistence is an interface, not Supabase).
+- [`application/createEstimate.ts`](../../src/features/estimate/application/createEstimate.ts)
+  — the use case: deterministic pricing + persistence orchestration. Pure;
+  testable with a fake repository.
+- [`infrastructure/repositories/estimate.repository.ts`](../../src/features/estimate/infrastructure/repositories/estimate.repository.ts)
+  — Supabase persistence + the `SupabaseEstimateRepository` port implementation
+  (client via `@/platform/supabase/browser`).
+- [`infrastructure/adapters/ai-estimate.adapter.server.ts`](../../src/features/estimate/infrastructure/adapters/ai-estimate.adapter.server.ts)
+  — server-only OpenAI estimate generation (reached via dynamic `import()`).
+- [`presentation/serverFns.ts`](../../src/features/estimate/presentation/serverFns.ts)
+  + [`presentation/hooks/useEstimate.ts`](../../src/features/estimate/presentation/hooks/useEstimate.ts)
+  — the slice's RPC surface and TanStack Query hooks.
+
+Usage shape:
+
+```ts
+import { makeCreateEstimate } from "@/features/estimate";
+import { supabaseEstimateRepository } from "@/features/estimate/infrastructure";
+
+const createEstimate = makeCreateEstimate({ estimates: supabaseEstimateRepository });
+const { pricing, saved } = await createEstimate({
+  projectId,
+  inputs: {
+    region: "London",
+    property_condition: "fair",
+    finish_quality: "standard",
+    selected_categories: ["kitchen", "bathroom"],
+    property_size_sqm: 90,
+  },
+});
+```
+
+In a unit test, pass a fake `EstimateRepository` — no Supabase, no network.
+
+---
+
+## Migration plan (incremental, slice by slice)
+
+Order (highest value first): **estimate → ai-upload → ai-design → export → gallery**.
+
+Per-slice recipe:
+
+1. **Skeleton**: create `src/features/<slice>/{domain,application,infrastructure,presentation}` with the slice `index.ts`.
+2. **Strangle, don't move**: new slice files initially *delegate* to the legacy
+   module (like `supabaseEstimateRepository` does), so behaviour and imports
+   keep working. Mark legacy call sites with `// TODO(feature-slice):`.
+3. **Move logic inward**: pull pure logic into `domain/`, orchestration into
+   `application/`, IO into `infrastructure/`. Leave a re-export shim at the old
+   path (same pattern as the UI `src/components/ui/` shims — replace contents,
+   never delete the file mid-migration).
+4. **Flip consumers**: update routes/hooks/components to import from the slice
+   public API. Run `pnpm typecheck && pnpm lint && pnpm test:invariants && pnpm test:ui`.
+5. **Delete the shim** only when `grep` shows zero remaining importers.
+
+What does **not** move:
+
+- `@repo/services` engines (pricing, ROI, deal analysis) — shared kernel, pinned by invariant tests.
+- `src/routes/` file locations and URLs.
+- `src/integrations/supabase/` (generated types) and `src/routeTree.gen.ts`.
+- Supabase Edge Functions (`supabase/functions/`) — separate Deno runtime.
+
+### Current migration state
+
+| Slice       | Skeleton | Logic migrated | Consumers flipped | Legacy shims removed |
+| ----------- | -------- | -------------- | ----------------- | -------------------- |
+| `estimate`  | ✅       | ✅             | ✅ (¹)            | —                    |
+| `ai-upload` | —        | —              | —                 | —                    |
+| `ai-design` | —        | —              | —                 | —                    |
+| `export`    | —        | —              | —                 | —                    |
+| `gallery`   | —        | —              | —                 | —                    |
+
+¹ App-level consumers (components, routes, queries) import from the slice.
+Legacy `src/core/ai/` internals (`index.ts` barrel, `normalizers.ts`,
+`platform/orchestrator.ts`) still go through the shims — they belong to the
+future `ai-upload` slice and flip when it migrates.
+
+---
+
+## Conventions checklist (for new slice code)
+
+- [ ] Domain files have zero IO imports (grep for `supabase`, `openai`, `fetch`, `import.meta`).
+- [ ] Every external dependency in `application/` is a port interface in `ports.ts`.
+- [ ] Infrastructure imports vendors only via `src/platform/`.
+- [ ] serverFns validate input with Zod `.inputValidator()` and call `requireServerAuth()` first.
+- [ ] Slice exposes one `index.ts`; no deep imports from other slices.
+- [ ] `pnpm typecheck && pnpm lint && pnpm test:invariants` pass before commit.

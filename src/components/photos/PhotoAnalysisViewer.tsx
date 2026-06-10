@@ -18,7 +18,7 @@ import { PhotoAnalysisFilters } from "./PhotoAnalysisFilters";
 import { PhotoAnalysisCard } from "./PhotoAnalysisCard";
 import type { ProjectPhoto } from "@/lib/photos";
 import type { PhotoAnalysisResultRow } from "@/lib/queries/photo-analysis";
-import type { PersistedRoomEstimate } from "@/lib/estimates";
+import type { PersistedRoomEstimate } from "@/features/estimate/infrastructure";
 
 interface PhotoAnalysisViewerProps {
   projectId: string;

@@ -7,7 +7,7 @@ import {
   getLatestProjectEstimate,
   type PersistedRoomEstimate,
   type PersistedProjectEstimate,
-} from "@/lib/estimates";
+} from "@/features/estimate/infrastructure";
 import type { ProjectPhoto } from "@/lib/photos";
 import { logger } from "@/lib/logger";
 

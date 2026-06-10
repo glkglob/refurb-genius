@@ -23,9 +23,9 @@ import {
   calculateEstimateTotals,
   type CalculatedLineItem,
 } from "@/core/pricing";
-import type { AIGeneratedRoom } from "@/core/ai/server/openAiEstimate.server";
+import type { AIGeneratedRoom } from "@/features/estimate";
 import type { ScopeRoom } from "@/core/ai/server/openAiScopeAnalysis.server";
-import { useGenerateEstimate, useSaveAIEstimate } from "@/hooks/useAIEstimate";
+import { useGenerateEstimate, useSaveAIEstimate } from "@/features/estimate";
 import type { UKRegion } from "@/core/projects";
 import { UK_REGIONS } from "@/core/constants";
 import { normalizeAIEstimate, type NormalizedEstimateResult } from "@/core/ai";

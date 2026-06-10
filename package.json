@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
-    "build:vercel": "vite build --config vite.vercel.config.ts",
+    "build:vercel": "NODE_OPTIONS=--max-old-space-size=4096 vite build --config vite.vercel.config.ts",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",

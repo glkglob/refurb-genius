@@ -79,32 +79,12 @@ export const generateRedesignConceptsServerFn = createServerFn({ method: "POST" 
   });
 
 // ──────────────────────────────────────────────────────────────
-// AI estimate generation
+// AI estimate generation — moved to the estimate feature slice.
+// Re-exported here as a legacy shim; import from
+// "@/features/estimate" in new code.
 // ──────────────────────────────────────────────────────────────
 
-const generateEstimateInputSchema = z.object({
-  propertyType: z.string().min(1),
-  bedrooms: z.number().int().min(0).max(20),
-  bathrooms: z.number().int().min(0).max(10).optional(),
-  region: z.string().min(1),
-  postcode: z.string().optional(),
-  condition: z.string().min(1),
-  requirements: z.string(),
-  sizeSqm: z.number().positive().optional(),
-});
-
-export const generateEstimateServerFn = createServerFn({ method: "POST" })
-  .inputValidator((input: unknown) => generateEstimateInputSchema.parse(input))
-  .handler(async ({ data }) => {
-    const user = await requireServerAuth();
-    const key = rateLimitKeyForUser(user.id, "ai-estimate");
-    const rl = checkRateLimit(key);
-    if (!rl.allowed) {
-      throw new Error(`Rate limit exceeded. Try again in ${rl.retryAfter || 60}s.`);
-    }
-    const { runSecureEstimateGeneration } = await import("./server/openAiEstimate.server");
-    return runSecureEstimateGeneration(data);
-  });
+export { generateEstimateServerFn } from "@/features/estimate/presentation/serverFns";
 
 // ──────────────────────────────────────────────────────────────
 // AI scope analysis (photo → condition + costed scope)

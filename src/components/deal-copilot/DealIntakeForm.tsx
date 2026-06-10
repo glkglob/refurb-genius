@@ -3,7 +3,7 @@ import { Calculator, CheckCircle2, CircleAlert, Loader2, Zap } from "lucide-reac
 import { toast } from "sonner";
 import { trackDealAnalyzed } from "@/lib/analytics";
 
-import { useGenerateEstimate } from "@/hooks/useAIEstimate";
+import { useGenerateEstimate } from "@/features/estimate";
 import type { GenerateEstimateInput, AIGeneratedRoom } from "@/core/ai";
 import { getRegionalMultiplier, calculateLineItem, calculateEstimateTotals } from "@/core/pricing";
 

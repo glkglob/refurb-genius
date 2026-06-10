@@ -20,7 +20,7 @@ import { pitchDecksByProjectQueryOptions } from "@/lib/queries/pitch-decks";
 import { floorplansByProjectQueryOptions } from "@/lib/queries/floorplans";
 import type { ProjectWithProgress } from "@/lib/mappers";
 import type { Financials } from "@/lib/queries/projects";
-import type { PersistedRoomEstimate } from "@/lib/estimates";
+import type { PersistedRoomEstimate } from "@/features/estimate/infrastructure";
 import type { ProjectPhoto } from "@/lib/photos";
 import type { PhotoAnalysisResultRow } from "@/lib/queries/photo-analysis";
 
