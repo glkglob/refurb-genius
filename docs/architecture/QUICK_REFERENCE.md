@@ -8,7 +8,7 @@
 - `@/services/*`
 - `@/integrations/*`
 
-**Enforcement**: Automated enforcement is deferred until the documented migration baseline is complete; the invariant currently records this rule as a TODO in CI.
+**Enforcement**: Automated enforcement is deferred until the documented migration baseline in `docs/architecture/audit-2026-06-10.md` is complete; the invariant currently records this rule as a TODO in CI.
 
 ## Common Violations & Fixes
 
