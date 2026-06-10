@@ -1,0 +1,97 @@
+src/features/feasibility/presentation/index.ts
+  s_d3d1fa6e29ac8b::t_0da5425300fe2d 11-14
+  s_d3d1fa6e29ac8b::t_826744b32a2796 15
+src/features/feasibility/presentation/hooks/useProjectCatalog.ts
+  s_d3d1fa6e29ac8b::t_64ba8da54e3c12 1-61
+src/features/payment/index.ts
+  s_d3d1fa6e29ac8b::t_2300550f2d6493 6
+src/features/feasibility/domain/index.ts
+  s_d3d1fa6e29ac8b::t_fc2e8844010503 1-2
+src/features/feasibility/application/orchestrateFeasibility.ts
+  s_d3d1fa6e29ac8b::t_bf856c607431d1 2-3,93
+src/features/feasibility/presentation/hooks/useFeasibilityOrchestrator.ts
+  s_d3d1fa6e29ac8b::t_e74bd54b09b8f8 157
+  s_d3d1fa6e29ac8b::t_d4577990f8a9c9 1-94,96-156,158-219
+src/features/export/presentation/hooks/useExportReport.ts
+  s_d3d1fa6e29ac8b::t_dcc33b5118678d 14,81,85-89
+  s_d3d1fa6e29ac8b::t_afac95167bed1c 12-13,15,75-80,82-84,90,93-101
+src/features/sharing/presentation/hooks/useShareLinks.ts
+  s_d3d1fa6e29ac8b::t_d0470b3f98fa12 5,24
+src/routes/_authed/studies.tsx
+  s_d3d1fa6e29ac8b::t_06ddf2c7048081 1-14,16-32,34-195
+  s_d3d1fa6e29ac8b::t_43c151698246aa 15,33
+src/features/feasibility/domain/stages.ts
+  s_d3d1fa6e29ac8b::t_e71a11f429c979 1-19
+src/components/Sidebar.tsx
+  s_d3d1fa6e29ac8b::t_c78929175150bc 18-19
+tests/invariants/routes.invariant.test.ts
+  s_d3d1fa6e29ac8b::t_f285268436e119 47-48
+docs/architecture/FEATURE_SLICE.md
+  s_d3d1fa6e29ac8b::t_4828126cbea101 17-18
+src/features/auth/presentation/index.ts
+  s_d3d1fa6e29ac8b::t_776e6c6460034a 1
+src/features/auth/index.ts
+  s_d3d1fa6e29ac8b::t_8a2d421ac80ad2 1-4
+src/features/feasibility/domain/feasibility.ts
+  s_d3d1fa6e29ac8b::t_7e7c3c078a9909 11-12
+src/components/MobileTopBar.tsx
+  s_d3d1fa6e29ac8b::t_bd60b4bdb514c3 41
+src/features/payment/application/hasProAccess.ts
+  s_d3d1fa6e29ac8b::t_6f53cd3cf80120 1-13
+src/features/feasibility/presentation/hooks/useFeasibilityStudies.ts
+  s_d3d1fa6e29ac8b::t_c8d9e4c4fcfd2e 4,30-33,67,78
+src/lib/analytics.ts
+  s_d3d1fa6e29ac8b::t_80c630f1d6aedd 23-25
+src/features/payment/application/index.ts
+  s_d3d1fa6e29ac8b::t_80a428c46c1751 4
+src/routes/_authed/projects.$id.index.tsx
+  s_d3d1fa6e29ac8b::t_9fbed2fdf54db9 159-160,166-173
+  s_d3d1fa6e29ac8b::t_cef7f71a23a357 161-165
+src/routes/auth.tsx
+  s_d3d1fa6e29ac8b::t_d0afd6902c18b4 8
+  s_d3d1fa6e29ac8b::t_5dcf7e477c7744 1-2,22
+  s_d3d1fa6e29ac8b::t_36652fdaa8ffdd 23
+src/routes/auth_.callback.tsx
+  s_d3d1fa6e29ac8b::t_481871a4e0b44b 15,27,46,67,73
+  s_d3d1fa6e29ac8b::t_db4047b0eac0ac 29
+src/routes/_authed/analyze.tsx
+  s_d3d1fa6e29ac8b::t_56f1411bf1ce55 26,57
+  s_d3d1fa6e29ac8b::t_6a1a9e63b75c4f 1-25,27,29,31-56,58-221,223-247,250-324,326-366,369-381
+  s_d3d1fa6e29ac8b::t_62d01d0e6b22a6 30,325
+src/routeTree.gen.ts
+  s_d3d1fa6e29ac8b::t_c1d0082ee5aa16 24,28,33,105-109,125-129,150-154,224,228,236,258,262,270,294,298,306,330,334,342,364,368,376,399,403,411,525-531,553-559,588-594,675-686,704,708,726,730
+src/routes/_authed/studies.$id.tsx
+  s_d3d1fa6e29ac8b::t_b199c3405c885b 2-9,11-14,17-19,35-41,43-85,88-93,98-104,111-112,118-119,122-123,127,131,133-136,139-161,163,165-167,169-171,173-174,177-179,181-190,192-200,203-213,216-234,237-239,241-262
+  s_d3d1fa6e29ac8b::t_52224c0d4aafc4 15,20-34,116
+  s_d3d1fa6e29ac8b::t_da8fc493c3fde8 201
+  s_d3d1fa6e29ac8b::t_02fd7257e69181 10,86-87,94-97,105-110,113-115,117,120-121,124-126,128-130,137-138,162,164,168,172,180,191,202,240
+  s_d3d1fa6e29ac8b::t_873023f0d7aee4 16,175-176,235-236
+  s_d3d1fa6e29ac8b::t_65381ffeac3293 1,42,132,214-215
+docs/architecture/routes.md
+  s_d3d1fa6e29ac8b::t_61bce6f4ea1a24 33-39
+src/components/floorplan/FloorplanViewer.tsx
+  s_d3d1fa6e29ac8b::t_33679759b6d409 429
+src/features/auth/presentation/AuthExperience.tsx
+  s_d3d1fa6e29ac8b::t_c1d0082ee5aa16 324-325,360-361,443-445,532-536,552-555,569-573,577-581,619-621
+  s_d3d1fa6e29ac8b::t_3a9a668bf08671 1-323,326-359,362-442,446-531,537-551,556-568,574-576,582-618,622-701
+src/routes/_authed/dashboard.tsx
+  s_d3d1fa6e29ac8b::t_ec8d0817f0fd0c 210
+  s_d3d1fa6e29ac8b::t_97afce62f106b6 213
+  s_d3d1fa6e29ac8b::t_3120ed535416f0 209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "241726ddddcd77b3ad811d9758d78ca0d75f51b2",
+  "prompts": {},
+  "sessions": {
+    "s_d3d1fa6e29ac8b": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "2b21ce67-969e-4171-b46a-1cfc001ce457",
+        "model": "unknown"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
