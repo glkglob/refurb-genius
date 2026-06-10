@@ -170,7 +170,7 @@ function DashboardContent() {
   return (
     <AppLayout
       title="Dashboard"
-      subtitle="Manage your refurbishment projects, trades jobs, and feasibility work."
+      subtitle="Manage refurbishment projects, trades jobs, and feasibility work from one premium workspace."
     >
       {/* Section 1 — Stats */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -270,7 +270,7 @@ function DashboardContent() {
 
       {/* Section 6 — Feasibility features */}
       <section>
-        <Card className="bg-muted/40 p-6">
+        <Card className="border-border/60 bg-card/70 p-6">
           <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
             Feasibility workspace
           </h2>
@@ -624,7 +624,7 @@ function StatCard({
   icon?: typeof Calculator;
 }) {
   return (
-    <Card className="border border-border/60 p-5 transition hover:shadow-sm">
+    <Card className="border border-border/60 bg-card/75 p-5">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground">
           {label}
@@ -651,7 +651,7 @@ function QuickActionCard({
   return (
     <Link
       to={to}
-      className="group flex min-h-[96px] flex-col justify-between rounded-xl border border-border/60 bg-card p-5 text-sm font-medium text-foreground transition-all hover:border-accent/30 hover:shadow-md active:scale-[0.985]"
+      className="group flex min-h-[100px] flex-col justify-between rounded-xl border border-border/60 bg-card/75 p-5 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg active:translate-y-0"
     >
       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent transition group-hover:bg-accent/15">
         <Icon className="h-4 w-4" />
@@ -679,7 +679,7 @@ function LiveFeatureCard({
   detail: string;
 }) {
   return (
-    <Card className="relative overflow-hidden border-border/60 bg-card/70">
+    <Card className="relative overflow-hidden border-border/60 bg-card/75">
       <CardContent className="p-6">
         <div className="flex items-start justify-between gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">

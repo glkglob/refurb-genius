@@ -84,31 +84,33 @@ export function PhotoUploadZone({
   }
 
   return (
-    <Card>
-      <CardContent className="space-y-4 p-4">
+    <Card className="border-border/60 bg-card/75">
+      <CardContent className="space-y-4 p-4 sm:p-5">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold">Capture Property Photos</h3>
-          <p className="text-xs text-muted-foreground">
+          <h3 className="text-sm font-semibold tracking-tight">Capture Property Photos</h3>
+          <p className="text-xs text-muted-foreground sm:text-sm">
             Take photos directly with your camera or upload from your library.
           </p>
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="grid gap-2 sm:grid-cols-2">
           <Button
             type="button"
             onClick={() => cameraInputRef.current?.click()}
             disabled={isLoading}
-            className="flex-1"
+            size="touch"
+            className="w-full justify-start"
           >
             <Camera className="h-4 w-4" />
-            Take Photo
+            Take Photo (Camera)
           </Button>
           <Button
             type="button"
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
             disabled={isLoading}
-            className="flex-1"
+            size="touch"
+            className="w-full justify-start"
           >
             <Image className="h-4 w-4" />
             Upload from Library
@@ -146,7 +148,10 @@ export function PhotoUploadZone({
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
               {previewPhotos.map((preview, index) => (
-                <div key={preview.key} className="group relative overflow-hidden rounded-md border">
+                <div
+                  key={preview.key}
+                  className="group relative overflow-hidden rounded-lg border border-border/60 bg-background/50"
+                >
                   <img
                     src={preview.url}
                     alt={preview.file.name}
@@ -156,7 +161,7 @@ export function PhotoUploadZone({
                   <button
                     type="button"
                     onClick={() => removePhoto(index)}
-                    className="absolute right-1 top-1 rounded-full bg-black/65 p-1 text-white opacity-0 transition group-hover:opacity-100"
+                    className="absolute right-1 top-1 rounded-full bg-black/65 p-1.5 text-white opacity-100 transition sm:opacity-0 sm:group-hover:opacity-100"
                     aria-label={`Remove ${preview.file.name}`}
                   >
                     <X className="h-3 w-3" />
@@ -167,7 +172,7 @@ export function PhotoUploadZone({
           </div>
         )}
 
-        <div className="flex items-start gap-2 rounded-md border border-border/60 bg-background/40 p-2 text-xs text-muted-foreground">
+        <div className="flex items-start gap-2 rounded-md border border-border/60 bg-background/40 p-2 text-xs text-muted-foreground sm:text-sm">
           <Upload className="mt-0.5 h-3.5 w-3.5 text-accent" />
           Use good lighting and multiple room angles for best AI analysis quality.
         </div>

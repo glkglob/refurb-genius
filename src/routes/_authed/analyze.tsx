@@ -4,11 +4,16 @@ import { z } from "zod";
 import {
   AlertCircle,
   ArrowRight,
+  Camera,
   CheckCircle2,
   Clock3,
+  FileDown,
   Loader2,
   PlayCircle,
   Save,
+  Sparkles,
+  TrendingUp,
+  Wrench,
 } from "lucide-react";
 import type { Project } from "@repo/types";
 import { AppLayout } from "@/components/AppLayout";
@@ -18,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { LoadingState } from "@/components/LoadingState";
 import { usePhotos, useUploadPhotos, PhotoUploadZone } from "@/features/ai-upload";
 import { useExportFeasibilityReport } from "@/features/export";
 import {
@@ -34,14 +41,54 @@ const searchSchema = z.object({
   studyId: z.string().optional(),
 });
 
-const STAGE_META: ReadonlyArray<{ stage: FeasibilityStage; label: string; description: string }> = [
-  { stage: FeasibilityStage.Upload, label: "Upload", description: "Property photos and intake" },
-  { stage: FeasibilityStage.Analysis, label: "Analysis", description: "AI room analysis" },
-  { stage: FeasibilityStage.Scope, label: "Scope", description: "Scope generation" },
-  { stage: FeasibilityStage.Redesign, label: "Redesign", description: "Concept generation" },
-  { stage: FeasibilityStage.Estimate, label: "Estimate", description: "Cost model" },
-  { stage: FeasibilityStage.Roi, label: "ROI", description: "Investment metrics" },
-  { stage: FeasibilityStage.Export, label: "Export", description: "Investor report" },
+const STAGE_META: ReadonlyArray<{
+  stage: FeasibilityStage;
+  label: string;
+  description: string;
+  icon: typeof Camera;
+}> = [
+  {
+    stage: FeasibilityStage.Upload,
+    label: "Upload",
+    description: "Property photos and intake",
+    icon: Camera,
+  },
+  {
+    stage: FeasibilityStage.Analysis,
+    label: "Analysis",
+    description: "AI room condition analysis",
+    icon: Sparkles,
+  },
+  {
+    stage: FeasibilityStage.Scope,
+    label: "Scope",
+    description: "Scope generation",
+    icon: Wrench,
+  },
+  {
+    stage: FeasibilityStage.Redesign,
+    label: "Redesign",
+    description: "Concept generation",
+    icon: Sparkles,
+  },
+  {
+    stage: FeasibilityStage.Estimate,
+    label: "Estimate",
+    description: "Cost model",
+    icon: TrendingUp,
+  },
+  {
+    stage: FeasibilityStage.Roi,
+    label: "ROI",
+    description: "Investment metrics",
+    icon: TrendingUp,
+  },
+  {
+    stage: FeasibilityStage.Export,
+    label: "Export",
+    description: "Investor report",
+    icon: FileDown,
+  },
 ];
 
 export const Route = createFileRoute("/_authed/analyze")({
@@ -74,6 +121,10 @@ function AnalyzeRoute() {
 
   const activeStageIndex = STAGE_META.findIndex((item) => item.stage === orchestrator.stage);
   const hasCompletedStudy = orchestrator.study?.status === "complete";
+  const progressValue = Math.max(
+    0,
+    Math.min(100, ((activeStageIndex + (hasCompletedStudy ? 1 : 0)) / STAGE_META.length) * 100),
+  );
 
   async function handleRunFullAnalysis() {
     try {
@@ -105,16 +156,17 @@ function AnalyzeRoute() {
   return (
     <AppLayout
       title="Unified Feasibility Study"
-      subtitle="Upload photos, run AI analysis, model ROI, and export investor-grade outputs in one flow."
+      subtitle="Upload photos, run AI analysis, model ROI, and export investor-grade outputs in one guided flow."
       actions={
         <Button
           onClick={handleRunFullAnalysis}
           disabled={!selectedProject || photos.length === 0 || orchestrator.isRunning}
+          size="touch"
         >
           {orchestrator.isRunning ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Running analysis...
+              Running full analysis...
             </>
           ) : (
             <>
@@ -125,31 +177,56 @@ function AnalyzeRoute() {
         </Button>
       }
     >
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-        <Card className="h-fit">
+      <Card className="mb-6 border-border/60 bg-card/70">
+        <CardContent className="space-y-3 p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-medium">Workflow progress</p>
+              <p className="text-xs text-muted-foreground">
+                {STAGE_META[Math.max(activeStageIndex, 0)]?.label ?? "Upload"} stage active
+              </p>
+            </div>
+            <Badge variant="secondary">{Math.round(progressValue)}% complete</Badge>
+          </div>
+          <Progress value={progressValue} />
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
+        <Card className="h-fit border-border/60 bg-card/70 lg:sticky lg:top-6">
           <CardHeader>
-            <CardTitle className="text-base">Workflow Progress</CardTitle>
-            <CardDescription>Single source of truth orchestrated by feasibility.</CardDescription>
+            <CardTitle className="text-base">Guided stages</CardTitle>
+            <CardDescription>
+              Tap a stage to review details and continue where you left off.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {STAGE_META.map((item, index) => {
               const completed = index < activeStageIndex || hasCompletedStudy;
               const active = item.stage === orchestrator.stage;
+              const Icon = item.icon;
               return (
                 <button
                   key={item.stage}
                   type="button"
                   onClick={() => orchestrator.setStage(item.stage)}
-                  className={`w-full rounded-lg border p-3 text-left transition ${
+                  aria-current={active ? "step" : undefined}
+                  className={`w-full rounded-xl border p-3 text-left ${
                     active
-                      ? "border-accent bg-accent/10"
+                      ? "border-accent/60 bg-accent/10 shadow-sm"
                       : completed
-                        ? "border-success/40 bg-success/10"
-                        : "border-border"
+                        ? "border-success/30 bg-success/10"
+                        : "border-border/60 bg-background/50"
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{item.label}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 text-sm font-medium">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-background/70 text-[11px]">
+                        {index + 1}
+                      </span>
+                      <Icon className="h-4 w-4 text-accent" />
+                      {item.label}
+                    </span>
                     {completed ? (
                       <CheckCircle2 className="h-4 w-4 text-success" />
                     ) : active ? (
@@ -158,12 +235,12 @@ function AnalyzeRoute() {
                       <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">{item.description}</p>
                 </button>
               );
             })}
 
-            <div className="rounded-lg border border-border p-3 text-xs text-muted-foreground">
+            <div className="rounded-lg border border-border/60 bg-background/50 p-3 text-xs text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Save className="h-3.5 w-3.5 text-accent" />
                 Autosave{" "}
@@ -176,55 +253,59 @@ function AnalyzeRoute() {
         </Card>
 
         <div className="space-y-4">
-          <Card>
+          <Card className="border-border/60 bg-card/70">
             <CardHeader>
-              <CardTitle className="text-base">Study Context</CardTitle>
+              <CardTitle className="text-base">Study context</CardTitle>
               <CardDescription>
-                Select a project and upload source photos before orchestration.
+                Choose a project and upload source photos before orchestration.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="project-id">Project</Label>
-                  <Input
-                    id="project-id"
-                    list="analyze-projects"
-                    value={search.projectId ?? ""}
-                    onChange={(event) =>
-                      navigate({
-                        to: "/analyze",
-                        search: { projectId: event.target.value, studyId: search.studyId },
-                        replace: true,
-                      })
-                    }
-                    placeholder={loadingProjects ? "Loading projects..." : "Select project ID"}
-                  />
-                  <datalist id="analyze-projects">
-                    {projects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name || project.address}
-                      </option>
-                    ))}
-                  </datalist>
-                </div>
+              {loadingProjects && projects.length === 0 ? (
+                <LoadingState label="Loading projects..." />
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="project-id">Project</Label>
+                    <Input
+                      id="project-id"
+                      list="analyze-projects"
+                      value={search.projectId ?? ""}
+                      onChange={(event) =>
+                        navigate({
+                          to: "/analyze",
+                          search: { projectId: event.target.value, studyId: search.studyId },
+                          replace: true,
+                        })
+                      }
+                      placeholder="Select project ID"
+                    />
+                    <datalist id="analyze-projects">
+                      {projects.map((project) => (
+                        <option key={project.id} value={project.id}>
+                          {project.name || project.address}
+                        </option>
+                      ))}
+                    </datalist>
+                  </div>
 
-                <div className="rounded-lg border border-border p-3 text-sm">
-                  <p>
-                    Photos: <span className="font-medium">{photos.length}</span>
-                  </p>
-                  <p>
-                    Current stage:{" "}
-                    <span className="font-medium capitalize">{orchestrator.stage}</span>
-                  </p>
-                  {orchestrator.study && (
+                  <div className="rounded-xl border border-border/60 bg-background/50 p-3 text-sm">
                     <p>
-                      Study:{" "}
-                      <span className="font-medium">{orchestrator.study.id.slice(0, 8)}</span>
+                      Photos uploaded: <span className="font-medium">{photos.length}</span>
                     </p>
-                  )}
+                    <p>
+                      Current stage:{" "}
+                      <span className="font-medium capitalize">{orchestrator.stage}</span>
+                    </p>
+                    {orchestrator.study && (
+                      <p>
+                        Study:{" "}
+                        <span className="font-medium">{orchestrator.study.id.slice(0, 8)}</span>
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex flex-wrap items-center gap-2">
                 <div className="w-full">
@@ -237,6 +318,7 @@ function AnalyzeRoute() {
                 <Button
                   type="button"
                   variant="outline"
+                  size="touch"
                   disabled={
                     !selectedProject || selectedUploadFiles.length === 0 || uploadPhotos.isPending
                   }
@@ -253,6 +335,15 @@ function AnalyzeRoute() {
               </div>
             </CardContent>
           </Card>
+
+          {orchestrator.isRunning && (
+            <Card className="border-accent/40 bg-accent/10">
+              <CardContent className="flex items-center gap-3 p-4 text-sm">
+                <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                Processing room analysis, scope, estimate, ROI, and export readiness...
+              </CardContent>
+            </Card>
+          )}
 
           {orchestrator.error && (
             <Alert variant="destructive">
@@ -286,7 +377,7 @@ function AnalyzeRoute() {
           />
 
           {orchestrator.stage === FeasibilityStage.Export && orchestrator.study && (
-            <Card>
+            <Card className="border-border/60 bg-card/70">
               <CardHeader>
                 <CardTitle className="text-base">Export & Persistence</CardTitle>
                 <CardDescription>
@@ -343,7 +434,7 @@ function StagePanel({
                 : "Export";
 
   return (
-    <Card>
+    <Card className="border-border/60 bg-card/70">
       <CardHeader>
         <CardTitle className="text-base">{sectionTitle}</CardTitle>
       </CardHeader>

@@ -4,6 +4,7 @@ import { Archive, Copy, FileText, PlayCircle, Share2 } from "lucide-react";
 import { z } from "zod";
 import { AppLayout } from "@/components/AppLayout";
 import { EmptyState } from "@/components/EmptyState";
+import { LoadingState } from "@/components/LoadingState";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,9 +64,9 @@ function StudiesRoute() {
   return (
     <AppLayout
       title="Study Dashboard"
-      subtitle="Resume unified analyses, manage snapshot lifecycle, and export investor reports."
+      subtitle="Resume analyses, manage snapshot lifecycle, and export investor-ready reports."
       actions={
-        <Button asChild>
+        <Button asChild size="touch">
           <Link to="/analyze" search={projectId ? { projectId } : undefined}>
             <PlayCircle className="h-4 w-4" />
             New Study
@@ -73,51 +74,55 @@ function StudiesRoute() {
         </Button>
       }
     >
-      <Card className="mb-6">
+      <Card className="mb-6 border-border/60 bg-card/70">
         <CardHeader>
-          <CardTitle className="text-base">Project Filter</CardTitle>
+          <CardTitle className="text-base">Project filter</CardTitle>
           <CardDescription>Select a project to view feasibility snapshots.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-[1fr_auto]">
-          <div>
-            <Input
-              list="study-projects"
-              value={projectId}
-              onChange={(event) => {
-                const nextProjectId = event.target.value;
-                setProjectId(nextProjectId);
-                navigate({ to: "/studies", search: { projectId: nextProjectId }, replace: true });
-              }}
-              placeholder={loadingProjects ? "Loading projects..." : "Select project ID"}
-            />
-            <datalist id="study-projects">
-              {projects.map((project) => (
-                <option key={project.id} value={project.id}>
-                  {project.name || project.address}
-                </option>
-              ))}
-            </datalist>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">Draft: {statusCounts.draft}</Badge>
-            <Badge variant="secondary">Complete: {statusCounts.complete}</Badge>
-            <Badge variant="secondary">Shared: {statusCounts.shared}</Badge>
-            <Badge variant="secondary">Archived: {statusCounts.archived}</Badge>
+        <CardContent className="space-y-4">
+          <Input
+            list="study-projects"
+            value={projectId}
+            onChange={(event) => {
+              const nextProjectId = event.target.value;
+              setProjectId(nextProjectId);
+              navigate({ to: "/studies", search: { projectId: nextProjectId }, replace: true });
+            }}
+            placeholder={loadingProjects ? "Loading projects..." : "Select project ID"}
+          />
+          <datalist id="study-projects">
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name || project.address}
+              </option>
+            ))}
+          </datalist>
+          <div className="grid gap-2 sm:grid-cols-4">
+            <Badge variant="secondary" className="justify-center py-1.5">
+              Draft: {statusCounts.draft}
+            </Badge>
+            <Badge variant="secondary" className="justify-center py-1.5">
+              Complete: {statusCounts.complete}
+            </Badge>
+            <Badge variant="secondary" className="justify-center py-1.5">
+              Shared: {statusCounts.shared}
+            </Badge>
+            <Badge variant="secondary" className="justify-center py-1.5">
+              Archived: {statusCounts.archived}
+            </Badge>
           </div>
         </CardContent>
       </Card>
 
       {loadingStudies ? (
-        <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">Loading studies…</CardContent>
-        </Card>
+        <LoadingState label="Loading studies..." />
       ) : snapshots.length === 0 ? (
         <EmptyState
           icon={FileText}
           title="No feasibility studies yet"
           description="Start a unified feasibility analysis and your snapshots will appear here."
           action={
-            <Button asChild>
+            <Button asChild size="touch">
               <Link to="/analyze" search={projectId ? { projectId } : undefined}>
                 Start analysis
               </Link>
@@ -127,7 +132,7 @@ function StudiesRoute() {
       ) : (
         <div className="space-y-3">
           {snapshots.map((snapshot) => (
-            <Card key={snapshot.studyId}>
+            <Card key={snapshot.studyId} className="border-border/60 bg-card/70">
               <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <div className="flex items-center gap-2">

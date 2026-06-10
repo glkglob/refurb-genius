@@ -337,7 +337,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
   return (
     <AuthPageShell>
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-2xl border border-border/60 bg-card/80 shadow-2xl shadow-black/40 backdrop-blur-sm lg:grid-cols-[1.1fr_1fr]">
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-border/60 bg-card/80 shadow-2xl shadow-black/45 backdrop-blur-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 lg:grid-cols-[1.1fr_1fr]">
         <div className="relative hidden border-r border-border/60 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8 lg:block">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(45,212,191,0.14),transparent_40%),radial-gradient(circle_at_80%_70%,rgba(59,130,246,0.14),transparent_35%)]" />
           <div className="relative flex h-full flex-col">
@@ -407,7 +407,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
               <Button
                 type="button"
                 variant={isSignIn ? "default" : "ghost"}
-                className="w-full"
+                className="h-10 w-full"
                 onClick={() => switchMode("signin")}
                 aria-pressed={isSignIn}
               >
@@ -416,7 +416,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
               <Button
                 type="button"
                 variant={isSignUp ? "default" : "ghost"}
-                className="w-full"
+                className="h-10 w-full"
                 onClick={() => switchMode("signup")}
                 aria-pressed={isSignUp}
               >
@@ -431,14 +431,18 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
           </div>
 
           {error && (
-            <Alert variant="destructive" className="mb-4">
+            <Alert variant="destructive" className="mb-4" role="alert" aria-live="polite">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
           {isLocked && isSignIn && !error && (
-            <Alert className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-200">
+            <Alert
+              className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-200"
+              role="status"
+              aria-live="polite"
+            >
               <Lock className="h-4 w-4" />
               <AlertDescription>
                 Temporarily locked. Try again in {remainingSeconds}s.
@@ -625,7 +629,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
               <Button
                 type="button"
                 variant="secondary"
-                className="w-full"
+                className="h-10 w-full"
                 onClick={handleGoogleAuth}
                 disabled={formDisabled || (isSignIn && isLocked)}
               >

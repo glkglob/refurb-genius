@@ -22,14 +22,14 @@ export function EmptyState({
       className={`flex flex-col items-center justify-center rounded-2xl text-center ${
         isSubtle
           ? "border border-border/60 bg-muted/30 p-8"
-          : "border border-dashed border-border bg-card p-10 sm:p-12"
+          : "glass-panel border-dashed p-10 sm:p-12"
       }`}
     >
       <div
         className={`flex items-center justify-center rounded-full ${
           isSubtle
             ? "h-10 w-10 bg-background text-muted-foreground"
-            : "h-12 w-12 bg-secondary text-muted-foreground"
+            : "h-12 w-12 border border-border/60 bg-secondary/70 text-muted-foreground"
         }`}
       >
         <Icon className={isSubtle ? "h-5 w-5" : "h-6 w-6"} />
