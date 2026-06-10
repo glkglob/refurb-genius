@@ -1,0 +1,19 @@
+src/features/ai-upload/presentation/components/PhotoUploadZone.tsx
+  s_d3d1fa6e29ac8b::t_6eb2f72d0b8a01 1,8,26,29,33,38,47-52,54-55,57-58,63,69-74,78-79,83,136,140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "6043bbe4d935ba7bc4b2a43e267458e3f9d19b44",
+  "prompts": {},
+  "sessions": {
+    "s_d3d1fa6e29ac8b": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "2b21ce67-969e-4171-b46a-1cfc001ce457",
+        "model": "unknown"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
