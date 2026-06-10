@@ -1,2 +1,10 @@
 // Photo — uploaded property photo metadata.
-export type { ProjectPhoto as Photo } from "@/lib/photos";
+export type Photo = {
+  id: string;
+  projectId: string;
+  url: string;
+  name: string;
+  size: number;
+  uploadedAt: string;
+  storagePath: string;
+};

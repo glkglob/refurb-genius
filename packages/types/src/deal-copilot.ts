@@ -1,4 +1,8 @@
-import type { ConditionLevel, EstimateCategory, FinishLevel, UKRegion } from "./index";
+import type { Estimate } from "./estimate";
+import type { InvestmentMetrics } from "./metrics";
+import type { ConditionLevel } from "./analysis";
+import type { EstimateCategory, FinishLevel } from "./estimate";
+import type { UKRegion } from "./project";
 
 /**
  * Normalized form input ready for engine consumption.
@@ -33,14 +37,17 @@ export interface ParsedDealFormData {
  */
 export interface DealAnalysisResult {
   /** Readiness & recommendation from dealScore engine */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  score: any; // @repo/services.DealScoreResult
+  score: {
+    ready: boolean;
+    score: number | null;
+    recommendation: string;
+    reasons: string[];
+    missingFields: string[];
+  };
   /** Cost estimation from pricing engine (null if incomplete) */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  pricing: any | null; // @repo/services.PricingEngineResult
+  pricing: Estimate | null;
   /** ROI/yield/metrics from ROI engine (null if incomplete) */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  roi: any | null; // @repo/services.RoiEngineResult
+  roi: InvestmentMetrics | null;
   /** True if all required fields present and analysis complete */
   ready: boolean;
   /** Array of validation errors or missing field names */

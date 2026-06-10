@@ -11,6 +11,7 @@ export type {
   PropertyType,
   UKRegion,
 } from "./project";
+export { PROPERTY_TYPES, UK_REGIONS } from "./project";
 export type { Photo } from "./photo";
 // Note: Analysis / Redesign types now consolidated under ./ai (Phase 1 AI platform contracts).
 // The old per-domain files still exist for compat but we avoid duplicate export names here.
@@ -23,6 +24,7 @@ export type {
 } from "./estimate";
 export type { InvestmentMetrics, RiskLevel } from "./metrics";
 export type { Report } from "./report";
+export type { ReportMetadata } from "./report";
 
 // Deal types
 export type {
@@ -106,7 +108,19 @@ export type {
 } from "./marketplace";
 export type { PhotoAnalysisResult } from "./photo-analysis";
 export type { PitchDeckExport } from "./pitch-deck";
-export type { PublicGalleryProject, InvestorLead, GalleryProjectWithLeads } from "./gallery";
+export type {
+  PublicGalleryProject,
+  InvestorLead,
+  GalleryProjectWithLeads,
+  GalleryOwnerContext,
+  GalleryPublishInput,
+} from "./gallery";
+export type {
+  CheckoutSession as PaymentCheckoutSession,
+  PaymentIntent,
+  PaymentIntentStatus,
+  PaymentWebhookVerification,
+} from "./payment";
 
 // Deal Copilot orchestration types
 export type { ParsedDealFormData, DealAnalysisResult } from "./deal-copilot";

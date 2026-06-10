@@ -1,4 +1,4 @@
-import type { PropertyType } from "@/lib/projects";
+import type { PropertyType } from "./project";
 
 export type DealExitStrategy = "flip" | "buy_to_let" | "brrr" | "airbnb" | "hmo" | "hold";
 

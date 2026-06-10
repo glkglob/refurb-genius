@@ -8,7 +8,13 @@
  */
 import { createBrowserSupabase } from "@repo/supabase/browser";
 import { resolveSupabaseEnv } from "@repo/supabase/env";
+import { createAnalytics } from "@/platform/analytics";
+import { createAuthProvider } from "@/platform/auth";
+import { createLogger } from "@/platform/logger";
+import { createPaymentProvider } from "@/platform/payments";
 import { posthog } from "@/platform/posthog/browser";
+import { createSentry } from "@/platform/sentry";
+import { createStorage } from "@/platform/storage";
 
 export const platform = {
   supabase: {
@@ -17,6 +23,24 @@ export const platform = {
   },
   posthog: {
     client: posthog,
+  },
+  auth: {
+    createProvider: createAuthProvider,
+  },
+  analytics: {
+    createClient: createAnalytics,
+  },
+  logger: {
+    createClient: createLogger,
+  },
+  sentry: {
+    createClient: createSentry,
+  },
+  payments: {
+    createProvider: createPaymentProvider,
+  },
+  storage: {
+    createClient: createStorage,
   },
 } as const;
 

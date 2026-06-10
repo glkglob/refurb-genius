@@ -9,7 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { Component, useEffect } from "react";
 import type { ErrorInfo, ReactNode } from "react";
-import { PostHogProvider } from "@/platform/posthog/browser";
+import { PostHogProvider, initPostHog, posthog } from "@/platform/posthog/browser";
 
 import { Toaster } from "@/components/ui/sonner";
 import { captureException } from "@/lib/sentry";
@@ -159,26 +159,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: React.ReactNode }) {
+  const posthogApiKey = import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN;
+
   return (
     <html lang="en">
       <head>
         <HeadContent />
       </head>
       <body>
-        <PostHogProvider
-          apiKey={import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN as string}
-          options={{
-            api_host: import.meta.env.VITE_PUBLIC_POSTHOG_HOST as string,
-            autocapture: false,
-            capture_pageview: false,
-            capture_pageleave: false,
-            persistence: "localStorage+cookie",
-            person_profiles: "identified_only",
-            capture_exceptions: true,
-          }}
-        >
-          {children}
-        </PostHogProvider>
+        {posthogApiKey ? (
+          <PostHogProvider client={posthog}>
+            {children}
+          </PostHogProvider>
+        ) : (
+          children
+        )}
         <Scripts />
       </body>
     </html>
@@ -257,6 +252,9 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundary
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useEffect(() => {
+    initPostHog();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

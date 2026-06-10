@@ -15,3 +15,10 @@ export type Report = {
   metrics: InvestmentMetrics;
   generated_at: string;
 };
+
+export type ReportMetadata = {
+  generated_at: string;
+  project_id: string;
+  exported_by_user_id?: string;
+  version?: string;
+};

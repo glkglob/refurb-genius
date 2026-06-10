@@ -8,10 +8,11 @@
 | `ai-upload` | Standardized | `354e556`, `3acf34e3`, `b2c5827`, `735787c` | Photo pipeline wired; domain enums pending `@repo/types` move |
 | `ai-design` | Standardized | `354e556`, `3acf34e3`, `735787c`            | Redesign catalog + orchestrator still in legacy `lib`/`core`  |
 | `export`    | Scaffolded   | —                                           | Slice scaffolded; initial PDF export pipeline added           |
-| `gallery`   | Planned      | —                                           | Not started                                                   |
+| `payment`   | Scaffolded   | —                                           | Slice scaffolded; checkout + webhook application stubs added  |
+| `gallery`   | Scaffolded   | —                                           | Slice scaffolded; owner/publishing application stubs added    |
 
 Remaining work: full layer isolation for `ai-*` slices (types-package cleanup,
-orchestrator extraction), then `export` and `gallery` slices.
+orchestrator extraction), then wiring `export`, `payment`, and `gallery` implementations.
 
 **Key rules** (details below):
 
@@ -103,11 +104,18 @@ src/
 │   │   └── index.ts           # Slice public API (domain + application + presentation)
 │   ├── ai-upload/             # Photo upload + vision analysis      (★ migrated)
 │   ├── ai-design/             # Redesign concepts + scope analysis  (★ migrated)
-│   ├── export/                # PDF / CSV export                    (planned)
-│   ├── gallery/               # Public project gallery              (planned)
+│   ├── export/                # PDF / CSV export                    (scaffolded)
+│   ├── payment/               # Checkout + webhook flows            (scaffolded)
+│   ├── gallery/               # Public project gallery              (scaffolded)
 │   └── ...
 ├── platform/                  # Vendor abstractions (Supabase, OpenAI, PostHog, …)
 │   ├── browser.ts / server.ts # separate aggregates — never a mixed index barrel
+│   ├── payments/              # payment provider seam (factory)
+│   ├── storage/               # storage abstraction seam (factory)
+│   ├── logger/                # logger seam (factory)
+│   ├── auth/                  # auth seam (factory)
+│   ├── analytics/             # analytics seam (factory)
+│   ├── sentry/                # sentry seam (factory)
 │   ├── supabase/              # browser.ts / server.ts
 │   ├── openai/                # server.ts only (server-only SDK)
 │   └── posthog/               # browser.ts / server.ts / otel.server.ts

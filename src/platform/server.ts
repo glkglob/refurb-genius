@@ -7,8 +7,11 @@
  * factories with `getCookies()` from `@tanstack/react-start/server`.
  */
 import { createServerSupabase, createTokenSupabase } from "@repo/supabase/server";
+import { createLogger } from "@/platform/logger";
 import { getOpenAIClient } from "@/platform/openai/server";
+import { createPaymentProvider } from "@/platform/payments";
 import { getPostHogServerClient } from "@/platform/posthog/server";
+import { createStorage } from "@/platform/storage";
 
 export const platform = {
   supabase: {
@@ -20,6 +23,15 @@ export const platform = {
   },
   posthog: {
     getServerClient: getPostHogServerClient,
+  },
+  logger: {
+    createClient: createLogger,
+  },
+  payments: {
+    createProvider: createPaymentProvider,
+  },
+  storage: {
+    createClient: createStorage,
   },
 } as const;
 

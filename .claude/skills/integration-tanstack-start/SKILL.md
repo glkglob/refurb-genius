@@ -47,12 +47,12 @@ The example project shows the target implementation pattern. Consult the documen
 - Do NOT use useEffect to notify parent components - call the parent callback alongside setState in the event handler
 - To reset component state when a prop changes, pass the prop as the component's key instead of using useEffect
 - useEffect is ONLY for synchronizing with external systems (non-React widgets, browser APIs, network subscriptions)
-- Use PostHogProvider in the root route (\_\_root.tsx) for client-side tracking
+- Use PostHogProvider in the root route (__root.tsx) for client-side tracking
 - Use posthog-node for server-side event capture in API routes (src/routes/api/) - do NOT use posthog-js on the server
 - Create a singleton PostHog server client to avoid re-initialization on every request
 - Use TanStack Router's built-in navigation events for pageview tracking instead of useEffect
-- Use PostHogProvider in the root component defined in either the file-based convention (\_\_root.tsx) or code-based convention (wherever createRootRoute() is called) so all child routes have access to the PostHog client
-- When a reverse proxy is configured, both /static/_ AND /array/_ must route to the assets origin (us-assets.i.posthog.com or eu-assets.i.posthog.com).
+- Use PostHogProvider in the root component defined in either the file-based convention (__root.tsx) or code-based convention (wherever createRootRoute() is called) so all child routes have access to the PostHog client
+- When a reverse proxy is configured, both /static/* AND /array/* must route to the assets origin (us-assets.i.posthog.com or eu-assets.i.posthog.com).
 
 ## Identifying users
 

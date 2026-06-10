@@ -1,6 +1,32 @@
 // Project — canonical shape consumed across the app and future products.
 // Mirrors the `projects` table plus a few derived fields kept in app state.
-import type { Project as DbProject } from "@/lib/projects";
+import type { ConditionLevel, RefurbLevel } from "./analysis";
+
+export const PROPERTY_TYPES = [
+  "Flat",
+  "Terraced",
+  "Semi-detached",
+  "Detached",
+  "HMO",
+  "Bungalow",
+] as const;
+export type PropertyType = (typeof PROPERTY_TYPES)[number];
+
+export const UK_REGIONS = [
+  "London",
+  "South East England",
+  "South West England",
+  "East of England",
+  "East Midlands",
+  "West Midlands",
+  "North West England",
+  "North East England",
+  "Yorkshire and the Humber",
+  "Scotland",
+  "Wales",
+  "Northern Ireland",
+] as const;
+export type UKRegion = (typeof UK_REGIONS)[number];
 
 export type ProjectStatus = "Draft" | "Analysing" | "Estimated" | "Complete";
 
@@ -9,10 +35,26 @@ export type ProjectStatus = "Draft" | "Analysing" | "Estimated" | "Complete";
 // estimated_gdv, notes, status, created_at) plus optional extension fields
 // for property condition / refurbishment level / updated_at that future
 // migrations may add. Optional today, required-ready tomorrow.
-export type Project = DbProject & {
-  property_condition?: import("./analysis").ConditionLevel;
-  refurbishment_level?: import("./analysis").RefurbLevel;
+export type Project = {
+  id: string;
+  user_id: string;
+  name: string;
+  address: string;
+  postcode: string;
+  region: UKRegion;
+  property_type: PropertyType;
+  bedrooms: number;
+  bathrooms: number;
+  size_sqm: number;
+  purchase_price: number;
+  estimated_gdv: number;
+  notes: string;
+  created_at: string;
+  status: ProjectStatus;
+  property_condition?: ConditionLevel;
+  refurbishment_level?: RefurbLevel;
   updated_at?: string;
 };
 
-export type { NewProjectInput, ProjectStage, PropertyType, UKRegion } from "@/lib/projects";
+export type NewProjectInput = Omit<Project, "id" | "user_id" | "created_at" | "status">;
+export type ProjectStage = "photos" | "analysis" | "estimate" | "report";

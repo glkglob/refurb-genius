@@ -26,3 +26,15 @@ export type InvestorLead = {
 export type GalleryProjectWithLeads = PublicGalleryProject & {
   leads: InvestorLead[];
 };
+
+export type GalleryOwnerContext = {
+  userId: string;
+  projectId: string;
+};
+
+export type GalleryPublishInput = GalleryOwnerContext & {
+  isPublic: boolean;
+  title?: string | null;
+  description?: string | null;
+  coverImageUrl?: string | null;
+};
