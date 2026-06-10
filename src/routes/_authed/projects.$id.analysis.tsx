@@ -15,11 +15,9 @@ import {
   loadPhotoAnalysis,
   runPhotoAnalysis,
   type RoomAnalysis,
-  generateRedesignConcepts,
-} from "@/core/ai";
-import type { RedesignConcept } from "@/core/ai";
+} from "@/features/ai-upload";
+import { generateRedesignConcepts, type RedesignConcept, REDESIGN_CONCEPTS } from "@/core/ai";
 import { DISCLAIMER } from "@/core/reports";
-import { REDESIGN_CONCEPTS } from "@/core/ai";
 import { useProject, useSetProjectStage } from "@/hooks/useProjects";
 import { trackEvent } from "@/lib/analytics";
 

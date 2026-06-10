@@ -7,11 +7,8 @@
 
 import type { ScopeAnalysisInput, ScopeAnalysisResult } from "../server/openAiScopeAnalysis.server";
 import type { GenerateEstimateInput, AIGeneratedRoom } from "../server/openAiEstimate.server";
-import {
-  runPhotoAnalysisServerFn,
-  runScopeAnalysisServerFn,
-  generateEstimateServerFn,
-} from "../serverFns";
+import { runPhotoAnalysisServerFn } from "@/features/ai-upload/presentation/serverFns";
+import { runScopeAnalysisServerFn, generateEstimateServerFn } from "../serverFns";
 
 export type AIOrchestrationMode = "fast" | "balanced" | "high-quality";
 

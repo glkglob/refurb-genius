@@ -4,52 +4,18 @@
 // These schemas are the source of truth for what constitutes a "valid" AI result.
 
 import { z } from "zod";
-import type {
-  RoomType,
-  ConditionLevel,
-  RefurbLevel,
-  RoomAnalysis,
-  AnalysisSource,
-} from "./mockAnalysis";
 
-// Re-export enums for convenience (single source in mockAnalysis today)
-export { ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "./mockAnalysis";
-
-export const roomTypeSchema = z.enum([
-  "Kitchen",
-  "Bathroom",
-  "Bedroom",
-  "Living Room",
-  "Hallway",
-  "Exterior",
-  "Garden",
-  "Other",
-] as const);
-
-export const conditionLevelSchema = z.enum([
-  "Modern",
-  "Average",
-  "Dated",
-  "Poor",
-  "Full Renovation Needed",
-] as const);
-
-export const refurbLevelSchema = z.enum(["Light", "Medium", "Heavy", "Full"] as const);
-
-export const analysisSourceSchema = z.enum(["ai", "mock", "fallback", "persisted"] as const);
-
-// Photo analysis (vision per-room)
-export const roomAnalysisSchema = z.object({
-  room_type: roomTypeSchema,
-  condition_level: conditionLevelSchema,
-  refurbishment_level: refurbLevelSchema,
-  visible_issues: z.array(z.string()).max(6).default([]),
-  recommended_works: z.array(z.string()).max(6).default([]),
-  ai_summary: z.string().max(400).default(""),
-  confidence_score: z.number().min(0).max(1).default(0.7),
-});
-
-export type ValidatedRoomAnalysisInput = z.infer<typeof roomAnalysisSchema>;
+// Vision schemas — canonical source is the ai-upload slice domain.
+export { ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/features/ai-upload/domain";
+export {
+  roomTypeSchema,
+  conditionLevelSchema,
+  refurbLevelSchema,
+  analysisSourceSchema,
+  roomAnalysisSchema,
+  safeParseRoomAnalysis,
+  type ValidatedRoomAnalysisInput,
+} from "@/features/ai-upload/domain/validation";
 
 // Scope analysis
 export const scopeSeveritySchema = z.enum(["low", "medium", "high", "critical"]);
@@ -126,12 +92,6 @@ export const redesignConceptTextSchema = z.object({
 });
 
 export type ValidatedRedesignConceptText = z.infer<typeof redesignConceptTextSchema>;
-
-// Helpers: safe parse with graceful fallback to defaults (never throw to caller)
-export function safeParseRoomAnalysis(raw: unknown): Partial<ValidatedRoomAnalysisInput> {
-  const res = roomAnalysisSchema.safeParse(raw);
-  return res.success ? res.data : {};
-}
 
 export function safeParseScopeResult(raw: unknown): ValidatedScopeAnalysisResult | null {
   const res = scopeAnalysisResultSchema.safeParse(raw);

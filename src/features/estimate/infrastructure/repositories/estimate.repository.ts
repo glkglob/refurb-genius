@@ -8,7 +8,7 @@ import { supabase } from "@/platform/supabase/browser";
 import { logger } from "@/lib/logger";
 import type { Database } from "@repo/supabase";
 import type { EstimateCategory, FinishLevel, PricingEngineResult } from "@/core/pricing";
-import type { ConditionLevel } from "@/core/ai";
+import type { ConditionLevel } from "@/features/ai-upload/domain";
 import type { CalculatedLineItem } from "@/core/pricing";
 import type { UKRegion } from "@/lib/projects";
 import { auth } from "@/lib/auth";

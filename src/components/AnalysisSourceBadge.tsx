@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { FlaskConical, AlertCircle } from "lucide-react";
-import type { AnalysisSource } from "@/core/ai";
+import type { AnalysisSource } from "@/features/ai-upload";
 
 /**
  * Renders a source badge for RoomAnalysis results.

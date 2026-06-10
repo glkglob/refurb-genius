@@ -12,6 +12,7 @@
 // TODO(refurb-iq): specification writer, scope-of-works prose, and snag
 // descriptions extend this module via new providers.
 
+// Photo analysis — moved to the ai-upload feature slice (shim re-exports).
 export {
   photoAnalysisProvider,
   mockPhotoAnalysisProvider,
@@ -19,8 +20,17 @@ export {
   loadPhotoAnalysis,
   runPhotoAnalysis,
   subscribePhotoAnalysis,
-} from "./photoAnalysis";
-export type { AnalysisSource, PhotoAnalysisProvider, PhotoAnalysisInput } from "./photoAnalysis";
+  runPhotoAnalysisServerFn,
+} from "@/features/ai-upload";
+export type {
+  AnalysisSource,
+  PhotoAnalysisProvider,
+  PhotoAnalysisInput,
+  RoomAnalysis,
+  RoomType,
+  ConditionLevel,
+  RefurbLevel,
+} from "@/features/ai-upload";
 
 export {
   redesignProvider,
@@ -59,9 +69,9 @@ export type {
 } from "./server/openAiScopeAnalysis.server";
 
 // Legacy exports — pages currently import these directly. New code should
-// prefer the provider helpers above.
-export { analysisStore, ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/lib/analysis";
-export type { RoomAnalysis, RoomType, ConditionLevel, RefurbLevel } from "@/lib/analysis";
+// prefer `@/features/ai-upload`.
+export { analysisStore } from "@/features/ai-upload/infrastructure";
+export { ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/features/ai-upload/domain";
 
 export { REDESIGN_CONCEPTS, REDESIGN_STYLES } from "@/lib/redesign";
 export type { RedesignConcept, RedesignStyle } from "@/lib/redesign";

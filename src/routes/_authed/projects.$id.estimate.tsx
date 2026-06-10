@@ -38,7 +38,7 @@ import {
   GripVertical,
 } from "lucide-react";
 import { type UKRegion } from "@/core/projects";
-import { type ConditionLevel } from "@/core/ai";
+import { type ConditionLevel } from "@/features/ai-upload";
 import type { ScopeRoom } from "@/core/ai/server/openAiScopeAnalysis.server";
 import { useProject, useSetProjectStage, type ProjectWithProgress } from "@/hooks/useProjects";
 import {

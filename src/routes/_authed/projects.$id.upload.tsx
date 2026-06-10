@@ -8,7 +8,7 @@ import { formatFileSize } from "@/core/projects";
 import { Upload, ImagePlus, X, Sparkles, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import { useRef, useState } from "react";
 import { useProject, useSetProjectStage } from "@/hooks/useProjects";
-import { usePhotos, useUploadPhotos, useRemovePhoto } from "@/hooks/usePhotos";
+import { usePhotos, useUploadPhotos, useRemovePhoto } from "@/features/ai-upload";
 import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/_authed/projects/$id/upload")({

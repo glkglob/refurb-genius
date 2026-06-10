@@ -16,7 +16,7 @@ onboarding slow, encourages god-modules (`src/lib/estimates.ts`,
 grab-bag modules.
 
 Feature-Slice Architecture organises code by **business capability** (vertical
-slice), with **Clean Architecture** layering *inside* each slice and a
+slice), with **Clean Architecture** layering _inside_ each slice and a
 **platform boundary** that isolates vendor SDKs.
 
 ---
@@ -32,7 +32,7 @@ src/
 │   │   ├── infrastructure/    # Port implementations: DB repos, AI adapters
 │   │   ├── presentation/      # Components, hooks, serverFns, route wiring
 │   │   └── index.ts           # Slice public API (domain + application + presentation)
-│   ├── ai-upload/             # Photo-to-estimate pipeline          (planned)
+│   ├── ai-upload/             # Photo upload + vision analysis      (★ migrated)
 │   ├── ai-design/             # AI redesign concept generation      (planned)
 │   ├── export/                # PDF / CSV export                    (planned)
 │   ├── gallery/               # Public project gallery              (planned)
@@ -46,7 +46,7 @@ src/
 └── core/                      # Legacy domain dirs (migrate into slices over time)
 ```
 
-The existing `@repo/*` workspace packages are unchanged and sit *below* the
+The existing `@repo/*` workspace packages are unchanged and sit _below_ the
 slices as a **shared kernel**:
 
 ```
@@ -67,12 +67,12 @@ src/features/* (slices)        src/routes (presentation shell)
 
 ## Layer rules (inside a slice)
 
-| Layer            | May import                                                            | Must NOT import                                  |
-| ---------------- | --------------------------------------------------------------------- | ------------------------------------------------ |
-| `domain/`        | `@repo/types`, `@repo/core`, `@repo/services` (shared kernel)         | Anything with IO: platform, infra, React, Supabase, OpenAI |
-| `application/`   | own `domain/`, shared kernel                                          | `infrastructure/`, `presentation/`, vendor SDKs, React |
-| `infrastructure/`| own `application/` ports + `domain/`, `src/platform/*`, shared kernel | `presentation/`, other slices' internals          |
-| `presentation/`  | own `application/` + `domain/` + `infrastructure/` (wiring only), React, TanStack | other slices' `infrastructure/`         |
+| Layer             | May import                                                                        | Must NOT import                                            |
+| ----------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| `domain/`         | `@repo/types`, `@repo/core`, `@repo/services` (shared kernel)                     | Anything with IO: platform, infra, React, Supabase, OpenAI |
+| `application/`    | own `domain/`, shared kernel                                                      | `infrastructure/`, `presentation/`, vendor SDKs, React     |
+| `infrastructure/` | own `application/` ports + `domain/`, `src/platform/*`, shared kernel             | `presentation/`, other slices' internals                   |
+| `presentation/`   | own `application/` + `domain/` + `infrastructure/` (wiring only), React, TanStack | other slices' `infrastructure/`                            |
 
 Cross-slice rules:
 
@@ -193,7 +193,9 @@ export interface EstimateRepository {
 export interface EstimateService {
   createEstimate(command: CreateEstimateCommand): Promise<CreateEstimateResult>;
 }
-export function makeEstimateService(deps: { estimates: EstimateRepository }): EstimateService { /* … */ }
+export function makeEstimateService(deps: { estimates: EstimateRepository }): EstimateService {
+  /* … */
+}
 ```
 
 ### 3. Infrastructure — port implementations
@@ -239,6 +241,30 @@ project constraints:
 - **Union types (`UKRegion`, `ConditionLevel`, …) come from `@repo/types`** —
   never re-declared as string literals in a slice.
 
+### ai-upload deviations (deliberate)
+
+These differ from the estimate slice because the photo pipeline spans browser
+cache, Supabase `room_analyses`, and a client-side provider:
+
+- **Room-analysis enums live in slice `domain/types.ts`** (`RoomType`,
+  `ConditionLevel`, `RefurbLevel`, `AnalysisSource`) — not yet in `@repo/types`
+  as canonical unions. `@repo/types/ai.ts` still re-exports via legacy shims
+  until a types-package cleanup pass.
+- **Mock vision data stays in `domain/mockData.ts`** — deterministic dev
+  fallback when `OPENAI_API_KEY` is absent (not `@repo/services`; no pricing).
+- **Client provider wiring lives in `presentation/photo-analysis.provider.ts`**
+  (not infrastructure) because it must call `runPhotoAnalysisServerFn` without
+  infrastructure → presentation import violations.
+- **Photo upload hooks (`usePhotos`, `useUploadPhotos`, `useRemovePhoto`)**
+  moved to slice presentation; `photoStore` upload IO remains in `src/lib/photos`
+  until a later pass extracts a `PhotoStoragePort`.
+- **`photo_analysis_results` queries** (`src/lib/queries/photo-analysis.ts`) stay
+  in legacy `lib/queries` — they serve the newer bulk-upload viewer, separate
+  from the `room_analyses` vision cache this slice owns.
+- **Orchestrator** (`src/core/ai/platform/orchestrator.ts`) imports
+  `runPhotoAnalysisServerFn` from the slice; scope/estimate steps stay legacy
+  until `ai-design` / further slices migrate.
+
 ---
 
 ## Worked example: `CreateEstimate`
@@ -259,8 +285,8 @@ The `estimate` slice ships a complete worked example. Files:
 - [`infrastructure/adapters/ai-estimate.adapter.server.ts`](../../src/features/estimate/infrastructure/adapters/ai-estimate.adapter.server.ts)
   — server-only OpenAI estimate generation (reached via dynamic `import()`).
 - [`presentation/serverFns.ts`](../../src/features/estimate/presentation/serverFns.ts)
-  + [`presentation/hooks/useEstimate.ts`](../../src/features/estimate/presentation/hooks/useEstimate.ts)
-  — the slice's RPC surface and TanStack Query hooks.
+  - [`presentation/hooks/useEstimate.ts`](../../src/features/estimate/presentation/hooks/useEstimate.ts)
+    — the slice's RPC surface and TanStack Query hooks.
 
 Usage shape:
 
@@ -285,6 +311,50 @@ In a unit test, pass a fake `EstimateRepository` — no Supabase, no network.
 
 ---
 
+## Worked example: `AnalyzePhotos` (ai-upload)
+
+The `ai-upload` slice ships the second complete worked example. Files:
+
+- [`domain/types.ts`](../../src/features/ai-upload/domain/types.ts) — room
+  analysis entities + enum unions.
+- [`domain/mockData.ts`](../../src/features/ai-upload/domain/mockData.ts) —
+  deterministic mock analyses for dev / no-API-key fallback.
+- [`domain/rules.ts`](../../src/features/ai-upload/domain/rules.ts) —
+  slice-specific judgements (`isSuccessfulAnalysis`, `hasFallbackResults`, …).
+- [`application/ports.ts`](../../src/features/ai-upload/application/ports.ts) —
+  `RoomAnalysisRepository`, `AiVisionPort`, `PhotoCatalogPort`.
+- [`application/analyzePhotos.ts`](../../src/features/ai-upload/application/analyzePhotos.ts)
+  — the use case: resolve photos → vision → persist.
+- [`infrastructure/adapters/ai-vision.adapter.server.ts`](../../src/features/ai-upload/infrastructure/adapters/ai-vision.adapter.server.ts)
+  — server-only OpenAI Vision (via `@/platform/openai/server`).
+- [`infrastructure/repositories/room-analysis.repository.ts`](../../src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts)
+  — Supabase `room_analyses` + in-memory cache.
+- [`presentation/serverFns.ts`](../../src/features/ai-upload/presentation/serverFns.ts)
+  - [`presentation/photo-analysis.provider.ts`](../../src/features/ai-upload/presentation/photo-analysis.provider.ts)
+    — RPC surface and client-side provider wiring.
+- [`presentation/hooks/usePhotoAnalysis.ts`](../../src/features/ai-upload/presentation/hooks/usePhotoAnalysis.ts)
+  - [`presentation/hooks/usePhotos.ts`](../../src/features/ai-upload/presentation/hooks/usePhotos.ts)
+    — TanStack Query hooks.
+
+Usage shape:
+
+```ts
+import { makeAnalyzePhotos } from "@/features/ai-upload";
+import { supabaseRoomAnalysisRepository } from "@/features/ai-upload/infrastructure";
+
+const analyzePhotos = makeAnalyzePhotos({
+  vision: fakeVisionPort,
+  analyses: supabaseRoomAnalysisRepository,
+});
+const results = await analyzePhotos({ projectId, photos });
+```
+
+Routes and components import from `@/features/ai-upload` (public API). Legacy
+`src/core/ai/photoAnalysis.ts`, `src/lib/analysis.ts`, and
+`src/core/ai/server/openAiVision.server.ts` remain as strangler shims.
+
+---
+
 ## Migration plan (incremental, slice by slice)
 
 Order (highest value first): **estimate → ai-upload → ai-design → export → gallery**.
@@ -292,7 +362,7 @@ Order (highest value first): **estimate → ai-upload → ai-design → export �
 Per-slice recipe:
 
 1. **Skeleton**: create `src/features/<slice>/{domain,application,infrastructure,presentation}` with the slice `index.ts`.
-2. **Strangle, don't move**: new slice files initially *delegate* to the legacy
+2. **Strangle, don't move**: new slice files initially _delegate_ to the legacy
    module (like `supabaseEstimateRepository` does), so behaviour and imports
    keep working. Mark legacy call sites with `// TODO(feature-slice):`.
 3. **Move logic inward**: pull pure logic into `domain/`, orchestration into
@@ -315,15 +385,20 @@ What does **not** move:
 | Slice       | Skeleton | Logic migrated | Consumers flipped | Legacy shims removed |
 | ----------- | -------- | -------------- | ----------------- | -------------------- |
 | `estimate`  | ✅       | ✅             | ✅ (¹)            | —                    |
-| `ai-upload` | —        | —              | —                 | —                    |
+| `ai-upload` | ✅       | ✅             | ✅ (²)            | —                    |
 | `ai-design` | —        | —              | —                 | —                    |
 | `export`    | —        | —              | —                 | —                    |
 | `gallery`   | —        | —              | —                 | —                    |
 
 ¹ App-level consumers (components, routes, queries) import from the slice.
-Legacy `src/core/ai/` internals (`index.ts` barrel, `normalizers.ts`,
-`platform/orchestrator.ts`) still go through the shims — they belong to the
-future `ai-upload` slice and flip when it migrates.
+Legacy `src/core/ai/` internals (`index.ts` barrel, `normalizers.ts`) still go
+through shims for scope/redesign/estimate cross-calls.
+
+² Vision pipeline, analysis store, photo hooks, and upload/analysis/report
+routes import from `@/features/ai-upload`. Legacy shims:
+`mockAnalysis.ts`, `openAiVision.server.ts`, `photoAnalysis.ts`, `lib/analysis.ts`,
+`hooks/usePhotos.ts`. Orchestrator imports slice `runPhotoAnalysisServerFn`.
+Scope/redesign serverFns remain in `src/core/ai/serverFns.ts` until `ai-design`.
 
 ---
 
