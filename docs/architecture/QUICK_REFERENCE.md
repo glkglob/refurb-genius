@@ -8,7 +8,7 @@
 - `@/services/*`
 - `@/integrations/*`
 
-**Enforcement**: Automated test will fail CI if violated.
+**Enforcement**: Automated enforcement is deferred until the documented migration baseline is complete; the invariant currently records this rule as a TODO in CI.
 
 ## Common Violations & Fixes
 
