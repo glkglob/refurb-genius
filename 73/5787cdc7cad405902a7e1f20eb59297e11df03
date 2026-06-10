@@ -1,0 +1,159 @@
+src/lib/role.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 1
+tests/invariants/shim-cleanup.invariant.test.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 1-127
+src/hooks/useOpportunities.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 3
+packages/services/src/deal-analysis/dealScore.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 2
+src/core/ai/platform/orchestrator.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 9,12
+src/lib/queries/photo-analysis.test.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 4,15
+src/hooks/useProjects.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 3
+src/lib/projects.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 5
+src/services/trades/tradeProfileStore.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 1
+src/serverFns/auth.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 29
+src/components/floorplan/FloorplanViewer.tsx
+  s_1a2d76a0183927::t_61e114a3d156b0 19
+src/components/marketplace/TradepersonCard.tsx
+  s_1a2d76a0183927::t_61e114a3d156b0 9
+src/platform/supabase/_client.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 1-6
+src/components/BulkPhotoUpload.tsx
+  s_1a2d76a0183927::t_61e114a3d156b0 9
+src/services/README.md
+  s_1a2d76a0183927::t_61e114a3d156b0 8,17
+src/lib/queries/marketplace.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 2
+src/components/deal-copilot/DealIntakeForm.tsx
+  s_1a2d76a0183927::t_61e114a3d156b0 12
+src/lib/queries/floorplans.test.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 4,15
+src/lib/auth.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 18,20
+src/services/trades/tradesJobInterestStore.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 1
+tests/invariants/feature-slice.invariant.test.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 4,133-138
+docs/architecture/platform-boundary.md
+  s_1a2d76a0183927::t_61e114a3d156b0 111,119-128,169-171
+src/routes/_authed/projects.$id.report.tsx
+  s_1a2d76a0183927::t_61e114a3d156b0 30
+src/core/ai/index.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 1-2,55,60
+src/components/photos/PhotoAnalysisViewer.tsx
+  s_1a2d76a0183927::t_61e114a3d156b0 14
+src/lib/queries/marketplace.test.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 4,15
+src/services/trades/tradesJobStore.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 1
+src/features/ai-upload/presentation/hooks/usePhotos.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 7
+src/lib/queries/photo-analysis.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 2
+src/features/estimate/presentation/hooks/useEstimate.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 7
+src/lib/pitchDeck.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 5,348
+src/lib/ai-quality-audit.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 5
+packages/core/src/constants/property.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 9-10
+src/routes/_authed/admin.tsx
+  s_1a2d76a0183927::t_61e114a3d156b0 11
+packages/services/src/pricing/pricingEngine.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 15
+src/lib/ai-quality-feedback.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 6
+src/serverFns/dealCopilot.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 50
+docs/architecture/FEATURE_SLICE.md
+  s_1a2d76a0183927::t_61e114a3d156b0 473-475,479-481,483-488,490-491
+src/components/marketplace/MessagingInbox.tsx
+  s_1a2d76a0183927::t_61e114a3d156b0 11
+packages/types/src/analysis.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 7-11
+src/serverFns/projects.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 45
+src/lib/estimate.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 3
+src/components/marketplace/QuoteRequestDialog.tsx
+  s_1a2d76a0183927::t_61e114a3d156b0 18
+src/features/estimate/domain/index.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 22
+src/lib/provider-validation-fixtures.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 8
+src/core/reports/reportEngine.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 12
+src/integrations/supabase/client.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 7
+src/lib/queries/pitch-decks.test.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 4
+src/core/dealCopilot/opportunityStore.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 4
+src/lib/queries/projects.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 2
+packages/core/src/utilities/pricingData.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 1
+src/lib/photos.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 5
+src/features/estimate/presentation/index.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 6
+src/hooks/useGallery.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 2
+src/services/storage/index.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 8
+packages/services/src/roi/roiEngine.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 7
+src/platform/supabase/browser.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 4-5,8-13,16,18-25
+packages/types/src/ai.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 8,15-16,22
+src/features/estimate/infrastructure/adapters/ai-estimate.adapter.server.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 16-20,22
+packages/services/src/ai/aiSummaries.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 13
+src/core/ai/normalizers.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 7,16
+src/lib/queries/pitch-decks.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 2
+src/lib/gallery.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 11
+src/lib/queries/gallery.test.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 5,18
+src/lib/floorplan.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 1
+src/features/estimate/domain/aiEstimate.types.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 2,5-14,16-20,22-29
+src/lib/queries/floorplans.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 2
+src/lib/queries/gallery.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 2
+src/routes/auth.tsx
+  s_1a2d76a0183927::t_61e114a3d156b0 7
+tests/invariants/platform-boundary.invariant.test.ts
+  s_1a2d76a0183927::t_61e114a3d156b0 8,53,69,72,75-80,83-84,94-95,107
+src/routes/auth_.callback.tsx
+  s_1a2d76a0183927::t_61e114a3d156b0 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "735787cdc7cad405902a7e1f20eb59297e11df03",
+  "prompts": {},
+  "sessions": {
+    "s_1a2d76a0183927": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "88e541ba-d026-4a25-b848-4d4501461735",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
