@@ -147,13 +147,13 @@ function Hero() {
                 className="h-auto w-full"
               />
             </div>
-            <div className="absolute -bottom-6 -left-6 hidden rounded-xl border border-border bg-card p-4 shadow-lg sm:block">
+            <div className="absolute bottom-4 left-4 hidden rounded-xl border border-border bg-card/95 p-4 shadow-lg backdrop-blur sm:block">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Projected ROI
               </p>
               <p className="mt-1 text-2xl font-semibold text-foreground">18.4%</p>
             </div>
-            <div className="absolute -top-6 -right-6 hidden rounded-xl border border-border bg-card p-4 shadow-lg sm:block">
+            <div className="absolute top-4 right-4 hidden rounded-xl border border-border bg-card/95 p-4 shadow-lg backdrop-blur sm:block">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Refurb estimate
               </p>

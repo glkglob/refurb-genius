@@ -43,6 +43,23 @@ export function ThemeProvider({
     setMounted(true);
   }, [defaultTheme, storageKey]);
 
+  // Apply the theme class whenever the selection changes after mount.
+  // Without this, setTheme/toggleTheme only updated state + localStorage and
+  // the documentElement class never changed until the next full reload.
+  React.useEffect(() => {
+    if (!mounted) return;
+    const root = window.document.documentElement;
+    const effectiveTheme =
+      theme === "system"
+        ? window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark"
+          : "light"
+        : theme;
+    root.classList.remove("light", "dark");
+    root.classList.add(effectiveTheme);
+    setResolvedTheme(effectiveTheme);
+  }, [theme, mounted]);
+
   // Listen for system theme changes when using "system"
   React.useEffect(() => {
     if (theme !== "system") return;

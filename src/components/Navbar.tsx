@@ -3,6 +3,7 @@ import { Building2, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/hooks/useAuth";
 
 const NAV_LINKS = [
   { to: "/dashboard", label: "Dashboard" },
@@ -13,6 +14,7 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur">
@@ -37,25 +39,40 @@ export function Navbar() {
             </Button>
           ))}
           <div className="mx-2 h-4 w-px bg-border" />
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/auth" search={{ mode: "signin" }}>
-              Sign in
-            </Link>
-          </Button>
-          <Button asChild size="sm">
-            <Link to="/auth" search={{ mode: "signup" }}>
-              Get started free
-            </Link>
-          </Button>
+          <ThemeToggle />
+          {isAuthenticated ? (
+            <Button asChild size="sm">
+              <Link to="/dashboard">Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/auth" search={{ mode: "signin" }}>
+                  Sign in
+                </Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link to="/auth" search={{ mode: "signup" }}>
+                  Get started free
+                </Link>
+              </Button>
+            </>
+          )}
         </nav>
 
         {/* Mobile: auth buttons + hamburger */}
         <div className="flex items-center gap-2 md:hidden">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/auth" search={{ mode: "signin" }}>
-              Sign in
-            </Link>
-          </Button>
+          {isAuthenticated ? (
+            <Button asChild size="sm">
+              <Link to="/dashboard">Dashboard</Link>
+            </Button>
+          ) : (
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/auth" search={{ mode: "signin" }}>
+                Sign in
+              </Link>
+            </Button>
+          )}
           <button
             onClick={() => setMenuOpen((o) => !o)}
             className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
@@ -81,14 +98,24 @@ export function Navbar() {
               </Link>
             ))}
             <div className="my-1 border-t border-border" />
-            <Link
-              to="/auth"
-              search={{ mode: "signup" }}
-              onClick={() => setMenuOpen(false)}
-              className="rounded-md bg-primary px-3 py-2 text-center text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              Get started free
-            </Link>
+            {isAuthenticated ? (
+              <Link
+                to="/dashboard"
+                onClick={() => setMenuOpen(false)}
+                className="rounded-md bg-primary px-3 py-2 text-center text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <Link
+                to="/auth"
+                search={{ mode: "signup" }}
+                onClick={() => setMenuOpen(false)}
+                className="rounded-md bg-primary px-3 py-2 text-center text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                Get started free
+              </Link>
+            )}
 
             {/* Mobile Theme Toggle */}
             <div className="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-muted-foreground">
