@@ -8,7 +8,7 @@ import { AIMetricsDashboard } from "@/components/AIMetricsDashboard";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { Activity, BarChart3, Users, Folder } from "lucide-react";
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { logger } from "@/lib/logger";
 
 export const Route = createFileRoute("/_authed/admin")({

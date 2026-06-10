@@ -470,26 +470,25 @@ What does **not** move:
 
 | Slice       | Skeleton | Logic migrated | Consumers flipped | Legacy shims removed |
 | ----------- | -------- | -------------- | ----------------- | -------------------- |
-| `estimate`  | ✅       | ✅             | ✅ (¹)            | —                    |
-| `ai-upload` | ✅       | ✅             | ✅ (²)            | —                    |
-| `ai-design` | ✅       | ✅             | ✅ (³)            | —                    |
+| `estimate`  | ✅       | ✅             | ✅                | ✅ (June 2026)       |
+| `ai-upload` | ✅       | ✅             | ✅                | ✅ (June 2026)       |
+| `ai-design` | ✅       | ✅             | ✅                | ✅ (June 2026)       |
 | `export`    | —        | —              | —                 | —                    |
 | `gallery`   | —        | —              | —                 | —                    |
 
-¹ App-level consumers (components, routes, queries) import from the slice.
-Legacy `src/core/ai/` internals (`index.ts` barrel, `normalizers.ts`) still go
-through shims for scope/redesign/estimate cross-calls.
+**Shim cleanup (June 2026):** All strangler shims for the three slices and platform
+vendors were deleted after grep confirmed zero importers. Enforcement:
+`tests/invariants/shim-cleanup.invariant.test.ts`.
 
-² Vision pipeline, analysis store, photo hooks, and upload/analysis/report
-routes import from `@/features/ai-upload`. Legacy shims:
-`mockAnalysis.ts`, `openAiVision.server.ts`, `photoAnalysis.ts`, `lib/analysis.ts`,
-`hooks/usePhotos.ts`. Orchestrator imports slice `runPhotoAnalysisServerFn`.
+Removed paths include `src/lib/analysis.ts`, `src/lib/estimates.ts`,
+`src/lib/scopeAnalysis.ts`, `src/hooks/usePhotos.ts`, `src/hooks/useAIEstimate.ts`,
+`src/hooks/useScopeAnalysis*.ts`, `src/core/ai/serverFns.ts`,
+`src/core/ai/server/openAi*.server.ts`, `src/core/ai/{photoAnalysis,mockAnalysis,redesignConcepts}.ts`,
+`src/services/supabase/`, `src/core/ai/server/openai-client.ts`,
+`src/lib/posthog-{server,otel}.ts`.
 
-³ Redesign + scope pipelines, persistence, hooks, and scope/analysis/estimate
-routes import from `@/features/ai-design`. Legacy shims:
-`openAiRedesign.server.ts`, `openAiScopeAnalysis.server.ts`, `redesignConcepts.ts`,
-`lib/scopeAnalysis.ts`, `hooks/useScopeAnalysis.ts`. `src/core/ai/serverFns.ts`
-is a thin re-export barrel for all three AI slices.
+`src/core/ai/index.ts` remains as an orchestration barrel (validation, normalizers,
+orchestrator) — not a strangler shim.
 
 ---
 

@@ -2,7 +2,7 @@
 // API the app already consumes (list / get / getProgress / subscribe) by
 // caching results in memory and notifying subscribers when async fetches
 // complete.
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { auth } from "./auth";
 import { captureApiError, addDiagnosticBreadcrumb } from "./sentry";
 import { logger } from "./logger";

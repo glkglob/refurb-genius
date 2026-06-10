@@ -2,7 +2,7 @@
 // Files live in the public `project-photos` bucket under
 // `{user_id}/{project_id}/{uuid}.{ext}` so storage RLS scopes ownership by
 // the leading folder. Metadata is mirrored into the `photos` table.
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { auth } from "./auth";
 import { captureUploadError, addDiagnosticBreadcrumb } from "./sentry";
 import { logger } from "./logger";

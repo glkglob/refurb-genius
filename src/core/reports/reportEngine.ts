@@ -9,7 +9,7 @@
 // to drive a future PDF export without any further refactor.
 import type { Project } from "@/lib/projects";
 import type { ProjectPhoto } from "@/lib/photos";
-import type { RoomAnalysis, ConditionLevel } from "@/lib/analysis";
+import type { RoomAnalysis, ConditionLevel } from "@/features/ai-upload/domain";
 import type { RedesignConcept } from "@/lib/redesign";
 import {
   runPricingEngine,

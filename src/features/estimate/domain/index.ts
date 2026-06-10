@@ -19,6 +19,7 @@ export type {
   FinishLevel,
   UKRegion,
 } from "./types";
+export type { GenerateEstimateInput, AIGeneratedRoom, AIGeneratedItem } from "./aiEstimate.types";
 export { lineItemsTotal, isActionableEstimate } from "./rules";
 
 export {

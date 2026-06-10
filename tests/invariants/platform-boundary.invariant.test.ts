@@ -5,7 +5,7 @@
  * docs/architecture/platform-boundary.md.
  */
 import assert from "node:assert/strict";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, relative } from "node:path";
 import test from "node:test";
 
@@ -44,17 +44,13 @@ function listTsFiles(dir: string): string[] {
   return files;
 }
 
-function readTrimmed(path: string): string {
-  return readFileSync(path, "utf8").trim();
-}
-
 test("platform boundary — vendor SDK imports only in approved layers", () => {
   const violations: string[] = [];
 
   for (const file of listTsFiles(SRC)) {
     if (isApprovedVendorPath(file)) continue;
 
-    const content = readTrimmed(file);
+    const content = readFileSync(file, "utf8");
     for (const { name, pattern } of VENDOR_PATTERNS) {
       if (pattern.test(content)) {
         violations.push(`${relative(ROOT, file)}: direct ${name} import`);
@@ -70,27 +66,22 @@ test("platform boundary — vendor SDK imports only in approved layers", () => {
 });
 
 test("platform boundary — OpenAI implementation lives in src/platform/openai", () => {
-  const platformOpenAi = readTrimmed(join(SRC, "platform/openai/server.ts"));
+  const platformOpenAi = readFileSync(join(SRC, "platform/openai/server.ts"), "utf8");
   assert.match(platformOpenAi, /\bfrom ["']openai["']/);
   assert.match(platformOpenAi, /export function getOpenAIClient/);
-
-  const coreShim = readTrimmed(join(SRC, "core/ai/server/openai-client.ts"));
-  assert.doesNotMatch(coreShim, /\bfrom ["']openai["']/);
-  assert.match(coreShim, /@\/platform\/openai\/server/);
-  assert.match(coreShim, /TODO\(feature-slice\)/);
+  assert.ok(!existsSync(join(SRC, "core/ai/server/openai-client.ts")));
 });
 
-test("platform boundary — PostHog shims delegate to platform", () => {
-  const serverShim = readTrimmed(join(SRC, "lib/posthog-server.ts"));
-  assert.match(serverShim, /@\/platform\/posthog\/server/);
-  assert.doesNotMatch(serverShim, /\bfrom ["']posthog-node["']/);
-
-  const otelShim = readTrimmed(join(SRC, "lib/posthog-otel.ts"));
-  assert.match(otelShim, /@\/platform\/posthog\/otel\.server/);
+test("platform boundary — PostHog lives in src/platform/posthog (no lib shims)", () => {
+  assert.ok(existsSync(join(SRC, "platform/posthog/browser.ts")));
+  assert.ok(existsSync(join(SRC, "platform/posthog/server.ts")));
+  assert.ok(existsSync(join(SRC, "platform/posthog/otel.server.ts")));
+  assert.ok(!existsSync(join(SRC, "lib/posthog-server.ts")));
+  assert.ok(!existsSync(join(SRC, "lib/posthog-otel.ts")));
 });
 
-test("platform boundary — server aggregate does not import legacy openai-client", () => {
-  const serverAggregate = readTrimmed(join(SRC, "platform/server.ts"));
+test("platform boundary — server aggregate uses platform vendors directly", () => {
+  const serverAggregate = readFileSync(join(SRC, "platform/server.ts"), "utf8");
   assert.doesNotMatch(serverAggregate, /@\/core\/ai\/server\/openai-client/);
   assert.match(serverAggregate, /@\/platform\/openai\/server/);
   assert.match(serverAggregate, /@\/platform\/posthog\/server/);
@@ -100,8 +91,8 @@ test("platform boundary — browser and server aggregates exist and are separate
   assert.ok(existsSync(join(SRC, "platform/browser.ts")));
   assert.ok(existsSync(join(SRC, "platform/server.ts")));
 
-  const browser = readTrimmed(join(SRC, "platform/browser.ts"));
-  const server = readTrimmed(join(SRC, "platform/server.ts"));
+  const browser = readFileSync(join(SRC, "platform/browser.ts"), "utf8");
+  const server = readFileSync(join(SRC, "platform/server.ts"), "utf8");
 
   assert.doesNotMatch(browser, /getOpenAIClient/);
   assert.match(server, /getOpenAIClient/);
@@ -113,6 +104,6 @@ test("platform boundary — no mixed browser/server platform barrel", () => {
 });
 
 test("platform boundary — Nitro server entry uses platform OTEL bootstrap", () => {
-  const serverEntry = readTrimmed(join(SRC, "server.ts"));
+  const serverEntry = readFileSync(join(SRC, "server.ts"), "utf8");
   assert.match(serverEntry, /@\/platform\/posthog\/otel\.server/);
 });

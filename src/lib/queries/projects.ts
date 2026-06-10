@@ -1,5 +1,5 @@
 import { queryOptions, type QueryClient } from "@tanstack/react-query";
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { auth } from "@/lib/auth";
 import { rowToProject, rowToPhoto, type ProjectWithProgress } from "@/lib/mappers";
 import {

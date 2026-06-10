@@ -6,7 +6,7 @@ import { Upload, CheckCircle2, XCircle, Loader2, AlertCircle } from "lucide-reac
 import { Button } from "@repo/ui";
 import { toast } from "sonner";
 import pLimit from "p-limit";
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { photosQueryOptions } from "@/lib/queries/projects";

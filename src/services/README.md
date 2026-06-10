@@ -5,7 +5,7 @@ External integration boundary. Components and pages import from
 `supabase.storage` directly. Each service is the single seam where we
 swap implementations or add setup-warning fallbacks.
 
-- `@/services/supabase` — Supabase browser client, auth wrapper,
+- `@/platform/supabase/browser` — Supabase browser client singleton,
   `isSupabaseConfigured()` / `getSupabaseSetupWarning()` helpers.
 - `@/services/projects` — Project CRUD + helpers (re-exports
   `@/core/projects` today; future server-fn-backed swap lands here).

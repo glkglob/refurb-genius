@@ -1,4 +1,4 @@
-import type { ConditionLevel } from "@/lib/analysis";
+import type { ConditionLevel } from "@/features/ai-upload/domain";
 import type { UKRegion } from "@/lib/projects";
 
 export const FINISH_LEVELS = ["Budget", "Standard", "Premium"] as const;

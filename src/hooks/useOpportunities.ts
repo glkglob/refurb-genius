@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import type { DealOpportunity, DealOpportunityStatus, DealExitStrategy } from "@repo/types";
 import type { PropertyType } from "@/lib/projects";
 import type { Tables, TablesUpdate } from "@repo/supabase";

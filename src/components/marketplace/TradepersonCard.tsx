@@ -6,7 +6,7 @@ import { Button } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { Heart, Star, MapPin, Phone, Mail } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import {

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { pitchDecksByProjectQueryOptions } from "./pitch-decks";
 
-vi.mock("@/services/supabase", () => ({
+vi.mock("@/platform/supabase/browser", () => ({
   supabase: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),

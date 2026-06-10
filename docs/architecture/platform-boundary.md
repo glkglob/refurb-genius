@@ -108,7 +108,7 @@ AI adapters in `features/*/infrastructure/adapters/*.server.ts` import OpenAI vi
 | `src/features/*/infrastructure`       | ⚠️ Via platform        | `@/platform/<vendor>/*` subpaths           |
 | `src/features/*/domain`               | ❌ No                  | Pure logic only                            |
 | `src/features/*/application`          | ❌ No                  | Ports/interfaces only                      |
-| `src/lib/**`, `src/core/**`           | ❌ No\*                | \*Legacy shims may re-export from platform |
+| `src/lib/**`, `src/core/**`           | ❌ No                  | Import via `@/platform/*` or slice APIs    |
 | `src/routes/**`                       | ⚠️ Via platform        | Presentation wiring only                   |
 | `scripts/**`, `supabase/functions/**` | ✅ Yes                 | Standalone runtimes (exempt)               |
 
@@ -116,16 +116,16 @@ AI adapters in `features/*/infrastructure/adapters/*.server.ts` import OpenAI vi
 
 ## Vendor migration table
 
-| Vendor                 | Platform entry                   | Status                          | Legacy shims (remove when grep = 0)                            |
-| ---------------------- | -------------------------------- | ------------------------------- | -------------------------------------------------------------- |
-| **OpenAI**             | `@/platform/openai/server`       | ✅ Migrated                     | `src/core/ai/server/openai-client.ts`                          |
-| **Supabase (browser)** | `@/platform/supabase/browser`    | ✅ Slices migrated              | `src/services/supabase`, `src/integrations/supabase/client.ts` |
-| **Supabase (server)**  | `@/platform/supabase/server`     | ✅ serverFns use dynamic import | —                                                              |
-| **PostHog (browser)**  | `@/platform/posthog/browser`     | ✅ Migrated                     | —                                                              |
-| **PostHog (server)**   | `@/platform/posthog/server`      | ✅ Migrated                     | `src/lib/posthog-server.ts`                                    |
-| **PostHog (OTEL)**     | `@/platform/posthog/otel.server` | ✅ Migrated                     | `src/lib/posthog-otel.ts`                                      |
-| **Sentry**             | `src/lib/sentry.ts`              | By design at lib layer          | Not a slice concern                                            |
-| **Stripe / Qdrant**    | —                                | Not yet needed                  | Add `src/platform/<vendor>/` first                             |
+| Vendor                 | Platform entry                   | Status                 | Shim cleanup                          |
+| ---------------------- | -------------------------------- | ---------------------- | ------------------------------------- |
+| **OpenAI**             | `@/platform/openai/server`       | ✅ Complete            | `openai-client.ts` deleted (Jun 2026) |
+| **Supabase (browser)** | `@/platform/supabase/browser`    | ✅ Complete            | `src/services/supabase/` deleted      |
+| **Supabase (server)**  | `@/platform/supabase/server`     | ✅ Complete            | —                                     |
+| **PostHog (browser)**  | `@/platform/posthog/browser`     | ✅ Complete            | —                                     |
+| **PostHog (server)**   | `@/platform/posthog/server`      | ✅ Complete            | `posthog-server.ts` deleted           |
+| **PostHog (OTEL)**     | `@/platform/posthog/otel.server` | ✅ Complete            | `posthog-otel.ts` deleted             |
+| **Sentry**             | `src/lib/sentry.ts`              | By design at lib layer | Not a slice concern                   |
+| **Stripe / Qdrant**    | —                                | Not yet needed         | Add `src/platform/<vendor>/` first    |
 
 ### Slice infrastructure status
 
@@ -165,6 +165,10 @@ rg 'from ["'\'']@supabase/supabase-js["'\'']' src --glob '!src/platform/**'
 
 pnpm typecheck && pnpm lint && pnpm test:invariants && pnpm build:vercel
 ```
+
+Deleted shim paths are permanently blocked by
+`tests/invariants/shim-cleanup.invariant.test.ts` (see
+[FEATURE_SLICE.md](./FEATURE_SLICE.md#current-migration-state)).
 
 ---
 

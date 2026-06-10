@@ -26,7 +26,7 @@
  *    - Even if called from hydrated client code, the `.handler()` body executes
  *      in the Nitro server (or Vercel function).
  *    - At that point there is no `window`, no React context, and the browser
- *      `supabase` singleton imported from "@/services/supabase" is either
+ *      `supabase` singleton imported from "@/platform/supabase/browser" is either
  *      undefined or represents *the server's* view of the world (i.e. no user).
  *    - Using the browser client inside a serverFn is forbidden by CLAUDE.md and
  *      will always report "no user" after a hard refresh.

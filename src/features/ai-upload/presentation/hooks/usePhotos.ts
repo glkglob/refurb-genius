@@ -4,7 +4,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { photoStore, type ProjectPhoto } from "@/lib/photos";
 import { rowToPhoto } from "@/lib/mappers";
 

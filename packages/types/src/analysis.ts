@@ -4,4 +4,8 @@ export type {
   RoomType,
   ConditionLevel,
   RefurbLevel,
-} from "@/lib/analysis";
+  AnalysisSource,
+  RoomAnalysis,
+} from "@/features/ai-upload/domain";
+
+export { ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/features/ai-upload/domain";

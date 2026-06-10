@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { publicGalleryProjectsQueryOptions, publicGalleryProjectByIdQueryOptions } from "./gallery";
 
 // Mock the supabase client used in queries
-vi.mock("@/services/supabase", () => {
+vi.mock("@/platform/supabase/browser", () => {
   const mockSupabase = {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -15,7 +15,7 @@ vi.mock("@/services/supabase", () => {
   return { supabase: mockSupabase };
 });
 
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 
 describe("gallery queries", () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { logger } from "@/lib/logger";
 import { galleryKeys, type PublicGalleryProjectRow } from "@/lib/queries/gallery";
 

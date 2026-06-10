@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import type { ProjectStage, NewProjectInput } from "@/lib/projects";
 import { rowToProject, type ProjectWithProgress } from "@/lib/mappers";
 

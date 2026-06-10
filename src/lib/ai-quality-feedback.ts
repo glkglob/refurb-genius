@@ -3,7 +3,7 @@
 // Persists feedback using existing Supabase patterns only.
 // Note: ai_quality_feedback table is optional for controlled-beta phase.
 
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { logger } from "@/lib/logger";
 
 export type VisionAccuracy = "accurate" | "partial" | "inaccurate";

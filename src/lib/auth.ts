@@ -15,9 +15,9 @@
 // for the two critical paths (project create, deal save). Other call sites should be migrated opportunistically.
 //
 // Imports the singleton client directly from the sub-module (not the barrel)
-// to prevent any future circular dependency if @/services/supabase/index.ts
+// to prevent any future circular dependency if @/platform/supabase/browser/index.ts
 // ever re-exports something from this file again.
-import { supabase } from "@/services/supabase/_client";
+import { supabase } from "@/platform/supabase/_client";
 import { captureAuthError, addDiagnosticBreadcrumb } from "./sentry";
 import { logger } from "./logger";
 

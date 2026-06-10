@@ -4,7 +4,7 @@
 // the same inputs, returns the same outputs. Pages and components must call
 // `runRoiEngine` instead of recomputing locally.
 import type { UKRegion } from "@/lib/projects";
-import type { ConditionLevel } from "@/lib/analysis";
+import type { ConditionLevel } from "@/features/ai-upload/domain";
 
 export type RoiRiskLevel = "Low" | "Moderate" | "High";
 

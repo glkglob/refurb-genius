@@ -9,7 +9,7 @@ import { getRegionalMultiplier, calculateLineItem, calculateEstimateTotals } fro
 
 import { Card, CardContent } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
-import { CONDITION_LEVELS, type ConditionLevel } from "@/lib/analysis";
+import { CONDITION_LEVELS, type ConditionLevel } from "@/features/ai-upload/domain";
 import { UK_REGIONS, type UKRegion } from "@/lib/projects";
 import { formatGBP } from "@/lib/utils";
 import {

@@ -1,4 +1,4 @@
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 
 export type UserRole = "user" | "admin";
 

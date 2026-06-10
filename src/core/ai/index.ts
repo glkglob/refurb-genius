@@ -1,5 +1,5 @@
-// AI surface — legacy barrel re-exporting feature slices.
-// New code should import from @/features/ai-upload, @/features/ai-design, @/features/estimate.
+// AI surface — orchestration, validation, and shared-kernel re-exports.
+// Feature capabilities import from @/features/ai-upload, ai-design, estimate.
 
 export {
   photoAnalysisProvider,
@@ -52,12 +52,12 @@ export {
 } from "./aiSummaries";
 export type { AiSummariesProvider, ProjectSummaryInput } from "./aiSummaries";
 
-export { generateEstimateServerFn } from "./serverFns";
+export { generateEstimateServerFn } from "@/features/estimate/presentation/serverFns";
 export type {
   GenerateEstimateInput,
   AIGeneratedRoom,
   AIGeneratedItem,
-} from "./server/openAiEstimate.server";
+} from "@/features/estimate/domain";
 
 export { analysisStore } from "@/features/ai-upload/infrastructure";
 export { ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/features/ai-upload/domain";

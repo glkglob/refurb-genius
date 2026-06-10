@@ -16,7 +16,7 @@ import {
 import { Input } from "@repo/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui";
 import { toast } from "sonner";
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { estimateQueryOptions } from "@/lib/queries/projects";

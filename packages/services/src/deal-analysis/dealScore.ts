@@ -1,5 +1,5 @@
 import { runRoiEngine, type RoiEngineResult } from "../roi";
-import type { ConditionLevel } from "@/lib/analysis";
+import type { ConditionLevel } from "@/features/ai-upload/domain";
 import type { UKRegion } from "@/lib/projects";
 import type { DealOpportunityInput } from "@repo/types";
 

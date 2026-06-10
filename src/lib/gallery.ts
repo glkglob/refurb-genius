@@ -8,7 +8,7 @@
 // `{auth.uid()}/...` for INSERT/DELETE (see
 // supabase/migrations/20260605123000_feature_foundation.sql), so callers
 // must always pass the current user's id as `userId`.
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { logger } from "@/lib/logger";
 
 export const GALLERY_BUCKET = "gallery";

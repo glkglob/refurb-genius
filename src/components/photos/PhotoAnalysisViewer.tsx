@@ -11,7 +11,7 @@ import { Label } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { estimateQueryOptions } from "@/lib/queries/projects";
 import { photoAnalysisByProjectQueryOptions } from "@/lib/queries/photo-analysis";
 import { PhotoAnalysisFilters } from "./PhotoAnalysisFilters";

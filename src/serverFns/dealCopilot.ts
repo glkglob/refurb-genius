@@ -47,7 +47,7 @@
  *
  * Rules (consistent with auth.ts + projects.ts):
  *   - No top-level imports of anything that transitively pulls browser
- *     Supabase clients (`@/services/supabase`, `@/lib/auth`, lib/projects
+ *     Supabase clients (`@/platform/supabase/browser`, `@/lib/auth`, lib/projects
  *     for values, etc.).
  *   - All server-only work inside `.handler()`.
  */

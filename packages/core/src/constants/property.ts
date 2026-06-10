@@ -6,5 +6,5 @@ export {
   CONDITION_LEVELS,
   REFURB_LEVELS,
   REFURB_LEVELS as REFURBISHMENT_LEVELS,
-} from "@/lib/analysis";
-export type { ConditionLevel, RefurbLevel } from "@/lib/analysis";
+} from "@/features/ai-upload/domain";
+export type { ConditionLevel, RefurbLevel } from "@/features/ai-upload/domain";

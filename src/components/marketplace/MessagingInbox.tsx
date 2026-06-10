@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
 import { ScrollArea } from "@repo/ui";
 import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import {

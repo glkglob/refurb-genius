@@ -1,7 +1,7 @@
 /**
  * Feature-slice architecture invariant tests.
  *
- * Locks boundary rules for vertical slices (estimate reference + ai-upload).
+ * Locks boundary rules for vertical slices (estimate, ai-upload, ai-design).
  * See docs/architecture/FEATURE_SLICE.md.
  */
 import assert from "node:assert/strict";
@@ -114,41 +114,6 @@ for (const slice of SLICES) {
   });
 }
 
-test("ai-upload legacy shims re-export from the slice (strangler pattern)", () => {
-  const shims: Array<{ path: string; expected: RegExp }> = [
-    {
-      path: join(ROOT, "src/core/ai/mockAnalysis.ts"),
-      expected: /@\/features\/ai-upload\/domain/,
-    },
-    {
-      path: join(ROOT, "src/core/ai/server/openAiVision.server.ts"),
-      expected: /@\/features\/ai-upload\/infrastructure\/adapters\/ai-vision\.adapter\.server/,
-    },
-    {
-      path: join(ROOT, "src/core/ai/photoAnalysis.ts"),
-      expected: /@\/features\/ai-upload\/presentation/,
-    },
-    {
-      path: join(ROOT, "src/lib/analysis.ts"),
-      expected: /@\/features\/ai-upload/,
-    },
-    {
-      path: join(ROOT, "src/hooks/usePhotos.ts"),
-      expected: /@\/features\/ai-upload/,
-    },
-  ];
-
-  for (const { path, expected } of shims) {
-    const content = readTrimmed(path);
-    assert.match(content, expected, `Shim ${path} does not delegate to ai-upload slice`);
-    assert.match(
-      content,
-      /TODO\(feature-slice\)/,
-      `Shim ${path} missing TODO(feature-slice) marker`,
-    );
-  }
-});
-
 test("ai-upload presentation serverFns validates input and uses dynamic adapter import", () => {
   const serverFns = readTrimmed(join(ROOT, "src/features/ai-upload/presentation/serverFns.ts"));
   assert.match(serverFns, /\.inputValidator\(/);
@@ -157,50 +122,19 @@ test("ai-upload presentation serverFns validates input and uses dynamic adapter 
   assert.match(serverFns, /await import\(/);
 });
 
-test("ai-design legacy shims re-export from the slice (strangler pattern)", () => {
-  const shims: Array<{ path: string; expected: RegExp }> = [
-    {
-      path: join(ROOT, "src/core/ai/server/openAiRedesign.server.ts"),
-      expected: /@\/features\/ai-design\/infrastructure\/adapters\/ai-redesign\.adapter\.server/,
-    },
-    {
-      path: join(ROOT, "src/core/ai/server/openAiScopeAnalysis.server.ts"),
-      expected: /@\/features\/ai-design\/infrastructure\/adapters\/ai-scope\.adapter\.server/,
-    },
-    {
-      path: join(ROOT, "src/core/ai/redesignConcepts.ts"),
-      expected: /@\/features\/ai-design\/presentation/,
-    },
-    {
-      path: join(ROOT, "src/lib/scopeAnalysis.ts"),
-      expected: /@\/features\/ai-design/,
-    },
-    {
-      path: join(ROOT, "src/hooks/useScopeAnalysis.ts"),
-      expected: /@\/features\/ai-design/,
-    },
-    {
-      path: join(ROOT, "src/core/ai/serverFns.ts"),
-      expected: /@\/features\/ai-design\/presentation\/serverFns/,
-    },
-  ];
-
-  for (const { path, expected } of shims) {
-    const content = readTrimmed(path);
-    assert.match(content, expected, `Shim ${path} does not delegate to ai-design slice`);
-    assert.match(
-      content,
-      /TODO\(feature-slice\)/,
-      `Shim ${path} missing TODO(feature-slice) marker`,
-    );
-  }
-});
-
 test("ai-design presentation serverFns validates input and uses dynamic adapter imports", () => {
   const serverFns = readTrimmed(join(ROOT, "src/features/ai-design/presentation/serverFns.ts"));
   assert.match(serverFns, /\.inputValidator\(/);
   assert.match(serverFns, /requireServerAuth/);
   assert.match(serverFns, /ai-redesign\.adapter\.server/);
   assert.match(serverFns, /ai-scope\.adapter\.server/);
+  assert.match(serverFns, /await import\(/);
+});
+
+test("estimate presentation serverFns validates input and uses dynamic adapter import", () => {
+  const serverFns = readTrimmed(join(ROOT, "src/features/estimate/presentation/serverFns.ts"));
+  assert.match(serverFns, /\.inputValidator\(/);
+  assert.match(serverFns, /requireServerAuth/);
+  assert.match(serverFns, /ai-estimate\.adapter\.server/);
   assert.match(serverFns, /await import\(/);
 });

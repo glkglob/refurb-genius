@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { fromSupabaseUser } from "@/lib/auth";
 import { AUTH_USER_QUERY_KEY } from "@/hooks/useAuth";
 import { Loader2, AlertCircle } from "lucide-react";

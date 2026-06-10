@@ -4,10 +4,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { generateEstimateServerFn } from "../serverFns";
-import type {
-  GenerateEstimateInput,
-  AIGeneratedRoom,
-} from "../../infrastructure/adapters/ai-estimate.adapter.server";
+import type { GenerateEstimateInput, AIGeneratedRoom } from "../../domain";
 import {
   saveAIEstimate,
   getLatestRoomEstimate,

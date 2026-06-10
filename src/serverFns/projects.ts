@@ -42,7 +42,7 @@
  * a fuller migration.
  *
  * USAGE RULES (same as auth.ts):
- *   - Never import browser Supabase clients (`@/services/supabase` etc.) here.
+ *   - Never import browser Supabase clients (`@/platform/supabase/browser` etc.) here.
  *   - All server-only imports (supabase server, logger if added later) live
  *     inside the handler or are dynamic.
  *   - Import this from client code freely — only the declaration crosses the

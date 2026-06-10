@@ -2,7 +2,7 @@ import { logger } from "./logger";
 import { addDiagnosticBreadcrumb } from "./sentry";
 import type { ProjectWithProgress } from "./mappers";
 import type { Financials } from "./queries/projects";
-import type { PersistedRoomEstimate } from "./estimates";
+import type { PersistedRoomEstimate } from "@/features/estimate/infrastructure/repositories/estimate.repository";
 import type { ProjectPhoto } from "./photos";
 import type { PhotoAnalysisResultRow } from "./queries/photo-analysis";
 import type { PitchDeckExportRow } from "./queries/pitch-decks"; // for type
@@ -345,7 +345,7 @@ export async function savePitchDeckToSupabase(
   filename: string,
   pageCount: number,
 ): Promise<{ record: Record<string, unknown> | null; storagePath: string }> {
-  const { supabase } = await import("@/services/supabase"); // avoid circular if any
+  const { supabase } = await import("@/platform/supabase/browser"); // avoid circular if any
   const path = `${userId}/${projectId}/${filename}`;
 
   const { error: uploadErr } = await supabase.storage.from("pitch-decks").upload(path, blob, {

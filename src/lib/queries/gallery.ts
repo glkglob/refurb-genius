@@ -1,5 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import { logger } from "@/lib/logger";
 import type { Tables } from "@repo/supabase";
 import type { PublicGalleryProject, InvestorLead } from "@repo/types";

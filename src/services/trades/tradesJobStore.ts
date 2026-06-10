@@ -1,4 +1,4 @@
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 import type { Tables } from "@repo/supabase";
 import type {
   TradesJob,

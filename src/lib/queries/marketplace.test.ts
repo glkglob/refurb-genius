@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { tradespeopleQueryOptions, tradeFavoritesQueryOptions } from "./marketplace";
 
-vi.mock("@/services/supabase", () => ({
+vi.mock("@/platform/supabase/browser", () => ({
   supabase: {
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
@@ -12,7 +12,7 @@ vi.mock("@/services/supabase", () => ({
   },
 }));
 
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/platform/supabase/browser";
 
 describe("marketplace queries", () => {
   beforeEach(() => vi.clearAllMocks());

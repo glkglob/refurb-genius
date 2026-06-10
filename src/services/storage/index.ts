@@ -5,7 +5,7 @@
 // remove operations from here instead of touching `supabase.storage`
 // directly — keeps bucket name, path layout, and RLS assumptions in one
 // place.
-import { supabase, isSupabaseConfigured } from "@/services/supabase";
+import { supabase, isSupabaseConfigured } from "@/platform/supabase/browser";
 import { photoStore, formatFileSize } from "@/lib/photos";
 import type { ProjectPhoto } from "@/lib/photos";
 

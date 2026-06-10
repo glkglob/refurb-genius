@@ -4,7 +4,7 @@
 // while preserving AI's descriptive value (notes, custom items, room breakdown).
 // Always call before persisting or showing "final" numbers in reports.
 
-import type { AIGeneratedRoom, AIGeneratedItem } from "./server/openAiEstimate.server";
+import type { AIGeneratedRoom, AIGeneratedItem } from "@/features/estimate/domain";
 import type { ScopeAnalysisResult } from "@/features/ai-design/domain";
 import {
   getRegionalMultiplier,
@@ -13,7 +13,7 @@ import {
   type CalculatedLineItem,
 } from "@/core/pricing";
 import type { UKRegion } from "@/lib/projects";
-import type { ConditionLevel } from "./mockAnalysis";
+import type { ConditionLevel } from "@/features/ai-upload/domain";
 
 export type EstimateNormalizationInput = {
   aiRooms: AIGeneratedRoom[];
