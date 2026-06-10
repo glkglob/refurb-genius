@@ -15,6 +15,7 @@ import { SensitivityAnalysis } from "@/components/SensitivityAnalysis";
 import { FloorplanViewer } from "@/components/floorplan";
 import { PhotoAnalysisViewer } from "@/components/photos/PhotoAnalysisViewer";
 import { PitchDeckGenerator } from "@/components/pitch-deck";
+import { PublishToGallery } from "@/components/gallery/PublishToGallery";
 
 import {
   Camera,
@@ -30,6 +31,7 @@ import {
   Ruler,
   Home,
   BarChart3,
+  Image as ImageIcon,
 } from "lucide-react";
 
 import { estimatedRefurbCost, estimatedProfit } from "@/core/projects";
@@ -45,6 +47,7 @@ import {
 import { floorplansByProjectQueryOptions } from "@/lib/queries/floorplans";
 import { photoAnalysisByProjectQueryOptions } from "@/lib/queries/photo-analysis";
 import { pitchDecksByProjectQueryOptions } from "@/lib/queries/pitch-decks";
+import { galleryByProjectQueryOptions } from "@/lib/queries/gallery";
 
 import type { ProjectWithProgress } from "@/lib/mappers";
 
@@ -55,6 +58,7 @@ const TabSchema = z.enum([
   "financials",
   "sensitivity",
   "floorplan",
+  "gallery",
 ]);
 
 export const Route = createFileRoute("/_authed/projects/$id/")({
@@ -76,6 +80,7 @@ export const Route = createFileRoute("/_authed/projects/$id/")({
       queryClient.prefetchQuery(floorplansByProjectQueryOptions(id)),
       queryClient.prefetchQuery(photoAnalysisByProjectQueryOptions(id)),
       queryClient.prefetchQuery(pitchDecksByProjectQueryOptions(id)),
+      queryClient.prefetchQuery(galleryByProjectQueryOptions(id)),
     ]);
   },
 
@@ -111,6 +116,7 @@ function ProjectDetail() {
     if (t === "financials" || t === "sensitivity")
       queryClient.prefetchQuery(financialsQueryOptions(id));
     if (t === "floorplan") queryClient.prefetchQuery(floorplansByProjectQueryOptions(id));
+    if (t === "gallery") queryClient.prefetchQuery(galleryByProjectQueryOptions(id));
   };
 
   const workflow = [
@@ -184,7 +190,7 @@ function ProjectDetail() {
         onValueChange={(v) => setTab(v as z.infer<typeof TabSchema>)}
         className="mb-8"
       >
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-7">
           <TabsTrigger value="overview" onMouseEnter={() => prefetchTab("overview")}>
             Overview
           </TabsTrigger>
@@ -202,6 +208,9 @@ function ProjectDetail() {
           </TabsTrigger>
           <TabsTrigger value="floorplan" onMouseEnter={() => prefetchTab("floorplan")}>
             3D Floorplan
+          </TabsTrigger>
+          <TabsTrigger value="gallery" onMouseEnter={() => prefetchTab("gallery")}>
+            Gallery
           </TabsTrigger>
         </TabsList>
 
@@ -239,26 +248,52 @@ function ProjectDetail() {
           </div>
 
           {/* Find Trades CTA */}
-          <div className="mt-8">
-            <h2 className="text-lg font-semibold mb-4">Get the work done</h2>
-            <Card className="hover:shadow-md transition border-accent/30">
-              <CardContent className="p-5 flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold flex items-center gap-2">
-                    Find local tradespeople{" "}
-                    <span className="text-xs bg-accent/10 px-1.5 py-0.5 rounded">Marketplace</span>
-                  </h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Browse verified trades, save favorites, request quotes for this refurb
-                  </p>
-                </div>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to="/marketplace" search={{ projectId: id }}>
-                    Browse Trades →
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+          <div className="mt-8 grid gap-4 lg:grid-cols-2">
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Get the work done</h2>
+              <Card className="hover:shadow-md transition border-accent/30 h-full">
+                <CardContent className="p-5 flex items-center justify-between gap-4 h-full">
+                  <div>
+                    <h3 className="font-semibold flex items-center gap-2">
+                      Find local tradespeople{" "}
+                      <span className="text-xs bg-accent/10 px-1.5 py-0.5 rounded">
+                        Marketplace
+                      </span>
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Browse verified trades, save favorites, request quotes for this refurb
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/marketplace" search={{ projectId: id }}>
+                      Browse Trades →
+                    </Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Publish to Gallery CTA */}
+            <div>
+              <h2 className="text-lg font-semibold mb-4">Showcase this project</h2>
+              <Card className="hover:shadow-md transition border-accent/30 h-full">
+                <CardContent className="p-5 flex items-center justify-between gap-4 h-full">
+                  <div>
+                    <h3 className="font-semibold flex items-center gap-2">
+                      Publish to Gallery{" "}
+                      <span className="text-xs bg-accent/10 px-1.5 py-0.5 rounded">Public</span>
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      List this opportunity publicly and capture investor leads
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setTab("gallery")}>
+                    <ImageIcon className="mr-1.5 h-3.5 w-3.5" />
+                    Manage
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </TabsContent>
 
@@ -361,6 +396,13 @@ function ProjectDetail() {
         <TabsContent value="floorplan" className="mt-6">
           <Suspense fallback={<LoadingState />}>
             <FloorplanViewer projectId={id} />
+          </Suspense>
+        </TabsContent>
+
+        {/* Gallery - publish to public gallery + owner management */}
+        <TabsContent value="gallery" className="mt-6">
+          <Suspense fallback={<LoadingState />}>
+            <PublishToGallery projectId={id} projectName={project.name} />
           </Suspense>
         </TabsContent>
       </Tabs>
