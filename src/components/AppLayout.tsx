@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
-import { DISCLAIMER } from "@/core/reports";
 import { RequireAuth } from "./RequireAuth";
 import { MobileTopBar } from "./MobileTopBar";
+import { Footer } from "./Footer";
 
 export function AppLayout({
   children,
@@ -50,10 +50,8 @@ export function AppLayout({
                 </div>
               )}
               {children}
-              <p className="mt-12 border-t border-border/50 pt-6 text-xs text-muted-foreground">
-                {DISCLAIMER}
-              </p>
             </div>
+            <Footer />
           </main>
         </div>
       </div>

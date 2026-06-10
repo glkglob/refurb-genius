@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowRight,
@@ -19,7 +20,6 @@ import {
 import heroAfter from "@/assets/hero-after.jpg";
 import beforeImg from "@/assets/before.jpg";
 import afterImg from "@/assets/after.jpg";
-import { DISCLAIMER } from "@/core/reports";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -80,7 +80,7 @@ function Landing() {
       <ReportExport />
       <BeforeAfter />
       <FinalCTA />
-      <Footer />
+      <Footer className="border-t border-border bg-card" />
     </div>
   );
 }
@@ -518,18 +518,5 @@ function SectionHeader({
       </h2>
       {subtitle && <p className="mt-3 text-lg text-muted-foreground">{subtitle}</p>}
     </div>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="border-t border-border bg-card">
-      <div className="mx-auto max-w-7xl px-6 py-10">
-        <p className="text-xs text-muted-foreground">{DISCLAIMER}</p>
-        <p className="mt-4 text-xs text-muted-foreground">
-          © {new Date().getFullYear()} Refurb Genius. All rights reserved.
-        </p>
-      </div>
-    </footer>
   );
 }
