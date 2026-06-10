@@ -42,7 +42,7 @@ let authSubscription: { unsubscribe: () => void } | null = null;
  *  unauthenticated and RequireAuth redirects to /auth normally. */
 const HYDRATION_TIMEOUT_MS = 5_000;
 
-function fromSupabaseUser(
+export function fromSupabaseUser(
   u:
     | { id: string; email?: string | null; user_metadata?: Record<string, unknown> }
     | null

@@ -1,6 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/services/supabase";
+import { fromSupabaseUser } from "@/lib/auth";
+import { AUTH_USER_QUERY_KEY } from "@/hooks/useAuth";
 import { Loader2, AlertCircle } from "lucide-react";
 import { z } from "zod";
 
@@ -19,6 +22,7 @@ export const Route = createFileRoute("/auth_/callback")({
 
 function AuthCallback() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { code, type, error: urlError, error_description } = Route.useSearch();
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +36,11 @@ function AuthCallback() {
       // No PKCE code — check if a session already exists (e.g. fragment-based flow)
       supabase.auth.getSession().then(({ data }) => {
         if (data.session) {
+          // Seed the auth query cache before navigating so RequireAuth's
+          // post-mount check on /dashboard doesn't see the stale
+          // "signed out" cache entry and bounce back to /auth. See the
+          // matching comment in src/routes/auth.tsx for full context.
+          queryClient.setQueryData(AUTH_USER_QUERY_KEY, fromSupabaseUser(data.session.user));
           void navigate({ to: "/dashboard", replace: true });
         } else {
           setError("No authentication code received. Please try signing in again.");
@@ -42,7 +51,7 @@ function AuthCallback() {
 
     supabase.auth
       .exchangeCodeForSession(code)
-      .then(({ error: exchangeError }) => {
+      .then(({ data, error: exchangeError }) => {
         if (exchangeError) {
           setError(exchangeError.message);
           return;
@@ -50,6 +59,9 @@ function AuthCallback() {
         if (type === "recovery") {
           void navigate({ to: "/auth", search: { mode: "reset" }, replace: true });
         } else {
+          // Seed the auth query cache before navigating — see comment above
+          // and the matching fix in src/routes/auth.tsx.
+          queryClient.setQueryData(AUTH_USER_QUERY_KEY, fromSupabaseUser(data.user));
           void navigate({ to: "/dashboard", replace: true });
         }
       })

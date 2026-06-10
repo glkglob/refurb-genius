@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +8,8 @@ import { supabase } from "@/services/supabase";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { identifyAnalyticsUser, trackEvent, trackSignupCompleted } from "@/lib/analytics";
+import { fromSupabaseUser } from "@/lib/auth";
+import { AUTH_USER_QUERY_KEY } from "@/hooks/useAuth";
 
 // Client-side lockout after repeated failures.
 const MAX_ATTEMPTS = 3;
@@ -31,6 +34,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { mode = "signin", redirect } = useSearch({ from: "/auth" });
 
   const [isSignIn, setIsSignIn] = useState(mode !== "signup");
@@ -107,6 +111,14 @@ function AuthPage() {
         identifyAnalyticsUser(data.user?.id);
         trackEvent("user_signed_in", { provider: "email" });
 
+        // Immediately seed the auth query cache with the freshly signed-in
+        // user. Without this, the cache still holds the "signed out" (null)
+        // result fetched when /auth first loaded (staleTime is 5 minutes),
+        // so RequireAuth's post-mount check on the destination page sees
+        // isAuthenticated === false and bounces straight back to /auth
+        // before the async onAuthStateChange listener can update it.
+        queryClient.setQueryData(AUTH_USER_QUERY_KEY, fromSupabaseUser(data.user));
+
         // Reset rate-limit counters on success.
         setFailedAttempts(0);
         setLockedUntil(null);
@@ -132,6 +144,10 @@ function AuthPage() {
 
         if (data.session) {
           // Email confirmation is disabled — user is immediately signed in.
+          // Seed the auth query cache for the same reason as the sign-in
+          // branch above (avoid a stale "signed out" cache bouncing the
+          // user back to /auth immediately after sign-up).
+          queryClient.setQueryData(AUTH_USER_QUERY_KEY, fromSupabaseUser(data.user));
           toast.success("Account created! Welcome to Refurb Genius.");
           navigateAfterAuth();
         } else {
