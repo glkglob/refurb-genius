@@ -1,20 +1,65 @@
-# Feature-Slice Architecture
+# Feature Slice Architecture
 
-> Status: **Adopted (incremental)** — introduced 2026-06. The `estimate` slice is
-> the reference implementation. New feature work should follow this structure;
-> existing code migrates slice-by-slice (see Migration Plan below).
+## Migration Status (June 10, 2026)
+
+<<<<<<< /Users/dev/workspace/refurb-genius/docs/architecture/FEATURE_SLICE.md
+| Slice     | Status       | Last Commit        | Notes / Blockers                            |
+| --------- | ------------ | ------------------ | ------------------------------------------- |
+| estimate  | Standardized | 354e556 / 3acf34e3 | Layers mostly in place; public API enforced |
+| ai-upload | Standardized | 354e556 / 3acf34e3 | Photo pipeline wiring complete              |
+| ai-design | Standardized | 354e556 / 3acf34e3 | Needs domain/application separation polish  |
+| export    | Scaffolded   | -                  | In progress (Phase 5)                       |
+| ...       | ...          | ...                | ...                                         |
+=======
+## Migration Status (June 10, 2026)
+
+| Slice       | Status       | Key commits            | Notes / Blockers                                              |
+| ----------- | ------------ | ---------------------- | ------------------------------------------------------------- |
+| `estimate`  | Standardized | `735787c` (shims gone) | All layers in place; public API enforced                      |
+| `ai-upload` | Standardized | `b2c5827`, `735787c`   | Photo pipeline wired; domain enums pending `@repo/types` move |
+| `ai-design` | Standardized | `354e556`, `735787c`   | Redesign catalog + orchestrator still in legacy `lib`/`core`  |
+| `export`    | Planned      | —                      | Not started — no slice directory yet                          |
+| `gallery`   | Planned      | —                      | Not started                                                   |
+
+Remaining work: full layer isolation for `ai-*` slices (types-package cleanup,
+orchestrator extraction), then `export` and `gallery` slices.
+
+**Key rules** (details below):
+
+- Public API via `features/<slice>/index.ts` only (plus the slice's
+  `infrastructure` barrel for wiring code — a deliberate deviation).
+- Vendor SDKs only via `src/platform/`.
+- Invariant tests enforce both boundaries.
+
+### Known deep-import debt (June 10, 2026)
+
+Grep-confirmed violations of the public-API rule, to fix in a follow-up pass:
+
+- `src/routes/_authed/projects.$id.report.tsx` imports
+  `@/features/ai-upload/presentation/hooks/usePhotos` (should come from the
+  slice public API).
+- `src/lib/pitchDeck.ts` imports a deep repository path
+  (`@/features/estimate/infrastructure/repositories/estimate.repository`)
+  instead of the infrastructure barrel.
+- `src/features/ai-design/presentation/serverFns.ts` imports
+  `roomAnalysisOutputSchema` from `@/features/ai-upload/presentation/serverFns`
+  (cross-slice presentation deep import).
+- Widespread `@/features/ai-upload/domain` type imports from `lib/`,
+  `components/`, and `core/` (`ConditionLevel`, `RoomAnalysis`, …) — resolved
+  by the planned `@repo/types` canonical-union cleanup.
 
 ---
+>>>>>>> /Users/dev/.windsurf/worktrees/refurb-genius/refurb-genius-3cb6ef38/docs/architecture/FEATURE_SLICE.md
 
-## Why
+Remaining work: Full layer isolation for ai-\* slices, Export + Payment features.
 
-The codebase currently organises code by technical layer (`src/core/`,
-`src/lib/`, `src/hooks/`, `src/components/`). One business capability — e.g.
-"generate an estimate" — is smeared across five directories, which makes
-onboarding slow, encourages god-modules (`src/lib/estimates.ts`,
-`src/core/ai/serverFns.ts`), and couples features to each other through shared
-grab-bag modules.
+**Key Rules**:
 
+<<<<<<< /Users/dev/workspace/refurb-genius/docs/architecture/FEATURE_SLICE.md
+- Public API via `features/<slice>/index.ts` only.
+- Platform for vendors.
+- Invariants enforce boundaries.
+=======
 Feature-Slice Architecture organises code by **business capability** (vertical
 slice), with **Clean Architecture** layering _inside_ each slice and a
 **platform boundary** that isolates vendor SDKs.
@@ -476,6 +521,9 @@ What does **not** move:
 | `export`    | —        | —              | —                 | —                    |
 | `gallery`   | —        | —              | —                 | —                    |
 
+See the **Migration Status** table at the top of this document for per-slice
+notes, key commits, and known deep-import debt.
+
 **Shim cleanup (June 2026):** All strangler shims for the three slices and platform
 vendors were deleted after grep confirmed zero importers. Enforcement:
 `tests/invariants/shim-cleanup.invariant.test.ts`.
@@ -500,3 +548,4 @@ orchestrator) — not a strangler shim.
 - [ ] serverFns validate input with Zod `.inputValidator()` and call `requireServerAuth()` first.
 - [ ] Slice exposes one `index.ts`; no deep imports from other slices.
 - [ ] `pnpm typecheck && pnpm lint && pnpm test:invariants` pass before commit.
+>>>>>>> /Users/dev/.windsurf/worktrees/refurb-genius/refurb-genius-3cb6ef38/docs/architecture/FEATURE_SLICE.md
