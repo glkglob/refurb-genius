@@ -1,0 +1,29 @@
+docs/architecture/PHASE_2_3_SUMMARY.md
+  s_5371804cdfba14::t_f77fe48cedc98a 1-217
+docs/architecture/QUICK_REFERENCE.md
+  s_5371804cdfba14::t_f7a51bcdae467c 1-130
+vitest.config.ts
+  s_5371804cdfba14::t_d4e8d24908f4f9 17-21
+tests/invariants/no-legacy-imports.invariant.test.ts
+  s_5371804cdfba14::t_94e0e9256870cd 1-144
+docs/architecture/audit-2026-06-10.md
+  s_5371804cdfba14::t_087ebbd6ddd3f2 1-161
+tests/invariants/shim-cleanup.invariant.test.ts
+  s_5371804cdfba14::t_f0ea9d8b52c5fb 6-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "326bc00e9e35f47072092178c9607f10cc8d6132",
+  "prompts": {},
+  "sessions": {
+    "s_5371804cdfba14": {
+      "agent_id": {
+        "tool": "windsurf",
+        "id": "6151e575-b880-4d9c-938b-4f490d767757",
+        "model": "Claude Sonnet 4.5"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
