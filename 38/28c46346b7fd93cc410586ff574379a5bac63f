@@ -1,0 +1,47 @@
+src/components/DashboardSection.tsx
+  s_d3d1fa6e29ac8b::t_dd94af9fb7be62 21-22,29
+src/routes/_authed/studies.tsx
+  s_d3d1fa6e29ac8b::t_66edd7e5e75dee 7,67,69,77,79,82-112,118,125,135
+packages/ui/src/components/button.tsx
+  s_d3d1fa6e29ac8b::t_a60d2e527035ea 8,13,16-18,22-23,26
+src/components/LoadingState.tsx
+  s_d3d1fa6e29ac8b::t_450ae2d408d7d7 5-8
+src/components/AppLayout.tsx
+  s_d3d1fa6e29ac8b::t_c61babac436c35 24-29,31-46,48,53-55
+src/features/auth/presentation/AuthExperience.tsx
+  s_d3d1fa6e29ac8b::t_3975706c3a2a93 340,410,419,434,441-445,632
+packages/ui/src/components/progress.tsx
+  s_d3d1fa6e29ac8b::t_c2cfe9353339e4 14,18
+src/features/ai-upload/presentation/components/PhotoUploadZone.tsx
+  s_d3d1fa6e29ac8b::t_39869a4c34e993 87-88,90-91,96,101-102,105,112-113,151-154,164,175
+src/components/ui/button.tsx
+  s_d3d1fa6e29ac8b::t_2bf6f64d9d62da 8,13,16-18,22-23,26
+src/routes/_authed/analyze.tsx
+  s_d3d1fa6e29ac8b::t_1124dacceaca1f 7,10,14-16,26-27,44-91,124-127,159,164,169,180-196,198,207,213-214,216,218-219,222-229,238,243,256,258,260,264-290,292-295,297-298,300-301,304-306,308,321,339-347,380,437
+  s_d3d1fa6e29ac8b::t_206dade16f65f1 199-201,302-303
+src/components/EmptyState.tsx
+  s_d3d1fa6e29ac8b::t_09aeaf94f02838 25,32
+packages/ui/src/components/card.tsx
+  s_d3d1fa6e29ac8b::t_5b7b4a63f12fbe 9-12
+src/styles.css
+  s_d3d1fa6e29ac8b::t_792c7bf67fd0f4 176-178
+  s_d3d1fa6e29ac8b::t_830e139b0c086f 72-85,88,90-92,109-111,113,115-117,119-121,125,127-129,153-175
+src/routes/_authed/dashboard.tsx
+  s_d3d1fa6e29ac8b::t_a834d9d8fc4753 173,273,627,654,682
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "3828c46346b7fd93cc410586ff574379a5bac63f",
+  "prompts": {},
+  "sessions": {
+    "s_d3d1fa6e29ac8b": {
+      "agent_id": {
+        "tool": "github-copilot-cli",
+        "id": "2b21ce67-969e-4171-b46a-1cfc001ce457",
+        "model": "unknown"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
