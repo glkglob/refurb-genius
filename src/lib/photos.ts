@@ -2,7 +2,7 @@
 // Files live in the public `project-photos` bucket under
 // `{user_id}/{project_id}/{uuid}.{ext}` so storage RLS scopes ownership by
 // the leading folder. Metadata is mirrored into the `photos` table.
-import { isImageFile } from "@/features/ai-upload/domain";
+import { isImageFile, imageContentType } from "@/features/ai-upload";
 import { supabase } from "@/platform/supabase/browser";
 import { auth, fromSupabaseUser, type AuthUser } from "./auth";
 import { captureUploadError, addDiagnosticBreadcrumb } from "./sentry";
@@ -104,23 +104,6 @@ function fileExt(name: string): string {
   return i >= 0 ? name.slice(i + 1).toLowerCase() : "jpg";
 }
 
-function inferContentType(file: File): string {
-  if (file.type) return file.type;
-  const ext = fileExt(file.name);
-  const byExt: Record<string, string> = {
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    png: "image/png",
-    gif: "image/gif",
-    webp: "image/webp",
-    heic: "image/heic",
-    heif: "image/heif",
-    bmp: "image/bmp",
-    avif: "image/avif",
-  };
-  return byExt[ext] ?? "image/jpeg";
-}
-
 export const photoStore = {
   list(projectId: string): ProjectPhoto[] {
     ensureLoaded(projectId);
@@ -166,7 +149,7 @@ export const photoStore = {
           const uploadResult = await timeoutPromise(
             supabase.storage
               .from(BUCKET)
-              .upload(path, file, { contentType: inferContentType(file), upsert: false }),
+              .upload(path, file, { contentType: imageContentType(file), upsert: false }),
             UPLOAD_TIMEOUT_MS,
             `Upload ${file.name} to storage`,
           );
