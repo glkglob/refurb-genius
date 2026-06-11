@@ -1,0 +1,28 @@
+src/lib/email.ts
+  s_f9ab28b28df7fd::t_0fb83fb78bc208 1-35
+pnpm-lock.yaml
+  s_f9ab28b28df7fd::t_afc4157db352a4 218-220,2783-2785,3925-3927,4695-4697,4901-4909,5034-5036,7924-7925,9167-9168,9920-9921,10140-10144,10303-10306
+package.json
+  s_f9ab28b28df7fd::t_ef120f958628b7 101
+src/core/gallery/serverFns.ts
+  s_f9ab28b28df7fd::t_388e18a840c315 11-13
+  s_f9ab28b28df7fd::t_765e4bfd1611d9 49-69
+supabase/functions/send-notification-email/index.ts
+  s_f9ab28b28df7fd::t_4d20be442460c3 19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "3c495277bb757458fa654fd504da65ef99c3d6f4",
+  "prompts": {},
+  "sessions": {
+    "s_f9ab28b28df7fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "10810d52-8f3c-42f1-b652-f8d1f312d046",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
