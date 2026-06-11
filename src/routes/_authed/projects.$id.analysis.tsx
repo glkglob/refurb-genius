@@ -89,14 +89,28 @@ function AnalysisPage() {
       };
     }
 
-    loadPhotoAnalysis(id).then((persisted) => {
-      if (cancelled) return;
-      if (persisted?.length) {
-        afterAnalysis(persisted);
-        return;
-      }
-      runPhotoAnalysis({ projectId: id }).then(afterAnalysis);
-    });
+    loadPhotoAnalysis(id)
+      .then((persisted) => {
+        if (cancelled) return;
+        if (persisted?.length) {
+          afterAnalysis(persisted);
+          return;
+        }
+        return runPhotoAnalysis({ projectId: id })
+          .then(afterAnalysis)
+          .catch((err: unknown) => {
+            if (cancelled) return;
+            setLoading(false);
+            toast.error(err instanceof Error ? err.message : "Analysis failed. Please try again.");
+          });
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setLoading(false);
+        toast.error(
+          err instanceof Error ? err.message : "Failed to load analysis. Please try again.",
+        );
+      });
 
     return () => {
       cancelled = true;

@@ -35,7 +35,7 @@ Unauthenticated visitors are redirected to `/auth?redirect=<path>` and returned 
 | Path       | File                                                            |
 | ---------- | --------------------------------------------------------------- |
 | `/analyze` | `src/routes/_authed/analyze.tsx` (single end-to-end study flow) |
-| `/studies` | `src/routes/_authed/studies.tsx` (study dashboard + lifecycle) |
+| `/studies` | `src/routes/_authed/studies.tsx` (study dashboard + lifecycle)  |
 
 ### Projects
 

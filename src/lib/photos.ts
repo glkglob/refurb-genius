@@ -174,41 +174,65 @@ export const photoStore = {
           const { data: pub } = supabase.storage.from(BUCKET).getPublicUrl(path);
           const url = pub.publicUrl;
 
-          // Wrap metadata insert with timeout.
-          // Promise.resolve() converts the PostgrestBuilder (PromiseLike) to a real Promise.
-          const insertResult = await timeoutPromise(
-            Promise.resolve(
-              supabase
-                .from("photos")
-                .insert({
-                  id,
-                  project_id: projectId,
-                  user_id: user.id,
-                  storage_path: path,
-                  url,
-                  name: file.name,
-                  size: file.size,
-                })
-                .select()
-                .single(),
-            ),
-            UPLOAD_TIMEOUT_MS,
-            `Insert metadata for ${file.name}`,
-          );
+          // Wrap metadata insert in its own try/catch so a timeout or unexpected
+          // error here always triggers a storage rollback — the outer catch handles
+          // storage-phase failures only and has no path to clean up.
+          try {
+            // Promise.resolve() converts the PostgrestBuilder (PromiseLike) to a real Promise.
+            const insertResult = await timeoutPromise(
+              Promise.resolve(
+                supabase
+                  .from("photos")
+                  .insert({
+                    id,
+                    project_id: projectId,
+                    user_id: user.id,
+                    storage_path: path,
+                    url,
+                    name: file.name,
+                    size: file.size,
+                  })
+                  .select()
+                  .single(),
+              ),
+              UPLOAD_TIMEOUT_MS,
+              `Insert metadata for ${file.name}`,
+            );
 
-          const { data: row, error: insErr } = insertResult;
-          if (insErr || !row) {
-            const errMsg = insErr?.message ?? "No data returned from insert";
-            logger.error("[photos] metadata insert failed", {
-              file: file.name,
-              error: errMsg,
-            });
-            captureUploadError(insErr ?? new Error(errMsg), {
+            const { data: row, error: insErr } = insertResult;
+            if (insErr || !row) {
+              const errMsg = insErr?.message ?? "No data returned from insert";
+              logger.error("[photos] metadata insert failed", {
+                file: file.name,
+                error: errMsg,
+              });
+              captureUploadError(insErr ?? new Error(errMsg), {
+                projectId,
+                fileSizeMb: file.size / (1024 * 1024),
+                stage: "metadata",
+              });
+              // Roll back the storage upload to keep things consistent.
+              await supabase.storage
+                .from(BUCKET)
+                .remove([path])
+                .catch((rollbackErr) => {
+                  logger.error("[photos] rollback failed", { path, error: String(rollbackErr) });
+                });
+              errors.push({ file: file.name, error: errMsg });
+              return;
+            }
+
+            created.push(rowToPhoto(row));
+            addDiagnosticBreadcrumb("photos:upload:complete", { file: file.name });
+          } catch (metaErr) {
+            // Metadata insert timed out or threw — roll back the storage file.
+            const errMsg = isTimeoutError(metaErr) ? "Upload timeout" : String(metaErr);
+            logger.error("[photos] metadata insert failed", { file: file.name, error: errMsg });
+            captureUploadError(metaErr, {
               projectId,
               fileSizeMb: file.size / (1024 * 1024),
               stage: "metadata",
             });
-            // Roll back the storage upload to keep things consistent.
             await supabase.storage
               .from(BUCKET)
               .remove([path])
@@ -216,13 +240,10 @@ export const photoStore = {
                 logger.error("[photos] rollback failed", { path, error: String(rollbackErr) });
               });
             errors.push({ file: file.name, error: errMsg });
-            return;
           }
-
-          created.push(rowToPhoto(row));
-          addDiagnosticBreadcrumb("photos:upload:complete", { file: file.name });
         });
       } catch (err) {
+        // Catches timeouts and errors from the storage upload phase only.
         const errorMsg = isTimeoutError(err) ? "Upload timeout" : String(err);
         logger.error("[photos] file upload failed", {
           file: file.name,
@@ -231,7 +252,7 @@ export const photoStore = {
         captureUploadError(err, {
           projectId,
           fileSizeMb: file.size / (1024 * 1024),
-          stage: "storage", // Use storage stage for timeout errors too
+          stage: "storage",
         });
         errors.push({ file: file.name, error: errorMsg });
       }

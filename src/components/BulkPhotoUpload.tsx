@@ -11,7 +11,7 @@ import { fromSupabaseUser } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { photosQueryOptions } from "@/lib/queries/projects";
 import { captureUploadError } from "@/lib/sentry";
-import { isImageFile, imageContentType } from "@/features/ai-upload";
+import { isImageFile } from "@/features/ai-upload";
 
 type UploadStatus = "queued" | "uploading" | "uploaded" | "analyzing" | "completed" | "failed";
 
@@ -41,17 +41,12 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
   }, []);
 
   const handleFiles = useCallback((files: FileList | File[]) => {
-    const fileArray = Array.from(files);
-    const images = fileArray.filter(isImageFile);
-    const rejected = fileArray.length - images.length;
-    if (rejected > 0) {
-      toast.error(
-        rejected === 1 ? "Skipped a non-image file." : `Skipped ${rejected} non-image files.`,
-      );
+    const fileArray = Array.from(files).filter(isImageFile);
+    if (fileArray.length === 0) {
+      toast.error("Please select image files only.");
+      return;
     }
-    if (images.length === 0) return;
-
-    const newItems: UploadItem[] = images.map((file) => ({
+    const newItems: UploadItem[] = fileArray.map((file) => ({
       id: crypto.randomUUID(),
       file,
       status: "queued",
@@ -66,6 +61,7 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
 
     setIsProcessing(true);
     const limiter = pLimit(MAX_CONCURRENT);
+    let failCount = 0;
 
     const queuedItems = items.filter((i) => i.status === "queued");
 
@@ -84,12 +80,11 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
           const ext = item.file.name.split(".").pop() || "jpg";
           const path = `${user.id}/${projectId}/${item.id}.${ext}`;
 
-          // Upload to storage with progress (simple, no real XHR progress for demo/prod use multipart if needed)
           const { error: uploadError } = await supabase.storage
             .from(BUCKET)
             .upload(path, item.file, {
-              upsert: true,
-              contentType: imageContentType(item.file),
+              upsert: false,
+              contentType: item.file.type || "image/jpeg",
             });
 
           if (uploadError) throw uploadError;
@@ -100,7 +95,7 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
           const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
           const url = urlData.publicUrl;
 
-          // Insert metadata to photos table
+          // Insert metadata — roll back storage file on failure.
           const { data: photoRow, error: insertError } = await supabase
             .from("photos")
             .insert({
@@ -110,12 +105,17 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
               url,
               name: item.file.name,
               size: item.file.size,
-              // uploaded_at handled by default now()
             })
             .select("id")
             .single();
 
-          if (insertError) throw insertError;
+          if (insertError) {
+            await supabase.storage
+              .from(BUCKET)
+              .remove([path])
+              .catch(() => {});
+            throw insertError;
+          }
 
           updateItem(item.id, {
             status: "analyzing",
@@ -144,6 +144,7 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
             error: (err as Error)?.message,
           });
           captureUploadError(err, { projectId });
+          failCount++;
           updateItem(item.id, {
             status: "failed",
             error: (err instanceof Error ? err.message : null) || "Upload failed",
@@ -155,7 +156,11 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
     await Promise.allSettled(promises);
     setIsProcessing(false);
 
-    toast.success("Bulk upload complete. AI analysis triggered for new photos.");
+    if (failCount > 0) {
+      toast.error(`${failCount} file${failCount > 1 ? "s" : ""} failed to upload.`);
+    } else {
+      toast.success("Upload complete.");
+    }
   }, [items, isProcessing, projectId, queryClient, updateItem]);
 
   const onDrop = useCallback(
