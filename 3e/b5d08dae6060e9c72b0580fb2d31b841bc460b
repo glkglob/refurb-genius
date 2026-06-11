@@ -1,0 +1,23 @@
+src/components/deal-copilot/DealIntakeForm.tsx
+  s_f9ab28b28df7fd::t_133719965f21ec 2
+  s_f9ab28b28df7fd::t_86600d028e8632 100
+  s_f9ab28b28df7fd::t_280f0572cfac74 233-235
+.mcp.json
+  s_f9ab28b28df7fd::t_e52cb68672376c 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "3eb5d08dae6060e9c72b0580fb2d31b841bc460b",
+  "prompts": {},
+  "sessions": {
+    "s_f9ab28b28df7fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "10810d52-8f3c-42f1-b652-f8d1f312d046",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
