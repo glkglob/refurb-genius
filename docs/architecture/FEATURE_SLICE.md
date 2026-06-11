@@ -2,17 +2,17 @@
 
 ## Migration Status (June 10, 2026)
 
-| Slice         | Status       | Key commits                                 | Notes / Blockers                                              |
-| ------------- | ------------ | ------------------------------------------- | ------------------------------------------------------------- |
-| `estimate`    | Standardized | `354e556`, `3acf34e3`, `735787c`            | All layers in place; public API enforced                      |
-| `ai-upload`   | Standardized | `354e556`, `3acf34e3`, `b2c5827`, `735787c` | Photo pipeline wired; domain enums pending `@repo/types` move |
-| `ai-design`   | Standardized | `354e556`, `3acf34e3`, `735787c`            | Redesign catalog + orchestrator still in legacy `lib`/`core`  |
-| `export`      | Scaffolded   | —                                           | Slice scaffolded; initial PDF export pipeline added           |
-| `roi`         | Standardized | —                                           | Deterministic ROI service + sensitivity analysis in slice     |
-| `feasibility` | Standardized | —                                           | End-to-end orchestrator + immutable Supabase snapshot repo    |
-| `sharing`   | Standardized | —                                           | Share links with role/expiry controls and RLS-backed ownership |
-| `payment`   | Scaffolded   | —                                           | Slice scaffolded; checkout + webhook application stubs added  |
-| `gallery`     | Scaffolded   | —                                           | Slice scaffolded; owner/publishing application stubs added    |
+| Slice         | Status       | Key commits                                 | Notes / Blockers                                               |
+| ------------- | ------------ | ------------------------------------------- | -------------------------------------------------------------- |
+| `estimate`    | Standardized | `354e556`, `3acf34e3`, `735787c`            | All layers in place; public API enforced                       |
+| `ai-upload`   | Standardized | `354e556`, `3acf34e3`, `b2c5827`, `735787c` | Photo pipeline wired; domain enums pending `@repo/types` move  |
+| `ai-design`   | Standardized | `354e556`, `3acf34e3`, `735787c`            | Redesign catalog + orchestrator still in legacy `lib`/`core`   |
+| `export`      | Scaffolded   | —                                           | Slice scaffolded; initial PDF export pipeline added            |
+| `roi`         | Standardized | —                                           | Deterministic ROI service + sensitivity analysis in slice      |
+| `feasibility` | Standardized | —                                           | End-to-end orchestrator + immutable Supabase snapshot repo     |
+| `sharing`     | Standardized | —                                           | Share links with role/expiry controls and RLS-backed ownership |
+| `payment`     | Scaffolded   | —                                           | Slice scaffolded; checkout + webhook application stubs added   |
+| `gallery`     | Scaffolded   | —                                           | Slice scaffolded; owner/publishing application stubs added     |
 
 Remaining work: end-to-end browser automation coverage and cleanup of legacy `core/`
 and `lib/` call paths that now have slice equivalents.
