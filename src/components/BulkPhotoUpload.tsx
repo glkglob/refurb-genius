@@ -11,7 +11,7 @@ import { fromSupabaseUser } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { photosQueryOptions } from "@/lib/queries/projects";
 import { captureUploadError } from "@/lib/sentry";
-import { isImageFile } from "@/features/ai-upload";
+import { isImageFile, imageContentType } from "@/features/ai-upload";
 
 type UploadStatus = "queued" | "uploading" | "uploaded" | "analyzing" | "completed" | "failed";
 
@@ -84,7 +84,7 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
             .from(BUCKET)
             .upload(path, item.file, {
               upsert: false,
-              contentType: item.file.type || "image/jpeg",
+              contentType: imageContentType(item.file),
             });
 
           if (uploadError) throw uploadError;

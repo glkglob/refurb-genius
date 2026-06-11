@@ -49,7 +49,7 @@ const EXT_TO_MIME: Record<string, string> = {
  * object is stored as an image rather than `application/octet-stream`.
  */
 export function imageContentType(file: File): string {
-  if (file.type) return file.type;
+  if (file.type && file.type !== "application/octet-stream") return file.type;
   const ext = fileExtension(file.name);
   return (ext && EXT_TO_MIME[ext]) || "image/jpeg";
 }

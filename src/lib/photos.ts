@@ -2,7 +2,7 @@
 // Files live in the public `project-photos` bucket under
 // `{user_id}/{project_id}/{uuid}.{ext}` so storage RLS scopes ownership by
 // the leading folder. Metadata is mirrored into the `photos` table.
-import { isImageFile, imageContentType } from "@/features/ai-upload/domain";
+import { isImageFile, imageContentType } from "@/features/ai-upload";
 import { supabase } from "@/platform/supabase/browser";
 import { auth, fromSupabaseUser, type AuthUser } from "./auth";
 import { captureUploadError, addDiagnosticBreadcrumb } from "./sentry";
