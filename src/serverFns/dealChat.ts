@@ -133,15 +133,20 @@ export const sendMessageServerFn = createServerFn({ method: "POST" })
       if (threadErr || !thread) throw new Error("Thread not found");
       if (thread.user_id !== user.id) throw new Error("Unauthorised");
 
-      // Fetch opportunity for AI context.
-      const { data: opp } = await supabase
+      // Fetch opportunity for AI context (trust thread FK, not client input).
+      if (thread.opportunity_id !== data.opportunityId) {
+        throw new Error("Thread does not belong to this opportunity");
+      }
+
+      const { data: opp, error: oppErr } = await supabase
         .from("deal_opportunities")
         .select(
           "title, status, postcode, property_type, bedrooms, purchase_price, estimated_gdv, refurb_budget",
         )
-        .eq("id", data.opportunityId)
+        .eq("id", thread.opportunity_id)
         .single();
 
+      if (oppErr || !opp) throw new Error("Opportunity not found");
       // Load recent history (last 20 messages) to pass as conversation context.
       const { data: history = [] } = await supabase
         .from("deal_messages")
