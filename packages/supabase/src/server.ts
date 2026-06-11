@@ -68,6 +68,12 @@ export function createServerSupabase<DB = unknown>(
       getAll() {
         return Object.entries(cookies).map(([name, value]) => ({ name, value }));
       },
+      // setAll is required by @supabase/ssr to fully initialize the session for
+      // PostgREST requests. Without it auth.uid() returns null in RLS policies
+      // even when the cookie contains a valid JWT. Server-side we can't write
+      // Set-Cookie headers here, so this is intentionally a no-op — the session
+      // is valid and non-expiring for the duration of the request.
+      setAll() {},
     },
   });
 }
