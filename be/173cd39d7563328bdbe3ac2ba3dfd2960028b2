@@ -1,0 +1,25 @@
+src/features/ai-upload/domain/rules.ts
+  s_f9ab28b28df7fd::t_fe60b2d78d6904 8
+src/lib/file-utils.ts
+  s_f9ab28b28df7fd::t_f85218dbb24b54 1-55
+src/lib/photos.ts
+  s_f9ab28b28df7fd::t_0d173571f1e7ed 5
+packages/supabase/src/server.ts
+  s_f9ab28b28df7fd::t_95eb6f05d24cc6 71-76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "be173cd39d7563328bdbe3ac2ba3dfd2960028b2",
+  "prompts": {},
+  "sessions": {
+    "s_f9ab28b28df7fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "10810d52-8f3c-42f1-b652-f8d1f312d046",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
