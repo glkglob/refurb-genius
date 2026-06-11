@@ -20,7 +20,8 @@ const IMAGE_EXTENSIONS = new Set([
 
 /** Lowercased file extension, or undefined when the name has none. */
 function fileExtension(name: string): string | undefined {
-  return name.includes(".") ? name.split(".").pop()?.toLowerCase() : undefined;
+  const ext = name.includes(".") ? name.split(".").pop()?.toLowerCase() : undefined;
+  return ext ? ext : undefined;
 }
 
 /** Accept camera/library picks where MIME is missing (common on mobile) or HEIC. */
