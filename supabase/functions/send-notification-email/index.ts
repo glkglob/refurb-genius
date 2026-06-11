@@ -16,7 +16,7 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
-const FROM_EMAIL = "notifications@mg.refurbgenius.info"; // Update when domain is verified in Resend
+const FROM_EMAIL = "notifications@mail.refurbgenius.info";
 
 type NotificationType = "interest_registered" | "interest_accepted" | "interest_rejected";
 
