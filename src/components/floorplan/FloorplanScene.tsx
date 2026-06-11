@@ -47,11 +47,11 @@ function SceneInternals({
   // Load signed URL for private storage (critical for private bucket)
   useEffect(() => {
     let cancelled = false;
-    if (!model?.model_url) {
+    if (!model?.storage_path) {
       setLoadError("Model has no file path");
       return;
     }
-    getSignedModelUrl(model.model_url)
+    getSignedModelUrl(model.storage_path)
       .then((url) => {
         if (!cancelled) {
           setLoadableUrl(url);
@@ -66,7 +66,7 @@ function SceneInternals({
     return () => {
       cancelled = true;
     };
-  }, [model?.model_url]);
+  }, [model?.storage_path]);
 
   // Click / pointer handling for tagging and measuring
   const handlePointerDown = useCallback(
@@ -121,10 +121,9 @@ function SceneInternals({
   const AnnotationMarkers = () => (
     <>
       {annotations.map((ann) => {
-        const data = (ann.data as Record<string, unknown>) || {};
-        const posArr = (data.position as number[]) || [0, 0, 0];
+        const posArr = (ann.position as number[]) || [0, 0, 0];
         const pos = new THREE.Vector3(posArr[0] || 0, posArr[1] || 0, posArr[2] || 0);
-        const label = (data.label as string) || "Tag";
+        const label = ann.label || "Tag";
         return (
           <group key={ann.id} position={pos}>
             {/* Visual marker */}

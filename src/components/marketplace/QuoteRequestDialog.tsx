@@ -51,8 +51,8 @@ export function QuoteRequestDialog({
         tradesperson_id: tradespersonId,
         user_id: user.id,
         status: "pending",
+        title: `Quote request for ${tradespersonName}`,
         message: message.trim(),
-        proposed_price: proposedPrice ? parseFloat(proposedPrice) : null,
       });
 
       if (error) throw error;

@@ -6,33 +6,88 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5";
   };
-  graphql_public: {
-    Tables: {
-      [_ in never]: never;
-    };
-    Views: {
-      [_ in never]: never;
-    };
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json;
-          operationName?: string;
-          query?: string;
-          variables?: Json;
-        };
-        Returns: Json;
-      };
-    };
-    Enums: {
-      [_ in never]: never;
-    };
-    CompositeTypes: {
-      [_ in never]: never;
-    };
-  };
   public: {
     Tables: {
+      analysis_jobs: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          error_message: string | null;
+          failed_at: string | null;
+          id: string;
+          input_payload: Json;
+          result_payload: Json | null;
+          started_at: string | null;
+          status: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          error_message?: string | null;
+          failed_at?: string | null;
+          id?: string;
+          input_payload?: Json;
+          result_payload?: Json | null;
+          started_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          error_message?: string | null;
+          failed_at?: string | null;
+          id?: string;
+          input_payload?: Json;
+          result_payload?: Json | null;
+          started_at?: string | null;
+          status?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
+      deal_messages: {
+        Row: {
+          content: string;
+          created_at: string;
+          id: string;
+          metadata: Json;
+          role: string;
+          structured_output: Json | null;
+          thread_id: string;
+        };
+        Insert: {
+          content: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          role: string;
+          structured_output?: Json | null;
+          thread_id: string;
+        };
+        Update: {
+          content?: string;
+          created_at?: string;
+          id?: string;
+          metadata?: Json;
+          role?: string;
+          structured_output?: Json | null;
+          thread_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "deal_messages_thread_id_fkey";
+            columns: ["thread_id"];
+            isOneToOne: false;
+            referencedRelation: "deal_threads";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       deal_opportunities: {
         Row: {
           bedrooms: number | null;
@@ -86,6 +141,41 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [];
+      };
+      deal_threads: {
+        Row: {
+          created_at: string;
+          id: string;
+          opportunity_id: string;
+          title: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          opportunity_id: string;
+          title?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          opportunity_id?: string;
+          title?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "deal_threads_opportunity_id_fkey";
+            columns: ["opportunity_id"];
+            isOneToOne: false;
+            referencedRelation: "deal_opportunities";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       estimate_items: {
         Row: {
@@ -314,6 +404,358 @@ export type Database = {
           },
         ];
       };
+      feasibility_studies: {
+        Row: {
+          created_at: string;
+          current_snapshot_version: number;
+          id: string;
+          last_computed_at: string;
+          project_id: string;
+          status: string;
+          title: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          current_snapshot_version?: number;
+          id?: string;
+          last_computed_at?: string;
+          project_id: string;
+          status?: string;
+          title?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          current_snapshot_version?: number;
+          id?: string;
+          last_computed_at?: string;
+          project_id?: string;
+          status?: string;
+          title?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "feasibility_studies_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      floorplan_annotations: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          id: string;
+          label: string;
+          model_id: string;
+          normal: Json | null;
+          notes: string | null;
+          position: Json;
+          project_id: string;
+          room_id: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          label: string;
+          model_id: string;
+          normal?: Json | null;
+          notes?: string | null;
+          position: Json;
+          project_id: string;
+          room_id?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          label?: string;
+          model_id?: string;
+          normal?: Json | null;
+          notes?: string | null;
+          position?: Json;
+          project_id?: string;
+          room_id?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "floorplan_annotations_model_id_fkey";
+            columns: ["model_id"];
+            isOneToOne: false;
+            referencedRelation: "floorplan_models";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "floorplan_annotations_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      floorplan_measurements: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          id: string;
+          label: string | null;
+          measurement_type: string;
+          model_id: string;
+          points: Json;
+          project_id: string;
+          unit: string;
+          updated_at: string;
+          value: number;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          label?: string | null;
+          measurement_type: string;
+          model_id: string;
+          points: Json;
+          project_id: string;
+          unit?: string;
+          updated_at?: string;
+          value: number;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          label?: string | null;
+          measurement_type?: string;
+          model_id?: string;
+          points?: Json;
+          project_id?: string;
+          unit?: string;
+          updated_at?: string;
+          value?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "floorplan_measurements_model_id_fkey";
+            columns: ["model_id"];
+            isOneToOne: false;
+            referencedRelation: "floorplan_models";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "floorplan_measurements_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      floorplan_models: {
+        Row: {
+          created_at: string;
+          file_type: string;
+          id: string;
+          is_active: boolean;
+          metadata: Json;
+          name: string;
+          project_id: string;
+          storage_path: string;
+          updated_at: string;
+          uploaded_by: string;
+        };
+        Insert: {
+          created_at?: string;
+          file_type: string;
+          id?: string;
+          is_active?: boolean;
+          metadata?: Json;
+          name: string;
+          project_id: string;
+          storage_path: string;
+          updated_at?: string;
+          uploaded_by: string;
+        };
+        Update: {
+          created_at?: string;
+          file_type?: string;
+          id?: string;
+          is_active?: boolean;
+          metadata?: Json;
+          name?: string;
+          project_id?: string;
+          storage_path?: string;
+          updated_at?: string;
+          uploaded_by?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "floorplan_models_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      investor_leads: {
+        Row: {
+          created_at: string;
+          email: string;
+          gallery_project_id: string | null;
+          id: string;
+          message: string | null;
+          name: string;
+          phone: string | null;
+          source: string;
+        };
+        Insert: {
+          created_at?: string;
+          email: string;
+          gallery_project_id?: string | null;
+          id?: string;
+          message?: string | null;
+          name: string;
+          phone?: string | null;
+          source?: string;
+        };
+        Update: {
+          created_at?: string;
+          email?: string;
+          gallery_project_id?: string | null;
+          id?: string;
+          message?: string | null;
+          name?: string;
+          phone?: string | null;
+          source?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "investor_leads_gallery_project_id_fkey";
+            columns: ["gallery_project_id"];
+            isOneToOne: false;
+            referencedRelation: "public_gallery_projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      opportunity_photos: {
+        Row: {
+          id: string;
+          name: string;
+          opportunity_id: string;
+          size: number;
+          storage_path: string;
+          uploaded_at: string;
+          url: string;
+          user_id: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          opportunity_id: string;
+          size?: number;
+          storage_path: string;
+          uploaded_at?: string;
+          url: string;
+          user_id: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          opportunity_id?: string;
+          size?: number;
+          storage_path?: string;
+          uploaded_at?: string;
+          url?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "opportunity_photos_opportunity_id_fkey";
+            columns: ["opportunity_id"];
+            isOneToOne: false;
+            referencedRelation: "deal_opportunities";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      photo_analysis_results: {
+        Row: {
+          category: string | null;
+          condition_report: string | null;
+          confidence_score: number | null;
+          cost_suggestions: Json;
+          created_at: string;
+          created_by: string | null;
+          detected_defects: Json;
+          editable_notes: string | null;
+          id: string;
+          material_estimates: Json;
+          photo_id: string | null;
+          project_id: string;
+          room_id: string | null;
+          severity: string | null;
+          synced_to_estimate: boolean;
+          updated_at: string;
+        };
+        Insert: {
+          category?: string | null;
+          condition_report?: string | null;
+          confidence_score?: number | null;
+          cost_suggestions?: Json;
+          created_at?: string;
+          created_by?: string | null;
+          detected_defects?: Json;
+          editable_notes?: string | null;
+          id?: string;
+          material_estimates?: Json;
+          photo_id?: string | null;
+          project_id: string;
+          room_id?: string | null;
+          severity?: string | null;
+          synced_to_estimate?: boolean;
+          updated_at?: string;
+        };
+        Update: {
+          category?: string | null;
+          condition_report?: string | null;
+          confidence_score?: number | null;
+          cost_suggestions?: Json;
+          created_at?: string;
+          created_by?: string | null;
+          detected_defects?: Json;
+          editable_notes?: string | null;
+          id?: string;
+          material_estimates?: Json;
+          photo_id?: string | null;
+          project_id?: string;
+          room_id?: string | null;
+          severity?: string | null;
+          synced_to_estimate?: boolean;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "photo_analysis_results_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       photos: {
         Row: {
           content_type: string | null;
@@ -363,6 +805,47 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "photos_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      pitch_deck_exports: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          id: string;
+          metadata: Json;
+          project_id: string;
+          share_token: string | null;
+          status: string;
+          storage_path: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          metadata?: Json;
+          project_id: string;
+          share_token?: string | null;
+          status?: string;
+          storage_path?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          metadata?: Json;
+          project_id?: string;
+          share_token?: string | null;
+          status?: string;
+          storage_path?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "pitch_deck_exports_project_id_fkey";
             columns: ["project_id"];
             isOneToOne: false;
             referencedRelation: "projects";
@@ -475,172 +958,127 @@ export type Database = {
         };
         Relationships: [];
       };
-      feasibility_studies: {
+      public_gallery_projects: {
         Row: {
+          budget: number | null;
+          cover_image_url: string | null;
           created_at: string;
-          current_snapshot_version: number;
+          created_by: string;
+          description: string | null;
+          featured: boolean;
           id: string;
-          last_computed_at: string;
+          is_public: boolean;
+          is_published: boolean;
+          location: string | null;
           project_id: string;
-          status: string;
-          title: string | null;
+          published_at: string | null;
+          roi: number | null;
+          slug: string;
+          style: string | null;
+          summary: string | null;
+          title: string;
           updated_at: string;
-          user_id: string;
+          view_count: number;
         };
         Insert: {
+          budget?: number | null;
+          cover_image_url?: string | null;
           created_at?: string;
-          current_snapshot_version?: number;
+          created_by: string;
+          description?: string | null;
+          featured?: boolean;
           id?: string;
-          last_computed_at?: string;
+          is_public?: boolean;
+          is_published?: boolean;
+          location?: string | null;
           project_id: string;
-          status?: string;
-          title?: string | null;
+          published_at?: string | null;
+          roi?: number | null;
+          slug: string;
+          style?: string | null;
+          summary?: string | null;
+          title: string;
           updated_at?: string;
-          user_id: string;
+          view_count?: number;
         };
         Update: {
+          budget?: number | null;
+          cover_image_url?: string | null;
           created_at?: string;
-          current_snapshot_version?: number;
+          created_by?: string;
+          description?: string | null;
+          featured?: boolean;
           id?: string;
-          last_computed_at?: string;
+          is_public?: boolean;
+          is_published?: boolean;
+          location?: string | null;
           project_id?: string;
-          status?: string;
-          title?: string | null;
+          published_at?: string | null;
+          roi?: number | null;
+          slug?: string;
+          style?: string | null;
+          summary?: string | null;
+          title?: string;
           updated_at?: string;
-          user_id?: string;
+          view_count?: number;
         };
         Relationships: [
           {
-            foreignKeyName: "feasibility_studies_project_id_fkey";
+            foreignKeyName: "public_gallery_projects_project_id_fkey";
             columns: ["project_id"];
-            isOneToOne: false;
+            isOneToOne: true;
             referencedRelation: "projects";
             referencedColumns: ["id"];
           },
         ];
       };
-      share_links: {
+      quote_requests: {
         Row: {
-          access_role: string;
           created_at: string;
-          expires_at: string | null;
           id: string;
-          owner_user_id: string;
-          revoked_at: string | null;
-          study_id: string;
-          token: string;
-          visibility: string;
-        };
-        Insert: {
-          access_role?: string;
-          created_at?: string;
-          expires_at?: string | null;
-          id?: string;
-          owner_user_id: string;
-          revoked_at?: string | null;
-          study_id: string;
-          token: string;
-          visibility?: string;
-        };
-        Update: {
-          access_role?: string;
-          created_at?: string;
-          expires_at?: string | null;
-          id?: string;
-          owner_user_id?: string;
-          revoked_at?: string | null;
-          study_id?: string;
-          token?: string;
-          visibility?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "share_links_study_id_fkey";
-            columns: ["study_id"];
-            isOneToOne: false;
-            referencedRelation: "feasibility_studies";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      study_exports: {
-        Row: {
-          completed_at: string | null;
-          created_at: string;
-          error_message: string | null;
-          export_type: string;
-          id: string;
-          queued_at: string;
+          message: string;
+          project_id: string;
           status: string;
-          storage_path: string | null;
-          study_id: string;
+          title: string;
+          tradesperson_id: string;
+          updated_at: string;
           user_id: string;
         };
         Insert: {
-          completed_at?: string | null;
           created_at?: string;
-          error_message?: string | null;
-          export_type: string;
           id?: string;
-          queued_at?: string;
+          message: string;
+          project_id: string;
           status?: string;
-          storage_path?: string | null;
-          study_id: string;
+          title: string;
+          tradesperson_id: string;
+          updated_at?: string;
           user_id: string;
         };
         Update: {
-          completed_at?: string | null;
           created_at?: string;
-          error_message?: string | null;
-          export_type?: string;
           id?: string;
-          queued_at?: string;
+          message?: string;
+          project_id?: string;
           status?: string;
-          storage_path?: string | null;
-          study_id?: string;
+          title?: string;
+          tradesperson_id?: string;
+          updated_at?: string;
           user_id?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "study_exports_study_id_fkey";
-            columns: ["study_id"];
+            foreignKeyName: "quote_requests_project_id_fkey";
+            columns: ["project_id"];
             isOneToOne: false;
-            referencedRelation: "feasibility_studies";
+            referencedRelation: "projects";
             referencedColumns: ["id"];
           },
-        ];
-      };
-      study_snapshots: {
-        Row: {
-          created_at: string;
-          created_by: string;
-          id: string;
-          snapshot: Json;
-          study_id: string;
-          version: number;
-        };
-        Insert: {
-          created_at?: string;
-          created_by: string;
-          id?: string;
-          snapshot: Json;
-          study_id: string;
-          version: number;
-        };
-        Update: {
-          created_at?: string;
-          created_by?: string;
-          id?: string;
-          snapshot?: Json;
-          study_id?: string;
-          version?: number;
-        };
-        Relationships: [
           {
-            foreignKeyName: "study_snapshots_study_id_fkey";
-            columns: ["study_id"];
+            foreignKeyName: "quote_requests_tradesperson_id_fkey";
+            columns: ["tradesperson_id"];
             isOneToOne: false;
-            referencedRelation: "feasibility_studies";
+            referencedRelation: "tradespeople";
             referencedColumns: ["id"];
           },
         ];
@@ -938,6 +1376,199 @@ export type Database = {
           },
         ];
       };
+      share_links: {
+        Row: {
+          access_role: string;
+          created_at: string;
+          expires_at: string | null;
+          id: string;
+          owner_user_id: string;
+          revoked_at: string | null;
+          study_id: string;
+          token: string;
+          visibility: string;
+        };
+        Insert: {
+          access_role?: string;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          owner_user_id: string;
+          revoked_at?: string | null;
+          study_id: string;
+          token: string;
+          visibility?: string;
+        };
+        Update: {
+          access_role?: string;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          owner_user_id?: string;
+          revoked_at?: string | null;
+          study_id?: string;
+          token?: string;
+          visibility?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "share_links_study_id_fkey";
+            columns: ["study_id"];
+            isOneToOne: false;
+            referencedRelation: "feasibility_studies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      study_exports: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          error_message: string | null;
+          export_type: string;
+          id: string;
+          queued_at: string;
+          status: string;
+          storage_path: string | null;
+          study_id: string;
+          user_id: string;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          error_message?: string | null;
+          export_type: string;
+          id?: string;
+          queued_at?: string;
+          status?: string;
+          storage_path?: string | null;
+          study_id: string;
+          user_id: string;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          error_message?: string | null;
+          export_type?: string;
+          id?: string;
+          queued_at?: string;
+          status?: string;
+          storage_path?: string | null;
+          study_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "study_exports_study_id_fkey";
+            columns: ["study_id"];
+            isOneToOne: false;
+            referencedRelation: "feasibility_studies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      study_snapshots: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          id: string;
+          snapshot: Json;
+          study_id: string;
+          version: number;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          snapshot: Json;
+          study_id: string;
+          version: number;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          snapshot?: Json;
+          study_id?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "study_snapshots_study_id_fkey";
+            columns: ["study_id"];
+            isOneToOne: false;
+            referencedRelation: "feasibility_studies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      trade_favorites: {
+        Row: {
+          created_at: string;
+          id: string;
+          tradesperson_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          tradesperson_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          tradesperson_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "trade_favorites_tradesperson_id_fkey";
+            columns: ["tradesperson_id"];
+            isOneToOne: false;
+            referencedRelation: "tradespeople";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      trade_messages: {
+        Row: {
+          body: string;
+          created_at: string;
+          id: string;
+          quote_request_id: string;
+          read_at: string | null;
+          recipient_id: string;
+          sender_id: string;
+        };
+        Insert: {
+          body: string;
+          created_at?: string;
+          id?: string;
+          quote_request_id: string;
+          read_at?: string | null;
+          recipient_id: string;
+          sender_id: string;
+        };
+        Update: {
+          body?: string;
+          created_at?: string;
+          id?: string;
+          quote_request_id?: string;
+          read_at?: string | null;
+          recipient_id?: string;
+          sender_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "trade_messages_quote_request_id_fkey";
+            columns: ["quote_request_id"];
+            isOneToOne: false;
+            referencedRelation: "quote_requests";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       trade_profiles: {
         Row: {
           bio: string | null;
@@ -976,6 +1607,38 @@ export type Database = {
           user_id?: string;
         };
         Relationships: [];
+      };
+      trade_specialties: {
+        Row: {
+          created_at: string;
+          id: string;
+          specialty: string;
+          tradesperson_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          specialty: string;
+          tradesperson_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          specialty?: string;
+          tradesperson_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "trade_specialties_tradesperson_id_fkey";
+            columns: ["tradesperson_id"];
+            isOneToOne: false;
+            referencedRelation: "tradespeople";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       trades_job_interests: {
         Row: {
@@ -1063,503 +1726,84 @@ export type Database = {
         };
         Relationships: [];
       };
-      // --- New foundation tables for 3D Floorplan, Marketplace, Photo Analysis, Pitch Deck, Public Gallery ---
-      // Added via 20260605123000_feature_foundation.sql (UUIDv7 PKs, RLS, etc.)
-      floorplan_models: {
-        Row: {
-          created_at: string;
-          id: string;
-          metadata: Json | null;
-          model_url: string | null;
-          name: string;
-          project_id: string;
-          status: string;
-          updated_at: string;
-          user_id: string;
-        };
-        Insert: {
-          created_at?: string;
-          id?: string;
-          metadata?: Json;
-          model_url?: string | null;
-          name?: string;
-          project_id: string;
-          status?: string;
-          updated_at?: string;
-          user_id: string;
-        };
-        Update: {
-          created_at?: string;
-          id?: string;
-          metadata?: Json;
-          model_url?: string | null;
-          name?: string;
-          project_id?: string;
-          status?: string;
-          updated_at?: string;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "floorplan_models_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      floorplan_annotations: {
-        Row: {
-          annotation_type: string;
-          created_at: string;
-          data: Json;
-          id: string;
-          model_id: string;
-          updated_at: string;
-        };
-        Insert: {
-          annotation_type: string;
-          created_at?: string;
-          data?: Json;
-          id?: string;
-          model_id: string;
-          updated_at?: string;
-        };
-        Update: {
-          annotation_type?: string;
-          created_at?: string;
-          data?: Json;
-          id?: string;
-          model_id?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "floorplan_annotations_model_id_fkey";
-            columns: ["model_id"];
-            isOneToOne: false;
-            referencedRelation: "floorplan_models";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      floorplan_measurements: {
-        Row: {
-          created_at: string;
-          id: string;
-          measurement_type: string;
-          model_id: string;
-          unit: string;
-          updated_at: string;
-          value: number;
-        };
-        Insert: {
-          created_at?: string;
-          id?: string;
-          measurement_type: string;
-          model_id: string;
-          unit?: string;
-          updated_at?: string;
-          value: number;
-        };
-        Update: {
-          created_at?: string;
-          id?: string;
-          measurement_type?: string;
-          model_id?: string;
-          unit?: string;
-          updated_at?: string;
-          value?: number;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "floorplan_measurements_model_id_fkey";
-            columns: ["model_id"];
-            isOneToOne: false;
-            referencedRelation: "floorplan_models";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       tradespeople: {
         Row: {
+          availability: string;
           bio: string | null;
           business_name: string;
           contact_name: string;
           created_at: string;
           email: string | null;
           id: string;
-          insurance_status: string;
+          is_verified: boolean;
+          location: string | null;
           phone: string | null;
           postcode: string | null;
-          rating: number | null;
-          review_count: number | null;
+          rating: number;
+          review_count: number;
+          specialties: string[];
+          trade_type: string;
           updated_at: string;
-          user_id: string;
+          user_id: string | null;
+          website: string | null;
         };
         Insert: {
+          availability?: string;
           bio?: string | null;
           business_name: string;
           contact_name: string;
           created_at?: string;
           email?: string | null;
           id?: string;
-          insurance_status?: string;
+          is_verified?: boolean;
+          location?: string | null;
           phone?: string | null;
           postcode?: string | null;
-          rating?: number | null;
-          review_count?: number | null;
+          rating?: number;
+          review_count?: number;
+          specialties?: string[];
+          trade_type: string;
           updated_at?: string;
-          user_id: string;
+          user_id?: string | null;
+          website?: string | null;
         };
         Update: {
+          availability?: string;
           bio?: string | null;
           business_name?: string;
           contact_name?: string;
           created_at?: string;
           email?: string | null;
           id?: string;
-          insurance_status?: string;
+          is_verified?: boolean;
+          location?: string | null;
           phone?: string | null;
           postcode?: string | null;
-          rating?: number | null;
-          review_count?: number | null;
+          rating?: number;
+          review_count?: number;
+          specialties?: string[];
+          trade_type?: string;
           updated_at?: string;
-          user_id?: string;
+          user_id?: string | null;
+          website?: string | null;
         };
         Relationships: [];
-      };
-      trade_specialties: {
-        Row: {
-          created_at: string;
-          id: string;
-          specialty: string;
-          tradesperson_id: string;
-          updated_at: string;
-        };
-        Insert: {
-          created_at?: string;
-          id?: string;
-          specialty: string;
-          tradesperson_id: string;
-          updated_at?: string;
-        };
-        Update: {
-          created_at?: string;
-          id?: string;
-          specialty?: string;
-          tradesperson_id?: string;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "trade_specialties_tradesperson_id_fkey";
-            columns: ["tradesperson_id"];
-            isOneToOne: false;
-            referencedRelation: "tradespeople";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      trade_favorites: {
-        Row: {
-          created_at: string;
-          id: string;
-          tradesperson_id: string;
-          user_id: string;
-        };
-        Insert: {
-          created_at?: string;
-          id?: string;
-          tradesperson_id: string;
-          user_id: string;
-        };
-        Update: {
-          created_at?: string;
-          id?: string;
-          tradesperson_id?: string;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "trade_favorites_tradesperson_id_fkey";
-            columns: ["tradesperson_id"];
-            isOneToOne: false;
-            referencedRelation: "tradespeople";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      quote_requests: {
-        Row: {
-          created_at: string;
-          id: string;
-          message: string | null;
-          project_id: string;
-          proposed_price: number | null;
-          status: string;
-          tradesperson_id: string;
-          updated_at: string;
-          user_id: string;
-        };
-        Insert: {
-          created_at?: string;
-          id?: string;
-          message?: string | null;
-          project_id: string;
-          proposed_price?: number | null;
-          status?: string;
-          tradesperson_id: string;
-          updated_at?: string;
-          user_id: string;
-        };
-        Update: {
-          created_at?: string;
-          id?: string;
-          message?: string | null;
-          project_id?: string;
-          proposed_price?: number | null;
-          status?: string;
-          tradesperson_id?: string;
-          updated_at?: string;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "quote_requests_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "quote_requests_tradesperson_id_fkey";
-            columns: ["tradesperson_id"];
-            isOneToOne: false;
-            referencedRelation: "tradespeople";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      trade_messages: {
-        Row: {
-          content: string;
-          created_at: string;
-          id: string;
-          quote_request_id: string;
-          sender_id: string;
-        };
-        Insert: {
-          content: string;
-          created_at?: string;
-          id?: string;
-          quote_request_id: string;
-          sender_id: string;
-        };
-        Update: {
-          content?: string;
-          created_at?: string;
-          id?: string;
-          quote_request_id?: string;
-          sender_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "trade_messages_quote_request_id_fkey";
-            columns: ["quote_request_id"];
-            isOneToOne: false;
-            referencedRelation: "quote_requests";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      photo_analysis_results: {
-        Row: {
-          analysis_data: Json;
-          confidence: number | null;
-          created_at: string;
-          id: string;
-          photo_id: string | null;
-          project_id: string;
-          source: string;
-          updated_at: string;
-          user_id: string;
-        };
-        Insert: {
-          analysis_data?: Json;
-          confidence?: number | null;
-          created_at?: string;
-          id?: string;
-          photo_id?: string | null;
-          project_id: string;
-          source?: string;
-          updated_at?: string;
-          user_id: string;
-        };
-        Update: {
-          analysis_data?: Json;
-          confidence?: number | null;
-          created_at?: string;
-          id?: string;
-          photo_id?: string | null;
-          project_id?: string;
-          source?: string;
-          updated_at?: string;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "photo_analysis_results_photo_id_fkey";
-            columns: ["photo_id"];
-            isOneToOne: false;
-            referencedRelation: "photos";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "photo_analysis_results_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      pitch_deck_exports: {
-        Row: {
-          created_at: string;
-          export_url: string | null;
-          file_size_bytes: number | null;
-          format: string;
-          id: string;
-          project_id: string;
-          title: string | null;
-          updated_at: string;
-          user_id: string;
-        };
-        Insert: {
-          created_at?: string;
-          export_url?: string | null;
-          file_size_bytes?: number | null;
-          format?: string;
-          id?: string;
-          project_id: string;
-          title?: string | null;
-          updated_at?: string;
-          user_id: string;
-        };
-        Update: {
-          created_at?: string;
-          export_url?: string | null;
-          file_size_bytes?: number | null;
-          format?: string;
-          id?: string;
-          project_id?: string;
-          title?: string | null;
-          updated_at?: string;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "pitch_deck_exports_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      public_gallery_projects: {
-        Row: {
-          cover_image_url: string | null;
-          created_at: string;
-          description: string | null;
-          featured: boolean;
-          id: string;
-          is_public: boolean;
-          project_id: string;
-          title: string | null;
-          updated_at: string;
-          view_count: number;
-        };
-        Insert: {
-          cover_image_url?: string | null;
-          created_at?: string;
-          description?: string | null;
-          featured?: boolean;
-          id?: string;
-          is_public?: boolean;
-          project_id: string;
-          title?: string | null;
-          updated_at?: string;
-          view_count?: number;
-        };
-        Update: {
-          cover_image_url?: string | null;
-          created_at?: string;
-          description?: string | null;
-          featured?: boolean;
-          id?: string;
-          is_public?: boolean;
-          project_id?: string;
-          title?: string | null;
-          updated_at?: string;
-          view_count?: number;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "public_gallery_projects_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: true;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      investor_leads: {
-        Row: {
-          created_at: string;
-          email: string;
-          gallery_project_id: string;
-          id: string;
-          message: string | null;
-          name: string;
-          phone: string | null;
-        };
-        Insert: {
-          created_at?: string;
-          email: string;
-          gallery_project_id: string;
-          id?: string;
-          message?: string | null;
-          name: string;
-          phone?: string | null;
-        };
-        Update: {
-          created_at?: string;
-          email?: string;
-          gallery_project_id?: string;
-          id?: string;
-          message?: string | null;
-          name?: string;
-          phone?: string | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "investor_leads_gallery_project_id_fkey";
-            columns: ["gallery_project_id"];
-            isOneToOne: false;
-            referencedRelation: "public_gallery_projects";
-            referencedColumns: ["id"];
-          },
-        ];
       };
     };
     Views: {
       [_ in never]: never;
     };
     Functions: {
+      generate_pkce_pair: {
+        Args: never;
+        Returns: {
+          code_challenge: string;
+          code_verifier: string;
+        }[];
+      };
       is_admin: { Args: never; Returns: boolean };
+      is_project_owner: { Args: { p_project_id: string }; Returns: boolean };
+      uuid_v7: { Args: never; Returns: string };
     };
     Enums: {
       [_ in never]: never;
@@ -1686,9 +1930,6 @@ export type CompositeTypes<
     : never;
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

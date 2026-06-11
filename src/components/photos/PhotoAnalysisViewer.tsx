@@ -48,6 +48,19 @@ interface ParsedAnalysis {
   confidence?: number;
 }
 
+function rowToParsed(a?: PhotoAnalysisResultRow): ParsedAnalysis {
+  if (!a) return {};
+  return {
+    room: a.category ?? undefined,
+    condition_report: a.condition_report ?? undefined,
+    defects: (a.detected_defects as unknown as ParsedDefect[]) ?? [],
+    material_estimates: a.material_estimates as ParsedAnalysis["material_estimates"],
+    cost_suggestions: a.cost_suggestions as ParsedAnalysis["cost_suggestions"],
+    category: a.category ?? undefined,
+    confidence: a.confidence_score ?? undefined,
+  };
+}
+
 interface SelectedSuggestion {
   photoId: string;
   analysisId: string;
@@ -101,7 +114,7 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
   const availableRooms = useMemo(() => {
     const rooms = new Set<string>();
     analyses.forEach((a) => {
-      const p = (a.analysis_data as ParsedAnalysis)?.room;
+      const p = rowToParsed(a).room;
       if (p) rooms.add(p);
     });
     return Array.from(rooms).sort();
@@ -110,7 +123,7 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
   const availableCategories = useMemo(() => {
     const cats = new Set<string>();
     analyses.forEach((a) => {
-      const data = a.analysis_data as ParsedAnalysis;
+      const data = rowToParsed(a);
       if (data?.category) cats.add(data.category);
       (data?.defects || []).forEach((d) => {
         if (d.category) cats.add(d.category);
@@ -123,7 +136,7 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
   const filteredItems = useMemo(() => {
     return allItems.filter((item) => {
       const { photo, analysis, hasAnalysis } = item;
-      const data = (analysis?.analysis_data as ParsedAnalysis) || {};
+      const data = rowToParsed(analysis);
 
       // Status
       if (statusFilter === "analyzed" && !hasAnalysis) return false;
@@ -180,7 +193,7 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
   const openDetails = (photo: ProjectPhoto, analysis?: PhotoAnalysisResultRow) => {
     if (analysis) {
       setEditingAnalysis({ photo, analysis });
-      setEditForm((analysis.analysis_data as ParsedAnalysis) || {});
+      setEditForm(rowToParsed(analysis));
       setDetailOpen(true);
     } else {
       // For unanalyzed, just show photo info (no edit)
@@ -193,7 +206,18 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
     mutationFn: async ({ id, newData }: { id: string; newData: ParsedAnalysis }) => {
       const { error } = await supabase
         .from("photo_analysis_results")
-        .update({ analysis_data: newData as never, updated_at: new Date().toISOString() })
+        .update({
+          category: newData.category ?? null,
+          condition_report: newData.condition_report ?? null,
+          detected_defects: (newData.defects ??
+            []) as unknown as import("@repo/supabase/database.types").Json,
+          material_estimates: (newData.material_estimates ??
+            []) as unknown as import("@repo/supabase/database.types").Json,
+          cost_suggestions: (newData.cost_suggestions ??
+            {}) as unknown as import("@repo/supabase/database.types").Json,
+          confidence_score: newData.confidence ?? null,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", id);
       if (error) throw error;
       return { id, newData };
@@ -203,7 +227,22 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
       await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData<PhotoAnalysisResultRow[]>(key);
       queryClient.setQueryData<PhotoAnalysisResultRow[]>(key, (old = []) =>
-        old.map((a) => (a.id === id ? { ...a, analysis_data: newData as never } : a)),
+        old.map((a) =>
+          a.id === id
+            ? {
+                ...a,
+                category: newData.category ?? null,
+                condition_report: newData.condition_report ?? null,
+                detected_defects: (newData.defects ??
+                  []) as unknown as import("@repo/supabase/database.types").Json,
+                material_estimates: (newData.material_estimates ??
+                  []) as unknown as import("@repo/supabase/database.types").Json,
+                cost_suggestions: (newData.cost_suggestions ??
+                  {}) as unknown as import("@repo/supabase/database.types").Json,
+                confidence_score: newData.confidence ?? null,
+              }
+            : a,
+        ),
       );
       return { previous };
     },
@@ -253,7 +292,7 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
     const suggestedRooms: Record<string, { name: string; items: Record<string, unknown>[] }> = {};
 
     toApply.forEach((analysis) => {
-      const data = (analysis.analysis_data as ParsedAnalysis) || {};
+      const data = rowToParsed(analysis);
       const roomName = data.room || "General / Unspecified";
       if (!suggestedRooms[roomName]) {
         suggestedRooms[roomName] = { name: roomName, items: [] };
@@ -270,7 +309,7 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
           unit_cost:
             def.estimated_cost ||
             (data.cost_suggestions?.mid ? Math.round(data.cost_suggestions.mid / 10) : 150),
-          notes: `From AI photo analysis (conf ${Math.round((analysis.confidence || 0.8) * 100)}%)`,
+          notes: `From AI photo analysis (conf ${Math.round((analysis.confidence_score || 0.8) * 100)}%)`,
         });
       });
 
@@ -327,8 +366,7 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
   };
 
   // Parse helper for cards
-  const getParsed = (a?: PhotoAnalysisResultRow): ParsedAnalysis =>
-    (a?.analysis_data as ParsedAnalysis) || {};
+  const getParsed = (a?: PhotoAnalysisResultRow): ParsedAnalysis => rowToParsed(a);
 
   return (
     <div>
@@ -379,7 +417,7 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
                 hasAnalysis
                   ? (p, a) => {
                       setEditingAnalysis({ photo: p, analysis: a });
-                      setEditForm((a.analysis_data as ParsedAnalysis) || {});
+                      setEditForm(rowToParsed(a));
                       setDetailOpen(true);
                     }
                   : undefined
@@ -408,7 +446,7 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
                 <div className="flex gap-2">
                   <Badge>{getParsed(editingAnalysis.analysis).room || "Unknown room"}</Badge>
                   <Badge variant="outline">
-                    {Math.round((editingAnalysis.analysis.confidence || 0) * 100)}% confidence
+                    {Math.round((editingAnalysis.analysis.confidence_score || 0) * 100)}% confidence
                   </Badge>
                 </div>
               </DialogHeader>

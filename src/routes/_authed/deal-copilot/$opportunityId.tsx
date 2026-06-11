@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatGBP } from "@/lib/utils";
 import { useOpportunity } from "@/hooks/useOpportunities";
+import { DealAnalysisCard } from "@/components/deal-copilot/DealAnalysisCard";
+import { DealChat } from "@/components/deal-copilot/DealChat";
 
 export const Route = createFileRoute("/_authed/deal-copilot/$opportunityId")({
   head: () => ({
@@ -118,67 +120,74 @@ function DealOpportunityDetailContent() {
         </div>
       }
     >
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Opportunity
-                </p>
-                <h2 className="mt-2 text-xl font-semibold text-foreground">{opportunity.title}</h2>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {opportunity.postcode ?? "No postcode added"}
-                </p>
+      <div className="space-y-6">
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                    Opportunity
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold text-foreground">
+                    {opportunity.title}
+                  </h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {opportunity.postcode ?? "No postcode added"}
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
+                  {opportunity.status}
+                </span>
               </div>
 
-              <span className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
-                {opportunity.status}
-              </span>
-            </div>
+              <dl className="mt-6 grid gap-4 text-sm md:grid-cols-2">
+                <Metric label="Purchase price" value={formatGBP(opportunity.purchasePrice)} />
+                <Metric label="Estimated GDV" value={formatGBP(opportunity.estimatedGdv)} />
+                <Metric label="Refurb budget" value={formatGBP(opportunity.refurbBudget)} />
+                <Metric
+                  label="Expected monthly rent"
+                  value={formatGBP(opportunity.expectedMonthlyRent)}
+                />
+                <Metric
+                  label="Created"
+                  value={new Date(opportunity.createdAt).toLocaleString("en-GB")}
+                />
+                <Metric
+                  label="Updated"
+                  value={new Date(opportunity.updatedAt).toLocaleString("en-GB")}
+                />
+              </dl>
 
-            <dl className="mt-6 grid gap-4 text-sm md:grid-cols-2">
-              <Metric label="Purchase price" value={formatGBP(opportunity.purchasePrice)} />
-              <Metric label="Estimated GDV" value={formatGBP(opportunity.estimatedGdv)} />
-              <Metric label="Refurb budget" value={formatGBP(opportunity.refurbBudget)} />
-              <Metric
-                label="Expected monthly rent"
-                value={formatGBP(opportunity.expectedMonthlyRent)}
-              />
-              <Metric
-                label="Created"
-                value={new Date(opportunity.createdAt).toLocaleString("en-GB")}
-              />
-              <Metric
-                label="Updated"
-                value={new Date(opportunity.updatedAt).toLocaleString("en-GB")}
-              />
-            </dl>
+              {safeListingUrl ? (
+                <Button asChild className="mt-6">
+                  <a href={safeListingUrl} target="_blank" rel="noopener noreferrer">
+                    Open listing <ExternalLink className="h-4 w-4" />
+                  </a>
+                </Button>
+              ) : null}
+            </CardContent>
+          </Card>
 
-            {safeListingUrl ? (
-              <Button asChild className="mt-6">
-                <a href={safeListingUrl} target="_blank" rel="noopener noreferrer">
-                  Open listing <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
-            ) : null}
-          </CardContent>
-        </Card>
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-lg font-semibold text-foreground">Underwriting bridge</h2>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                This page intentionally reads from the Deal Copilot opportunity store only. The next
+                step is to decide how an opportunity becomes a canonical Refurb Genius project row.
+              </p>
 
-        <Card>
-          <CardContent className="p-6">
-            <h2 className="text-lg font-semibold text-foreground">Underwriting bridge</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              This page intentionally reads from the Deal Copilot opportunity store only. The next
-              step is to decide how an opportunity becomes a canonical Refurb Genius project row.
-            </p>
+              <div className="mt-6 rounded-xl border border-border bg-secondary/30 p-4 text-sm leading-6 text-muted-foreground">
+                Keep this route lightweight until Supabase persistence and project conversion rules
+                are agreed.
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            <div className="mt-6 rounded-xl border border-border bg-secondary/30 p-4 text-sm leading-6 text-muted-foreground">
-              Keep this route lightweight until Supabase persistence and project conversion rules
-              are agreed.
-            </div>
-          </CardContent>
-        </Card>
+        <DealAnalysisCard opportunityId={opportunityId} />
+        <DealChat opportunityId={opportunityId} />
       </div>
     </AppLayout>
   );

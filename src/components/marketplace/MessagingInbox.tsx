@@ -78,10 +78,14 @@ export function MessagingInbox({ projectId }: MessagingInboxProps) {
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
       if (!user || !selectedQuoteId) throw new Error("No active quote or user");
+      const quote = quotes.find((q) => q.id === selectedQuoteId);
+      if (!quote) throw new Error("Quote not found");
+      const recipientId = user.id === quote.user_id ? quote.tradesperson_id : quote.user_id;
       const { error } = await supabase.from("trade_messages").insert({
         quote_request_id: selectedQuoteId,
         sender_id: user.id,
-        content: content.trim(),
+        recipient_id: recipientId,
+        body: content.trim(),
       });
       if (error) throw error;
     },
@@ -194,7 +198,7 @@ export function MessagingInbox({ projectId }: MessagingInboxProps) {
                             isMine ? "bg-primary text-primary-foreground" : "bg-muted"
                           }`}
                         >
-                          {msg.content}
+                          {msg.body}
                           <div
                             className={`text-[10px] mt-1 opacity-70 ${isMine ? "text-right" : ""}`}
                           >
