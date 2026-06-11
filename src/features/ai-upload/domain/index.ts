@@ -12,6 +12,7 @@ export {
 export { buildMockRoomAnalyses } from "./mockData";
 export {
   isImageFile,
+  imageContentType,
   isSuccessfulAnalysis,
   hasFallbackResults,
   isActionableAnalysisSet,

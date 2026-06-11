@@ -11,6 +11,7 @@ import { fromSupabaseUser } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { photosQueryOptions } from "@/lib/queries/projects";
 import { captureUploadError } from "@/lib/sentry";
+import { isImageFile, imageContentType } from "@/features/ai-upload";
 
 type UploadStatus = "queued" | "uploading" | "uploaded" | "analyzing" | "completed" | "failed";
 
@@ -41,7 +42,16 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
 
   const handleFiles = useCallback((files: FileList | File[]) => {
     const fileArray = Array.from(files);
-    const newItems: UploadItem[] = fileArray.map((file) => ({
+    const images = fileArray.filter(isImageFile);
+    const rejected = fileArray.length - images.length;
+    if (rejected > 0) {
+      toast.error(
+        rejected === 1 ? "Skipped a non-image file." : `Skipped ${rejected} non-image files.`,
+      );
+    }
+    if (images.length === 0) return;
+
+    const newItems: UploadItem[] = images.map((file) => ({
       id: crypto.randomUUID(),
       file,
       status: "queued",
@@ -79,7 +89,7 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
             .from(BUCKET)
             .upload(path, item.file, {
               upsert: true,
-              contentType: item.file.type,
+              contentType: imageContentType(item.file),
             });
 
           if (uploadError) throw uploadError;
