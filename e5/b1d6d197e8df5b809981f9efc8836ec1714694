@@ -1,0 +1,28 @@
+src/features/ai-upload/domain/rules.ts
+  s_f9ab28b28df7fd::t_70a0d7816f1d02 21-25,29,33-53
+src/components/BulkPhotoUpload.tsx
+  s_f9ab28b28df7fd::t_96a33fe5907cc1 92
+  s_f9ab28b28df7fd::t_0ddb78b22637d3 14
+  s_f9ab28b28df7fd::t_1bac271a79e52e 45-54
+src/lib/photos.ts
+  s_f9ab28b28df7fd::t_07c30c2b8321b7 152
+  s_f9ab28b28df7fd::t_af7c0161661416 5
+src/features/ai-upload/domain/index.ts
+  s_f9ab28b28df7fd::t_2f0d02217204b8 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "e5b1d6d197e8df5b809981f9efc8836ec1714694",
+  "prompts": {},
+  "sessions": {
+    "s_f9ab28b28df7fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "10810d52-8f3c-42f1-b652-f8d1f312d046",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
