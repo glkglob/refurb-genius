@@ -31,6 +31,12 @@ export const createThreadServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => createThreadSchema.parse(input))
   .handler(async ({ data }): Promise<DealThreadRow> => {
     const user = await requireUser();
+
+    const rl = checkRateLimit(rateLimitKeyForUser(user.id, "deal-thread-create"));
+    if (!rl.allowed) {
+      throw new Error(`Rate limit exceeded. Try again in ${rl.retryAfter || 60}s.`);
+    }
+
     const supabase = await createSupabaseServerClient();
 
     const { data: row, error } = await supabase
