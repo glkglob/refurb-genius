@@ -1,0 +1,33 @@
+pnpm-lock.yaml
+  s_f9ab28b28df7fd::t_81fdbb408d82f9 26-31,1113-1123,6205-6212
+src/features/ai-upload/presentation/serverFns.ts
+  s_f9ab28b28df7fd::t_81fdbb408d82f9 4-7,57-73,83-123
+src/features/ai-upload/presentation/index.ts
+  s_f9ab28b28df7fd::t_81fdbb408d82f9 4-8
+src/features/ai-upload/infrastructure/adapters/hf-vision.adapter.server.ts
+  s_f9ab28b28df7fd::t_81fdbb408d82f9 1-292
+.env.example
+  s_f9ab28b28df7fd::t_81fdbb408d82f9 37-57
+package.json
+  s_f9ab28b28df7fd::t_81fdbb408d82f9 37-38
+src/lib/provider-diagnostics.ts
+  s_f9ab28b28df7fd::t_81fdbb408d82f9 14-21,47-52
+src/platform/huggingface/server.ts
+  s_f9ab28b28df7fd::t_81fdbb408d82f9 1-258
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "029df827ec3891605c345ff37e6b96a97a1806c1",
+  "prompts": {},
+  "sessions": {
+    "s_f9ab28b28df7fd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "10810d52-8f3c-42f1-b652-f8d1f312d046",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
