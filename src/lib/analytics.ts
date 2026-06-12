@@ -22,7 +22,9 @@ export type AnalyticsEventName =
   | "trades_job_posted"
   | "marketplace_listing_viewed"
   | "study_created"
-  | "study_shared";
+  | "study_shared"
+  | "deal_thread_created"
+  | "deal_message_sent";
 
 type FunnelState = {
   started: boolean;

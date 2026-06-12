@@ -11,6 +11,14 @@ export interface ProviderDiagnostics {
   vision_rate_limit: number;
   vision_fallback_used: number;
 
+  /** HuggingFace vision counters */
+  hf_vision_success: number;
+  hf_vision_timeout: number;
+  hf_vision_rate_limit: number;
+  hf_vision_parse_failure: number;
+  hf_vision_not_configured: number;
+  hf_vision_fallback_used: number;
+
   redesign_success: number;
   redesign_timeout: number;
   redesign_parse_failure: number;
@@ -35,6 +43,13 @@ const counters: ProviderDiagnostics = {
   vision_parse_failure: 0,
   vision_rate_limit: 0,
   vision_fallback_used: 0,
+
+  hf_vision_success: 0,
+  hf_vision_timeout: 0,
+  hf_vision_rate_limit: 0,
+  hf_vision_parse_failure: 0,
+  hf_vision_not_configured: 0,
+  hf_vision_fallback_used: 0,
 
   redesign_success: 0,
   redesign_timeout: 0,

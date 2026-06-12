@@ -1,7 +1,11 @@
 /**
  * AI-upload slice — Presentation surface.
  */
-export { runPhotoAnalysisServerFn, roomAnalysisOutputSchema } from "./serverFns";
+export {
+  runPhotoAnalysisServerFn,
+  runPhotoAnalysisWithProviderServerFn,
+  roomAnalysisOutputSchema,
+} from "./serverFns";
 export {
   photoAnalysisProvider,
   mockPhotoAnalysisProvider,

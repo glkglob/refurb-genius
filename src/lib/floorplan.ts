@@ -115,7 +115,7 @@ export function exportAnnotationsJson(
 ): void {
   const payload = {
     exportedAt: new Date().toISOString(),
-    model: model ? { id: model.id, name: model.name, model_url: model.model_url } : null,
+    model: model ? { id: model.id, name: model.name, storage_path: model.storage_path } : null,
     annotations,
     measurements,
   };

@@ -252,11 +252,12 @@ export async function generatePitchDeckPDF(
     y += 5;
     doc.setFontSize(9);
     analyses.slice(0, 3).forEach((a, i) => {
-      const d = (a.analysis_data || {}) as Record<string, unknown>;
-      const room = d.room || "General";
-      const conf = Math.round((a.confidence || 0.8) * 100);
+      const room = a.category || "General";
+      // confidence_score may be stored as a 0-1 fraction or a 0-100 percent.
+      const rawConf = a.confidence_score ?? 0.8;
+      const conf = Math.round(rawConf > 1 ? rawConf : rawConf * 100);
       doc.text(
-        `  ${i + 1}. ${room} (${conf}% conf) - ${((d.defects as unknown[]) || []).length} issues noted`,
+        `  ${i + 1}. ${room} (${conf}% conf) - ${((a.detected_defects as unknown[]) || []).length} issues noted`,
         margin + 3,
         y,
       );
@@ -360,13 +361,17 @@ export async function savePitchDeckToSupabase(
 
   const { data: record, error: dbErr } = await supabase
     .from("pitch_deck_exports")
+    // Live prod schema: created_by/storage_path/metadata (the committed migration's
+    // user_id/export_url/title columns were replaced out-of-band — see memory note).
     .insert({
       project_id: projectId,
-      user_id: userId,
-      title: filename.replace(".pdf", ""),
-      export_url: path,
-      format: "pdf",
-      file_size_bytes: blob.size,
+      created_by: userId,
+      storage_path: path,
+      metadata: {
+        title: filename.replace(".pdf", ""),
+        format: "pdf",
+        file_size_bytes: blob.size,
+      },
     })
     .select()
     .single();

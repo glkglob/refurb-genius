@@ -56,7 +56,17 @@ export function PhotoAnalysisCard({
   onApply,
 }: PhotoAnalysisCardProps) {
   const hasAnalysis = !!analysis;
-  const parsed: ParsedAnalysis = (analysis?.analysis_data as ParsedAnalysis) || {};
+  const parsed: ParsedAnalysis = analysis
+    ? {
+        room: analysis.category ?? undefined,
+        condition_report: analysis.condition_report ?? undefined,
+        defects: (analysis.detected_defects as unknown as ParsedDefect[]) ?? [],
+        material_estimates: analysis.material_estimates as ParsedAnalysis["material_estimates"],
+        cost_suggestions: analysis.cost_suggestions as ParsedAnalysis["cost_suggestions"],
+        category: analysis.category ?? undefined,
+        confidence: analysis.confidence_score ?? undefined,
+      }
+    : {};
   const defects = parsed.defects || [];
   const maxSeverity = defects.length
     ? defects.reduce(
@@ -68,7 +78,7 @@ export function PhotoAnalysisCard({
       )
     : null;
 
-  const confidence = analysis?.confidence ?? parsed.confidence ?? 0;
+  const confidence = analysis?.confidence_score ?? parsed.confidence ?? 0;
 
   return (
     <Card

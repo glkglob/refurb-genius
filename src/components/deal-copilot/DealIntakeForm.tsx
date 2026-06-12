@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { Calculator, CheckCircle2, CircleAlert, Loader2, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { trackDealAnalyzed } from "@/lib/analytics";
@@ -96,6 +97,7 @@ function hasSameDealOpportunityInputs(first: DealOpportunity | null, second: Dea
 }
 
 export function DealIntakeForm() {
+  const navigate = useNavigate();
   const [form, setForm] = useState<DealFormState>(initialState);
   const [savedOpportunity, setSavedOpportunity] = useState<DealOpportunity | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -228,8 +230,9 @@ export function DealIntakeForm() {
       setSavedOpportunity(saved);
       setSaveError(null);
       logger.info("[deal-intake] Save successful", { id: saved.id });
-      toast.success("Opportunity saved", {
-        description: "View it in Deal Copilot or create a full project for photo analysis.",
+      await navigate({
+        to: "/deal-copilot/$opportunityId",
+        params: { opportunityId: saved.id },
       });
     } catch (err) {
       // Show the real error from serverFn (e.g. RLS violation, "You must be signed in.",

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/platform/supabase/browser";
+import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { galleryKeys, type PublicGalleryProjectRow } from "@/lib/queries/gallery";
 
@@ -29,12 +30,17 @@ export function useUpsertGalleryProject(projectId: string) {
 
   return useMutation({
     mutationFn: async (input: UpsertGalleryProjectInput) => {
+      const user = auth.getUser();
+      if (!user) throw new Error("You must be signed in");
       const { data, error } = await supabase
         .from("public_gallery_projects")
         .upsert(
           {
             project_id: projectId,
+            created_by: user.id,
+            slug: projectId,
             ...input,
+            title: input.title ?? "Untitled Project",
           },
           { onConflict: "project_id" },
         )
@@ -52,25 +58,37 @@ export function useUpsertGalleryProject(projectId: string) {
       const previous = queryClient.getQueryData<PublicGalleryProjectRow | null>(queryKey);
 
       const now = new Date().toISOString();
+      const user = auth.getUser();
       const fallback: PublicGalleryProjectRow = {
         id: previous?.id ?? "",
         project_id: projectId,
+        created_by: user?.id ?? "",
+        slug: previous?.slug ?? projectId,
         is_public: false,
+        is_published: false,
         featured: false,
-        title: null,
+        title: previous?.title ?? "Untitled Project",
         description: null,
+        summary: null,
         cover_image_url: null,
+        location: null,
+        style: null,
+        budget: null,
+        roi: null,
+        published_at: null,
         view_count: 0,
         created_at: previous?.created_at ?? now,
         updated_at: now,
       };
 
-      queryClient.setQueryData<PublicGalleryProjectRow | null>(queryKey, {
+      const merged = {
         ...(previous ?? fallback),
         ...input,
+        title: input.title ?? previous?.title ?? fallback.title,
         project_id: projectId,
         updated_at: now,
-      });
+      };
+      queryClient.setQueryData<PublicGalleryProjectRow | null>(queryKey, merged);
 
       return { previous };
     },

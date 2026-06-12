@@ -109,10 +109,10 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
         .from("floorplan_models")
         .insert({
           project_id: projectId,
-          user_id: user.id,
+          uploaded_by: user.id,
           name: file.name.replace(/\.[^/.]+$/, ""),
-          model_url: path,
-          status: "ready",
+          storage_path: path,
+          file_type: file.name.split(".").pop()?.toLowerCase() ?? "glb",
           metadata: { originalName: file.name, size: file.size },
         })
         .select()
@@ -139,8 +139,8 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
 
   const deleteModelMutation = useMutation({
     mutationFn: async (model: FloorplanModelRow) => {
-      if (model.model_url) {
-        await deleteFloorplanStorage(model.model_url);
+      if (model.storage_path) {
+        await deleteFloorplanStorage(model.storage_path);
       }
       const { error } = await supabase.from("floorplan_models").delete().eq("id", model.id);
       if (error) throw error;
@@ -166,22 +166,22 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
     }) => {
       if (!selectedModelId) throw new Error("No model selected");
 
+      const user = auth.getUser();
+      if (!user) throw new Error("You must be signed in");
+
       const THREE = await import("three");
       const posVec = new THREE.Vector3(payload.position.x, payload.position.y, payload.position.z);
-      const data: Record<string, unknown> = {
-        position: pointToArray(posVec),
-        label: payload.label,
-      };
-      if (payload.linkedRoomId) {
-        data.linkedRoomId = payload.linkedRoomId;
-        const room = estimateRooms.find((r) => r.id === payload.linkedRoomId);
-        if (room) data.linkedRoomName = room.name;
-      }
 
       const { error } = await supabase.from("floorplan_annotations").insert({
         model_id: selectedModelId,
-        annotation_type: "room",
-        data: data as unknown as import("@repo/supabase/database.types").Json,
+        project_id: projectId,
+        created_by: user.id,
+        label: payload.label,
+        position: pointToArray(posVec) as unknown as import("@repo/supabase/database.types").Json,
+        room_id: payload.linkedRoomId ?? null,
+        notes: payload.linkedRoomId
+          ? (estimateRooms.find((r) => r.id === payload.linkedRoomId)?.name ?? null)
+          : null,
       });
       if (error) throw error;
     },
@@ -214,11 +214,20 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
 
       // NOTE: measurements table stores scalar value + unit. Points are only kept for the live session.
       // Persisted measurements appear in the list with their value.
+      const user = auth.getUser();
+      if (!user) throw new Error("You must be signed in");
+
       const { error } = await supabase.from("floorplan_measurements").insert({
         model_id: selectedModelId,
+        project_id: projectId,
+        created_by: user.id,
         measurement_type: "distance",
         value: Math.round(dist * 1000) / 1000,
         unit: "m",
+        points: [
+          [payload.p1.x, payload.p1.y, payload.p1.z],
+          [payload.p2.x, payload.p2.y, payload.p2.z],
+        ] as unknown as import("@repo/supabase/database.types").Json,
       });
       if (error) throw error;
     },
@@ -376,7 +385,7 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
     const labels = Array.from(
       new Set(
         annotations
-          .map((a) => (a.data as Record<string, unknown>)?.label)
+          .map((a) => a.label)
           .filter((l: unknown): l is string => typeof l === "string" && !!l),
       ),
     );
@@ -646,11 +655,8 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
                 ) : (
                   <div className="divide-y text-sm">
                     {annotations.map((ann) => {
-                      const label =
-                        ((ann.data as Record<string, unknown>)?.label as string) || "Untitled";
-                      const room = (ann.data as Record<string, unknown>)?.linkedRoomName as
-                        | string
-                        | undefined;
+                      const label = ann.label || "Untitled";
+                      const room = ann.notes as string | undefined;
                       return (
                         <div key={ann.id} className="flex items-center justify-between px-4 py-2">
                           <div className="truncate pr-2">
