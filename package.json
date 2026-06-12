@@ -34,6 +34,8 @@
     "@capacitor/ios": "^8.3.4",
     "@fontsource-variable/inter": "^5.2.8",
     "@hookform/resolvers": "^5.2.2",
+    "@huggingface/inference": "^4.3.0",
+    "@huggingface/tasks": "^0.21.11",
     "@opentelemetry/instrumentation-openai": "^0.16.0",
     "@opentelemetry/resources": "^2.7.1",
     "@opentelemetry/sdk-node": "^0.218.0",
