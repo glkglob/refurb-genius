@@ -26,11 +26,26 @@ const dealChatKeys = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function DealChat({ opportunityId }: { opportunityId: string }) {
+  type BrowserSpeechRecognition = {
+    abort?: () => void;
+    stop?: () => void;
+    start: () => void;
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    onresult:
+      | ((event: { results: { [key: number]: { [key: number]: { transcript: string } } } }) => void)
+      | null;
+    onerror: (() => void) | null;
+    onend: (() => void) | null;
+  };
+
   const queryClient = useQueryClient();
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [isListening, setIsListening] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
 
   // Fetch threads
   const { data: threads = [] } = useQuery({
@@ -141,9 +156,11 @@ export function DealChat({ opportunityId }: { opportunityId: string }) {
 
   // Voice input
   const toggleVoice = () => {
-    const SpeechRecognition =
-      (window as unknown as Record<string, unknown>).SpeechRecognition ||
-      (window as unknown as Record<string, unknown>).webkitSpeechRecognition;
+    const speechApi = window as unknown as {
+      SpeechRecognition?: new () => BrowserSpeechRecognition;
+      webkitSpeechRecognition?: new () => BrowserSpeechRecognition;
+    };
+    const SpeechRecognition = speechApi.SpeechRecognition || speechApi.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
       alert("Voice input is not supported in this browser. Try Chrome.");
@@ -158,8 +175,7 @@ export function DealChat({ opportunityId }: { opportunityId: string }) {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recognition = new (SpeechRecognition as any)();
+    const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
     recognition.continuous = false;
     recognition.interimResults = false;
