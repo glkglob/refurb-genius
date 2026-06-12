@@ -151,12 +151,22 @@ export function DealChat({ opportunityId }: { opportunityId: string }) {
     }
 
     if (isListening) {
+<<<<<<< HEAD
+=======
+      recognitionRef.current?.abort?.();
+      recognitionRef.current?.stop?.();
+      recognitionRef.current = null;
+>>>>>>> origin/main
       setIsListening(false);
       return;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognition = new (SpeechRecognition as any)();
+<<<<<<< HEAD
+=======
+    recognitionRef.current = recognition;
+>>>>>>> origin/main
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = "en-GB";
@@ -166,11 +176,26 @@ export function DealChat({ opportunityId }: { opportunityId: string }) {
     }) => {
       const transcript = event.results[0][0].transcript;
       setDraft((d) => (d ? `${d} ${transcript}` : transcript));
+<<<<<<< HEAD
       setIsListening(false);
     };
 
     recognition.onerror = () => setIsListening(false);
     recognition.onend = () => setIsListening(false);
+=======
+      recognitionRef.current = null;
+      setIsListening(false);
+    };
+
+    recognition.onerror = () => {
+      recognitionRef.current = null;
+      setIsListening(false);
+    };
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      setIsListening(false);
+    };
+>>>>>>> origin/main
 
     recognition.start();
     setIsListening(true);

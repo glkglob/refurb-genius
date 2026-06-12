@@ -131,7 +131,11 @@ export const sendMessageServerFn = createServerFn({ method: "POST" })
         .single();
 
       if (threadErr || !thread) throw new Error("Thread not found");
+<<<<<<< HEAD
       if (thread.user_id !== user.id) throw new Error("Unauthorised");
+=======
+      if (thread.user_id !== user.id) throw new Error("Unauthorized");
+>>>>>>> origin/main
 
       // Fetch opportunity for AI context (trust thread FK, not client input).
       if (thread.opportunity_id !== data.opportunityId) {
