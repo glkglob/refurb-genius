@@ -45,3 +45,4 @@ property-intel/
 
 # Supabase local temp
 supabase/.temp/
+package-lock.json

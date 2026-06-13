@@ -46,14 +46,21 @@ export function QuoteRequestDialog({
       if (!user) throw new Error("You must be signed in");
       if (!message.trim()) throw new Error("Message is required");
 
-      const { error } = await supabase.from("quote_requests").insert({
+      const payload: Record<string, unknown> = {
         project_id: projectId ?? "",
         tradesperson_id: tradespersonId,
         user_id: user.id,
         status: "pending",
         title: `Quote request for ${tradespersonName}`,
         message: message.trim(),
-      });
+      };
+
+      if (proposedPrice) {
+        payload.proposed_price = Number(proposedPrice);
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await supabase.from("quote_requests").insert([payload] as any);
 
       if (error) throw error;
     },

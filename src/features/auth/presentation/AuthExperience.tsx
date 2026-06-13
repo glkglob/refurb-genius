@@ -38,6 +38,17 @@ type AuthExperienceProps = {
   redirect?: string;
 };
 
+function AppleIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0">
+      <path
+        fill="currentColor"
+        d="M17.05 20.693c-.474.098-.972.148-1.487.148-.603 0-1.133-.11-1.594-.315l-.726.698c.55.246 1.156.369 1.79.369 1.96 0 3.526-1.586 3.526-3.71s-1.565-3.723-3.525-3.723c-1.102 0-2.04.49-2.686 1.227l-1.232-1.298c.695-.83 1.798-1.348 3.039-1.348 2.467 0 4.534 1.924 4.534 4.433 0 2.513-2.067 4.57-4.674 4.57-.767 0-1.462-.216-2.05-.58l-.795.814c.712.44 1.489.698 2.304.698 2.89 0 5.247-2.377 5.247-5.626 0-3.204-2.34-5.58-5.3-5.58-2.78 0-5.21 2.2-5.512 5.12l-1.753-1.692C11.818 7.946 15.41 5.92 18.985 5.92c4.588 0 8.156 3.598 8.156 8.335 0 4.83-3.72 8.505-8.38 8.505-1.937 0-3.563-1.123-4.252-2.674l-1.365 1.338c.636 1.05 1.847 1.907 3.386 1.907zM12.972.074C5.81.074.075 5.838.074 13c0 7.194 5.73 13.034 12.898 13.034 7.167 0 12.9-5.84 12.9-13.034C25.87 5.838 20.14.074 12.972.074zm0 2.772c5.626 0 10.19 4.564 10.19 10.19 0 5.626-4.564 10.19-10.19 10.19S2.774 18.586 2.774 12.96 7.34 2.772 12.972 2.772z"
+      />
+    </svg>
+  );
+}
+
 export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -60,6 +71,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
   const [submitting, setSubmitting] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
 
@@ -256,6 +268,27 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
       logger.error("[auth] google auth failed", { error: String(err) });
       setError(err instanceof Error ? err.message : "Google sign in failed.");
       setOauthLoading(false);
+    }
+  }
+
+  async function handleAppleAuth() {
+    setError("");
+    setAppleLoading(true);
+    trackEvent("oauth_sign_in_initiated", { provider: "apple" });
+
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "apple",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: redirect ? { redirect_to: redirect } : undefined,
+        },
+      });
+      if (oauthError) throw oauthError;
+    } catch (err) {
+      logger.error("[auth] apple auth failed", { error: String(err) });
+      setError(err instanceof Error ? err.message : "Apple sign in failed.");
+      setAppleLoading(false);
     }
   }
 
@@ -665,6 +698,26 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                   <>
                     <GoogleIcon />
                     Continue with Google
+                  </>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-10 w-full"
+                onClick={handleAppleAuth}
+                disabled={formDisabled || (isSignIn && isLocked)}
+              >
+                {appleLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <AppleIcon />
+                    Continue with Apple
                   </>
                 )}
               </Button>

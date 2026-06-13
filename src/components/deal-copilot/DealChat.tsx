@@ -168,9 +168,18 @@ export function DealChat({ opportunityId }: { opportunityId: string }) {
     }
 
     if (isListening) {
-      recognitionRef.current?.abort?.();
-      recognitionRef.current?.stop?.();
-      recognitionRef.current = null;
+      // Stop the active recognition session
+      const recognition = recognitionRef.current;
+      if (recognition) {
+        try {
+          // Try abort() first (newer API), then stop()
+          const rec = recognition as { abort?: () => void; stop?: () => void };
+          rec.abort?.();
+          rec.stop?.();
+        } catch {
+          // Ignore errors if already stopped
+        }
+      }
       setIsListening(false);
       return;
     }
@@ -199,6 +208,7 @@ export function DealChat({ opportunityId }: { opportunityId: string }) {
       setIsListening(false);
     };
 
+    recognitionRef.current = recognition;
     recognition.start();
     setIsListening(true);
   };
@@ -227,6 +237,7 @@ export function DealChat({ opportunityId }: { opportunityId: string }) {
             {/* Thread selector */}
             {threads.length > 0 && (
               <select
+                aria-label="Select chat thread"
                 className="text-xs rounded border border-border bg-background px-2 py-1 text-foreground"
                 value={selectedThreadId ?? ""}
                 onChange={(e) => setSelectedThreadId(e.target.value)}
