@@ -78,7 +78,6 @@ export type VisionModelId = (typeof VISION_MODELS)[keyof typeof VISION_MODELS];
 export type TextModelId = (typeof TEXT_MODELS)[keyof typeof TEXT_MODELS];
 
 let visionClient: HfInference | null = null;
-const textClient: HfInference | null = null;
 let currentConfig: HuggingFaceConfig | null = null;
 
 /**
@@ -86,13 +85,13 @@ let currentConfig: HuggingFaceConfig | null = null;
  * Uses singleton pattern - assumes single config for app lifetime.
  */
 export function getHuggingFaceVisionClient(config: HuggingFaceConfig): HfInference {
-  if (!visionClient || currentConfig?.baseUrl !== config.baseUrl) {
-    const apiKey = config.apiKey ?? process.env.HUGGINGFACE_API_KEY;
-    const baseUrl = config.baseUrl ?? process.env.HUGGINGFACE_ENDPOINT_URL;
+  const apiKey = config.apiKey ?? process.env.HUGGINGFACE_API_KEY;
+  const baseUrl = config.baseUrl ?? process.env.HUGGINGFACE_ENDPOINT_URL;
 
+  if (!visionClient || currentConfig?.baseUrl !== baseUrl || currentConfig?.apiKey !== apiKey) {
     // @huggingface/inference uses `endpointUrl` for custom endpoints
     visionClient = new HfInference(apiKey, { endpointUrl: baseUrl });
-    currentConfig = { ...config, baseUrl };
+    currentConfig = { ...config, apiKey, baseUrl };
   }
 
   return visionClient;
@@ -167,13 +166,16 @@ export async function hfVisionChatCompletion(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await client.chatCompletion({
-      model,
-      messages: hfMessages,
-      max_tokens: options?.maxTokens ?? 512,
-      temperature: options?.temperature ?? 0.1,
-      response_format: options?.responseFormat,
-    });
+    const response = await client.chatCompletion(
+      {
+        model,
+        messages: hfMessages,
+        max_tokens: options?.maxTokens ?? 512,
+        temperature: options?.temperature ?? 0.1,
+        response_format: options?.responseFormat,
+      },
+      { signal: controller.signal },
+    );
 
     clearTimeout(timeoutId);
 
@@ -212,15 +214,18 @@ export async function hfTextCompletion(
 
   try {
     // Use text-generation endpoint for simpler completion
-    const response = await client.textGeneration({
-      model,
-      inputs: prompt,
-      parameters: {
-        max_new_tokens: options?.maxTokens ?? 1024,
-        temperature: options?.temperature ?? 0.1,
-        return_full_text: false,
+    const response = await client.textGeneration(
+      {
+        model,
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: options?.maxTokens ?? 1024,
+          temperature: options?.temperature ?? 0.1,
+          return_full_text: false,
+        },
       },
-    });
+      { signal: controller.signal },
+    );
 
     clearTimeout(timeoutId);
     return response.generated_text ?? "";

@@ -115,6 +115,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "theme-color", content: "#ffffff" },
+      { name: "appleid-signin-client-id", content: import.meta.env.VITE_APPLE_CLIENT_ID ?? "" },
+      { name: "appleid-signin-scope", content: "name email" },
+      { name: "appleid-signin-redirect-uri", content: `${SITE_URL}/auth/callback` },
+      { name: "appleid-signin-use-popup", content: "true" },
       {
         name: "google-site-verification",
         content: "NAteh4Jb4nPdtyDxEBNBcGOYM8H0TTO37zO5yCtQnPU",
@@ -169,6 +173,10 @@ function RootShell({ children }: { children: React.ReactNode }) {
       <body>
         {posthogApiKey ? <PostHogProvider client={posthog}>{children}</PostHogProvider> : children}
         <Scripts />
+        <script
+          src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"
+          async
+        />
       </body>
     </html>
   );

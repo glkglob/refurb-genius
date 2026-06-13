@@ -25,7 +25,6 @@ import { safeParseRoomAnalysis } from "../../domain/validation";
 import { captureAiError, addDiagnosticBreadcrumb, setConversationId } from "@/lib/sentry";
 import {
   getHuggingFaceConfig,
-  getHuggingFaceVisionClient,
   hfVisionChatCompletion,
   isHuggingFaceConfigured,
   VISION_MODELS,

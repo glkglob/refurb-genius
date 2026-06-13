@@ -2,6 +2,7 @@
  * Thin Resend wrapper for server-side transactional email.
  * Import only in server functions (createServerFn handlers) — never in client code.
  */
+import "@tanstack/react-start/server-only";
 
 const FROM = "Refurb Genius <notifications@mail.refurbgenius.info>";
 

@@ -8,7 +8,8 @@ DO $$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
-    WHERE tablename  = 'deal_opportunities'
+    WHERE schemaname = 'public'
+    AND   tablename  = 'deal_opportunities'
     AND   policyname = 'Users can manage own deal opportunities'
   ) THEN
     CREATE POLICY "Users can manage own deal opportunities"
