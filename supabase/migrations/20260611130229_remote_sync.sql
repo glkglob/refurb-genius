@@ -1,0 +1,5 @@
+-- REMOTE-ONLY: This migration version exists on the remote Supabase project
+-- but was not created locally. It may have been applied directly via
+-- Supabase dashboard or SQL editor.
+-- This file exists only to keep migration history in sync with remote.
+-- No operations - actual schema changes (if any) are already applied on remote.

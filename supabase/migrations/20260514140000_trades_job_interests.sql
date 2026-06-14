@@ -1,0 +1,4 @@
+-- SQUASHED: Duplicate of trades_job_interests migration.
+-- The canonical version is 20260514130001_trades_job_interests.sql.
+-- This file exists only to keep migration history in sync with remote.
+-- No operations.

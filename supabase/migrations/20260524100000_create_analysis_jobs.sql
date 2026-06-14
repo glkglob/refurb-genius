@@ -1,0 +1,5 @@
+-- SQUASHED: Legacy analysis_jobs table from decommissioned Railway backend.
+-- Table retained in remote DB for history but not used by application code.
+-- This migration was removed locally (see commit 3d78409).
+-- This file exists only to keep migration history in sync with remote.
+-- No operations.

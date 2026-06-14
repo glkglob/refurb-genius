@@ -1,0 +1,5 @@
+-- SQUASHED: Grants for private.safe_uuid and public.is_project_owner functions
+-- that were never created in the migration history. Removed locally (see commit 3d78409).
+-- Storage policies use folder-based auth (auth.uid() = foldername[1]) instead.
+-- This file exists only to keep migration history in sync with remote.
+-- No operations.
