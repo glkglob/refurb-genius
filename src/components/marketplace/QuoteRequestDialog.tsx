@@ -54,11 +54,9 @@ export function QuoteRequestDialog({
         title: `Quote request for ${tradespersonName}`,
         message: message.trim(),
       };
-      const trimmedPrice = proposedPrice.trim();
-      if (trimmedPrice) {
-        const parsedPrice = Number(trimmedPrice);
-        if (!Number.isFinite(parsedPrice)) throw new Error("Proposed price must be a valid number");
-        payload.proposed_price = parsedPrice;
+
+      if (proposedPrice) {
+        payload.proposed_price = Number(proposedPrice);
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
