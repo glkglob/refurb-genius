@@ -707,7 +707,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                 variant="secondary"
                 className="h-10 w-full"
                 onClick={handleAppleAuth}
-                disabled={formDisabled || (isSignIn && isLocked)}
+                disabled={appleLoading || formDisabled || (isSignIn && isLocked)}
               >
                 {appleLoading ? (
                   <>

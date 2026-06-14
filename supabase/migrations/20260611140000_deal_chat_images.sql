@@ -10,6 +10,7 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
     WHERE conname = 'deal_messages_image_urls_max_5'
+      AND conrelid = 'public.deal_messages'::regclass
   ) THEN
     ALTER TABLE public.deal_messages
       ADD CONSTRAINT deal_messages_image_urls_max_5
