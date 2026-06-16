@@ -1,0 +1,6 @@
+-- SQUASHED: This migration was originally applied remotely but caused a
+-- foreign key error (ran before trades_jobs table existed).
+-- Replaced by 20260514130001_trades_job_interests.sql which runs AFTER
+-- the trades_jobs table is created (20260514130000).
+-- This file exists only to keep migration history in sync with remote.
+-- No operations - the actual table is created in 20260514130001.
