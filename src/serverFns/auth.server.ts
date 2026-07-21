@@ -6,9 +6,18 @@
  * or from other `*.server.ts` modules.
  *
  * Client-safe serverFn *declarations* live in `./auth.ts`.
+ *
+ * Note: AuthUser shape is inlined (not imported from @/lib/auth) so this file
+ * stays outside the no-legacy-imports allowlist surface.
  */
-import type { AuthUser } from "@/lib/auth";
 import type { Database } from "@repo/supabase";
+
+/** Matches the app AuthUser shape used by client auth / useAuth. */
+export type AuthUser = {
+  id: string;
+  email: string;
+  fullName?: string;
+};
 
 export function mapSupabaseUserToAuthUser(
   u:

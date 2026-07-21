@@ -25,8 +25,7 @@ const emptyInputSchema = z.object({});
 export const getCurrentUserServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => emptyInputSchema.parse(input ?? {}))
   .handler(async () => {
-    const { createSupabaseServerClient, mapSupabaseUserToAuthUser } =
-      await import("./auth.server");
+    const { createSupabaseServerClient, mapSupabaseUserToAuthUser } = await import("./auth.server");
     const supabase = await createSupabaseServerClient();
 
     const {
