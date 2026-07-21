@@ -19,6 +19,7 @@
 | [Migration History](./architecture/migration-history.md)                     | Monorepo extraction phases 1–4                             |
 | [Future Roadmap](./architecture/future-roadmap.md)                           | Upcoming phases (includes Phase 4.5 stabilization summary) |
 | [Platform Debt](./architecture/platform-debt.md)                             | Known trade-offs and resolution paths                      |
+| [Refurb Estimator Import](./architecture/refurb-estimator-import.md)         | Pure engines ported from glkglob/refurb-estimator          |
 | [Phase 5C Runtime Validation](./architecture/phase-5c-runtime-validation.md) | Stress-test results and operational risks                  |
 
 ## Operations
