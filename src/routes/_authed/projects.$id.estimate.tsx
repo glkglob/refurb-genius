@@ -36,7 +36,11 @@ import {
   Gauge,
   ShieldAlert,
   GripVertical,
+  Layers,
+  Building2,
 } from "lucide-react";
+import { EnhancedEstimatePanel } from "@/components/estimate/EnhancedEstimatePanel";
+import { NewBuildEstimatePanel } from "@/components/estimate/NewBuildEstimatePanel";
 import { type UKRegion } from "@/core/projects";
 import { type ConditionLevel } from "@/features/ai-upload";
 import type { ScopeRoom } from "@/features/ai-design";
@@ -217,9 +221,15 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
       }
     >
       <Tabs defaultValue={scopeRooms ? "ai" : "quick"}>
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex h-auto flex-wrap gap-1">
           <TabsTrigger value="quick">
             <Calculator className="mr-1.5 h-4 w-4" /> Quick estimate
+          </TabsTrigger>
+          <TabsTrigger value="enhanced">
+            <Layers className="mr-1.5 h-4 w-4" /> Enhanced scope
+          </TabsTrigger>
+          <TabsTrigger value="newbuild">
+            <Building2 className="mr-1.5 h-4 w-4" /> New build
           </TabsTrigger>
           <TabsTrigger value="ai">
             <Sparkles className="mr-1.5 h-4 w-4" /> AI estimate
@@ -228,6 +238,25 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
             <GripVertical className="mr-1.5 h-4 w-4" /> Builder (drag & drop)
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="enhanced">
+          <EnhancedEstimatePanel
+            region={region}
+            sizeSqm={project.size_sqm}
+            propertyType={project.property_type}
+            postcode={project.postcode}
+          />
+        </TabsContent>
+
+        <TabsContent value="newbuild">
+          <NewBuildEstimatePanel
+            region={region}
+            sizeSqm={project.size_sqm}
+            propertyType={project.property_type}
+            postcode={project.postcode}
+            bedrooms={project.bedrooms}
+          />
+        </TabsContent>
 
         <TabsContent value="ai">
           <AIEstimateBuilder

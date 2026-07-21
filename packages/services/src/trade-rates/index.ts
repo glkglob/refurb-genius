@@ -7,3 +7,4 @@ export {
   estimateLabourCostForPostcode,
   type TradeRate,
 } from "./tradeRates";
+export { JOB_CATEGORY_TO_TRADE_ID, tradeIdForJobCategory } from "./jobCategoryMap";

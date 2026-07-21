@@ -20,6 +20,7 @@ import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { marketplaceKeys, quoteRequestsByProjectQueryOptions } from "@/lib/queries/marketplace";
 import type { TablesInsert } from "@repo/supabase";
+import { LabourRateGuide } from "@/components/marketplace/LabourRateGuide";
 
 interface QuoteRequestDialogProps {
   open: boolean;
@@ -27,6 +28,9 @@ interface QuoteRequestDialogProps {
   tradespersonId: string;
   tradespersonName: string;
   projectId?: string;
+  /** Optional specialty / job category for labour rate guide. */
+  jobCategory?: string;
+  postcode?: string;
 }
 
 export function QuoteRequestDialog({
@@ -35,6 +39,8 @@ export function QuoteRequestDialog({
   tradespersonId,
   tradespersonName,
   projectId,
+  jobCategory,
+  postcode,
 }: QuoteRequestDialogProps) {
   const [message, setMessage] = useState("");
   const [proposedPrice, setProposedPrice] = useState("");
@@ -141,6 +147,13 @@ export function QuoteRequestDialog({
               Quote will be associated with project ID: {projectId.slice(0, 8)}...
             </p>
           )}
+
+          <LabourRateGuide
+            jobCategory={jobCategory ?? "general_building"}
+            postcode={postcode}
+            days={5}
+            compact
+          />
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

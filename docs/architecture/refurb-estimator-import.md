@@ -49,9 +49,19 @@ import {
 
 `tests/invariants/estimator-engines.invariant.test.ts` — postcode, labour, SDLT, appraisal, enhanced, new-build.
 
+## UI wiring (2026-07-21)
+
+| Surface | Component / route | What it shows |
+|---------|-------------------|---------------|
+| Deal Copilot | `DealAcquisitionCosts` on intake form | SDLT (+ surcharge) and development appraisal when purchase/GDV/refurb set |
+| Trades post job | `LabourRateGuide` on `/trades/new` | Regional labour mid/low/high for selected category |
+| Quote dialog | `LabourRateGuide` (compact) | Labour guide when requesting a quote |
+| Project estimate | Tabs **Enhanced scope** + **New build** | Scope £/m² + features; new-build £/m² by type/spec |
+
+Authority unchanged: **Quick estimate** + Deal Copilot ROI still use `runPricingEngine` only.
+
 ## Follow-ups
 
-1. UI: optional “Enhanced estimate” / “New build” tabs on project estimate route.
-2. Deal Copilot: optional SDLT line in acquisition costs via `calculateStampDutyLandTax`.
-3. Trades marketplace: surface `TRADE_RATES` on job create / quote dialogs.
-4. Align `REGION_MULTIPLIERS` in `pricingData.ts` with cost-library values if product wants a single regional table.
+1. Optional: prefill job budget min/max from labour guide mid band.
+2. Align `REGION_MULTIPLIERS` in `pricingData.ts` with cost-library values if product wants a single regional table.
+3. Persist enhanced/new-build results to project estimates if product needs them in reports.

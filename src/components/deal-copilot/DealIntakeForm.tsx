@@ -27,6 +27,7 @@ import { DealScoreCard } from "@/components/deal-copilot/DealScoreCard";
 import { DealMetricsGrid } from "@/components/deal-copilot/DealMetricsGrid";
 import { DealRiskFlags } from "@/components/deal-copilot/DealRiskFlags";
 import { DealEstimateSection } from "@/components/deal-copilot/DealEstimateSection";
+import { DealAcquisitionCosts } from "@/components/deal-copilot/DealAcquisitionCosts";
 import { Button } from "@repo/ui";
 
 type DealFormState = {
@@ -350,10 +351,28 @@ export function DealIntakeForm() {
         {analysis && analysis.ready && (
           <div className="space-y-6">
             <DealMetricsGrid roi={analysis.roi} />
+            <DealAcquisitionCosts
+              purchasePrice={parseMoney(form.purchasePrice)}
+              estimatedGdv={parseMoney(form.estimatedGdv)}
+              refurbBudget={
+                analysis.pricing?.mid_total != null
+                  ? Number(analysis.pricing.mid_total)
+                  : parseMoney(form.refurbBudget)
+              }
+              holdingCosts={parseMoney(form.holdingCosts)}
+            />
             <DealRiskFlags roi={analysis.roi} />
             <DealEstimateSection pricing={analysis.pricing} />
           </div>
         )}
+        {!analysis?.ready ? (
+          <DealAcquisitionCosts
+            purchasePrice={parseMoney(form.purchasePrice)}
+            estimatedGdv={parseMoney(form.estimatedGdv)}
+            refurbBudget={parseMoney(form.refurbBudget)}
+            holdingCosts={parseMoney(form.holdingCosts)}
+          />
+        ) : null}
 
         {/* AI estimate via native TypeScript + OpenAI pipeline */}
         <div className="mt-4 border-t pt-4">
@@ -539,6 +558,11 @@ function DealScorePanel({
           />
           <MetricRow label="Risk level" value={result?.risk_level ?? "—"} />
         </div>
+
+        <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
+          SDLT and full acquisition appraisal appear in the main column when purchase price is set.
+          ROI above uses the deterministic pricing engine only.
+        </p>
 
         <button
           type="button"

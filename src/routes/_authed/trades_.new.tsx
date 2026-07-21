@@ -16,6 +16,7 @@ import { Loader2, AlertCircle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { TRADES_JOB_CATEGORIES, type TradesJobCategory } from "@/core/trades";
 import { createTradesJob } from "@/services/trades/tradesJobStore";
 import { trackEvent } from "@/lib/analytics";
+import { LabourRateGuide } from "@/components/marketplace/LabourRateGuide";
 
 export const Route = createFileRoute("/_authed/trades_/new")({
   head: () => ({ meta: [{ title: "Post a job — Trades Marketplace" }] }),
@@ -223,6 +224,14 @@ function TradesNewPageContent() {
               />
             </div>
           </div>
+
+          {jobCategory ? (
+            <LabourRateGuide
+              jobCategory={jobCategory}
+              postcode={postcode}
+              days={jobCategory === "bathroom" || jobCategory === "kitchen" ? 7 : 5}
+            />
+          ) : null}
 
           <div className="space-y-2">
             <Label htmlFor="desiredStartDate">Desired start date</Label>
