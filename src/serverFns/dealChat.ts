@@ -13,7 +13,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { requireUser, createSupabaseServerClient } from "@/serverFns/auth";
 import { checkRateLimit, rateLimitKeyForUser } from "@/lib/rate-limit";
 import type { Tables } from "@repo/supabase";
 
@@ -30,6 +29,7 @@ const createThreadSchema = z.object({
 export const createThreadServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => createThreadSchema.parse(input))
   .handler(async ({ data }): Promise<DealThreadRow> => {
+    const { requireUser, createSupabaseServerClient } = await import("./auth.server");
     const user = await requireUser();
 
     const rl = checkRateLimit(rateLimitKeyForUser(user.id, "deal-thread-create"));
@@ -60,6 +60,7 @@ const listThreadsSchema = z.object({ opportunityId: z.string().min(1) });
 export const listThreadsServerFn = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => listThreadsSchema.parse(input))
   .handler(async ({ data }): Promise<DealThreadRow[]> => {
+    const { requireUser, createSupabaseServerClient } = await import("./auth.server");
     const user = await requireUser();
     const supabase = await createSupabaseServerClient();
 
@@ -84,6 +85,7 @@ const listMessagesSchema = z.object({
 export const listMessagesServerFn = createServerFn({ method: "GET" })
   .inputValidator((input: unknown) => listMessagesSchema.parse(input))
   .handler(async ({ data }): Promise<DealMessageRow[]> => {
+    const { requireUser, createSupabaseServerClient } = await import("./auth.server");
     await requireUser();
     const supabase = await createSupabaseServerClient();
 
@@ -112,6 +114,7 @@ export const sendMessageServerFn = createServerFn({ method: "POST" })
     async ({
       data,
     }): Promise<{ userMessage: DealMessageRow; assistantMessage: DealMessageRow }> => {
+      const { requireUser, createSupabaseServerClient } = await import("./auth.server");
       const user = await requireUser();
 
       const limit = checkRateLimit(rateLimitKeyForUser(user.id, "deal-chat"));

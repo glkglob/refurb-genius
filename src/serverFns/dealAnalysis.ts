@@ -15,7 +15,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { requireUser, createSupabaseServerClient } from "@/serverFns/auth";
 import { checkRateLimit, rateLimitKeyForUser } from "@/lib/rate-limit";
 import type { DealAnalysis } from "@/core/dealCopilot/dealAnalysis";
 
@@ -27,6 +26,7 @@ const analyzeDealInputSchema = z.object({
 export const analyzeDealServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => analyzeDealInputSchema.parse(input))
   .handler(async ({ data }): Promise<DealAnalysis> => {
+    const { requireUser, createSupabaseServerClient } = await import("./auth.server");
     const user = await requireUser();
 
     const rl = checkRateLimit(rateLimitKeyForUser(user.id, "deal-analysis"));

@@ -11,4 +11,4 @@ export { createBrowserSupabase, type BrowserClientOptions } from "./browser";
 export { createServerSupabase, createTokenSupabase, verifyToken, type CookieMap } from "./server";
 export { resolveSupabaseEnv, assertSupabaseEnv, type SupabaseEnv } from "./env";
 
-export type { Database, Tables, TablesUpdate } from "./database.types";
+export type { Database, Tables, TablesInsert, TablesUpdate } from "./database.types";

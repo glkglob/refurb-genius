@@ -12,18 +12,9 @@ import { CONDITION_LEVELS, REFURB_LEVELS, ROOM_TYPES } from "../domain";
 import { checkRateLimit, rateLimitKeyForUser } from "@/lib/rate-limit";
 
 async function requireServerAuth(): Promise<{ id: string }> {
-  const { getCookies } = await import("@tanstack/react-start/server");
-  const { createServerSupabase } = await import("@/platform/supabase/server");
-
-  const supabase = createServerSupabase(getCookies());
-
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) {
-    throw new Error("Unauthorized: you must be signed in to use AI features.");
-  }
+  // cookieName must match browser client ("pip-auth") or getUser() is always null.
+  const { requireUser } = await import("@/serverFns/auth.server");
+  const user = await requireUser();
   return { id: user.id };
 }
 
