@@ -133,7 +133,7 @@ export const financialsQueryOptions = (projectId: string) =>
 
       if (projectRes.error || !projectRes.data) return null;
 
-      const { purchase_price, estimated_gdv } = projectRes.data;
+      const { purchase_price, estimated_gdv, region } = projectRes.data;
 
       // Fetch latest estimate (prefer room-based for detailed budget)
       let refurbBudget = 0;
@@ -148,28 +148,31 @@ export const financialsQueryOptions = (projectId: string) =>
         if (simple?.estimate?.mid_total) refurbBudget = Number(simple.estimate.mid_total);
       }
 
-      // Use existing core logic for consistency (import here to avoid cycles)
-      // Simple computation mirroring Deal Copilot / roi engine
-      const totalProjectCost = Number(purchase_price) + refurbBudget;
-      const estimatedProfit = Number(estimated_gdv) - totalProjectCost;
-      const roiPercent =
-        totalProjectCost > 0 ? Math.round((estimatedProfit / totalProjectCost) * 100) : 0;
-
-      // Rough yield (assume some rental, 0 for minimal)
-      const grossYield = 0;
-      const investmentScore = Math.min(10, Math.max(1, Math.round(5 + roiPercent / 10)));
+      // Canonical investor metrics via deterministic ROI engine (same as Deal Copilot).
+      // Dynamic import keeps this query module free of hard package cycles at load time.
+      const { runRoiEngine } = await import("@repo/services");
+      const roi = runRoiEngine({
+        purchase_price: Number(purchase_price) || 0,
+        refurb_budget: refurbBudget,
+        estimated_gdv: Number(estimated_gdv) || 0,
+        rental_income: 0,
+        holding_costs: 0,
+        region: (region as import("@/lib/projects").UKRegion) || "London",
+        property_condition: "Average",
+      });
 
       return {
-        purchasePrice: Number(purchase_price),
-        estimatedGdv: Number(estimated_gdv),
+        purchasePrice: Number(purchase_price) || 0,
+        estimatedGdv: Number(estimated_gdv) || 0,
         refurbBudget,
-        totalProjectCost,
-        estimatedProfit,
-        roiPercent,
-        grossYield,
-        investmentScore,
-        riskLevel: estimatedProfit > 0 ? "low" : "high",
-        timelineWeeks: 8, // placeholder, real from estimate
+        totalProjectCost: roi.total_project_cost,
+        estimatedProfit: roi.estimated_profit,
+        roiPercent: Math.round(roi.roi),
+        grossYield: roi.gross_yield,
+        investmentScore: roi.investment_score,
+        riskLevel: roi.risk_level.toLowerCase(),
+        // Timeline remains estimate-derived when available; engine has no weeks field.
+        timelineWeeks: 8,
       };
     },
     enabled: !!projectId,

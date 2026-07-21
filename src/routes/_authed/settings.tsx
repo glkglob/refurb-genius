@@ -71,26 +71,16 @@ function SettingsPage() {
 
     setIsDeleting(true);
     try {
-      // Call delete account endpoint
-      const response = await fetch("/api/auth/delete-account", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id }),
-      });
+      const { deleteAccountServerFn } = await import("@/serverFns/auth");
+      await deleteAccountServerFn({});
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to request account deletion");
-      }
+      toast.success("Your account has been deleted.");
 
-      toast.success("Account deletion requested. We'll process it within 7 business days.");
-
-      // Sign out and redirect to home
       await signOut();
       navigate({ to: "/" });
     } catch (error) {
       logger.error("[settings] Delete account failed", { error: String(error) });
-      toast.error(error instanceof Error ? error.message : "Failed to request account deletion");
+      toast.error(error instanceof Error ? error.message : "Failed to delete account");
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);

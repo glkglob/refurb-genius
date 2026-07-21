@@ -77,6 +77,8 @@ COMMENT ON FUNCTION public.resolve_share_link(text) IS
 -- 3. Trade messages: enforce sender_id = auth.uid()
 -- ---------------------------------------------------------------------------
 DROP POLICY IF EXISTS "trade_messages_all_own" ON public.trade_messages;
+DROP POLICY IF EXISTS "trade_messages_select_party" ON public.trade_messages;
+DROP POLICY IF EXISTS "trade_messages_insert_as_self" ON public.trade_messages;
 
 -- SELECT: any party on the quote_request may read
 CREATE POLICY "trade_messages_select_party" ON public.trade_messages
@@ -120,3 +122,28 @@ CREATE POLICY "trade_messages_insert_as_self" ON public.trade_messages
   );
 
 -- No UPDATE / DELETE policies: messages are append-only by design.
+
+-- ---------------------------------------------------------------------------
+-- 4. Trades marketplace: allow browse of posted jobs (owner still sees all own)
+-- ---------------------------------------------------------------------------
+DROP POLICY IF EXISTS "trades_jobs_select_posted" ON public.trades_jobs;
+CREATE POLICY "trades_jobs_select_posted" ON public.trades_jobs
+  FOR SELECT TO anon, authenticated
+  USING (
+    status = 'posted'
+    OR user_id = auth.uid()
+  );
+
+-- Directory browse for authenticated users (marketplace)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'tradespeople'
+  ) THEN
+    DROP POLICY IF EXISTS "tradespeople_select_directory" ON public.tradespeople;
+    CREATE POLICY "tradespeople_select_directory" ON public.tradespeople
+      FOR SELECT TO authenticated
+      USING (true);
+  END IF;
+END $$;

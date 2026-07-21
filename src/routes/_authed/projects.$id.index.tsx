@@ -193,9 +193,25 @@ function ProjectDetail() {
       {/* Money Summary */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Money label="Purchase price" value={project.purchase_price} />
-        <Money label="Estimated refurb" value={estimatedRefurbCost(project)} />
+        <Money
+          label={
+            financials?.refurbBudget ? "Estimated refurb" : "Estimated refurb (placeholder 15% GDV)"
+          }
+          value={
+            financials?.refurbBudget && financials.refurbBudget > 0
+              ? financials.refurbBudget
+              : estimatedRefurbCost(project)
+          }
+        />
         <Money label="Estimated GDV" value={project.estimated_gdv} accent />
-        <Money label="Estimated profit" value={estimatedProfit(project)} />
+        <Money
+          label="Estimated profit"
+          value={
+            financials?.refurbBudget && financials.refurbBudget > 0
+              ? financials.estimatedProfit
+              : estimatedProfit(project)
+          }
+        />
       </div>
 
       {/* Tabs */}

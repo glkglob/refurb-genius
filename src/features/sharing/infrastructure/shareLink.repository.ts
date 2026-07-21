@@ -56,6 +56,49 @@ export class SupabaseShareLinkRepository implements ShareLinkRepository {
 
     if (error) throw new Error(error.message);
   }
+
+  /**
+   * Public exact-token resolution via SECURITY DEFINER RPC.
+   * Prefer this over selecting from share_links by token (enumeration-safe).
+   */
+  async resolveByToken(token: string): Promise<{
+    id: string;
+    studyId: string;
+    visibility: string;
+    accessRole: string;
+    expiresAt: string | null;
+    ownerUserId: string;
+  } | null> {
+    // RPC added by P0 security migration; cast until database.types is regenerated.
+    const { data, error } = await (
+      supabase as unknown as {
+        rpc: (
+          fn: string,
+          args: { p_token: string },
+        ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      }
+    ).rpc("resolve_share_link", { p_token: token });
+
+    if (error) throw new Error(error.message);
+    const rows = data as Array<{
+      id: string;
+      study_id: string;
+      visibility: string;
+      access_role: string;
+      expires_at: string | null;
+      owner_user_id: string;
+    }> | null;
+    const row = Array.isArray(rows) ? rows[0] : null;
+    if (!row) return null;
+    return {
+      id: row.id,
+      studyId: row.study_id,
+      visibility: row.visibility,
+      accessRole: row.access_role,
+      expiresAt: row.expires_at,
+      ownerUserId: row.owner_user_id,
+    };
+  }
 }
 
 export const supabaseShareLinkRepository: ShareLinkRepository = new SupabaseShareLinkRepository();

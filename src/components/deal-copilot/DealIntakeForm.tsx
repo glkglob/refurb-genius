@@ -106,38 +106,8 @@ export function DealIntakeForm() {
   // AI estimate via native TS serverFn (OpenAI). Declare early so useEffects below can reference without TDZ.
   const generateAiEstimate = useGenerateEstimate();
 
-  const scoreInput = useMemo<DealScoreInput>(
-    () => ({
-      title: form.title.trim(),
-      listingUrl: form.listingUrl.trim() || undefined,
-      postcode: form.postcode.trim() || undefined,
-      purchasePrice: parseMoney(form.purchasePrice),
-      estimatedGdv: parseMoney(form.estimatedGdv),
-      expectedMonthlyRent: parseMoney(form.expectedMonthlyRent),
-      refurbBudget: parseMoney(form.refurbBudget),
-      holdingCosts: parseMoney(form.holdingCosts) ?? 0,
-      region: form.region,
-      propertyCondition: form.propertyCondition,
-    }),
-    [form],
-  );
-
-  const score = useMemo<DealScoreResult>(() => scoreDealOpportunity(scoreInput), [scoreInput]);
-
-  // Basic telemetry for key user actions (Phase 3)
-  useEffect(() => {
-    if (score.ready) {
-      trackDealAnalyzed("deal-copilot");
-    }
-  }, [score.ready]);
-
-  useEffect(() => {
-    if (generateAiEstimate.data && generateAiEstimate.data.length > 0) {
-      trackDealAnalyzed("deal-copilot-ai-estimate");
-    }
-  }, [generateAiEstimate.data]);
-
-  // Run full analysis through orchestration layer
+  // Run full analysis first — pricing.mid_total is the only authoritative refurb budget
+  // for recommendation scoring (never use a parallel ROI based solely on user budget).
   const validationResult = useMemo(
     () =>
       validateFormData({
@@ -159,6 +129,41 @@ export function DealIntakeForm() {
     }
     return analyzeDeal(validationResult.data);
   }, [validationResult]);
+
+  const scoreInput = useMemo<DealScoreInput>(() => {
+    const engineRefurb =
+      analysis?.ready && analysis.pricing?.mid_total != null
+        ? Number(analysis.pricing.mid_total)
+        : null;
+    return {
+      title: form.title.trim(),
+      listingUrl: form.listingUrl.trim() || undefined,
+      postcode: form.postcode.trim() || undefined,
+      purchasePrice: parseMoney(form.purchasePrice),
+      estimatedGdv: parseMoney(form.estimatedGdv),
+      expectedMonthlyRent: parseMoney(form.expectedMonthlyRent),
+      // Prefer engine mid_total when analysis is ready so score and metrics agree.
+      refurbBudget: engineRefurb ?? parseMoney(form.refurbBudget),
+      holdingCosts: parseMoney(form.holdingCosts) ?? 0,
+      region: form.region,
+      propertyCondition: form.propertyCondition,
+    };
+  }, [form, analysis]);
+
+  const score = useMemo<DealScoreResult>(() => scoreDealOpportunity(scoreInput), [scoreInput]);
+
+  // Basic telemetry for key user actions (Phase 3)
+  useEffect(() => {
+    if (score.ready) {
+      trackDealAnalyzed("deal-copilot");
+    }
+  }, [score.ready]);
+
+  useEffect(() => {
+    if (generateAiEstimate.data && generateAiEstimate.data.length > 0) {
+      trackDealAnalyzed("deal-copilot-ai-estimate");
+    }
+  }, [generateAiEstimate.data]);
 
   const aiEstimateResult = generateAiEstimate.data;
   const aiMultiplier = getRegionalMultiplier(form.region);

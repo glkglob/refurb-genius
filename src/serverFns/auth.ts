@@ -236,3 +236,44 @@ export async function requireUser(): Promise<AuthUser> {
 
   return user;
 }
+
+/**
+ * Delete the authenticated user's account (server-side).
+ *
+ * Uses SUPABASE_SERVICE_ROLE_KEY when available (auth.admin.deleteUser).
+ * Without it, returns a clear error so the UI can fall back to support.
+ *
+ * Also best-effort clears the profiles row so role/PII is not left behind
+ * if auth deletion succeeds partially.
+ */
+export const deleteAccountServerFn = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => emptyInputSchema.parse(input ?? {}))
+  .handler(async () => {
+    const user = await requireUser();
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseUrl =
+      process.env.SUPABASE_URL ??
+      process.env.VITE_SUPABASE_URL ??
+      process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+    if (!serviceRoleKey || !supabaseUrl) {
+      throw new Error(
+        "Account deletion is not fully configured on the server. Please email support@refurbgenius.info with your account email and we will process deletion within 7 business days.",
+      );
+    }
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const admin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    // Soft-clear profile first (role freeze trigger allows service_role).
+    await admin.from("profiles").delete().eq("id", user.id);
+
+    const { error } = await admin.auth.admin.deleteUser(user.id);
+    if (error) {
+      throw new Error(`Failed to delete account: ${error.message}`);
+    }
+
+    return { ok: true as const };
+  });
