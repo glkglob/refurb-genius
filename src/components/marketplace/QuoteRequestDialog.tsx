@@ -19,6 +19,7 @@ import { supabase } from "@/platform/supabase/browser";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { marketplaceKeys, quoteRequestsByProjectQueryOptions } from "@/lib/queries/marketplace";
+import type { TablesInsert } from "@repo/supabase";
 
 interface QuoteRequestDialogProps {
   open: boolean;
@@ -46,7 +47,8 @@ export function QuoteRequestDialog({
       if (!user) throw new Error("You must be signed in");
       if (!message.trim()) throw new Error("Message is required");
 
-      const payload: Record<string, unknown> = {
+      // project_id is optional in the marketplace flow; empty string keeps legacy rows insertable.
+      const payload: TablesInsert<"quote_requests"> & { proposed_price?: number } = {
         project_id: projectId ?? "",
         tradesperson_id: tradespersonId,
         user_id: user.id,
@@ -55,8 +57,13 @@ export function QuoteRequestDialog({
         message: message.trim(),
       };
 
-      if (proposedPrice) {
-        payload.proposed_price = Number(proposedPrice);
+      const trimmedPrice = proposedPrice.trim();
+      if (trimmedPrice) {
+        const parsedPrice = Number(trimmedPrice);
+        if (!Number.isFinite(parsedPrice)) {
+          throw new Error("Proposed price must be a valid number");
+        }
+        payload.proposed_price = parsedPrice;
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
