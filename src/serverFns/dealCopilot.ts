@@ -59,9 +59,6 @@ import { z } from "zod";
 import type { DealOpportunity } from "@repo/types";
 import type { Tables } from "@repo/supabase";
 
-// The two primitives that give us SSR-safe auth for every serverFn.
-import { requireUser, createSupabaseServerClient } from "@/serverFns/auth";
-
 /** Supabase row shape for the opportunities table. */
 type DealOpportunityRow = Tables<"deal_opportunities">;
 
@@ -140,6 +137,7 @@ export const saveDealOpportunityServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => dealOpportunitySchema.parse(input))
   .handler(async ({ data: opportunity }) => {
     // Server execution context only. Cookie session is authoritative here.
+    const { requireUser, createSupabaseServerClient } = await import("./auth.server");
     const user = await requireUser();
 
     const supabase = await createSupabaseServerClient();
@@ -188,6 +186,7 @@ const deleteOpportunityInputSchema = z.object({ id: z.string().min(1) });
 export const deleteDealOpportunityServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => deleteOpportunityInputSchema.parse(input))
   .handler(async ({ data }) => {
+    const { requireUser, createSupabaseServerClient } = await import("./auth.server");
     const user = await requireUser();
     const supabase = await createSupabaseServerClient();
 

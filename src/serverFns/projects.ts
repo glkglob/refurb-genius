@@ -56,9 +56,6 @@ import { z } from "zod";
 // They never pull browser Supabase clients or other client-only modules.
 import type { NewProjectInput } from "@/lib/projects";
 
-// Centralized server auth primitives (the single source of truth).
-import { requireUser, createSupabaseServerClient } from "@/serverFns/auth";
-
 // Pure mapper — safe to import at top level (only type imports inside it,
 // no side-effects, no browser clients).
 import { rowToProject } from "@/lib/mappers";
@@ -148,6 +145,8 @@ export const createProjectServerFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     // This runs exclusively on the server (Nitro / Vercel function).
     // Cookies from the current HTTP request are available here.
+    // Dynamic import keeps @tanstack/react-start/server out of the client graph.
+    const { requireUser, createSupabaseServerClient } = await import("./auth.server");
     const user = await requireUser();
 
     // No generic needed on the wrapper (it always returns the Database-typed client).

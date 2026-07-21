@@ -13,7 +13,7 @@ import { checkRateLimit, rateLimitKeyForUser } from "@/lib/rate-limit";
 
 async function requireServerAuth(): Promise<{ id: string }> {
   // cookieName must match browser client ("pip-auth") or getUser() is always null.
-  const { requireUser } = await import("@/serverFns/auth");
+  const { requireUser } = await import("@/serverFns/auth.server");
   const user = await requireUser();
   return { id: user.id };
 }
