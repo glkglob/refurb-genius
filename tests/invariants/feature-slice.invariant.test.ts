@@ -69,6 +69,20 @@ const SLICES = [
     infrastructureDir: join(ROOT, "src/features/sharing/infrastructure"),
     indexFile: join(ROOT, "src/features/sharing/index.ts"),
   },
+  {
+    name: "payment",
+    domainDir: join(ROOT, "src/features/payment/domain"),
+    applicationDir: join(ROOT, "src/features/payment/application"),
+    infrastructureDir: join(ROOT, "src/features/payment/infrastructure"),
+    indexFile: join(ROOT, "src/features/payment/index.ts"),
+  },
+  {
+    name: "gallery",
+    domainDir: join(ROOT, "src/features/gallery/domain"),
+    applicationDir: join(ROOT, "src/features/gallery/application"),
+    infrastructureDir: join(ROOT, "src/features/gallery/infrastructure"),
+    indexFile: join(ROOT, "src/features/gallery/index.ts"),
+  },
 ] as const;
 
 function listTsFiles(dir: string): string[] {

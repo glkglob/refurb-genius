@@ -1,17 +1,23 @@
-# Services
+# Services (transitional)
 
-External integration boundary. Components and pages import from
-`@/services/*` instead of reaching into `@/integrations/*` or
-`supabase.storage` directly. Each service is the single seam where we
-swap implementations or add setup-warning fallbacks.
+> **Status:** Legacy integration seams. **Do not add new domain logic here.**  
+> New work belongs in `src/features/<slice>/infrastructure` + `src/platform/*`.  
+> File set is frozen by `tests/invariants/legacy-layer-freeze.invariant.test.ts`.
 
-- `@/platform/supabase/browser` — Supabase browser client singleton,
-  `isSupabaseConfigured()` / `getSupabaseSetupWarning()` helpers.
-- `@/services/projects` — Project CRUD + helpers (re-exports
-  `@/core/projects` today; future server-fn-backed swap lands here).
-- `@/services/storage` — `project-photos` bucket wrapper: `photoStore`,
-  `getPublicPhotoUrl`, `canUseStorage`, bucket constant.
+Historical role: components and pages imported from `@/services/*` instead of
+reaching into storage/SDK details directly.
 
-Side-effectful adapters live here. Pure business logic lives in
-`@/core/*`. Server-only secrets stay in `*.server.ts` or `*.functions.ts`
-modules and must never be imported by anything in this folder.
+| Module | Role today |
+|--------|------------|
+| `@/services/projects` | Project helpers (often re-exports core) |
+| `@/services/storage` | Photo bucket wrappers |
+| `@/services/trades/*` | Trades job/profile stores |
+
+Prefer:
+
+- Slice **infrastructure** adapters for product IO  
+- `src/platform/supabase/*` for client factories  
+- Pure engines in `@repo/services`  
+
+Server-only secrets stay in `*.server.ts` / dynamic imports inside serverFns —
+never imported from this folder into client code.

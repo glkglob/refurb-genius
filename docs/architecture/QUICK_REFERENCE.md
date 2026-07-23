@@ -1,137 +1,63 @@
 # Architectural Boundary Quick Reference
 
-## TL;DR
-
-**Rule**: Code outside `src/features/` and `src/platform/` **CANNOT** import from:
-
-- `@/core/*`
-- `@/lib/*`
-- `@/services/*`
-- `@/integrations/*`
-
-**Enforcement**: Automated enforcement is deferred until the documented migration baseline in `docs/architecture/audit-2026-06-10.md` is complete; the invariant currently records this rule as a TODO in CI.
-
-## Common Violations & Fixes
-
-### ❌ Route importing utility
-
-```typescript
-// src/routes/_authed/dashboard.tsx
-import { cn } from "@/lib/utils"; // WRONG
-```
-
-### ✅ Route importing from platform
-
-```typescript
-// src/routes/_authed/dashboard.tsx
-import { cn } from "@/platform/utils"; // CORRECT
-```
-
----
-
-### ❌ Component importing legacy
-
-```typescript
-// src/components/ui/button.tsx
-import { cn } from "@/lib/utils"; // WRONG
-```
-
-### ✅ Component importing from platform
-
-```typescript
-// src/components/ui/button.tsx
-import { cn } from "@/platform/utils"; // CORRECT
-```
-
----
-
-### ❌ Server function importing legacy
-
-```typescript
-// src/serverFns/auth.ts
-import type { AuthUser } from "@/lib/auth"; // WRONG
-```
-
-### ✅ Server function importing from platform
-
-```typescript
-// src/serverFns/auth.ts
-import type { AuthUser } from "@/platform/auth"; // CORRECT
-```
-
-## Migration Checklist
-
-When you see a violation:
-
-1. **Identify the legacy module** (e.g., `@/lib/utils`)
-2. **Check if platform equivalent exists** (e.g., `@/platform/utils`)
-3. **If not, create it**:
-   ```bash
-   # Example: Moving utils
-   mkdir -p src/platform/utils
-   # Move/copy the utility
-   # Update exports
-   ```
-4. **Update imports** in your file
-5. **Run tests** to verify:
-   ```bash
-   pnpm test:ui
-   ```
-
-## Directory Structure
+## TL;DR — request flow
 
 ```
-src/
-├── features/          ✅ Can import from legacy (transitional)
-│   ├── estimate/
-│   ├── ai-design/
-│   └── ai-upload/
-├── platform/          ✅ Can import from legacy (transitional)
-│   ├── supabase/
-│   ├── utils/        ← Move @/lib/utils here
-│   ├── logger/       ← Move @/lib/logger here
-│   ├── analytics/    ← Move @/lib/analytics here
-│   └── auth/         ← Move @/lib/auth here
-├── core/              ✅ Can import from core/lib (internal)
-├── lib/               ✅ Can import from lib (internal)
-├── routes/            ❌ CANNOT import from legacy
-├── components/        ❌ CANNOT import from legacy
-├── serverFns/         ❌ CANNOT import from legacy
-└── services/          ⚠️  Transitional (will migrate to features)
+Route → feature presentation → application → domain
+    → infrastructure adapter → platform / @repo/*
 ```
 
-## Running Tests
+**New business logic** → `src/features/<slice>/` (or pure engines in `@repo/services`).  
+**Not** → `src/lib/`, `src/hooks/`, `src/services/` (frozen allowlists).
+
+Full policy: [FEATURE_SLICE.md](./FEATURE_SLICE.md) · [`src/features/README.md`](../../src/features/README.md)
+
+## Import rules
+
+| From | May import |
+|------|------------|
+| `src/routes/*` | Feature public APIs, components, platform browser, thin types |
+| `features/<a>/*` | Own layers (rules below); other slices only via `@/features/<b>` or `@/features/<b>/infrastructure` |
+| `features/*/domain` | `@repo/types`, `@repo/core`, `@repo/services` only |
+| `features/*/application` | Own domain + shared kernel — **not** infrastructure/presentation |
+| `features/*/infrastructure` | Own domain/application ports, `src/platform/*`, `@repo/*` |
+| `src/platform/*` | Vendor SDKs, `@repo/supabase` |
+
+**Forbidden:**
+
+```ts
+// ❌ deep cross-slice
+import { usePhotos } from "@/features/ai-upload/presentation/hooks/usePhotos";
+
+// ✅ public API
+import { usePhotos } from "@/features/ai-upload";
+
+// ❌ new domain file under lib (fails legacy-layer-freeze)
+// src/lib/my-new-deal-rules.ts
+
+// ✅ feature domain
+// src/features/estimate/domain/rules.ts
+```
+
+## Enforcement (CI / pre-commit)
+
+| Invariant | Guards |
+|-----------|--------|
+| `feature-slice.invariant.test.ts` | Layer purity for standardized slices (+ payment/gallery) |
+| `public-api-boundary.invariant.test.ts` | Cross-slice deep imports |
+| `legacy-layer-freeze.invariant.test.ts` | No new files in lib/hooks/services |
+| `platform-boundary.invariant.test.ts` | Vendor SDKs only in platform |
+| `server-only-boundary.invariant.test.ts` | No `*.server` static imports on client surfaces |
 
 ```bash
-# Run all tests (including invariant)
-pnpm test:ui
-
-# Watch mode
-pnpm test:ui:watch
-
-# Run only invariant tests
 pnpm test:invariants
 ```
 
-## Getting Help
+## Checklist for a new capability
 
-1. **Check audit**: `docs/architecture/audit-2026-06-10.md`
-2. **Check summary**: `docs/architecture/PHASE_2_3_SUMMARY.md`
-3. **Check test**: `tests/invariants/no-legacy-imports.invariant.test.ts`
-
-## Common Questions
-
-**Q: Why can't I import from `@/lib/utils`?**  
-A: Routes/components should be decoupled from legacy infrastructure. Use `@/platform/utils` instead.
-
-**Q: What if the platform module doesn't exist yet?**  
-A: Create it! Move the utility from `@/lib/*` to `@/platform/*` and update exports.
-
-**Q: Can features import from legacy?**  
-A: Yes, temporarily. Features are the transition layer. Eventually, they'll import from platform only.
-
-**Q: Why is this important?**  
-A: Enforces clean architecture, enables incremental migration, prevents circular dependencies, improves testability.
-
-**Q: The test is failing, what do I do?**  
-A: Follow the remediation steps in the error message. See the audit document for your specific file.
+1. Create or extend `src/features/<name>/` with domain → application → infrastructure → presentation.
+2. Export only through `index.ts` (and infrastructure barrel for wiring).
+3. Wire a thin route under `src/routes/`.
+4. Use `src/platform/*` for Supabase/OpenAI/PostHog — never raw SDK in presentation.
+5. Financial math → `@repo/services` only (pricing/ROI authority).
+6. Run `pnpm test:invariants` before commit.

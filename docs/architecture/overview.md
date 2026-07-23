@@ -1,12 +1,26 @@
 # Refurb Genius Architecture Overview
 
-## Current State (June 2026)
+## Current State (July 2026)
 
 Refurb Genius is a **pnpm workspace monorepo** hosting a single **TanStack Start** SSR
-application (React 19 + Vite 7 + Nitro) with extracted shared libraries and an
-incremental **feature-slice** layout inside `src/features/`.
+application (React 19 + Vite 7 + Nitro) with extracted shared libraries and a
+**feature-slice** layout inside `src/features/`. New business capability **must**
+land in a slice (or `@repo/services` for pure financial engines), not in
+`src/lib/`, `src/hooks/`, or `src/services/`.
 
-**Canonical agent guide:** [`CLAUDE.md`](../../CLAUDE.md) at repo root.
+**Canonical agent guide:** [`CLAUDE.md`](../../CLAUDE.md) at repo root.  
+**Request flow + ownership:** [Feature-Slice Architecture](./FEATURE_SLICE.md).
+
+---
+
+## Canonical request flow
+
+```
+Route → feature presentation → application/use case → domain
+      → infrastructure adapter → platform / @repo packages
+```
+
+Routes stay thin. Domain rules do not grow in generic folders.
 
 ---
 
@@ -16,24 +30,23 @@ incremental **feature-slice** layout inside `src/features/`.
 ┌─────────────────────────────────────────────────────────────┐
 │              Production shell (root src/)                    │
 │  TanStack Start + Vite 7 + Nitro SSR + React 19            │
-│  Auth hydration, route tree, server entry, app components   │
 │                                                             │
 │  src/                                                       │
-│  ├── features/          Vertical slices (estimate, ai-*)    │
-│  ├── platform/          Vendor SDK seams (OpenAI, etc.)    │
-│  ├── routes/            TanStack file routes (thin)        │
-│  ├── components/        App shell + legacy UI              │
-│  ├── core/              Legacy domain (migrating → slices) │
-│  ├── lib/               Shared utilities (shrinking)       │
-│  ├── integrations/      Generated Supabase types only      │
-│  └── server.ts          Nitro entry + OTEL bootstrap       │
+│  ├── features/          Vertical slices (canonical)         │
+│  ├── platform/          Vendor SDK seams                    │
+│  ├── routes/            Thin file routes                    │
+│  ├── components/        App shell + composition UI          │
+│  ├── core/ · lib/ · hooks/ · services/ · serverFns/       │
+│  │                      Legacy / transitional (frozen)      │
+│  ├── integrations/      Generated Supabase types only       │
+│  └── server.ts          Nitro entry + OTEL bootstrap        │
 └─────────────────────────────────────────────────────────────┘
                               ▲
         ┌─────────────────────┼─────────────────────┐
         │                     │                     │
    ┌────▼────────┐    ┌──────▼──────┐    ┌────────▼────┐
    │  @repo/ui   │    │ @repo/core  │    │@repo/services
-   │  (17/46)    │    │ constants   │    │ pricing, ROI
+   │  shared UI  │    │ constants   │    │ pricing, ROI
    └─────────────┘    └─────────────┘    │ deal scoring │
         │                    │           └──────────────┘
         └────────────┬───────┴──────────────────┘
@@ -49,6 +62,7 @@ See also:
 - [Platform Boundary](./platform-boundary.md)
 - [Dependency Rules](./dependency-rules.md)
 - [Routes](./routes.md)
+- [`src/features/README.md`](../../src/features/README.md)
 
 ---
 

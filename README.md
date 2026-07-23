@@ -98,7 +98,10 @@ Start with:
 ## Contributing
 
 - Keep changes small and reversible.
-- Follow existing patterns and respect package boundaries.
+- **Feature-slice flow** for new product work:  
+  `Route → presentation → application → domain → infrastructure → platform/@repo`  
+  (see [docs/architecture/FEATURE_SLICE.md](docs/architecture/FEATURE_SLICE.md) and `src/features/README.md`).  
+  Do not add domain logic under `src/lib/`, `src/hooks/`, or `src/services/` (frozen allowlists).
 - Run `pnpm typecheck && pnpm lint && pnpm test:invariants` before committing (matches CI + pre-commit).
 - Pre-commit hooks (`.githooks/`) block `.env` commits, run gitleaks when installed, and enforce server-only import boundaries. See [docs/operations/secret-protection.md](docs/operations/secret-protection.md).
 - Supabase migrations and pnpm config are hardened for repeatable deploys (see CLAUDE.md).

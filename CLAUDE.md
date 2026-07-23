@@ -44,39 +44,34 @@ coverage and UI package migration are the main gaps.
 
 ```
 refurb-genius/
-├── src/                          # Main application source
-│   ├── routes/                   # TanStack file-based routes (26 files)
-│   │   └── deal-copilot/         # Deal Copilot sub-routes (4 files)
-│   ├── components/               # App-level components (23 files)
-│   │   └── ui/                   # UI shim layer (46 files) — re-exports from @repo/ui
-│   ├── core/                     # Domain logic
-│   │   ├── ai/                   # Photo analysis pipeline (OpenAI Vision)
-│   │   │   ├── server/           # Server-only AI code (*.server.ts)
-│   │   │   └── serverFns.ts      # createServerFn wrappers
-│   │   ├── dealCopilot/          # Deal evaluation engine
-│   │   ├── pricing/              # Pricing authority and trade rates
-│   │   ├── projects/             # Project domain logic
-│   │   ├── trades/               # Trades marketplace logic
-│   │   └── ...                   # roi, reports, property, config, constants
-│   ├── hooks/                    # React hooks (data fetching, auth, state)
-│   ├── integrations/supabase/    # Auto-generated types — DO NOT edit or import
-│   ├── lib/                      # Shared utilities (logger, sentry, analysis)
-│   ├── services/                 # Service boundary layer
-│   ├── router.tsx                # TanStack Router setup
-│   ├── server.ts                 # Nitro server entry
-│   ├── routeTree.gen.ts          # Auto-generated — DO NOT edit
-│   └── styles.css                # Global styles + Tailwind v4 config
-├── packages/                     # Monorepo workspace packages (see below)
-├── supabase/
-│   ├── functions/                # Deno Edge Functions
-│   └── migrations/               # SQL migration files (13 migrations; all policy/table creates now idempotent for safe re-apply)
-├── tests/invariants/             # Invariant test suite (6 tests)
-├── docs/                         # Architecture docs, audits, operations
-├── scripts/                      # Admin/bootstrap scripts
-├── vite.vercel.config.ts         # Vercel-specific Vite config
-├── vercel.json                   # Vercel deployment settings
-└── turbo.json                    # Turborepo task config
+├── src/
+│   ├── features/                 # ★ Vertical slices (canonical home for new product work)
+│   │   ├── estimate|ai-upload|ai-design|roi|feasibility|…
+│   │   └── each: domain/ application/ infrastructure/ presentation/ index.ts
+│   ├── platform/                 # Vendor SDK seams (browser vs server entrypoints)
+│   ├── routes/                   # Thin TanStack file routes (delegate to slices)
+│   ├── components/               # App shell + UI composition (shims → @repo/ui)
+│   ├── core/ · lib/ · hooks/ · services/ · serverFns/  # Transitional (frozen)
+│   ├── integrations/supabase/    # Generated types — DO NOT hand-edit
+│   ├── server.ts · router.tsx · styles.css
+│   └── routeTree.gen.ts          # Auto-generated — DO NOT edit
+├── packages/                     # @repo/* shared kernel (types, core, services, ui, supabase)
+├── supabase/                     # Migrations + Edge Functions
+├── tests/invariants/             # Architecture gates (feature-slice, freeze, security, …)
+├── docs/architecture/            # FEATURE_SLICE.md is source of truth for request flow
+└── …
 ```
+
+**Request flow (required for new work):**
+
+```
+Route → feature presentation → application → domain
+    → infrastructure adapter → platform / @repo/*
+```
+
+Do **not** put new domain logic in `src/lib/`, `src/hooks/`, or `src/services/`
+unless it is genuinely cross-cutting (and on the freeze allowlist). Details:
+`docs/architecture/FEATURE_SLICE.md`, `src/features/README.md`.
 
 ---
 

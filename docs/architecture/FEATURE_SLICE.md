@@ -1,94 +1,100 @@
 # Feature Slice Architecture
 
-## Migration Status (June 10, 2026)
+## Canonical request flow (required)
 
-| Slice         | Status       | Key commits                                 | Notes / Blockers                                               |
-| ------------- | ------------ | ------------------------------------------- | -------------------------------------------------------------- |
-| `estimate`    | Standardized | `354e556`, `3acf34e3`, `735787c`            | All layers in place; public API enforced                       |
-| `ai-upload`   | Standardized | `354e556`, `3acf34e3`, `b2c5827`, `735787c` | Photo pipeline wired; domain enums pending `@repo/types` move  |
-| `ai-design`   | Standardized | `354e556`, `3acf34e3`, `735787c`            | Redesign catalog + orchestrator still in legacy `lib`/`core`   |
-| `export`      | Scaffolded   | —                                           | Slice scaffolded; initial PDF export pipeline added            |
-| `roi`         | Standardized | —                                           | Deterministic ROI service + sensitivity analysis in slice      |
-| `feasibility` | Standardized | —                                           | End-to-end orchestrator + immutable Supabase snapshot repo     |
-| `sharing`     | Standardized | —                                           | Share links with role/expiry controls and RLS-backed ownership |
-| `payment`     | Scaffolded   | —                                           | Slice scaffolded; checkout + webhook application stubs added   |
-| `gallery`     | Scaffolded   | —                                           | Slice scaffolded; owner/publishing application stubs added     |
+All **new** business functionality must follow this path. Do not invent parallel
+implementations in `src/lib/`, `src/hooks/`, or `src/services/`.
 
-Remaining work: end-to-end browser automation coverage and cleanup of legacy `core/`
-and `lib/` call paths that now have slice equivalents.
+```
+Route (src/routes/*)
+  → feature presentation   # UI, hooks, createServerFn RPC surface
+  → feature application    # use cases / commands / ports
+  → domain logic           # pure rules in slice domain/ and/or @repo/services
+  → infrastructure adapter # repos, AI adapters, storage
+  → platform / @repo/*     # vendor seams + shared kernel engines
+```
 
-**Key rules** (details below):
+| Step | Location | Responsibility |
+|------|----------|----------------|
+| Route | `src/routes/` | Thin: params/search, auth gate, render presentation |
+| Presentation | `src/features/<slice>/presentation/` | Components, hooks, serverFns |
+| Application | `src/features/<slice>/application/` | Use cases; define ports (interfaces) |
+| Domain | `src/features/<slice>/domain/` + `@repo/services` | Pure rules; financial engines stay in `@repo/services` |
+| Infrastructure | `src/features/<slice>/infrastructure/` | Implement ports (DB, AI, external APIs) |
+| Platform / packages | `src/platform/`, `@repo/*` | Vendor SDKs, shared types, deterministic engines |
 
-- Public API via `features/<slice>/index.ts` only (plus the slice's
-  `infrastructure` barrel for wiring code — a deliberate deviation).
+**Anti-patterns (do not do):**
+
+- Domain rules or new product use cases in `src/lib/*` or `src/hooks/*`
+- Calling OpenAI/Supabase SDKs from routes or components (use platform + infra)
+- Deep imports into another slice’s `domain/`, `application/`, or adapters
+- Competing copies of the same capability in both a slice and `src/core/` / `src/lib/`
+
+See also: [`src/features/README.md`](../../src/features/README.md).
+
+## Migration Status (2026-07-23)
+
+| Slice         | Status       | Notes |
+| ------------- | ------------ | ----- |
+| `estimate`    | Standardized | Layers + public API; AI estimate adapter server-only |
+| `ai-upload`   | Standardized | Photo + vision pipeline |
+| `ai-design`   | Standardized | Redesign + scope adapters |
+| `export`      | Scaffolded   | PDF/export pipeline growing into slice |
+| `roi`         | Standardized | Deterministic ROI + sensitivity |
+| `feasibility` | Standardized | Study orchestrator + snapshots |
+| `sharing`     | Standardized | Share links + RLS |
+| `payment`     | Scaffolded   | Checkout/webhook application stubs |
+| `gallery`     | Scaffolded   | Owner/publishing stubs; some UI still uses `lib/queries` |
+| `auth`        | Presentation shell | Public API only; no full domain stack yet |
+
+**Enforcement:**
+
+- Public API via `features/<slice>/index.ts` (plus `infrastructure` barrel for wiring).
 - Vendor SDKs only via `src/platform/`.
-- Invariant tests enforce both boundaries.
+- Cross-slice deep imports forbidden (`public-api-boundary` invariants).
+- **Legacy freeze:** no *new* files under `src/lib/`, `src/hooks/`, or `src/services/`
+  without updating the allowlist (`legacy-layer-freeze` invariant).
+- Slice layer rules: `feature-slice.invariant.test.ts` (includes payment + gallery).
 
-### Known deep-import debt (June 10, 2026)
+### Deep-import debt (cleared)
 
-Grep-confirmed violations identified during the June 10 audit and remediated in
-this pass:
+June 2026 deep-import violations into slice internals were remediated. Current
+invariant suite must stay green; do not reintroduce deep paths.
 
-- `src/routes/_authed/projects.$id.report.tsx` imports
-  `@/features/ai-upload/presentation/hooks/usePhotos` (should come from the
-  slice public API).
-- `src/lib/pitchDeck.ts` imports a deep repository path
-  (`@/features/estimate/infrastructure/repositories/estimate.repository`)
-  instead of the infrastructure barrel.
-- `src/features/ai-design/presentation/serverFns.ts` imports
-  `roomAnalysisOutputSchema` from `@/features/ai-upload/presentation/serverFns`
-  (cross-slice presentation deep import).
-- Widespread `@/features/ai-upload/domain` type imports from `lib/`,
-  `components/`, and `core/` (`ConditionLevel`, `RoomAnalysis`, …) — resolved
-  by the planned `@repo/types` canonical-union cleanup.
+## Folder ownership matrix
+
+| Path | Role | New business logic? |
+|------|------|---------------------|
+| `src/features/*` | Vertical slices (preferred) | **Yes — default home** |
+| `src/platform/*` | Vendor SDK seams | Factories only, no product rules |
+| `src/routes/*` | TanStack file routes | Thin only |
+| `packages/services` (`@repo/services`) | Pure pricing/ROI/deal engines | **Yes — financial authority** |
+| `src/lib/*` | Transitional utilities / legacy helpers | **No** (freeze; shrink) |
+| `src/hooks/*` | App-shell hooks (auth, theme) | **No** (feature hooks → presentation) |
+| `src/services/*` | Legacy integration seams | **No** (prefer slice infra + platform) |
+| `src/serverFns/*` | Legacy/thin RPC modules | Prefer slice `presentation/serverFns` |
+| `src/core/*` | Legacy domain directories | **No** — migrate into slices / `@repo/*` |
+| `src/integrations/*` | Generated Supabase types | Do not hand-edit |
+| `src/components/*` | App shell + shared UI composition | No domain rules |
 
 ---
 
-## Legacy Boundary Audit (2026-06-10)
+## Legacy layers (transitional)
 
-Feature-Slice Architecture violations were identified via grep-based audit
-across application entry surfaces.
+Entry surfaces may still **consume** modules under `src/lib/`, `src/hooks/`,
+`src/services/`, `src/serverFns/`, and `src/core/`. That is expected during
+migration. **New** capabilities must not expand those layers — use a feature
+slice instead. File allowlists are frozen by
+`tests/invariants/legacy-layer-freeze.invariant.test.ts`.
 
-### High Priority
+### Remaining cleanup (incremental)
 
-- `src/routes/**`
-- `src/hooks/**`
-- `src/serverFns/**`
+- [ ] Migrate remaining `src/core/*` call sites into slices or `@repo/*`
+- [ ] Move gallery/query consumers from `src/lib/queries/*` into `features/gallery`
+- [ ] Prefer `features/*/presentation/serverFns` over growing `src/serverFns`
+- [ ] Keep routes thin: no new business rules in route modules
 
-### Medium Priority
-
-- `src/components/**`
-- `src/services/**`
-
-### Transitional Exceptions
-
-- `src/features/**`
-- `src/platform/**`
-- `src/core/**` (legacy internals only)
-
-## Public API Verification Audit (2026-06-10)
-
-Verified entry points:
-
-1. `src/core/ai/index.ts`
-2. `src/lib/estimate.ts`
-3. `src/integrations/supabase/client.ts`
-
-Findings:
-
-- `src/core/ai/index.ts` importers are components (`src/components/**`) and
-  consume the public barrel (`@/core/ai`) — approved boundary usage.
-- `src/lib/estimate.ts` is consumed only by `src/core/pricing/index.ts`
-  (legacy compatibility re-export) — transitional boundary usage.
-- `src/integrations/supabase/client.ts` has no importers — no active boundary
-  usage.
-
-Remediation checklist:
-
-- [ ] Migrate `src/core/pricing/index.ts` compatibility re-exports off
-      `@/lib/estimate`.
-- [ ] Remove `src/integrations/supabase/client.ts` after legacy import risk is
-      eliminated.
+---
 
 Feature-Slice Architecture organises code by **business capability** (vertical
 slice), with **Clean Architecture** layering _inside_ each slice and a
