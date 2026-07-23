@@ -44,7 +44,7 @@
     "@opentelemetry/instrumentation-openai": "^0.16.0",
     "@opentelemetry/resources": "^2.7.1",
     "@opentelemetry/sdk-node": "^0.218.0",
-    "@posthog/ai": "^7.20.13",
+    "@posthog/ai": "^8.4.0",
     "@posthog/react": "^1.10.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
