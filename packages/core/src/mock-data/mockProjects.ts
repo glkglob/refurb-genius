@@ -1,7 +1,7 @@
 // Mock projects for demos, empty-state previews, and tests. Not persisted.
 // Keep shapes aligned with the canonical `Project` type so consumers can
 // swap a mock in for a real row without branching.
-import type { Project } from "@/lib/projects";
+import type { Project } from "@repo/types";
 
 export const MOCK_PROJECTS: Project[] = [
   {

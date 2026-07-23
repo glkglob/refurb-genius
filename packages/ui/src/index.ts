@@ -9,6 +9,8 @@
 // Shims in src/components/ui/ re-export from this package so existing app
 // imports continue to work during the migration.
 
+export { useIsMobile } from "./hooks/use-mobile";
+
 export * from "./components/accordion";
 export * from "./components/alert-dialog";
 export * from "./components/alert";

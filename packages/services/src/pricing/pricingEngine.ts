@@ -11,8 +11,8 @@ import {
   type EstimateCategory,
   type FinishLevel,
 } from "@repo/core/utilities/pricingData";
-import type { UKRegion } from "@/lib/projects";
-import type { ConditionLevel } from "@/features/ai-upload/domain";
+import type { UKRegion } from "@repo/types";
+import type { ConditionLevel } from "@repo/types";
 
 export const VAT_RATE = 0.2;
 export const CONTINGENCY_RATE = 0.1;

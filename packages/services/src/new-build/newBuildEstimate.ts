@@ -2,7 +2,7 @@
  * New-build cost estimate (£/m² by property type + spec) — adapted from
  * refurb-estimator `new-build-calculator.ts` (simplified: no supplier overrides).
  */
-import type { UKRegion } from "@/lib/projects";
+import type { UKRegion } from "@repo/types";
 import { DEFAULT_COST_LIBRARY, type TierAmounts } from "../cost-library";
 import { postcodeToUkRegion } from "../uk-region";
 

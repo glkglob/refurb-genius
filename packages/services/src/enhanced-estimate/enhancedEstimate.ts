@@ -5,7 +5,7 @@
  * Complements the category-based `runPricingEngine` with £/m² scope rates and
  * optional feature add-ons (loft, extensions, rewire, etc.).
  */
-import type { UKRegion } from "@/lib/projects";
+import type { UKRegion } from "@repo/types";
 import { DEFAULT_COST_LIBRARY, type TierAmounts } from "../cost-library";
 import { postcodeToUkRegion } from "../uk-region";
 

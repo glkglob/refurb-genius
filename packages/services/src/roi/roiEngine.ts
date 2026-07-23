@@ -3,8 +3,8 @@
 // Single source of truth for investor metrics. No AI, no randomness — given
 // the same inputs, returns the same outputs. Pages and components must call
 // `runRoiEngine` instead of recomputing locally.
-import type { UKRegion } from "@/lib/projects";
-import type { ConditionLevel } from "@/features/ai-upload/domain";
+import type { UKRegion } from "@repo/types";
+import type { ConditionLevel } from "@repo/types";
 
 export type RoiRiskLevel = "Low" | "Moderate" | "High";
 

@@ -2,7 +2,7 @@
  * Default UK cost library — adapted from refurb-estimator `lib/cost-library.ts`.
  * Pure data; no framework deps. Used by enhanced / new-build estimators.
  */
-import type { UKRegion } from "@/lib/projects";
+import type { UKRegion } from "@repo/types";
 
 export type CostTier = "low" | "typical" | "high";
 export type TierAmounts = Record<CostTier, number>;

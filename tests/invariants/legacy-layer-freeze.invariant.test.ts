@@ -168,3 +168,52 @@ test("canonical request flow is documented", () => {
   assert.match(text, /infrastructure adapter/i);
   assert.match(text, /platform/i);
 });
+
+test("feature ownership guide documents recommended layout without requiring empty layers", () => {
+  const guide = join(ROOT, "src/features/README.md");
+  assert.ok(existsSync(guide), "src/features/README.md must exist");
+  const text = readFileSync(guide, "utf8");
+  assert.match(text, /domain\//);
+  assert.match(text, /application\//);
+  assert.match(text, /infrastructure\//);
+  assert.match(text, /presentation\//);
+  assert.match(text, /index\.ts/);
+  assert.match(text, /ceremonial|empty/i);
+  assert.match(text, /Minimum viable/i);
+
+  const arch = readFileSync(join(ROOT, "docs/architecture/FEATURE_SLICE.md"), "utf8");
+  assert.match(arch, /Recommended layout inside/);
+  assert.match(arch, /Avoid empty ceremonial|avoid empty ceremonial/i);
+});
+
+test("platform architecture plan documents multi-app ownership and no cross-app imports", () => {
+  const plan = join(ROOT, "docs/architecture/platform-architecture-plan.md");
+  assert.ok(existsSync(plan), "platform-architecture-plan.md must exist");
+  const text = readFileSync(plan, "utf8");
+  assert.match(text, /Applications own product workflows/i);
+  assert.match(text, /Shared packages own reusable capabilities/i);
+  assert.match(text, /Applications never import one another/i);
+  assert.match(text, /apps\/refurb-genius/);
+  assert.match(text, /packages\//);
+  assert.match(text, /Application features/);
+  // Must not mandate empty package shells
+  assert.match(text, /lazily|Empty packages are Forbidden|empty shells/i);
+});
+
+test("platform plan defines shared domain services vs platform capabilities", () => {
+  const plan = readFileSync(join(ROOT, "docs/architecture/platform-architecture-plan.md"), "utf8");
+  assert.match(plan, /Shared domain services/i);
+  assert.match(plan, /deterministic/i);
+  assert.match(plan, /React-free|React-free/i);
+  assert.match(plan, /packages\/services/);
+  assert.match(plan, /pricing/);
+  assert.match(plan, /roi/i);
+  assert.match(plan, /Shared platform capabilities/i);
+  assert.match(plan, /packages\/auth|auth/);
+  assert.match(plan, /packages\/storage|storage/);
+  assert.match(plan, /never know which application/i);
+
+  const servicesReadme = readFileSync(join(ROOT, "packages/services/README.md"), "utf8");
+  assert.match(servicesReadme, /orchestrate/i);
+  assert.match(servicesReadme, /React/);
+});

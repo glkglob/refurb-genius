@@ -12,6 +12,7 @@
     }
   },
   "dependencies": {
-    "@repo/core": "workspace:*"
+    "@repo/core": "workspace:*",
+    "@repo/types": "workspace:*"
   }
 }

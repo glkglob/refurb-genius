@@ -1,5 +1,5 @@
-import type { ConditionLevel } from "@/features/ai-upload/domain";
-import type { UKRegion } from "@/lib/projects";
+import type { ConditionLevel } from "@repo/types";
+import type { UKRegion } from "@repo/types";
 
 export const FINISH_LEVELS = ["Budget", "Standard", "Premium"] as const;
 export type FinishLevel = (typeof FINISH_LEVELS)[number];

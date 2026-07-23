@@ -10,7 +10,7 @@
 // responsible for pricing, ROI, or any financial numbers — those are
 // produced deterministically by the pricing/ROI engines and only
 // referenced (not invented) by the wording layer.
-import type { RoomAnalysis } from "@/features/ai-upload/domain";
+import type { RoomAnalysis } from "@repo/types";
 
 export type ProjectSummaryInput = {
   projectName: string;

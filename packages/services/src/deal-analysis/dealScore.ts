@@ -1,6 +1,6 @@
 import { runRoiEngine, type RoiEngineResult } from "../roi";
-import type { ConditionLevel } from "@/features/ai-upload/domain";
-import type { UKRegion } from "@/lib/projects";
+import type { ConditionLevel } from "@repo/types";
+import type { UKRegion } from "@repo/types";
 import type { DealOpportunityInput } from "@repo/types";
 
 export type DealScoreInput = DealOpportunityInput & {

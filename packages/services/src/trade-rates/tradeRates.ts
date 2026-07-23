@@ -2,7 +2,7 @@
  * UK trade day rates — adapted from refurb-estimator `lib/pricing/trade-rates.ts`
  * (Checkatrade / TraderStreet 2026 sources). Multipliers use Refurb Genius UKRegion.
  */
-import type { UKRegion } from "@/lib/projects";
+import type { UKRegion } from "@repo/types";
 import { postcodeToUkRegion, type RegionSlug } from "../uk-region";
 
 export type TradeRate = {

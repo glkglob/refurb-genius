@@ -2,7 +2,7 @@
  * Region helpers ported/adapted from refurb-estimator (glkglob/refurb-estimator).
  * Maps between slug-style region keys and Refurb Genius UKRegion labels.
  */
-import type { UKRegion } from "@/lib/projects";
+import type { UKRegion } from "@repo/types";
 
 /** Slug keys used in the estimator cost library / trade rates data. */
 export type RegionSlug =

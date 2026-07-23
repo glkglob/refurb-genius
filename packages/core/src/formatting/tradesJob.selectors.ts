@@ -1,5 +1,5 @@
 import type { TradesJob, TradesJobCategory, TradesJobStatus } from "@repo/types";
-import { TRADES_JOB_CATEGORIES } from "@/core/trades";
+import { TRADES_JOB_CATEGORIES } from "../constants/tradesCategories";
 
 export function formatCategoryLabel(category: TradesJobCategory): string {
   return TRADES_JOB_CATEGORIES.find((c) => c.value === category)?.label ?? category;

@@ -13,6 +13,17 @@
     "./utilities/pricingData": {
       "types": "./src/utilities/pricingData.ts",
       "default": "./src/utilities/pricingData.ts"
+    },
+    "./constants/disclaimer": {
+      "types": "./src/constants/disclaimer.ts",
+      "default": "./src/constants/disclaimer.ts"
+    },
+    "./constants/tradesCategories": {
+      "types": "./src/constants/tradesCategories.ts",
+      "default": "./src/constants/tradesCategories.ts"
     }
+  },
+  "dependencies": {
+    "@repo/types": "workspace:*"
   }
 }
