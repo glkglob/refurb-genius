@@ -74,25 +74,35 @@ function AuthCallback() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-6">
-        <div className="w-full max-w-sm space-y-4 rounded-xl border border-destructive/30 bg-destructive/10 p-8 text-center">
-          <AlertCircle className="mx-auto h-8 w-8 text-destructive" />
-          <h2 className="font-semibold text-foreground">Authentication failed</h2>
+      <div className="dark flex min-h-screen items-center justify-center bg-background p-6 text-foreground">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="w-full max-w-sm space-y-4 rounded-xl border border-destructive/30 bg-destructive/10 p-8 text-center outline-none"
+        >
+          <AlertCircle className="mx-auto h-8 w-8 text-destructive" aria-hidden />
+          <h1 className="font-semibold text-foreground">Authentication failed</h1>
           <p className="text-sm text-muted-foreground">{error}</p>
           <a href="/auth" className="text-sm font-medium text-accent hover:underline">
             ← Back to sign in
           </a>
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-3 text-muted-foreground">
-        <Loader2 className="h-6 w-6 animate-spin" />
+    <div className="dark flex min-h-screen items-center justify-center bg-background text-foreground">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex flex-col items-center gap-3 text-muted-foreground outline-none"
+        aria-busy="true"
+        aria-live="polite"
+      >
+        <Loader2 className="h-6 w-6 animate-spin" aria-hidden />
         <p className="text-sm">Completing sign in…</p>
-      </div>
+      </main>
     </div>
   );
 }

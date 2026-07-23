@@ -45,18 +45,24 @@ function GalleryDetailPage() {
 
   if (galleryLoading) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background text-foreground">
         <Navbar />
-        <div className="max-w-4xl mx-auto p-8">Loading project...</div>
+        <main id="main-content" tabIndex={-1} className="outline-none max-w-4xl mx-auto p-8">
+          Loading project...
+        </main>
       </div>
     );
   }
 
   if (!gallery) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background text-foreground">
         <Navbar />
-        <div className="max-w-4xl mx-auto p-8 text-center">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="outline-none max-w-4xl mx-auto p-8 text-center"
+        >
           <h1 className="text-2xl font-semibold">Project not found or not public</h1>
           <p className="mt-2 text-muted-foreground">
             This project may have been made private or the link is invalid.
@@ -64,7 +70,7 @@ function GalleryDetailPage() {
           <Link to="/gallery" className="mt-4 inline-block underline">
             Back to Gallery
           </Link>
-        </div>
+        </main>
       </div>
     );
   }
@@ -92,10 +98,14 @@ function GalleryDetailPage() {
   const roi = purchase > 0 ? Math.round((profit / purchase) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
 
-      <div className="max-w-5xl mx-auto px-6 pt-8 pb-16">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="outline-none max-w-5xl mx-auto px-6 pt-8 pb-16"
+      >
         <Link
           to="/gallery"
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-6"
@@ -278,7 +288,7 @@ function GalleryDetailPage() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
 
       <footer className="border-t py-8 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()} Refurb Genius · Public Gallery

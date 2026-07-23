@@ -20,9 +20,9 @@ export const Route = createFileRoute("/terms")({
 
 function TermsPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <div className="py-8 px-4 sm:px-6 md:px-8">
+      <main id="main-content" tabIndex={-1} className="outline-none py-8 px-4 sm:px-6 md:px-8">
         <div className="mx-auto max-w-4xl">
           {/* Header */}
           <div className="mb-8">
@@ -388,7 +388,7 @@ function TermsPage() {
             </p>
           </div>
         </div>
-      </div>
+      </main>
       <Toaster />
     </div>
   );

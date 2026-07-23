@@ -37,7 +37,11 @@ function OAuthConsentPage() {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <main className="flex items-center justify-center py-16 px-4">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex items-center justify-center py-16 px-4 outline-none"
+      >
         <div className="w-full max-w-md space-y-6">
           {/* App identity */}
           <div className="text-center space-y-2">

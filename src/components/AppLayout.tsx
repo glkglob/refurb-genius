@@ -21,7 +21,11 @@ export function AppLayout({
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <MobileTopBar />
-          <main className="relative flex-1 overflow-hidden px-4 py-6 sm:px-8 sm:py-10">
+          <main
+            id="main-content"
+            tabIndex={-1}
+            className="relative flex-1 overflow-hidden px-4 py-6 outline-none sm:px-8 sm:py-10"
+          >
             <div
               aria-hidden
               className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_5%,oklch(0.76_0.16_171/0.08),transparent_30%),radial-gradient(circle_at_80%_0%,oklch(0.76_0.09_245/0.07),transparent_26%)]"

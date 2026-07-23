@@ -84,10 +84,14 @@ function GalleryPage() {
   }, [galleries, searchTerm, regionFilter, minGdv, minRoi]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
 
-      <div className="mx-auto max-w-7xl px-6 pt-12 pb-8">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="outline-none mx-auto max-w-7xl px-6 pt-12 pb-8"
+      >
         <div className="max-w-3xl">
           <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground">
             Public Showcase
@@ -158,7 +162,7 @@ function GalleryPage() {
           </Link>
           .
         </div>
-      </div>
+      </main>
 
       <footer className="border-t py-8 text-center text-xs text-muted-foreground">
         © {new Date().getFullYear()} Refurb Genius. All rights reserved.

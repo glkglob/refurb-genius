@@ -305,7 +305,11 @@ function ReportPage() {
         </div>
       </div>
 
-      <main className="print-area mx-auto max-w-5xl px-4 py-8 sm:px-8 sm:py-12">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="print-area mx-auto max-w-5xl px-4 py-8 outline-none sm:px-8 sm:py-12"
+      >
         <article className="space-y-10 rounded-xl bg-card p-6 shadow-sm sm:p-10 print:shadow-none">
           {/* Branding header */}
           <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">

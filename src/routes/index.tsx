@@ -45,41 +45,43 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <Hero />
-      <HowItWorks />
-      <FeatureSplit
-        eyebrow="AI Photo Analysis"
-        title="See condition the way a surveyor would."
-        body="Upload photos of any room. Our AI assesses condition, flags priorities, and pinpoints what needs work — wall by wall, surface by surface."
-        bullets={[
-          "Room-by-room condition scoring",
-          "Priority levels (high / medium / low)",
-          "Damp, dated, and structural flags",
-        ]}
-        icon={Camera}
-        image={beforeImg}
-        reverse={false}
-      />
-      <FeatureSplit
-        eyebrow="AI Room Redesign"
-        title="Visualise the finished refurb instantly."
-        body="Generate beautiful redesign concepts for kitchens, bathrooms, living areas — tuned to UK buyer and tenant taste."
-        bullets={[
-          "Multiple style directions",
-          "Specification-aware visuals",
-          "Shareable with investors and trades",
-        ]}
-        icon={Wand2}
-        image={afterImg}
-        reverse
-      />
-      <CostEstimator />
-      <InvestorMetrics />
-      <ReportExport />
-      <BeforeAfter />
-      <FinalCTA />
+      <main id="main-content" tabIndex={-1} className="outline-none">
+        <Hero />
+        <HowItWorks />
+        <FeatureSplit
+          eyebrow="AI Photo Analysis"
+          title="See condition the way a surveyor would."
+          body="Upload photos of any room. Our AI assesses condition, flags priorities, and pinpoints what needs work — wall by wall, surface by surface."
+          bullets={[
+            "Room-by-room condition scoring",
+            "Priority levels (high / medium / low)",
+            "Damp, dated, and structural flags",
+          ]}
+          icon={Camera}
+          image={beforeImg}
+          reverse={false}
+        />
+        <FeatureSplit
+          eyebrow="AI Room Redesign"
+          title="Visualise the finished refurb instantly."
+          body="Generate beautiful redesign concepts for kitchens, bathrooms, living areas — tuned to UK buyer and tenant taste."
+          bullets={[
+            "Multiple style directions",
+            "Specification-aware visuals",
+            "Shareable with investors and trades",
+          ]}
+          icon={Wand2}
+          image={afterImg}
+          reverse
+        />
+        <CostEstimator />
+        <InvestorMetrics />
+        <ReportExport />
+        <BeforeAfter />
+        <FinalCTA />
+      </main>
       <Footer className="border-t border-border bg-card" />
     </div>
   );

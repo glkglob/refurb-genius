@@ -53,16 +53,18 @@ export const Route = createFileRoute("/trades")({
 
 function TradesPage() {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar />
-      <TradesHero />
-      <AudienceCards />
-      <LiveJobListings />
-      <HowItWorks />
-      <JobDetails />
-      <TradeCategories />
-      <TrustSafety />
-      <FinalCTA />
+      <main id="main-content" tabIndex={-1} className="outline-none">
+        <TradesHero />
+        <AudienceCards />
+        <LiveJobListings />
+        <HowItWorks />
+        <JobDetails />
+        <TradeCategories />
+        <TrustSafety />
+        <FinalCTA />
+      </main>
       <TradesFooter />
     </div>
   );

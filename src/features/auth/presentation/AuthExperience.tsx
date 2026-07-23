@@ -804,11 +804,19 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
 function AuthPageShell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_15%_10%,rgba(45,212,191,0.14),transparent_35%),radial-gradient(circle_at_85%_10%,rgba(59,130,246,0.14),transparent_35%),linear-gradient(180deg,oklch(0.12_0.04_265),oklch(0.16_0.04_264))] px-4 py-8 sm:px-6 sm:py-12">
-      <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(to_right,oklch(1_0_0/0.08)_1px,transparent_1px),linear-gradient(to_bottom,oklch(1_0_0/0.08)_1px,transparent_1px)] [background-size:40px_40px]" />
-      <div className="relative mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center justify-center">
+    // force dark tokens so auth always matches the designed dark palette
+    <div className="dark relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_15%_10%,rgba(45,212,191,0.14),transparent_35%),radial-gradient(circle_at_85%_10%,rgba(59,130,246,0.14),transparent_35%),linear-gradient(180deg,oklch(0.12_0.04_265),oklch(0.16_0.04_264))] px-4 py-8 sm:px-6 sm:py-12 text-foreground">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(to_right,oklch(1_0_0/0.08)_1px,transparent_1px),linear-gradient(to_bottom,oklch(1_0_0/0.08)_1px,transparent_1px)] [background-size:40px_40px]"
+      />
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="relative mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center justify-center outline-none"
+      >
         {children}
-      </div>
+      </main>
     </div>
   );
 }

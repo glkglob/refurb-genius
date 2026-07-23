@@ -114,7 +114,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: `${SITE_URL}/og-image.jpg` },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "theme-color", content: "#ffffff" },
+      { name: "theme-color", content: "#0c0f1a" },
       { name: "appleid-signin-client-id", content: import.meta.env.VITE_APPLE_CLIENT_ID ?? "" },
       { name: "appleid-signin-scope", content: "name email" },
       { name: "appleid-signin-redirect-uri", content: `${SITE_URL}/auth/callback` },
@@ -166,11 +166,13 @@ function RootShell({ children }: { children: React.ReactNode }) {
   const posthogApiKey = import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN;
 
   return (
-    <html lang="en">
+    // Product UI is designed dark-first; ThemeProvider may still switch to light
+    // after hydration if the user prefers light / stored preference.
+    <html lang="en" className="dark">
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className="min-h-screen bg-background text-foreground antialiased">
         {posthogApiKey ? <PostHogProvider client={posthog}>{children}</PostHogProvider> : children}
         <Scripts />
         <script
@@ -261,7 +263,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <ThemeProvider>
+        <ThemeProvider defaultTheme="dark">
           <RootErrorBoundary>
             <Outlet />
           </RootErrorBoundary>
