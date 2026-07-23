@@ -369,10 +369,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
         <Card className="border-border/60 bg-card/85 backdrop-blur-sm">
           <CardHeader className="text-center">
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-accent/15">
-              <Mail
-                {...decorativeIconProps}
-                className="pointer-events-none h-6 w-6 text-accent"
-              />
+              <Mail {...decorativeIconProps} className="pointer-events-none h-6 w-6 text-accent" />
             </div>
             <CardTitle>Check your email</CardTitle>
             <CardDescription>
