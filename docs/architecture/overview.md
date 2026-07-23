@@ -9,11 +9,22 @@ land in a slice (or `@repo/services` for pure financial engines), not in
 `src/lib/`, `src/hooks/`, or `src/services/`.
 
 **Canonical agent guide:** [`CLAUDE.md`](../../CLAUDE.md) at repo root.  
-**Request flow + ownership:** [Feature-Slice Architecture](./FEATURE_SLICE.md).
+**Request flow + ownership:** [Feature-Slice Architecture](./FEATURE_SLICE.md).  
+**Multi-app platform target:** [Platform Architecture Plan](./platform-architecture-plan.md).  
+**Package registry:** [package-registry.md](./package-registry.md) · **Promotion:** [package-promotion.md](./package-promotion.md) · **Glossary:** [platform-glossary.md](./platform-glossary.md) · **Capabilities:** [capability-boundaries.md](./capability-boundaries.md).
+
+### Platform principle
+
+> **Applications own product workflows. Shared packages own reusable capabilities.**
+
+Refurb Genius is one app in a future Intelligent Platform monorepo (`apps/*` +
+`packages/*`). Applications never import each other; they compose packages.
+Today the app still lives at repo root `src/` — the plan is incremental, not a
+big-bang move.
 
 ---
 
-## Canonical request flow
+## Canonical request flow (in-app)
 
 ```
 Route → feature presentation → application/use case → domain
@@ -21,6 +32,8 @@ Route → feature presentation → application/use case → domain
 ```
 
 Routes stay thin. Domain rules do not grow in generic folders.
+Application **features** stay app-local; do not extract a feature into a shared
+package just because another product might want something similar later.
 
 ---
 
@@ -59,6 +72,7 @@ Routes stay thin. Domain rules do not grow in generic folders.
 See also:
 
 - [Feature-Slice Architecture](./FEATURE_SLICE.md)
+- [Domain ownership audit](./domain-ownership-audit.md) (estimate / ROI / projects / photos / gallery / redesign)
 - [Platform Boundary](./platform-boundary.md)
 - [Dependency Rules](./dependency-rules.md)
 - [Routes](./routes.md)

@@ -69,6 +69,14 @@ Route → feature presentation → application → domain
     → infrastructure adapter → platform / @repo/*
 ```
 
+**Platform principle:** Applications own product workflows (`src/features/*`).
+Shared packages own reusable capabilities (`packages/*` / `@repo/*`). Do **not**
+extract app features into packages “just in case.” Future apps compose packages;
+they never import this app’s features.
+
+Docs: `platform-architecture-plan.md` · `package-registry.md` · `package-promotion.md` ·
+`capability-boundaries.md` · `platform-glossary.md` (under `docs/architecture/`).
+
 Do **not** put new domain logic in `src/lib/`, `src/hooks/`, or `src/services/`
 unless it is genuinely cross-cutting (and on the freeze allowlist). Details:
 `docs/architecture/FEATURE_SLICE.md`, `src/features/README.md`.

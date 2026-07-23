@@ -1,5 +1,20 @@
 # Feature Slice Architecture
 
+## Platform context (Priority 1.9)
+
+**Priority 1.9 defines application feature ownership, not platform ownership.**
+
+- **Feature slices** own application behaviour (workflows, UX, orchestration).  
+- **Shared packages** own reusable capabilities (engines, auth, UI primitives).  
+- Applications **compose** packages; they never expose internal feature
+  implementations to other apps.
+
+Refurb Genius features live under **this application**. In the multi-app
+target (`apps/refurb-genius/...`), the same rule holds. Shared reusable
+capabilities go in `packages/*`. Applications never share feature folders.
+
+See [platform-architecture-plan.md](./platform-architecture-plan.md).
+
 ## Canonical request flow (required)
 
 All **new** business functionality must follow this path. Do not invent parallel
@@ -94,65 +109,105 @@ slice instead. File allowlists are frozen by
 - [ ] Prefer `features/*/presentation/serverFns` over growing `src/serverFns`
 - [ ] Keep routes thin: no new business rules in route modules
 
+**Overlapping modules (estimate/ROI/projects/photos/gallery/redesign):**  
+classified in [domain-ownership-audit.md](./domain-ownership-audit.md) — do not delete
+facades until tests prove the canonical path covers behaviour.
+
 ---
 
 Feature-Slice Architecture organises code by **business capability** (vertical
 slice), with **Clean Architecture** layering _inside_ each slice and a
 **platform boundary** that isolates vendor SDKs.
 
+Contributor-facing ownership guide: [`src/features/README.md`](../../src/features/README.md).
+
 ## Structure
+
+### App shell vs features
 
 ```
 src/
 ├── features/                  # Vertical slices — one per business capability
-│   ├── estimate/              # ★ Reference slice (refurb + new-build estimates)
-│   │   ├── domain/            # Pure business logic. No IO, no frameworks.
-│   │   ├── application/       # Use cases (commands/queries), ports (interfaces)
-│   │   ├── infrastructure/    # Port implementations: DB repos, AI adapters
-│   │   ├── presentation/      # Components, hooks, serverFns, route wiring
-│   │   └── index.ts           # Slice public API (domain + application + presentation)
-│   ├── ai-upload/             # Photo upload + vision analysis      (★ migrated)
-│   ├── ai-design/             # Redesign concepts + scope analysis  (★ migrated)
-│   ├── export/                # PDF / CSV export                    (scaffolded)
-│   ├── roi/                   # Deterministic ROI + sensitivity      (★ migrated)
-│   ├── feasibility/           # End-to-end study orchestration       (★ migrated)
-│   ├── sharing/               # Share links + access controls        (★ migrated)
-│   ├── payment/               # Checkout + webhook flows            (scaffolded)
-│   ├── gallery/               # Public project gallery              (scaffolded)
-│   └── ...
 ├── platform/                  # Vendor abstractions (Supabase, OpenAI, PostHog, …)
-│   ├── browser.ts / server.ts # separate aggregates — never a mixed index barrel
-│   ├── payments/              # payment provider seam (factory)
-│   ├── storage/               # storage abstraction seam (factory)
-│   ├── logger/                # logger seam (factory)
-│   ├── auth/                  # auth seam (factory)
-│   ├── analytics/             # analytics seam (factory)
-│   ├── sentry/                # sentry seam (factory)
-│   ├── supabase/              # browser.ts / server.ts
-│   ├── openai/                # server.ts only (server-only SDK)
-│   └── posthog/               # browser.ts / server.ts / otel.server.ts
-├── routes/                    # TanStack Start file routes (thin: delegate to slices)
-├── components/                # Cross-cutting app shell + legacy (shrinks over time)
-├── lib/                       # Legacy shared utilities (shrinks over time)
-└── core/                      # Legacy domain dirs (migrate into slices over time)
+├── routes/                    # Thin TanStack file routes → slice presentation
+├── components/                # App shell + shared composition (no domain growth)
+├── lib/ · hooks/ · services/ · core/ · serverFns/   # Transitional (frozen)
+└── server.ts
 ```
 
-The existing `@repo/*` workspace packages are unchanged and sit _below_ the
-slices as a **shared kernel**:
+### Recommended layout inside `src/features/<feature>/`
+
+Each feature owns a **coherent vertical slice**. Use the full tree only when the
+code exists — **avoid empty ceremonial layers**.
 
 ```
-src/features/* (slices)        src/routes (presentation shell)
-        ▲                              ▲
-        │                              │
-   src/platform  ──────────────────────
-        ▲
-        │
-  @repo/services   (deterministic pricing / ROI / deal engines — stays here)
-        ▲
-  @repo/core
-        ▲
-  @repo/types
+src/features/<feature>/
+├── domain/
+│   ├── entities.ts          # or types.ts — aggregate roots / entities
+│   ├── value-objects.ts     # optional
+│   ├── errors.ts            # optional domain errors
+│   ├── services.ts          # optional pure domain services
+│   ├── rules.ts             # pure functions (common in this repo)
+│   └── index.ts
+├── application/
+│   ├── use-cases/           # or flat createX.ts / generateY.ts modules
+│   ├── ports/               # or single ports.ts (repository/AI interfaces)
+│   ├── dto/                 # optional command/query shapes
+│   └── index.ts
+├── infrastructure/
+│   ├── repositories/        # persistence
+│   ├── adapters/            # AI, engines, external systems (*.server.ts if needed)
+│   ├── mappers/             # optional DB row ↔ domain
+│   └── index.ts             # wiring barrel (allowed import for composition)
+├── presentation/
+│   ├── components/
+│   ├── hooks/
+│   ├── schemas/             # optional zod; may live next to serverFns
+│   ├── serverFns.ts         # createServerFn RPC surface
+│   └── index.ts
+└── index.ts                 # Public API — only entry for routes / other slices
 ```
+
+| Layer | Responsibility | Create when… |
+|-------|----------------|--------------|
+| `domain/` | Pure types + rules | You have non-trivial pure logic or types |
+| `application/` | Use cases + ports | You have a use case or need to invert IO |
+| `infrastructure/` | Port implementations | You touch DB, AI, storage, or engines |
+| `presentation/` | UI, hooks, serverFns | Users or routes need a surface |
+| `index.ts` | Public exports | **Always** (required for every slice) |
+
+**Minimum viable:** `index.ts` + the one layer that has real code (e.g. `auth` is
+presentation-only today). Scaffolded slices may keep thin application stubs
+without inventing empty `value-objects/` trees.
+
+**Shared kernel (not inside features):**
+
+```
+src/features/*  ──▶  src/platform  ──▶  @repo/services (pricing/ROI/deals)
+                         │                    ▲
+                         └──────────▶  @repo/core / @repo/types / @repo/supabase
+```
+
+Deterministic **pricing / ROI / deal score** engines live in `@repo/services`.
+Features **own orchestration and product rules**, not a second financial engine.
+
+### Feature ownership map
+
+| Feature | Owns | Does not own |
+|---------|------|----------------|
+| `estimate` | Estimate use cases, persistence, AI estimate adapter | Category pricing math (`@repo/services`) |
+| `ai-upload` | Photo analysis domain/app, upload presentation | Raw storage implementation still `lib/photos` (debt) |
+| `ai-design` | Redesign + scope flows | Static catalog still partly `lib/redesign` |
+| `roi` | ROI application + sensitivity | `runRoiEngine` body (`@repo/services`) |
+| `feasibility` | Cross-capability study orchestration | Deep internals of other slices |
+| `sharing` | Share-link product rules + IO | — |
+| `export` | Export pipeline | — |
+| `payment` | Checkout/webhook product surface | Payment provider SDK (→ platform) |
+| `gallery` | Gallery product (target) | Live path still lib/hooks until wired |
+| `auth` | Auth presentation surface | Full domain/infra (optional until needed) |
+
+Missing slices (projects, trades) remain transitional under lib/core/serverFns —
+see [domain-ownership-audit.md](./domain-ownership-audit.md).
 
 ---
 

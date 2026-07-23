@@ -55,7 +55,8 @@ pnpm test:invariants
 
 ## Checklist for a new capability
 
-1. Create or extend `src/features/<name>/` with domain → application → infrastructure → presentation.
+1. Create or extend `src/features/<name>/` — only add layers that have real code
+   (no empty ceremonial folders). See `src/features/README.md` for the full tree.
 2. Export only through `index.ts` (and infrastructure barrel for wiring).
 3. Wire a thin route under `src/routes/`.
 4. Use `src/platform/*` for Supabase/OpenAI/PostHog — never raw SDK in presentation.

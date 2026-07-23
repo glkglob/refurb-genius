@@ -1,16 +1,26 @@
 # Package Boundaries
 
+Platform context: [platform-architecture-plan.md](./platform-architecture-plan.md)
+(shared **domain services** vs shared **platform capabilities**).
+
 ## Responsibility Matrix
 
 | Package            | Owns                              | Imports From                             | Exports                   | Cannot Import                      |
 | ------------------ | --------------------------------- | ---------------------------------------- | ------------------------- | ---------------------------------- |
 | @repo/types        | Domain types, contracts, DTOs     | (nothing)                                | Types only                | Services, core, UI, root app       |
 | @repo/core         | Constants, utilities, mock data   | @repo/types, @/lib (types)               | Constants, utils, types   | Services, UI, root runtime logic   |
-| @repo/services     | Pure business logic               | @repo/core, @repo/types, @/lib (types)   | Business engines, helpers | UI, root stores, root integrations |
-| @repo/ui           | Shared UI components (migrating)  | Radix, cva, `@repo/ui/lib/utils`         | Components                | Services, core, root app logic     |
-| @repo/supabase     | Supabase client factories         | `@supabase/ssr`, `@supabase/supabase-js` | Browser/server clients    | UI, root business logic            |
-| @repo/integrations | (Reserved — unused)               | (nothing yet)                            | (nothing yet)             | (TBD)                              |
-| Root runtime       | SSR, auth, routing, orchestration | All packages (@repo/\*)                  | Fully integrated app      | (none, top-level)                  |
+| @repo/services     | **Domain engines** (pricing, ROI, estimating, …) — deterministic, React-free | @repo/core, @repo/types, @/lib (types) | Business engines, helpers | UI, routes, features, apps |
+| @repo/ui           | Shared UI primitives              | Radix, cva, `@repo/ui/lib/utils`         | Components                | Services, core, root app logic     |
+| @repo/supabase     | **Platform capability** — client factories | `@supabase/ssr`, `@supabase/supabase-js` | Browser/server clients | UI, root business logic, features |
+| @repo/integrations | (Reserved — prefer `ai` / capability packages) | (nothing yet) | (nothing yet) | (TBD) |
+| Root / app runtime | SSR, routes, **features**, app `platform/` seams | All packages (@repo/\*) | Integrated app | Other apps (when multi-app) |
+
+### Two package kinds
+
+| Kind | Examples | Solves |
+|------|----------|--------|
+| **Domain services** | `@repo/services` (pricing, roi, estimating) | Business questions — pure/deterministic where possible |
+| **Platform capabilities** | supabase, future auth/ai/storage/billing | Technical infrastructure — often IO |
 
 ## What Belongs Where?
 
