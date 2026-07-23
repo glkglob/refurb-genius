@@ -7,10 +7,18 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import { nitro } from "nitro/vite";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 
+// Upload client maps to Sentry only when build-time credentials are present.
+// Without them we disable map emission entirely so nothing is deployed publicly.
+const uploadSourceMaps = Boolean(
+  process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT,
+);
+
 // Vercel build config for TanStack Start + Nitro
 export default defineConfig({
   build: {
-    sourcemap: true, // Required for good Sentry stack traces
+    // "hidden" generates .map files for Sentry without //# sourceMappingURL in
+    // public JS (avoids advertising map URLs). When not uploading, emit no maps.
+    sourcemap: uploadSourceMaps ? "hidden" : false,
     chunkSizeWarningLimit: 1200, // Reduce noise on large vendor chunks
   },
 
@@ -25,7 +33,7 @@ export default defineConfig({
     tsconfigPaths(),
     nitro({ preset: "vercel" }),
 
-    // Sentry sourcemaps upload (only runs on Vercel build when auth token present)
+    // Private Sentry upload: maps never stay in the public static deploy tree.
     sentryVitePlugin({
       org: process.env.SENTRY_ORG,
       project: process.env.SENTRY_PROJECT,
@@ -33,13 +41,12 @@ export default defineConfig({
       release: {
         name: process.env.VERCEL_GIT_COMMIT_SHA || "dev",
       },
-      disable: !process.env.SENTRY_AUTH_TOKEN,
+      disable: !uploadSourceMaps,
       sourcemaps: {
-        // Target only client-side static chunks — Nitro's server function
-        // bundles in .vercel/output/functions/ have no source maps and
-        // produce "could not determine source map reference" noise.
-        assets: "./.vercel/output/static/**/*.js",
-        filesToDeleteAfterUpload: "./.vercel/output/static/**/*.js.map",
+        // Client static assets only — server/function bundles are not public.
+        assets: ["./.vercel/output/static/**"],
+        ignore: ["**/node_modules/**"],
+        filesToDeleteAfterUpload: ["./.vercel/output/static/**/*.map"],
       },
     }),
   ],

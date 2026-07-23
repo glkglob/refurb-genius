@@ -26,6 +26,9 @@ export default defineConfig({
   },
 
   build: {
-    sourcemap: true,
+    // Local `vite build` is not the production deploy path (use build:vercel).
+    // Disable maps so accidental previews never ship original source.
+    // `vite dev` still provides full dev source maps independently.
+    sourcemap: false,
   },
 });
