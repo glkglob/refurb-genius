@@ -1,0 +1,140 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly dependency / secret scan (Monday 06:00 UTC)
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  secret-scan:
+    name: secret-scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: gitleaks.toml
+
+      - name: Fail if .env secrets are tracked
+        run: |
+          set -euo pipefail
+          tracked="$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$' || true)"
+          if [[ -n "${tracked}" ]]; then
+            echo "::error::Tracked environment files are not allowed:"
+            echo "${tracked}"
+            exit 1
+          fi
+          echo "No .env files tracked (except .env.example)."
+
+  dependency-audit:
+    name: dependency-audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Report-only while transitive high/critical debt is cleared via Dependabot.
+      # Secret scanning and server-only boundary jobs remain hard gates.
+      - name: pnpm audit (high+)
+        id: audit
+        continue-on-error: true
+        run: pnpm audit --audit-level=high
+
+      - name: Surface audit status
+        if: steps.audit.outcome == 'failure'
+        run: |
+          echo "::warning::pnpm audit reported high/critical vulnerabilities. Review the log and Dependabot PRs; this step is report-only until debt is cleared."
+
+  server-only-boundary:
+    name: server-only-boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Auth-env + server-only import invariants
+        run: |
+          TSX_TSCONFIG_PATH=./tsconfig.json pnpm exec tsx --test \
+            tests/invariants/auth-env.invariant.test.ts \
+            tests/invariants/server-only-boundary.invariant.test.ts
+
+  client-bundle-secret-smoke:
+    name: client-bundle-secret-smoke
+    runs-on: ubuntu-latest
+    # Heavier: builds production client and greps for private env leakage
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Production build
+        run: pnpm build:vercel
+        env:
+          # Ensure no Sentry upload token in CI public logs; maps disabled without it
+          SENTRY_AUTH_TOKEN: ""
+
+      - name: Scan public static assets for private secrets
+        run: |
+          set -euo pipefail
+          STATIC=".vercel/output/static"
+          if [[ ! -d "${STATIC}" ]]; then
+            echo "::error::Missing ${STATIC} after build"
+            exit 1
+          fi
+          # Patterns that must never appear in client-served assets
+          if rg -a -n --glob '*.js' --glob '*.mjs' --glob '*.html' \
+            -e 'SERVICE_ROLE' \
+            -e 'SUPABASE_SERVICE_ROLE' \
+            -e 'OPENAI_API_KEY' \
+            -e 'HUGGINGFACE_API_KEY' \
+            -e 'RESEND_API_KEY' \
+            -e 'SENTRY_AUTH_TOKEN' \
+            -e 'sk-proj-' \
+            -e 'sk-ant-' \
+            -e 'service_role' \
+            "${STATIC}"; then
+            echo "::error::Private credential pattern found in client static output"
+            exit 1
+          fi
+          echo "Client static output clean of private credential patterns."

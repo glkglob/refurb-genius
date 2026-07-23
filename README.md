@@ -100,5 +100,6 @@ Start with:
 - Keep changes small and reversible.
 - Follow existing patterns and respect package boundaries.
 - Run `pnpm typecheck && pnpm lint && pnpm test:invariants` before committing (matches CI + pre-commit).
+- Pre-commit hooks (`.githooks/`) block `.env` commits, run gitleaks when installed, and enforce server-only import boundaries. See [docs/operations/secret-protection.md](docs/operations/secret-protection.md).
 - Supabase migrations and pnpm config are hardened for repeatable deploys (see CLAUDE.md).
 - Update documentation when architecture or behavior changes.

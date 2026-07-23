@@ -1,0 +1,41 @@
+# Gitleaks config for Refurb Genius
+# https://github.com/gitleaks/gitleaks
+title = "refurb-genius"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "False positives and intentional public/placeholder material"
+paths = [
+  '''gitleaks\.toml''',
+  '''\.env\.example$''',
+  '''docs/''',
+  '''\.claude/skills/''',
+  '''pnpm-lock\.yaml$''',
+  '''package-lock\.json$''',
+  # Generated build output is gitignored; if scanned locally, skip it
+  '''(^|/)\.vercel/''',
+  '''(^|/)dist/''',
+  '''(^|/)coverage/''',
+  '''(^|/)playwright-report/''',
+  '''(^|/)test-results/''',
+]
+
+# Placeholder / documentation values only (never real secrets)
+regexes = [
+  '''YOUR_[A-Z0-9_]+''',
+  '''your-[a-z0-9-]+''',
+  '''your_sentry_org_slug''',
+  '''your-sentry-project-slug''',
+  '''your-openai-api-key-here''',
+  '''your-hf-api-key-here''',
+  '''re_your_resend_key_here''',
+  '''sb_publishable_YOUR_PUBLISHABLE_KEY''',
+  '''YOUR_SERVICE_ROLE_KEY''',
+  '''YOUR_SECURE_PASSWORD''',
+  '''YOUR_DB_PASSWORD''',
+  '''<ph_project_token>''',
+  '''YOUR_PROJECT_TOKEN''',
+  '''YOUR_OPENAI_API_KEY''',
+]

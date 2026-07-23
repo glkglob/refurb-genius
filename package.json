@@ -16,7 +16,12 @@
     "admin:bootstrap": "tsx scripts/bootstrap-admin.ts",
     "test:invariants": "TSX_TSCONFIG_PATH=./tsconfig.json tsx --test tests/invariants/*.test.ts",
     "test:ui": "vitest run",
-    "test:ui:watch": "vitest"
+    "test:ui:watch": "vitest",
+    "prepare": "node scripts/install-git-hooks.mjs",
+    "security:secrets": "gitleaks detect --source . --config gitleaks.toml --redact",
+    "security:secrets:staged": "gitleaks protect --staged --config gitleaks.toml --redact",
+    "security:audit": "pnpm audit --audit-level=high",
+    "security:boundary": "TSX_TSCONFIG_PATH=./tsconfig.json tsx --test tests/invariants/auth-env.invariant.test.ts tests/invariants/server-only-boundary.invariant.test.ts"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

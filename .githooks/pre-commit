@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# Pre-commit safeguards: block env files, secret scan staged changes.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+red() { printf '\033[0;31m%s\033[0m\n' "$*"; }
+yellow() { printf '\033[0;33m%s\033[0m\n' "$*"; }
+green() { printf '\033[0;32m%s\033[0m\n' "$*"; }
+
+STAGED="$(git diff --cached --name-only --diff-filter=ACM || true)"
+if [[ -z "${STAGED}" ]]; then
+  exit 0
+fi
+
+# ---------------------------------------------------------------------------
+# 1. Block commits of environment files that may contain secrets
+# ---------------------------------------------------------------------------
+blocked_env=()
+while IFS= read -r file; do
+  [[ -z "${file}" ]] && continue
+  base="$(basename "${file}")"
+  case "${base}" in
+    .env.example)
+      continue
+      ;;
+    .env | .env.local | .env.development | .env.production | .env.test)
+      blocked_env+=("${file}")
+      ;;
+    .env.*)
+      # .env.*.local and other .env.* variants (except .env.example above)
+      blocked_env+=("${file}")
+      ;;
+  esac
+done <<<"${STAGED}"
+
+if ((${#blocked_env[@]} > 0)); then
+  red "✗ Refusing to commit environment files (use .env.example for templates only):"
+  printf '  - %s\n' "${blocked_env[@]}"
+  red "  Keep secrets in local .env* (gitignored) or your host secret store."
+  exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# 2. Secret scanning on staged content (gitleaks)
+# ---------------------------------------------------------------------------
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks protect --staged --redact --config="${ROOT}/gitleaks.toml" --verbose; then
+    red "✗ gitleaks found potential secrets in staged changes."
+    red "  Remove secrets, use env vars, and re-stage."
+    exit 1
+  fi
+  green "✓ gitleaks protect (staged) passed"
+else
+  yellow "⚠ gitleaks not installed — skipping local secret scan."
+  yellow "  Install: brew install gitleaks  (or see https://github.com/gitleaks/gitleaks)"
+  yellow "  CI still runs gitleaks on every push/PR."
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Fast server-only / auth-env invariants (source-level client boundary)
+# ---------------------------------------------------------------------------
+if command -v pnpm >/dev/null 2>&1 && [[ -d node_modules ]]; then
+  if ! TSX_TSCONFIG_PATH=./tsconfig.json pnpm exec tsx --test \
+    tests/invariants/auth-env.invariant.test.ts \
+    tests/invariants/server-only-boundary.invariant.test.ts; then
+    red "✗ Server-only / auth-env invariant tests failed."
+    exit 1
+  fi
+  green "✓ server-only boundary + auth-env invariants passed"
+else
+  yellow "⚠ node_modules missing — skip invariant pre-commit check (CI will run them)."
+fi
+
+green "✓ pre-commit security checks passed"
+exit 0
