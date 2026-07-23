@@ -50,7 +50,11 @@ function isClientSurface(path: string): boolean {
   if (path.startsWith("src/hooks/")) return true;
   if (path.startsWith("packages/ui/")) return true;
   if (path.startsWith("src/lib/") && !path.includes(".server.")) return true;
-  if (path.startsWith("src/features/") && path.includes("/presentation/") && !path.endsWith("serverFns.ts")) {
+  if (
+    path.startsWith("src/features/") &&
+    path.includes("/presentation/") &&
+    !path.endsWith("serverFns.ts")
+  ) {
     return true;
   }
   return false;
@@ -130,7 +134,9 @@ test("server-only boundary — createServerFn modules use dynamic import for *.s
     const stripped = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
 
     for (const match of stripped.matchAll(STATIC_SERVER_IMPORT)) {
-      violations.push(`${path}: static import of "${match[1]}" (use await import() inside handler)`);
+      violations.push(
+        `${path}: static import of "${match[1]}" (use await import() inside handler)`,
+      );
     }
   }
 

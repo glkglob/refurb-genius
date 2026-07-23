@@ -152,8 +152,4 @@ export type {
   RedesignConcept,
   RedesignStyle,
 } from "./ai";
-export {
-  ROOM_TYPES,
-  CONDITION_LEVELS,
-  REFURB_LEVELS,
-} from "./analysis";
+export { ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "./analysis";

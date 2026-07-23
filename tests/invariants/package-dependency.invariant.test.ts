@@ -13,8 +13,7 @@ import test from "node:test";
 
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 
-const IMPORT_RE =
-  /(?:import|export)\s+(?:type\s+)?(?:[^'"\n]*?\sfrom\s+)?["']([^"']+)["']/g;
+const IMPORT_RE = /(?:import|export)\s+(?:type\s+)?(?:[^'"\n]*?\sfrom\s+)?["']([^"']+)["']/g;
 
 function listTsFiles(dir: string, files: string[] = []): string[] {
   if (!existsSync(dir)) return files;
@@ -113,9 +112,7 @@ test("when apps/ exists, applications must not import other applications", () =>
     return;
   }
   const violations: string[] = [];
-  const appNames = readdirSync(appsRoot).filter((n) =>
-    statSync(join(appsRoot, n)).isDirectory(),
-  );
+  const appNames = readdirSync(appsRoot).filter((n) => statSync(join(appsRoot, n)).isDirectory());
   for (const app of appNames) {
     const appDir = join(appsRoot, app);
     for (const file of listTsFiles(appDir)) {
