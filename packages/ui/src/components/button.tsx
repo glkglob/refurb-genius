@@ -9,19 +9,20 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/25",
-        destructive: "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        default: "btn-primary-cta",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-md shadow-destructive/25 hover:brightness-110",
         outline:
-          "border border-input bg-background/90 shadow-sm hover:border-accent/30 hover:bg-accent/10 hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/90",
-        ghost: "hover:bg-accent/15 hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+          "border border-border bg-card text-foreground shadow-sm hover:border-primary/50 hover:bg-primary/10 hover:text-foreground",
+        secondary:
+          "border border-border/80 bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        ghost: "text-foreground hover:bg-secondary hover:text-foreground",
+        link: "text-primary underline-offset-4 hover:underline font-semibold",
       },
       size: {
-        default: "h-10 px-5 py-2 text-sm",
+        default: "h-11 px-5 py-2 text-sm",
         sm: "h-9 rounded-lg px-3.5 text-xs",
-        lg: "h-11 rounded-xl px-8 text-base",
+        lg: "h-12 rounded-xl px-8 text-base font-semibold",
         icon: "h-10 w-10 rounded-xl",
         touch: "h-11 px-6 text-sm",
       },

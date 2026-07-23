@@ -634,8 +634,9 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                   checked={agreeTerms}
                   onChange={(event) => setAgreeTerms(event.target.checked)}
                   className={cn(
-                    "mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border border-primary bg-background text-primary",
-                    "accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    "mt-0.5 h-5 w-5 shrink-0 cursor-pointer appearance-none rounded-md border-2 border-primary/60 bg-field",
+                    "checked:border-primary checked:bg-primary",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   )}
                 />
                 <Label
@@ -667,6 +668,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
             <Button
               type="submit"
+              size="lg"
               className="w-full"
               disabled={formDisabled || (isSignIn && isLocked)}
             >

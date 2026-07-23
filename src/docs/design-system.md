@@ -21,21 +21,23 @@
 
 We use **CSS Variables** (defined in `src/styles.css`) with OKLCH.
 
-### Primary Accent
+### Primary Accent (Emerald brand)
 
-- **Light:** `emerald-600` / `--accent`
-- **Dark:** `emerald-400` / `--accent`
+- **Light:** deep emerald CTA / `--primary` + `--accent`
+- **Dark:** bright emerald CTA / `--primary` + `--accent` (high L for contrast on navy)
 
 ### Semantic Tokens (Recommended Usage)
 
-| Token          | Light Mode  | Dark Mode       | Usage Example             |
-| -------------- | ----------- | --------------- | ------------------------- |
-| `--background` | White       | Very dark slate | Page backgrounds          |
-| `--card`       | White       | Dark slate      | Cards, panels             |
-| `--primary`    | Dark slate  | Light gray      | Primary buttons           |
-| `--accent`     | Emerald-600 | Emerald-400     | Highlights, active states |
-| `--muted`      | Light gray  | Dark gray       | Secondary backgrounds     |
-| `--border`     | Light gray  | Subtle white/10 | Borders                   |
+| Token           | Light Mode     | Dark Mode              | Usage Example                    |
+| --------------- | -------------- | ---------------------- | -------------------------------- |
+| `--background`  | Cool off-white | Deep navy slate        | Page backgrounds                 |
+| `--card`        | White          | Elevated slate         | Cards, panels                    |
+| `--primary`     | Emerald        | Bright emerald         | **Primary CTAs** (filled buttons)|
+| `--accent`      | Emerald        | Bright emerald         | Highlights, active nav, links    |
+| `--field`       | White          | Solid elevated fill    | Input / select / textarea fill   |
+| `--muted`       | Light gray     | Mid slate              | Secondary backgrounds            |
+| `--placeholder` | Mid gray       | Soft gray              | Placeholder text                 |
+| `--border`      | Light gray     | White ~28%             | Borders                          |
 
 **Never hardcode:**
 
