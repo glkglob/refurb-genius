@@ -16,11 +16,11 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/platform/supabase/browser";
 import { auth, fromSupabaseUser } from "@/lib/auth";
 import { logger } from "@/lib/logger";
@@ -40,7 +40,12 @@ type AuthExperienceProps = {
 
 function AppleIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0">
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 24 24"
+      className="pointer-events-none h-4 w-4 shrink-0"
+    >
       <path
         fill="currentColor"
         d="M17.05 20.693c-.474.098-.972.148-1.487.148-.603 0-1.133-.11-1.594-.315l-.726.698c.55.246 1.156.369 1.79.369 1.96 0 3.526-1.586 3.526-3.71s-1.565-3.723-3.525-3.723c-1.102 0-2.04.49-2.686 1.227l-1.232-1.298c.695-.83 1.798-1.348 3.039-1.348 2.467 0 4.534 1.924 4.534 4.433 0 2.513-2.067 4.57-4.674 4.57-.767 0-1.462-.216-2.05-.58l-.795.814c.712.44 1.489.698 2.304.698 2.89 0 5.247-2.377 5.247-5.626 0-3.204-2.34-5.58-5.3-5.58-2.78 0-5.21 2.2-5.512 5.12l-1.753-1.692C11.818 7.946 15.41 5.92 18.985 5.92c4.588 0 8.156 3.598 8.156 8.335 0 4.83-3.72 8.505-8.38 8.505-1.937 0-3.563-1.123-4.252-2.674l-1.365 1.338c.636 1.05 1.847 1.907 3.386 1.907zM12.972.074C5.81.074.075 5.838.074 13c0 7.194 5.73 13.034 12.898 13.034 7.167 0 12.9-5.84 12.9-13.034C25.87 5.838 20.14.074 12.972.074zm0 2.772c5.626 0 10.19 4.564 10.19 10.19 0 5.626-4.564 10.19-10.19 10.19S2.774 18.586 2.774 12.96 7.34 2.772 12.972 2.772z"
@@ -48,6 +53,13 @@ function AppleIcon() {
     </svg>
   );
 }
+
+/** Decorative Lucide icon props — never focusable under aria-hidden. */
+const decorativeIconProps = {
+  "aria-hidden": true as const,
+  focusable: false as const,
+  className: "pointer-events-none",
+};
 
 export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   const navigate = useNavigate();
@@ -357,7 +369,10 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
         <Card className="border-border/60 bg-card/85 backdrop-blur-sm">
           <CardHeader className="text-center">
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-accent/15">
-              <Mail className="h-6 w-6 text-accent" />
+              <Mail
+                {...decorativeIconProps}
+                className="pointer-events-none h-6 w-6 text-accent"
+              />
             </div>
             <CardTitle>Check your email</CardTitle>
             <CardDescription>
@@ -472,7 +487,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
           {error && (
             <Alert variant="destructive" className="mb-4" role="alert" aria-live="polite">
-              <AlertCircle className="h-4 w-4" />
+              <AlertCircle {...decorativeIconProps} className="pointer-events-none h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
@@ -483,7 +498,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
               role="status"
               aria-live="polite"
             >
-              <Lock className="h-4 w-4" />
+              <Lock {...decorativeIconProps} className="pointer-events-none h-4 w-4" />
               <AlertDescription>
                 Temporarily locked. Try again in {remainingSeconds}s.
               </AlertDescription>
@@ -565,7 +580,11 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                   onClick={() => setShowPassword((current) => !current)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  {showPassword ? <EyeOff /> : <Eye />}
+                  {showPassword ? (
+                    <EyeOff {...decorativeIconProps} />
+                  ) : (
+                    <Eye {...decorativeIconProps} />
+                  )}
                 </Button>
               </div>
             </div>
@@ -595,7 +614,11 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                         : "Show confirmation password"
                     }
                   >
-                    {showConfirmPassword ? <EyeOff /> : <Eye />}
+                    {showConfirmPassword ? (
+                      <EyeOff {...decorativeIconProps} />
+                    ) : (
+                      <Eye {...decorativeIconProps} />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -603,22 +626,41 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
             {isSignUp && (
               <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-background/40 p-3">
-                <Checkbox
+                {/*
+                  Native checkbox (not Radix): Radix injects a bubble <input aria-hidden
+                  tabIndex={-1}> which fails axe "aria-hidden-focus" because native inputs
+                  remain focusable under aria-hidden.
+                */}
+                <input
                   id="terms-consent"
+                  type="checkbox"
                   checked={agreeTerms}
-                  onCheckedChange={(checked) => setAgreeTerms(checked === true)}
-                  className="mt-0.5"
+                  onChange={(event) => setAgreeTerms(event.target.checked)}
+                  className={cn(
+                    "mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded border border-primary bg-background text-primary",
+                    "accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  )}
                 />
                 <Label
                   htmlFor="terms-consent"
-                  className="text-xs leading-relaxed text-muted-foreground"
+                  className="cursor-pointer text-xs leading-relaxed text-muted-foreground"
                 >
                   I agree to the{" "}
-                  <a className="text-accent hover:underline" href="/terms">
+                  <a
+                    className="text-accent hover:underline"
+                    href="/terms"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     Terms
                   </a>{" "}
                   and{" "}
-                  <a className="text-accent hover:underline" href="/privacy">
+                  <a
+                    className="text-accent hover:underline"
+                    href="/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     Privacy Policy
                   </a>
                   .
@@ -633,7 +675,10 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
             >
               {submitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2
+                    {...decorativeIconProps}
+                    className="pointer-events-none h-4 w-4 animate-spin"
+                  />
                   {isSignIn
                     ? "Signing in..."
                     : isSignUp
@@ -653,15 +698,20 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
           {!isReset && (
             <>
               <div className="mt-4 flex items-center justify-between text-xs">
-                <Button
-                  type="button"
-                  variant="link"
-                  className="h-auto p-0 text-muted-foreground"
-                  onClick={handleForgotPassword}
-                  disabled={forgotPasswordLoading || !isSignIn}
-                >
-                  {forgotPasswordLoading ? "Sending reset email..." : "Forgot password?"}
-                </Button>
+                {/* Only show forgot-password on sign-in so a disabled control is not left in the tree. */}
+                {isSignIn ? (
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="h-auto p-0 text-muted-foreground"
+                    onClick={handleForgotPassword}
+                    disabled={forgotPasswordLoading}
+                  >
+                    {forgotPasswordLoading ? "Sending reset email..." : "Forgot password?"}
+                  </Button>
+                ) : (
+                  <span />
+                )}
 
                 <Button
                   type="button"
@@ -691,7 +741,10 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
               >
                 {oauthLoading ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2
+                      {...decorativeIconProps}
+                      className="pointer-events-none h-4 w-4 animate-spin"
+                    />
                     Connecting...
                   </>
                 ) : (
@@ -711,7 +764,10 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
               >
                 {appleLoading ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2
+                      {...decorativeIconProps}
+                      className="pointer-events-none h-4 w-4 animate-spin"
+                    />
                     Connecting...
                   </>
                 ) : (
@@ -737,7 +793,10 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
           </div>
 
           <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
-            <ShieldCheck className="h-3.5 w-3.5 text-accent" />
+            <ShieldCheck
+              {...decorativeIconProps}
+              className="pointer-events-none h-3.5 w-3.5 text-accent"
+            />
             Secure • Protected by Supabase
           </div>
         </div>
@@ -759,7 +818,12 @@ function AuthPageShell({ children }: { children: React.ReactNode }) {
 
 function GoogleIcon() {
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0">
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 24 24"
+      className="pointer-events-none h-4 w-4 shrink-0"
+    >
       <path
         fill="#EA4335"
         d="M12 10.2v3.9h5.5c-.2 1.3-.9 2.4-2 3.1l3.1 2.4c1.8-1.7 2.9-4.1 2.9-7 0-.7-.1-1.4-.2-2H12z"
