@@ -1,12 +1,18 @@
-// Shared project domain: store, helpers, mocks, types, constants.
-// Canonical source for project business logic across products.
+// Shared project surface: pure domain (C4a), store facade, helpers, mocks.
 //
-// TODO(deal-copilot): acquisition pipeline, opportunities, saved searches,
-// and automation will all wrap `projectStore` + `createProject` rather than
-// fork the schema. Opportunities convert into `Project` rows on underwrite.
-//
-// TODO(refurb-iq): contractor workflows (tender, valuation, snagging) live
-// as sibling tables keyed by `project_id`. No parallel "job" entity.
+// Prefer pure domain imports from `@/core/projects/domain`.
+// Store / browser persistence remain transitional (C4b/C4c).
+// photoStore re-exports are legacy coupling (C5) — do not expand.
+
+export { PROPERTY_TYPES, UK_REGIONS, estimatedRefurbCost, estimatedProfit } from "./domain";
+export type {
+  Project,
+  NewProjectInput,
+  ProjectStage,
+  ProjectStatus,
+  PropertyType,
+  UKRegion,
+} from "./domain";
 
 export { projectStore } from "./projectStore";
 export {
@@ -15,21 +21,9 @@ export {
   getProjectById,
   getProjectStatus,
   calculateProjectProgress,
-  estimatedRefurbCost,
-  estimatedProfit,
   type ProjectProgress,
 } from "./projectHelpers";
 export { MOCK_PROJECTS, getMockProjectById } from "./mockProjects";
-
-export { PROPERTY_TYPES, UK_REGIONS } from "@/lib/projects";
-export type {
-  Project,
-  NewProjectInput,
-  ProjectStage,
-  ProjectStatus,
-  PropertyType,
-  UKRegion,
-} from "@/lib/projects";
 
 export { photoStore, formatFileSize } from "@/lib/photos";
 export type { ProjectPhoto } from "@/lib/photos";

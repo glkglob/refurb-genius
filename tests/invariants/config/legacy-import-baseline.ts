@@ -48,7 +48,7 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/components/deal-copilot/DealIntakeForm.tsx|@/lib/deal-copilot/dealAnalysis",
   "src/components/deal-copilot/DealIntakeForm.tsx|@/lib/deal-copilot/dealValidation",
   "src/components/deal-copilot/DealIntakeForm.tsx|@/lib/logger",
-  "src/components/deal-copilot/DealIntakeForm.tsx|@/lib/projects",
+  "src/components/deal-copilot/DealIntakeForm.tsx|@/core/projects/domain",
   "src/components/deal-copilot/DealIntakeForm.tsx|@/lib/utils",
   "src/components/deal-copilot/DealRiskFlags.tsx|@/lib/deal-copilot/dealFormatting",
   "src/components/deal-copilot/DealScoreCard.tsx|@/lib/deal-copilot/dealFormatting",
@@ -103,9 +103,9 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/hooks/useGallery.ts|@/lib/logger",
   "src/hooks/useGallery.ts|@/lib/queries/gallery",
   "src/hooks/useOpportunities.ts|@/core/dealCopilot",
-  "src/hooks/useOpportunities.ts|@/lib/projects",
+  "src/hooks/useOpportunities.ts|@/core/projects/domain",
+  "src/hooks/useProjects.ts|@/core/projects/domain",
   "src/hooks/useProjects.ts|@/lib/mappers",
-  "src/hooks/useProjects.ts|@/lib/projects",
   "src/hooks/useRole.ts|@/lib/role",
   "src/routes/__root.tsx|@/lib/logger",
   "src/routes/__root.tsx|@/lib/sentry",
@@ -165,7 +165,7 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/serverFns/dealAnalysis.ts|@/lib/rate-limit",
   "src/serverFns/dealChat.ts|@/lib/rate-limit",
   "src/serverFns/projects.ts|@/lib/mappers",
-  "src/serverFns/projects.ts|@/lib/projects",
+  "src/serverFns/projects.ts|@/core/projects/domain",
 ] as const;
 
 export const LEGACY_IMPORT_BASELINE_SET = new Set<string>(LEGACY_IMPORT_BASELINE);

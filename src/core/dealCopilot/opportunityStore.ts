@@ -7,7 +7,7 @@ import { logger } from "@/lib/logger";
 import type { Tables } from "@repo/supabase";
 
 import type { DealOpportunity, DealOpportunityStatus, DealExitStrategy } from "@repo/types";
-import type { PropertyType } from "@/lib/projects";
+import type { PropertyType } from "@/core/projects/domain";
 
 // NEW: server-backed save for the "Save opportunity" flow in Deal Copilot.
 // This is the critical write path that must survive hard refresh / direct nav

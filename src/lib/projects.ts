@@ -2,60 +2,31 @@
 // API the app already consumes (list / get / getProgress / subscribe) by
 // caching results in memory and notifying subscribers when async fetches
 // complete.
+//
+// Pure domain types/constants/helpers live in @/core/projects/domain (C4a).
+// This file re-exports them for compatibility and retains projectStore only.
 import { supabase } from "@/platform/supabase/browser";
 import { auth } from "./auth";
 import { captureApiError, addDiagnosticBreadcrumb } from "./sentry";
 import { logger } from "./logger";
 import { rowToProject, type ProjectWithProgress } from "./mappers";
+import type {
+  Project,
+  NewProjectInput,
+  ProjectStatus,
+  ProjectStage,
+  PropertyType,
+  UKRegion,
+} from "@/core/projects/domain";
+import {
+  PROPERTY_TYPES,
+  UK_REGIONS,
+  estimatedRefurbCost,
+  estimatedProfit,
+} from "@/core/projects/domain";
 
-export const PROPERTY_TYPES = [
-  "Flat",
-  "Terraced",
-  "Semi-detached",
-  "Detached",
-  "HMO",
-  "Bungalow",
-] as const;
-export type PropertyType = (typeof PROPERTY_TYPES)[number];
-
-export const UK_REGIONS = [
-  "London",
-  "South East England",
-  "South West England",
-  "East of England",
-  "East Midlands",
-  "West Midlands",
-  "North West England",
-  "North East England",
-  "Yorkshire and the Humber",
-  "Scotland",
-  "Wales",
-  "Northern Ireland",
-] as const;
-export type UKRegion = (typeof UK_REGIONS)[number];
-
-export type ProjectStatus = "Draft" | "Analysing" | "Estimated" | "Complete";
-
-export type Project = {
-  id: string;
-  user_id: string;
-  name: string;
-  address: string;
-  postcode: string;
-  region: UKRegion;
-  property_type: PropertyType;
-  bedrooms: number;
-  bathrooms: number;
-  size_sqm: number;
-  purchase_price: number;
-  estimated_gdv: number;
-  notes: string;
-  created_at: string;
-  status: ProjectStatus;
-};
-
-export type NewProjectInput = Omit<Project, "id" | "user_id" | "created_at" | "status">;
-export type ProjectStage = "photos" | "analysis" | "estimate" | "report";
+export type { Project, NewProjectInput, ProjectStatus, ProjectStage, PropertyType, UKRegion };
+export { PROPERTY_TYPES, UK_REGIONS, estimatedRefurbCost, estimatedProfit };
 
 /** @deprecated Use `ProjectWithProgress` from `@/lib/mappers`. Kept as alias for internal store cache. */
 type ProjectRow = ProjectWithProgress;
@@ -307,13 +278,3 @@ export const projectStore = {
     };
   },
 };
-
-// Derived helpers used across dashboards/reports. Estimate ~= 15% of GDV
-// until AI estimate runs; profit = GDV - purchase - estimated refurb.
-export function estimatedRefurbCost(p: Project): number {
-  return Math.round(p.estimated_gdv * 0.15);
-}
-
-export function estimatedProfit(p: Project): number {
-  return p.estimated_gdv - p.purchase_price - estimatedRefurbCost(p);
-}

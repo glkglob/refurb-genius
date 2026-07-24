@@ -2,14 +2,9 @@
 // canonical projectStore so pages/components don't reimplement CRUD or
 // progress logic. Future products (Deal Copilot, Refurb IQ) consume the
 // same helpers.
-import {
-  projectStore,
-  type Project,
-  type ProjectStatus,
-  type ProjectStage,
-  type NewProjectInput,
-} from "./projectStore";
-import { estimatedRefurbCost, estimatedProfit } from "@/lib/projects";
+import { projectStore } from "./projectStore";
+import type { Project, ProjectStatus, ProjectStage, NewProjectInput } from "@/core/projects/domain";
+import { estimatedRefurbCost, estimatedProfit } from "@/core/projects/domain";
 
 export type ProjectProgress = Record<ProjectStage, boolean> & {
   /** 0–1 share of stages complete. */

@@ -12,7 +12,7 @@ import {
   CATEGORY_BASE,
   type CalculatedLineItem,
 } from "@/core/pricing";
-import type { UKRegion } from "@/lib/projects";
+import type { UKRegion } from "@/core/projects/domain";
 import type { ConditionLevel } from "@/features/ai-upload";
 
 export type EstimateNormalizationInput = {

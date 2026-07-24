@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
 import { supabase } from "@/platform/supabase/browser";
-import type { ProjectStage, NewProjectInput } from "@/lib/projects";
+import type { ProjectStage, NewProjectInput } from "@/core/projects/domain";
 import { rowToProject, type ProjectWithProgress } from "@/lib/mappers";
 
 // NEW: server-side create mutation (SSR + hard-refresh safe).

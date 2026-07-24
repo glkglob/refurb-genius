@@ -10,7 +10,7 @@ import type { Database } from "@repo/supabase";
 import type { EstimateCategory, FinishLevel, PricingEngineResult } from "@/core/pricing";
 import type { ConditionLevel } from "@/features/ai-upload";
 import type { CalculatedLineItem } from "@/core/pricing";
-import type { UKRegion } from "@/lib/projects";
+import type { UKRegion } from "@/core/projects/domain";
 import { auth } from "@/lib/auth";
 import type {
   EstimateRepository as EstimateRepositoryPort,

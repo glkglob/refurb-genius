@@ -98,6 +98,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-projects-domain-purity",
+    kind: "invariant",
+    source: "tests/invariants/projects-domain-purity.invariant.test.ts",
+    description:
+      "src/core/projects/domain must stay pure; Project types not redefined in lib/projects (Phase 12C C4a)",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

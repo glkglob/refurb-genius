@@ -1,5 +1,5 @@
 // Legacy compatibility wrapper for the canonical pricing engine.
-import type { UKRegion } from "./projects";
+import type { UKRegion } from "@/core/projects/domain";
 import type { ConditionLevel } from "@/features/ai-upload";
 import {
   REFERENCE_SIZE_SQM,

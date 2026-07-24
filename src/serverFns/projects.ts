@@ -52,49 +52,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-// Type-only imports are 100% safe and produce zero runtime code.
-// They never pull browser Supabase clients or other client-only modules.
-import type { NewProjectInput } from "@/lib/projects";
+// Pure domain (C4a) — no browser Supabase. Safe for serverFn modules.
+import type { NewProjectInput } from "@/core/projects/domain";
+import { UK_REGIONS, PROPERTY_TYPES } from "@/core/projects/domain";
 
 // Pure mapper — safe to import at top level (only type imports inside it,
 // no side-effects, no browser clients).
 import { rowToProject } from "@/lib/mappers";
-
-/**
- * Canonical lists duplicated here solely for Zod enum validation.
- *
- * We cannot `import { UK_REGIONS, PROPERTY_TYPES } from "@/lib/projects"` (or
- * from `@repo/core`) at runtime because that module transitively pulls the
- * browser Supabase client singleton (forbidden by the serverFn rules and
- * CLAUDE.md). Type-only imports of `UKRegion` / `PropertyType` *are* safe.
- *
- * Keeping the lists here is the pragmatic minimal approach for now; they are
- * the same values as the source of truth. If they ever diverge the worst case
- * is a slightly stricter/loser server validation (which is acceptable).
- */
-const UK_REGIONS = [
-  "London",
-  "South East England",
-  "South West England",
-  "East of England",
-  "East Midlands",
-  "West Midlands",
-  "North West England",
-  "North East England",
-  "Yorkshire and the Humber",
-  "Scotland",
-  "Wales",
-  "Northern Ireland",
-] as const;
-
-const PROPERTY_TYPES = [
-  "Flat",
-  "Terraced",
-  "Semi-detached",
-  "Detached",
-  "HMO",
-  "Bungalow",
-] as const;
 
 /**
  * Zod schema for the New Project creation payload.

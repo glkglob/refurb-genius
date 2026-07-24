@@ -84,13 +84,57 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     problem:
       "Project domain/persistence still concentrated in frozen src/lib/projects with multi-layer fan-out.",
     currentOwner: "src/lib/projects + core/hooks/serverFns",
-    targetOwner: "Feature or staged seams (must split before execution)",
+    targetOwner: "Staged seams C4a → C4b → C4c (not a single PR)",
     dependencies: [],
-    dependents: ["C5"],
+    dependents: ["C4a", "C4b", "C4c", "C5"],
     evidence: {
       productionImporters: 11,
       notes:
-        "Split into C4a types / C4b store / C4c hooks-routes before implementation. Do not ship monolithic C4.",
+        "Umbrella only. Split: C4a pure domain types/helpers; C4b projectStore; C4c hooks/runtime. Do not ship monolithic C4.",
+    },
+  },
+  {
+    id: "C4a",
+    title: "Projects Domain Types & Pure Helpers",
+    status: "In Progress",
+    blastRadius: "T1",
+    problem:
+      "Project domain types/constants/pure helpers were co-defined with browser projectStore in src/lib/projects.",
+    currentOwner: "src/lib/projects (mixed pure + store)",
+    targetOwner: "src/core/projects/domain (re-exports @repo/types + pure helpers)",
+    dependencies: ["C4"],
+    dependents: ["C4b", "C4c"],
+    evidence: {
+      notes:
+        "Phase 12C implementation. Pure domain under src/core/projects/domain; lib/projects re-exports pure symbols and retains projectStore. Invariant: tests/invariants/projects-domain-purity.invariant.test.ts. Excludes store redesign, hooks behaviour, Photos/C5. Completion pending verification, commit, push, CI.",
+    },
+  },
+  {
+    id: "C4b",
+    title: "Project Store Ownership / Deprecation",
+    status: "Planned",
+    blastRadius: "T2",
+    problem: "Browser projectStore remains in src/lib/projects with dual cache vs React Query.",
+    currentOwner: "src/lib/projects projectStore",
+    targetOwner: "Deprecated store path / clear infra ownership (TBD at plan)",
+    dependencies: ["C4a"],
+    dependents: ["C4c"],
+    evidence: {
+      notes: "Do not start until C4a completes. No runtime redesign in C4a.",
+    },
+  },
+  {
+    id: "C4c",
+    title: "Live Project Hooks & Runtime Ownership",
+    status: "Planned",
+    blastRadius: "T2",
+    problem: "useProjects owns browser Supabase list/stage updates; dual paths with store.",
+    currentOwner: "src/hooks/useProjects + browser Supabase",
+    targetOwner: "Feature/hooks + serverFns for mutations (TBD at plan)",
+    dependencies: ["C4a"],
+    dependents: ["C5"],
+    evidence: {
+      notes: "Do not start until C4a completes. Prefer serverFn parity for stage updates.",
     },
   },
   {
@@ -101,12 +145,12 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     problem: "src/lib/photos mixed with ai-upload and UI consumers; object storage concerns split.",
     currentOwner: "src/lib/photos (+ ai-upload infrastructure partial)",
     targetOwner: "Clear media ownership (split before execution)",
-    dependencies: ["C4"],
+    dependencies: ["C4", "C4c"],
     dependents: [],
     evidence: {
       productionImporters: 9,
       notes:
-        "Split C5a ai-upload ownership clarity / C5b remaining consumers. Should follow project seams.",
+        "Split C5a ai-upload ownership clarity / C5b remaining consumers. Should follow project seams (after C4c preferred).",
     },
   },
   {

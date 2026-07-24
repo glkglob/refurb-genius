@@ -11,7 +11,7 @@ import { getRegionalMultiplier, calculateLineItem, calculateEstimateTotals } fro
 import { Card, CardContent } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
 import { CONDITION_LEVELS, type ConditionLevel } from "@/features/ai-upload";
-import { UK_REGIONS, type UKRegion } from "@/lib/projects";
+import { UK_REGIONS, type UKRegion } from "@/core/projects/domain";
 import { formatGBP } from "@/lib/utils";
 import {
   createDealOpportunity,

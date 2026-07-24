@@ -157,7 +157,7 @@ export const financialsQueryOptions = (projectId: string) =>
         estimated_gdv: Number(estimated_gdv) || 0,
         rental_income: 0,
         holding_costs: 0,
-        region: (region as import("@/lib/projects").UKRegion) || "London",
+        region: (region as import("@/core/projects/domain").UKRegion) || "London",
         property_condition: "Average",
       });
 
