@@ -16,7 +16,7 @@ import {
 import { Loader2, AlertCircle, Briefcase, Lock, ArrowLeft } from "lucide-react";
 import { TRADES_JOB_CATEGORIES, type TradesJobCategory, type TradesJobStatus } from "@/core/trades";
 import type { TradesJob } from "@/core/trades";
-import { getTradesJobById, updateTradesJob } from "@/services/trades/tradesJobStore";
+import { getTradesJobById, updateTradesJob } from "@/features/trades";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/_authed/trades_/$jobId_/edit")({

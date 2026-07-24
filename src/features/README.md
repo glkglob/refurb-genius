@@ -115,8 +115,9 @@ not reimplement mid_total / ROI.
 | `payment` | Checkout / webhooks | Scaffolded |
 | `gallery` | Public gallery | Scaffolded; live path still `lib/*` |
 | `auth` | Auth presentation surface | No domain/infra yet |
+| `trades` | Marketplace jobs, interests, trade profiles | Persistence via infrastructure repositories; domain types remain `@/core/trades` |
 
-**Not yet slices (see ownership audit):** projects (lib/hooks/serverFns), trades.
+**Not yet slices (see ownership audit):** projects (lib/hooks/serverFns).
 
 ---
 

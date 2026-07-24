@@ -195,7 +195,7 @@ export const DATA_DOMAINS: DataDomain[] = [
       "quote_requests",
     ],
     sourceOfTruth: "trades_* / trade_* tables",
-    persistenceLayer: "src/services/trades/* (transitional)",
+    persistenceLayer: "src/features/trades/infrastructure/repositories (feature slice)",
     tenantScope: "mixed",
     lifecycle:
       "Jobs own user; posted jobs public select; interests party-scoped; profiles directory",

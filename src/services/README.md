@@ -11,7 +11,8 @@ reaching into storage/SDK details directly.
 |--------|------------|
 | `@/services/projects` | Project helpers (often re-exports core) |
 | `@/services/storage` | Photo bucket wrappers |
-| `@/services/trades/*` | Trades job/profile stores |
+
+Trades marketplace persistence moved to `@/features/trades` (Phase 6 C1).
 
 Prefer:
 

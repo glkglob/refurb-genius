@@ -26,14 +26,14 @@ import {
   formatBudgetRange,
   formatShortDate,
 } from "@/core/trades/tradesJob.selectors";
-import { getTradesJobById } from "@/services/trades/tradesJobStore";
+import { getTradesJobById } from "@/features/trades";
 import {
   createTradesJobInterest,
   getCurrentUserInterestForJob,
   listJobInterests,
   updateTradesJobInterestStatus,
-} from "@/services/trades/tradesJobInterestStore";
-import { getTradeProfileByUserId } from "@/services/trades/tradeProfileStore";
+} from "@/features/trades";
+import { getTradeProfileByUserId } from "@/features/trades";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/trades_/$jobId")({

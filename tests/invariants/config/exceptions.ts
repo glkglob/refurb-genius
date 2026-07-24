@@ -85,13 +85,14 @@ export const ARCHITECTURE_EXCEPTIONS: ArchitectureException[] = [
     owner: "unresolved — platform architecture (default)",
     scope: "src/services/**/*.ts file set freeze",
     affectedRule: "transitional-no-expand",
-    reason: "Trades stores and thin facades pending feature infrastructure extraction.",
+    reason:
+      "Thin projects and storage facades remain under src/services. Trades marketplace persistence migrated to src/features/trades (Phase 6 C1).",
     risk: "Medium if new permanent services land here instead of features.",
     trackingIssue: UNRESOLVED,
     reviewDate: UNRESOLVED,
     expiry: UNRESOLVED,
     removalCondition:
-      "Migrate trades/storage/projects facades to feature infrastructure and delete services files.",
+      "Migrate remaining storage/projects facades to feature infrastructure and delete services files when consumers are gone.",
     status: "active",
     sourceInvariant: "tests/invariants/legacy-layer-freeze.invariant.test.ts",
     exactPaths: SERVICES_ALLOWLIST,

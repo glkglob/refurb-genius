@@ -52,13 +52,14 @@ export const TRANSITIONAL_LAYERS: TransitionalLayer[] = [
   {
     id: "src-services",
     path: "src/services",
-    owner: "Marketplace / projects transitional",
-    reason: "Trades Supabase stores and thin project/storage facades predating feature repos.",
+    owner: "Projects / storage transitional",
+    reason:
+      "Thin project/storage facades predating feature repos. Trades marketplace stores live under src/features/trades (Phase 6 C1).",
     freezeStatus: "full-file-allowlist",
     freezeSourceOfTruth:
       "tests/invariants/config/frozen-path-allowlists.ts (SERVICES_ALLOWLIST) via legacy-layer-freeze.invariant.test.ts",
     migrationStrategy:
-      "Extract trades into a feature infrastructure repository; replace facades with feature public APIs; delete after consumers migrate.",
+      "Trades extracted to src/features/trades (Phase 6 C1). Replace remaining projects/storage facades with feature public APIs; delete after consumers migrate.",
     reviewRequirement:
       "No new permanent services, domain engines, or Supabase surfaces without extraction plan.",
     enforcementStatus: "enforced",

@@ -71,9 +71,6 @@ export const HOOKS_ALLOWLIST_SET = new Set<string>(HOOKS_ALLOWLIST);
 export const SERVICES_ALLOWLIST = [
   "src/services/projects/index.ts",
   "src/services/storage/index.ts",
-  "src/services/trades/tradeProfileStore.ts",
-  "src/services/trades/tradesJobInterestStore.ts",
-  "src/services/trades/tradesJobStore.ts",
 ] as const;
 
 export const SERVICES_ALLOWLIST_SET = new Set<string>(SERVICES_ALLOWLIST);

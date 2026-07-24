@@ -21,7 +21,8 @@ export const PERSISTENCE_SURFACES: PersistenceSurface[] = [
     id: "browser-client-stores",
     label: "Browser client stores / lib queries",
     owner: "mixed (transitional app shell)",
-    responsibility: "Client-side Supabase access for projects, photos, queries, trades facades",
+    responsibility:
+      "Client-side Supabase access for projects, photos, queries; remaining services facades (projects/storage)",
     writeAuthority: "Authenticated browser client subject to RLS",
     readAuthority: "Authenticated browser client subject to RLS",
     enforcementStatus: "transitional",
@@ -40,7 +41,8 @@ export const PERSISTENCE_SURFACES: PersistenceSurface[] = [
     id: "feature-repositories",
     label: "Feature infrastructure repositories",
     owner: "feature owners",
-    responsibility: "Preferred persistence for estimates, feasibility, sharing, AI analyses",
+    responsibility:
+      "Preferred persistence for estimates, feasibility, sharing, AI analyses, trades marketplace",
     writeAuthority: "Feature infrastructure via platform browser/server clients + RLS",
     readAuthority: "Feature infrastructure / presentation hooks",
     enforcementStatus: "partial",

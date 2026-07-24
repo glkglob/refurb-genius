@@ -35,7 +35,7 @@ import {
   formatBudgetRange,
   formatShortDate,
 } from "@/core/trades/tradesJob.selectors";
-import { listPostedTradesJobs } from "@/services/trades/tradesJobStore";
+import { listPostedTradesJobs } from "@/features/trades";
 
 export const Route = createFileRoute("/trades")({
   head: () => ({

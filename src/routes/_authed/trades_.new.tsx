@@ -14,7 +14,7 @@ import {
 import { useState, type FormEvent } from "react";
 import { Loader2, AlertCircle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { TRADES_JOB_CATEGORIES, type TradesJobCategory } from "@/core/trades";
-import { createTradesJob } from "@/services/trades/tradesJobStore";
+import { createTradesJob } from "@/features/trades";
 import { trackEvent } from "@/lib/analytics";
 import { LabourRateGuide } from "@/components/marketplace/LabourRateGuide";
 

@@ -90,10 +90,10 @@ export const DATA_FLOWS: DataFlow[] = [
     label: "Trades job interest",
     steps: [
       "Public/auth trades route",
-      "src/services/trades stores",
+      "src/features/trades public API → infrastructure repositories",
       "platform supabase browser",
       "trades_jobs / trades_job_interests RLS",
     ],
-    evidence: ["src/services/trades", "src/routes/trades.tsx"],
+    evidence: ["src/features/trades", "src/routes/trades.tsx"],
   },
 ];

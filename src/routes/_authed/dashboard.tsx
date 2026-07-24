@@ -41,12 +41,9 @@ import {
   formatBudgetRange,
   formatShortDate,
 } from "@/core/trades/tradesJob.selectors";
-import { listCurrentUserTradesJobs, updateTradesJob } from "@/services/trades/tradesJobStore";
+import { listCurrentUserTradesJobs, updateTradesJob } from "@/features/trades";
 
-import {
-  listCurrentUserInterestsWithJobs,
-  type TradesJobInterestWithJob,
-} from "@/services/trades/tradesJobInterestStore";
+import { listCurrentUserInterestsWithJobs, type TradesJobInterestWithJob } from "@/features/trades";
 
 export const Route = createFileRoute("/_authed/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Refurb Genius" }] }),

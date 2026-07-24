@@ -205,8 +205,9 @@ Features **own orchestration and product rules**, not a second financial engine.
 | `payment` | Checkout/webhook product surface | Payment provider SDK (→ platform) |
 | `gallery` | Gallery product (target) | Live path still lib/hooks until wired |
 | `auth` | Auth presentation surface | Full domain/infra (optional until needed) |
+| `trades` | Marketplace jobs, interests, trade profiles (infrastructure repositories) | Domain types still `@/core/trades`; Phase 6 C1 completed |
 
-Missing slices (projects, trades) remain transitional under lib/core/serverFns —
+Missing slice **projects** remains transitional under lib/hooks/serverFns —
 see [domain-ownership-audit.md](./domain-ownership-audit.md).
 
 ---

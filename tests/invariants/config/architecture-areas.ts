@@ -162,7 +162,7 @@ export const ARCHITECTURE_AREAS: ArchitectureArea[] = [
     kind: "transitional",
     productOwner: "mixed",
     technicalOwner: "transitional layers",
-    purpose: "Trades stores + thin project/storage facades",
+    purpose: "Thin project/storage facades (trades migrated to features/trades, Phase 6 C1)",
     paths: ["src/services"],
     maturity: "transitional",
     status: "enforced",

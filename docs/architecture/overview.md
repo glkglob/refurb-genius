@@ -144,7 +144,7 @@ Detail: [FEATURE_SLICE.md](./FEATURE_SLICE.md) · [runtime-boundaries.md](./runt
 | Feature `*/infrastructure/repositories/*` | Persistence for that feature | **Preferred** pattern (partial adoption) |
 | `src/lib` | Mixed utilities + domain stores + queries | **Transitional**, full file freeze |
 | `src/hooks` | App-shell hooks | **Transitional**, file freeze |
-| `src/services` | Trades stores + thin facades | **Transitional**, file freeze |
+| `src/services` | Thin projects + storage facades only (trades migrated to `@/features/trades`, Phase 6 C1) | **Transitional**, file freeze |
 | `packages/core` | Framework-independent primitives | **Current** |
 | `packages/services` | Deterministic pricing, ROI, deal scoring, estimators | **Current — retain** (see exit criteria) |
 | `packages/types` | Shared domain types / DTOs | **Current** |
@@ -172,7 +172,7 @@ Formal machine-readable inventory: [`tests/invariants/config/data/`](../../tests
 | Shared schema / migrations / RLS | Shared Intelligent Platform | `supabase/migrations/`; policy in `data/migrations.ts` |
 | Feature tables (estimates, analyses, feasibility, shares) | Refurb Genius features + platform review | Prefer feature repositories |
 | Deal opportunity / chat tables | Deal Copilot | Persistence often serverFns / client store — **transitional** |
-| Trades tables | Marketplace | Access via `src/services/trades/*` — **transitional** |
+| Trades tables | Marketplace | Access via `@/features/trades` public API (Phase 6 C1) |
 | Generated types | `@repo/supabase` | Do not treat row types as domain models at UI boundary |
 | Tenant model | Per-user RLS (+ admin + public surfaces) | **No organisation multi-tenancy** in public schema today |
 
@@ -405,6 +405,7 @@ Longer platform sketch: [Platform Architecture Plan](./platform-architecture-pla
 | Document | Relationship to this overview |
 | -------- | ----------------------------- |
 | [Phase 0 inventory](./phase-0-inventory-report.md) | Evidence for current state |
+| [Phase 6 migration candidate](./phase-6-migration-candidate.md) | C1 trades feature extraction — implemented; commit gated |
 | [ADR index](./adr/README.md) | ADR process (immutable, append-only) |
 | [ADR 0001](./adr/0001-adopt-rules-first-incremental-architecture-governance.md) | Governance decision |
 | [docs/README.md](../README.md) | Documentation index |
@@ -447,7 +448,7 @@ Longer platform sketch: [Platform Architecture Plan](./platform-architecture-pla
 | **3b** | PR architecture impact template (deferred) |
 | **4** | Data ownership + tenant isolation registry (done — registration only) |
 | **5** | Data registry integrity + narrow drift ratchets (done — no schema/RLS changes) |
-| **6** | One evidence-backed migration candidate (when authorised) |
+| **6** | Migration candidate selected — [phase-6-migration-candidate.md](./phase-6-migration-candidate.md) (planning done; implementation **not** authorised) |
 
 Do not start Phase 3+ without explicit authorisation. Phase 2 does **not** wire the registry into freezes or new failing rules.
 

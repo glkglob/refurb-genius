@@ -17,10 +17,7 @@ import {
 import { Loader2, AlertCircle, Lock, CheckCircle2, ArrowLeft } from "lucide-react";
 import { TRADES_JOB_CATEGORIES } from "@/core/trades";
 import type { InsuranceStatus } from "@/core/trades";
-import {
-  getCurrentUserTradeProfile,
-  upsertCurrentUserTradeProfile,
-} from "@/services/trades/tradeProfileStore";
+import { getCurrentUserTradeProfile, upsertCurrentUserTradeProfile } from "@/features/trades";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/_authed/trades_/profile")({
