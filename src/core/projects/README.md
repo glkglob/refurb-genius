@@ -56,7 +56,7 @@ import { projectStore } from "@/lib/projects";
 | Phase | Scope | Status |
 |-------|--------|--------|
 | **C4a** | Pure domain types/helpers | Complete |
-| **C4b** | `projectStore` ownership moved to core | Complete (implementation; governance completion later) |
+| **C4b** | `projectStore` ownership moved to core | Complete |
 | **C4c** | Hooks / React Query convergence | Pending |
 | **C5** | Photos / storage (`photoStore` re-export) | Pending |
 

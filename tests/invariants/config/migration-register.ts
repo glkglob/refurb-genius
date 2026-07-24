@@ -113,7 +113,7 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "C4b",
     title: "Project Store Ownership / Deprecation",
-    status: "In Progress",
+    status: "Completed",
     blastRadius: "T2",
     problem: "Browser projectStore remains in src/lib/projects with dual cache vs React Query.",
     currentOwner: "src/core/projects/projectStore.ts (implementation) + lib/projects compat shim",
@@ -121,8 +121,9 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     dependencies: ["C4a"],
     dependents: ["C4c"],
     evidence: {
+      commit: "5b04d0e",
       notes:
-        "Phase 13C implementation In Progress: ownership inversion of projectStore into src/core/projects/projectStore.ts; lib/projects becomes re-export-only. Behaviour-preserving; no hooks/RQ/Photos changes. Completion pending independent verification, commit, push, required CI/Security. Dual-cache convergence remains C4c.",
+        "Completion Phase 13G. Ownership inversion complete: projectStore runtime body lives only in src/core/projects/projectStore.ts; src/lib/projects.ts is re-export-only (domain + store). No dual store instance; no reverse core→@/lib/projects edge. Behaviour-preserving relocation (import-path adjustments only). Domain purity + store ownership invariant: tests/invariants/projects-domain-purity.invariant.test.ts. Phase 13D independent verification PASS. Implementation commit 5b04d0ef1c7769d01d8ae4ddd1babf1baea1d4af. Push Phase 13F: f76ef73..5b04d0e main -> main; HEAD == origin/main; divergence 0 0. Required CI success (CI run 30133888553: ci typecheck/lint/build:vercel + invariant-tests 176/176 including C4b ownership tests; Security run 30133888444: gitleaks, dependency-audit report-only, server-only-boundary, client-bundle-secret-smoke). Pages + Vercel success. Supabase Preview external non-required. Excludes: hooks/RQ convergence (C4c), Photos/C5, SQL/schema/RLS, store deletion. Dual-cache convergence remains C4c. C4 umbrella remains Planned; C4c/C5 Planned; AO-1 Active unaffected.",
     },
   },
   {
