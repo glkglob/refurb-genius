@@ -88,6 +88,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-dealchat-channel-lifecycle",
+    kind: "invariant",
+    source: "tests/invariants/dealchat-channel-lifecycle.invariant.test.ts",
+    description:
+      "Deal Copilot presentation must not own the deal_messages Realtime channel lifecycle (Phase 11C C3)",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

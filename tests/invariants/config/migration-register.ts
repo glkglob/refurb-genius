@@ -62,18 +62,17 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "C3",
     title: "DealChat Realtime Ownership",
-    status: "Planned",
+    status: "In Progress",
     blastRadius: "T2",
     problem:
       "DealChat presentation owns supabase.channel / postgres_changes lifecycle on deal_messages.",
     currentOwner: "src/components/deal-copilot/DealChat.tsx",
-    targetOwner:
-      "Narrow channel-lifecycle ownership (hook or assistant infrastructure — TBD at impl)",
+    targetOwner: "src/core/dealCopilot/realtime/useDealMessagesChannel.ts",
     dependencies: [],
     dependents: [],
     evidence: {
       notes:
-        "Scope narrowed to channel lifecycle only — not full Deal Copilot multi-root isolation. Realtime regression risk.",
+        "Phase 11C implementation. Runtime-neutral extraction of deal_messages Realtime lifecycle from DealChat presentation into src/core/dealCopilot/realtime/useDealMessagesChannel.ts. Invariant: tests/invariants/dealchat-channel-lifecycle.invariant.test.ts. Excludes MessagingInbox, opportunityStore, SQL/schema/RLS, serverFns/AI. Related to AO-1 (presentation owns no infrastructure) but does not complete AO-1. Completion pending independent verification, commit, push, CI.",
     },
   },
   {

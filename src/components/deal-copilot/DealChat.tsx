@@ -5,7 +5,7 @@ import { Send, Loader2, Plus, MessageSquare, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/platform/supabase/browser";
+import { useDealMessagesChannel } from "@/core/dealCopilot/realtime/useDealMessagesChannel";
 import { trackEvent } from "@/lib/analytics";
 import {
   createThreadServerFn,
@@ -72,32 +72,13 @@ export function DealChat({ opportunityId }: { opportunityId: string }) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Realtime subscription for new messages
-  useEffect(() => {
+  // Realtime subscription for new messages (owned under core/dealCopilot/realtime)
+  useDealMessagesChannel(selectedThreadId, () => {
     if (!selectedThreadId) return;
-
-    const channel = supabase
-      .channel(`deal-messages-${selectedThreadId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "deal_messages",
-          filter: `thread_id=eq.${selectedThreadId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({
-            queryKey: dealChatKeys.messages(selectedThreadId),
-          });
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [selectedThreadId, queryClient]);
+    queryClient.invalidateQueries({
+      queryKey: dealChatKeys.messages(selectedThreadId),
+    });
+  });
 
   // Create thread
   const createThreadMutation = useMutation({

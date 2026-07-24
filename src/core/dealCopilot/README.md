@@ -44,6 +44,21 @@ obvious to future contributors.
   project when score ≥ 8 and region = London"). Always calls the existing
   engines; never re-implements pricing or ROI.
 
+## Chat Realtime ownership (C3)
+
+Presentation UI (`src/components/deal-copilot/DealChat.tsx`) consumes:
+
+```ts
+import { useDealMessagesChannel } from "@/core/dealCopilot/realtime/useDealMessagesChannel";
+```
+
+- **Realtime lifecycle** for `deal_messages` (channel subscribe / cleanup) is
+  owned under `src/core/dealCopilot/realtime/`.
+- **CRUD + AI** remain on `src/serverFns/dealChat` and
+  `src/core/dealCopilot/server/dealChat.adapter.server.ts`.
+- **Marketplace** `MessagingInbox` (`trade_messages`) is a separate product
+  surface and is not part of this ownership.
+
 ## Integration rules
 
 1. **No schema fork.** Deal Copilot persists everything as `Project` rows
