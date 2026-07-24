@@ -62,7 +62,7 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "C3",
     title: "DealChat Realtime Ownership",
-    status: "In Progress",
+    status: "Completed",
     blastRadius: "T2",
     problem:
       "DealChat presentation owns supabase.channel / postgres_changes lifecycle on deal_messages.",
@@ -71,8 +71,9 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     dependencies: [],
     dependents: [],
     evidence: {
+      commit: "0d6fc84",
       notes:
-        "Phase 11C implementation. Runtime-neutral extraction of deal_messages Realtime lifecycle from DealChat presentation into src/core/dealCopilot/realtime/useDealMessagesChannel.ts. Invariant: tests/invariants/dealchat-channel-lifecycle.invariant.test.ts. Excludes MessagingInbox, opportunityStore, SQL/schema/RLS, serverFns/AI. Related to AO-1 (presentation owns no infrastructure) but does not complete AO-1. Completion pending independent verification, commit, push, CI.",
+        "Completion Phase 11G. Implementation complete: deal_messages Realtime lifecycle ownership moved to src/core/dealCopilot/realtime/useDealMessagesChannel.ts; DealChat presentation consumes the hook. Runtime contract preserved (channel name, INSERT/postgres_changes filter, removeChannel cleanup; callback-stable). Invariant active: tests/invariants/dealchat-channel-lifecycle.invariant.test.ts (inv-dealchat-channel-lifecycle). Phase 11D independent verification PASS. Implementation commit 0d6fc84c445fe2e4b8555b0761c148313937a51f. Push completed; required CI success (CI run 30128815482: ci + invariant-tests; Security run 30128815490: gitleaks, server-only-boundary, client-bundle-secret-smoke, dependency-audit). Excluded: MessagingInbox, opportunityStore, SQL/schema/RLS, serverFns/AI. AO-1 remains Active and unaffected (C3 is one incremental step only).",
     },
   },
   {
