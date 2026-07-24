@@ -127,7 +127,7 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "C7",
     title: "AI Upload Public API Seal",
-    status: "In Progress",
+    status: "Completed",
     blastRadius: "T1",
     problem: "External imports of @/features/ai-upload/infrastructure (e.g. analysisStore).",
     currentOwner: "ai-upload infrastructure barrel consumers",
@@ -135,9 +135,10 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     dependencies: ["C2"],
     dependents: [],
     evidence: {
+      commit: "9055a09",
       productionImporters: 0,
       notes:
-        "Phase 10B implementation. Baseline external importers: 2 (src/core/ai/index.ts, src/features/ai-design/presentation/redesign.provider.ts) → 0. Public API: src/features/ai-upload/index.ts re-exports browser-safe infrastructure (export * from ./infrastructure; server-only Vision adapters excluded from infrastructure barrel). Invariant: tests/invariants/ai-upload-public-api.invariant.test.ts (probe-proven). Depends on C2 (Completed). Completion pending independent verification, commit, push, CI.",
+        "Completion Phase 10F. Implementation commit 9055a090efb83614621031124bc1ef43967fb9be. Baseline external importers 2 → 0. Public API re-exports browser-safe infrastructure; server-only Vision adapters excluded. Invariant: tests/invariants/ai-upload-public-api.invariant.test.ts. CI: workflow CI run 30114102808 success (ci + invariant-tests); Security run 30114102803 success (gitleaks, server-only-boundary, client-bundle-secret-smoke, dependency-audit). Vercel deployment status success. Pages build success. Supabase Preview external check failed (postgres dial timeout; not a repo workflow; branch unprotected; no schema change in C7) — non-blocking for C7 architecture seal.",
     },
   },
   {
