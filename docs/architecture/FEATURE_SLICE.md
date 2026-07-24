@@ -86,7 +86,7 @@ invariant suite must stay green; do not reintroduce deep paths.
 | `packages/services` (`@repo/services`) | Pure pricing/ROI/deal engines | **Yes — financial authority** |
 | `src/lib/*` | Transitional utilities / legacy helpers | **No** (freeze; shrink) |
 | `src/hooks/*` | App-shell hooks (auth, theme) | **No** (feature hooks → presentation) |
-| `src/services/*` | Legacy integration seams | **No** (prefer slice infra + platform) |
+| `src/services/*` | Retired empty layer (Phase 7 C6; freeze allowlist empty) | **No** (prefer slice infra + platform) |
 | `src/serverFns/*` | Legacy/thin RPC modules | Prefer slice `presentation/serverFns` |
 | `src/core/*` | Legacy domain directories | **No** — migrate into slices / `@repo/*` |
 | `src/integrations/*` | Generated Supabase types | Do not hand-edit |

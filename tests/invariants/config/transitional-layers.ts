@@ -52,16 +52,16 @@ export const TRANSITIONAL_LAYERS: TransitionalLayer[] = [
   {
     id: "src-services",
     path: "src/services",
-    owner: "Projects / storage transitional",
+    owner: "Shared platform (retired layer)",
     reason:
-      "Thin project/storage facades predating feature repos. Trades marketplace stores live under src/features/trades (Phase 6 C1).",
+      "Phase 7 C6 deleted unused projects/storage facades. Directory retained with README only; empty SERVICES_ALLOWLIST blocks new TypeScript.",
     freezeStatus: "full-file-allowlist",
     freezeSourceOfTruth:
-      "tests/invariants/config/frozen-path-allowlists.ts (SERVICES_ALLOWLIST) via legacy-layer-freeze.invariant.test.ts",
+      "tests/invariants/config/frozen-path-allowlists.ts (SERVICES_ALLOWLIST empty) via legacy-layer-freeze.invariant.test.ts",
     migrationStrategy:
-      "Trades extracted to src/features/trades (Phase 6 C1). Replace remaining projects/storage facades with feature public APIs; delete after consumers migrate.",
+      "Layer retired. Live ownership: projects → lib/core/hooks; photos → lib/photos + features; trades → features/trades. Do not reintroduce facades here.",
     reviewRequirement:
-      "No new permanent services, domain engines, or Supabase surfaces without extraction plan.",
+      "No new permanent services, domain engines, or Supabase surfaces under src/services.",
     enforcementStatus: "enforced",
   },
 ];

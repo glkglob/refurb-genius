@@ -145,7 +145,7 @@ import { usePhotos } from "@/features/ai-upload/presentation/hooks/usePhotos";
 |--------|------|-------------------|
 | `src/lib/` | Cross-cutting utils (frozen allowlist) | **No** |
 | `src/hooks/` | App-shell only (auth, theme) | **No** — feature hooks → `presentation/hooks` |
-| `src/services/` | Legacy seams (frozen) | **No** |
+| `src/services/` | Retired empty freeze (Phase 7 C6) | **No** — any new `.ts` fails invariants |
 | `src/serverFns/` | Legacy RPC | Prefer `presentation/serverFns.ts` |
 | `src/core/` | Legacy domain | **No** — migrate into slices / `@repo/*` |
 

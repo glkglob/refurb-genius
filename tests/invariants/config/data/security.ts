@@ -56,7 +56,7 @@ export const SECURITY_INVENTORY: SecurityItem[] = [
     enforcementStatus: "enforced",
     evidence: [
       "supabase/migrations/20260610120000_ensure_project_photos_bucket.sql",
-      "src/services/storage/index.ts",
+      "src/lib/photos.ts",
     ],
   },
   {

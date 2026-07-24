@@ -86,13 +86,13 @@ export const ARCHITECTURE_EXCEPTIONS: ArchitectureException[] = [
     scope: "src/services/**/*.ts file set freeze",
     affectedRule: "transitional-no-expand",
     reason:
-      "Thin projects and storage facades remain under src/services. Trades marketplace persistence migrated to src/features/trades (Phase 6 C1).",
-    risk: "Medium if new permanent services land here instead of features.",
+      "Phase 7 C6 retired unused projects/storage facades. SERVICES_ALLOWLIST is empty so no new production TypeScript may land under src/services.",
+    risk: "Low while allowlist remains empty; medium if new permanent services are reintroduced here instead of features.",
     trackingIssue: UNRESOLVED,
     reviewDate: UNRESOLVED,
     expiry: UNRESOLVED,
     removalCondition:
-      "Migrate remaining storage/projects facades to feature infrastructure and delete services files when consumers are gone.",
+      "When the empty-layer freeze is no longer needed (directory removed and registry paths updated), drop this exception and the services freeze test path.",
     status: "active",
     sourceInvariant: "tests/invariants/legacy-layer-freeze.invariant.test.ts",
     exactPaths: SERVICES_ALLOWLIST,

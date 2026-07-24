@@ -69,8 +69,9 @@ export const OWNERSHIP: OwnershipRecord[] = [
     id: "shared",
     label: "Shared (app shell)",
     owner: "Shared Intelligent Platform",
-    purpose: "Routes, components shell, transitional lib/hooks/services, serverFns",
-    currentStatus: "Single TanStack app at src/",
+    purpose: "Routes, components shell, transitional lib/hooks, retired services dir, serverFns",
+    currentStatus:
+      "Single TanStack app at src/; src/services empty freeze (Phase 7 C6) — no product facades",
     maturity: "live",
     enforcementStatus: "partial",
     paths: [

@@ -1,24 +1,28 @@
-# Services (transitional)
+# Services layer — retired (Phase 7 C6)
 
-> **Status:** Legacy integration seams. **Do not add new domain logic here.**  
-> New work belongs in `src/features/<slice>/infrastructure` + `src/platform/*`.  
-> File set is frozen by `tests/invariants/legacy-layer-freeze.invariant.test.ts`.
+> **Status:** Empty transitional layer. **Do not add files here.**
+> New product IO belongs in `src/features/<slice>/infrastructure` + `src/platform/*`.
+> The file set is frozen: `SERVICES_ALLOWLIST` is empty
+> (`tests/invariants/config/frozen-path-allowlists.ts` via
+> `legacy-layer-freeze.invariant.test.ts`). Any new `.ts`/`.tsx` under this
+> directory fails invariants.
 
-Historical role: components and pages imported from `@/services/*` instead of
-reaching into storage/SDK details directly.
+## History
 
-| Module | Role today |
-|--------|------------|
-| `@/services/projects` | Project helpers (often re-exports core) |
-| `@/services/storage` | Photo bucket wrappers |
+| Former module | Role | Outcome |
+| ------------- | ---- | ------- |
+| `@/services/trades/*` | Trades marketplace stores | Migrated to `@/features/trades` (Phase 6 C1) |
+| `@/services/projects` | Re-export of `@/core/projects` | Removed — **zero importers** (Phase 7 C6) |
+| `@/services/storage` | Re-export / thin wrappers over `@/lib/photos` | Removed — **zero importers** (Phase 7 C6) |
 
-Trades marketplace persistence moved to `@/features/trades` (Phase 6 C1).
+## Current ownership (do not use this folder)
 
-Prefer:
+| Concern | Use instead |
+| ------- | ----------- |
+| Projects | `@/lib/projects`, `@/core/projects`, `@/hooks/useProjects`, serverFns |
+| Photos / buckets | `@/lib/photos`, feature infrastructure (e.g. ai-upload), platform Supabase |
+| Trades | `@/features/trades` |
+| Pure engines | `@repo/services` |
 
-- Slice **infrastructure** adapters for product IO  
-- `src/platform/supabase/*` for client factories  
-- Pure engines in `@repo/services`  
-
-Server-only secrets stay in `*.server.ts` / dynamic imports inside serverFns —
-never imported from this folder into client code.
+This directory exists only so architecture registry paths remain valid while the
+freeze continues to block reintroduction of service facades.

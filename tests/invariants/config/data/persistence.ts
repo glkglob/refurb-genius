@@ -22,12 +22,12 @@ export const PERSISTENCE_SURFACES: PersistenceSurface[] = [
     label: "Browser client stores / lib queries",
     owner: "mixed (transitional app shell)",
     responsibility:
-      "Client-side Supabase access for projects, photos, queries; remaining services facades (projects/storage)",
+      "Client-side Supabase access for projects, photos, queries (src/services facades retired Phase 7 C6)",
     writeAuthority: "Authenticated browser client subject to RLS",
     readAuthority: "Authenticated browser client subject to RLS",
     enforcementStatus: "transitional",
     transitional: true,
-    paths: ["src/lib/projects.ts", "src/lib/photos.ts", "src/lib/queries", "src/services"],
+    paths: ["src/lib/projects.ts", "src/lib/photos.ts", "src/lib/queries"],
     authority: {
       mayRead: true,
       mayWrite: true,
@@ -104,7 +104,7 @@ export const PERSISTENCE_SURFACES: PersistenceSurface[] = [
     readAuthority: "Public or private per bucket policy",
     enforcementStatus: "enforced",
     transitional: false,
-    paths: ["src/services/storage", "src/lib/photos.ts"],
+    paths: ["src/lib/photos.ts"],
     authority: {
       mayRead: true,
       mayWrite: true,

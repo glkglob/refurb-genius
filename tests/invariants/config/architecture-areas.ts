@@ -162,10 +162,12 @@ export const ARCHITECTURE_AREAS: ArchitectureArea[] = [
     kind: "transitional",
     productOwner: "mixed",
     technicalOwner: "transitional layers",
-    purpose: "Thin project/storage facades (trades migrated to features/trades, Phase 6 C1)",
+    purpose:
+      "Retired empty layer — freeze blocks new .ts facades (Phase 7 C6; trades/projects/storage facades removed)",
     paths: ["src/services"],
     maturity: "transitional",
     status: "enforced",
+    notes: "README only; live projects/photos remain under lib/core/hooks/features.",
   },
   {
     id: "integrations-supabase-legacy",

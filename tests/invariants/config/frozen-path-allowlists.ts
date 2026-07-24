@@ -68,9 +68,7 @@ export const HOOKS_ALLOWLIST = [
 
 export const HOOKS_ALLOWLIST_SET = new Set<string>(HOOKS_ALLOWLIST);
 
-export const SERVICES_ALLOWLIST = [
-  "src/services/projects/index.ts",
-  "src/services/storage/index.ts",
-] as const;
+/** Empty after Phase 7 C6 — any new .ts/.tsx under src/services fails freeze. */
+export const SERVICES_ALLOWLIST = [] as const;
 
 export const SERVICES_ALLOWLIST_SET = new Set<string>(SERVICES_ALLOWLIST);

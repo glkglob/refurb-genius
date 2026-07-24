@@ -144,7 +144,7 @@ Detail: [FEATURE_SLICE.md](./FEATURE_SLICE.md) · [runtime-boundaries.md](./runt
 | Feature `*/infrastructure/repositories/*` | Persistence for that feature | **Preferred** pattern (partial adoption) |
 | `src/lib` | Mixed utilities + domain stores + queries | **Transitional**, full file freeze |
 | `src/hooks` | App-shell hooks | **Transitional**, file freeze |
-| `src/services` | Thin projects + storage facades only (trades migrated to `@/features/trades`, Phase 6 C1) | **Transitional**, file freeze |
+| `src/services` | **Retired empty layer** (README only; facades removed Phase 7 C6) | **Freeze** — empty allowlist blocks new `.ts` |
 | `packages/core` | Framework-independent primitives | **Current** |
 | `packages/services` | Deterministic pricing, ROI, deal scoring, estimators | **Current — retain** (see exit criteria) |
 | `packages/types` | Shared domain types / DTOs | **Current** |
@@ -239,7 +239,7 @@ Integrity (Phase 5): `tests/invariants/data-architecture-registry.invariant.test
 
 | Layer | Freeze mechanism (current) | Policy |
 | ----- | -------------------------- | ------ |
-| `src/services` | Exact path allowlist (5 files) in `legacy-layer-freeze.invariant.test.ts` | **Freeze.** No new permanent services, domain engines, provider clients, or unreviewed public-surface expansion. Allowed: defect fixes, shims, deprecation, extraction adapters, deletion after migration. |
+| `src/services` | Empty path allowlist (0 files) in `legacy-layer-freeze.invariant.test.ts` after Phase 7 C6 | **Freeze.** No production TypeScript under `src/services`. Live projects/photos remain under lib/core/hooks/features. |
 | `src/hooks` | Exact path allowlist (7 files) | App-shell hooks only; feature hooks belong in features. |
 | `src/lib` | Exact path allowlist (~50 files including tests) | **Full directory file freeze — stricter than programme “freeze-lite”.** Remains unchanged until a later phase explicitly reviews freeze-lite. Domain-bearing modules (projects, photos, queries, deal-copilot helpers, etc.) are **debt**, not the long-term home for new domain logic. Pure utilities theoretically belong here only if allowlisted after review. |
 
@@ -405,7 +405,8 @@ Longer platform sketch: [Platform Architecture Plan](./platform-architecture-pla
 | Document | Relationship to this overview |
 | -------- | ----------------------------- |
 | [Phase 0 inventory](./phase-0-inventory-report.md) | Evidence for current state |
-| [Phase 6 migration candidate](./phase-6-migration-candidate.md) | C1 trades feature extraction — implemented; commit gated |
+| [Phase 6 migration candidate](./phase-6-migration-candidate.md) | C1 trades feature extraction — complete (`9d7a8d5`) |
+| [Phase 7 migration candidate](./phase-7-migration-candidate.md) | C6 retire unused `src/services` facades — implemented; commit gated |
 | [ADR index](./adr/README.md) | ADR process (immutable, append-only) |
 | [ADR 0001](./adr/0001-adopt-rules-first-incremental-architecture-governance.md) | Governance decision |
 | [docs/README.md](../README.md) | Documentation index |
