@@ -165,7 +165,11 @@ export const PERSISTENCE_SURFACES: PersistenceSurface[] = [
     readAuthority: "Same browser session",
     enforcementStatus: "documented",
     transitional: true,
-    paths: ["src/core/dealCopilot/opportunityStore.ts", "src/lib/projects.ts"],
+    paths: [
+      "src/core/dealCopilot/opportunityStore.ts",
+      "src/core/projects/projectStore.ts",
+      "src/lib/projects.ts",
+    ],
     authority: {
       mayRead: true,
       mayWrite: true,

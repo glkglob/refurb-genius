@@ -113,15 +113,16 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "C4b",
     title: "Project Store Ownership / Deprecation",
-    status: "Planned",
+    status: "In Progress",
     blastRadius: "T2",
     problem: "Browser projectStore remains in src/lib/projects with dual cache vs React Query.",
-    currentOwner: "src/lib/projects projectStore",
-    targetOwner: "Deprecated store path / clear infra ownership (TBD at plan)",
+    currentOwner: "src/core/projects/projectStore.ts (implementation) + lib/projects compat shim",
+    targetOwner: "src/core/projects/projectStore.ts (canonical); lib/projects re-export only",
     dependencies: ["C4a"],
     dependents: ["C4c"],
     evidence: {
-      notes: "Do not start until C4a completes. No runtime redesign in C4a.",
+      notes:
+        "Phase 13C implementation In Progress: ownership inversion of projectStore into src/core/projects/projectStore.ts; lib/projects becomes re-export-only. Behaviour-preserving; no hooks/RQ/Photos changes. Completion pending independent verification, commit, push, required CI/Security. Dual-cache convergence remains C4c.",
     },
   },
   {
