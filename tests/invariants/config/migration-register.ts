@@ -96,17 +96,18 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "C4a",
     title: "Projects Domain Types & Pure Helpers",
-    status: "In Progress",
+    status: "Completed",
     blastRadius: "T1",
     problem:
       "Project domain types/constants/pure helpers were co-defined with browser projectStore in src/lib/projects.",
-    currentOwner: "src/lib/projects (mixed pure + store)",
+    currentOwner: "src/core/projects/domain (pure) + lib/projects store/compat shim",
     targetOwner: "src/core/projects/domain (re-exports @repo/types + pure helpers)",
     dependencies: ["C4"],
     dependents: ["C4b", "C4c"],
     evidence: {
+      commit: "5b561fd",
       notes:
-        "Phase 12C implementation. Pure domain under src/core/projects/domain; lib/projects re-exports pure symbols and retains projectStore. Invariant: tests/invariants/projects-domain-purity.invariant.test.ts. Excludes store redesign, hooks behaviour, Photos/C5. Completion pending verification, commit, push, CI.",
+        "Completion Phase 12G. Implementation complete: pure Projects domain at src/core/projects/domain (types/constants re-export @repo/types; estimatedRefurbCost/estimatedProfit helpers; barrel index). lib/projects is store + compatibility re-export; projectStore body preserved. Domain invariant active: tests/invariants/projects-domain-purity.invariant.test.ts. Phase 12D independent verification PASS. Implementation commit 5b561fdaa34b7d9693142f6e056f85e89f775017 (24 files). Push Phase 12F: de6295a..5b561fd main -> main; HEAD == origin/main; divergence 0 0. Required CI success (CI run 30131858639: ci + invariant-tests; Security run 30131858614: gitleaks, dependency-audit, server-only-boundary, client-bundle-secret-smoke). Pages + Vercel success. Supabase Preview external check failed (non-required; no schema change in C4a) — non-blocking. Excludes: projectStore redesign (C4b), useProjects behaviour (C4c), Photos/C5, SQL/schema/RLS. C4 umbrella remains Planned; C4b/C4c Planned; AO-1 Active unaffected.",
     },
   },
   {
