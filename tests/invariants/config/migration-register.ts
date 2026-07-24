@@ -127,7 +127,7 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "C7",
     title: "AI Upload Public API Seal",
-    status: "Planned",
+    status: "In Progress",
     blastRadius: "T1",
     problem: "External imports of @/features/ai-upload/infrastructure (e.g. analysisStore).",
     currentOwner: "ai-upload infrastructure barrel consumers",
@@ -135,7 +135,9 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     dependencies: ["C2"],
     dependents: [],
     evidence: {
-      notes: "Follows C2 playbook after estimate seal proves pattern.",
+      productionImporters: 0,
+      notes:
+        "Phase 10B implementation. Baseline external importers: 2 (src/core/ai/index.ts, src/features/ai-design/presentation/redesign.provider.ts) → 0. Public API: src/features/ai-upload/index.ts re-exports browser-safe infrastructure (export * from ./infrastructure; server-only Vision adapters excluded from infrastructure barrel). Invariant: tests/invariants/ai-upload-public-api.invariant.test.ts (probe-proven). Depends on C2 (Completed). Completion pending independent verification, commit, push, CI.",
     },
   },
   {

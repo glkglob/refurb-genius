@@ -79,6 +79,15 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-ai-upload-public-api-seal",
+    kind: "invariant",
+    source: "tests/invariants/ai-upload-public-api.invariant.test.ts",
+    description: "External code must not import @/features/ai-upload/infrastructure (Phase 10B C7)",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

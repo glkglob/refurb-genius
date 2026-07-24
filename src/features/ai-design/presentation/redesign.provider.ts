@@ -4,7 +4,7 @@
  */
 import { REDESIGN_CONCEPTS, REDESIGN_STYLES } from "@/lib/redesign";
 import type { RedesignConcept, RedesignStyle } from "../domain";
-import { analysisStore } from "@/features/ai-upload/infrastructure";
+import { analysisStore } from "@/features/ai-upload";
 import { generateRedesignConceptsServerFn } from "./serverFns";
 
 export type RedesignInput = {

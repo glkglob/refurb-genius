@@ -125,18 +125,20 @@ not reimplement mid_total / ROI.
 
 ```ts
 // ✅
-import { usePhotos } from "@/features/ai-upload";
+import { usePhotos, analysisStore } from "@/features/ai-upload";
 import { saveProjectEstimate } from "@/features/estimate";
 
 // ❌
 import { usePhotos } from "@/features/ai-upload/presentation/hooks/usePhotos";
+import { analysisStore } from "@/features/ai-upload/infrastructure"; // sealed (Phase 10B C7)
 import { saveProjectEstimate } from "@/features/estimate/infrastructure"; // sealed (Phase 9 C2)
 ```
 
 - Outside the slice: prefer `@/features/<name>` only.
 - **Estimate (C2):** external code must not import `@/features/estimate/infrastructure` —
   use `@/features/estimate` (browser-safe persistence is re-exported).
-- Other slices may still use `@/features/<name>/infrastructure` until similarly sealed (e.g. C7).
+- **AI Upload (C7):** external code must not import `@/features/ai-upload/infrastructure` —
+  use `@/features/ai-upload` (browser-safe `analysisStore` / repositories are re-exported).
 - Inside the slice: respect dependency direction  
   `presentation → application → domain` and  
   `infrastructure → application ports + domain` (never presentation).

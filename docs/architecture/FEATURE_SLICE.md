@@ -226,7 +226,7 @@ see [domain-ownership-audit.md](./domain-ownership-audit.md).
 Allowed:
 
 - `features/<slice>/index.ts` (preferred public API)
-- `features/<slice>/infrastructure/index.ts` (wiring only — **except estimate**, sealed Phase 9 C2)
+- `features/<slice>/infrastructure/index.ts` (wiring only — **except estimate** (C2) and **ai-upload** (C7))
 
 Forbidden:
 
@@ -236,6 +236,7 @@ Forbidden:
 - `features/<slice>/infrastructure/repositories/*`
 - `features/<slice>/infrastructure/adapters/*`
 - **`@/features/estimate/infrastructure` from outside the estimate slice** (use `@/features/estimate`)
+- **`@/features/ai-upload/infrastructure` from outside the ai-upload slice** (use `@/features/ai-upload`)
 
 No deep repository/adapter imports across slices.
 
@@ -243,11 +244,12 @@ Examples:
 
 ```ts
 // ✅ allowed
-import { usePhotos } from "@/features/ai-upload";
+import { usePhotos, analysisStore } from "@/features/ai-upload";
 import { getLatestProjectEstimate, saveProjectEstimate } from "@/features/estimate";
 
 // ❌ forbidden
 import { usePhotos } from "@/features/ai-upload/presentation/hooks/usePhotos";
+import { analysisStore } from "@/features/ai-upload/infrastructure";
 import { getLatestProjectEstimate } from "@/features/estimate/infrastructure";
 import { PersistedRoomEstimate } from "@/features/estimate/infrastructure/repositories/estimate.repository";
 ```
@@ -493,9 +495,9 @@ with other slices but own distinct AI outputs:
   fallback when `OPENAI_API_KEY` is absent (not `@repo/services`; base costs in
   scope items are AI suggestions, normalized via `src/core/ai/normalizers.ts`).
 - **Cross-slice dependency on ai-upload** — redesign generation reads
-  `analysisStore` (room vision cache) from `@/features/ai-upload/infrastructure`
-  for prompt context. Slices may import each other's _public_ or _infrastructure_
-  barrels, never internal folders.
+  `analysisStore` (room vision cache) from `@/features/ai-upload` (public API;
+  Phase 10B C7 sealed the infrastructure barrel). Prefer other slices' public
+  barrels; do not import sealed infrastructure paths.
 - **Client redesign provider** in `presentation/redesign.provider.ts` (not
   infrastructure) — must call `generateRedesignConceptsServerFn` without layer
   violations.
@@ -581,8 +583,10 @@ The `ai-upload` slice ships the second complete worked example. Files:
 Usage shape:
 
 ```ts
-import { makeAnalyzePhotos } from "@/features/ai-upload";
-import { supabaseRoomAnalysisRepository } from "@/features/ai-upload/infrastructure";
+import {
+  makeAnalyzePhotos,
+  supabaseRoomAnalysisRepository,
+} from "@/features/ai-upload";
 
 const analyzePhotos = makeAnalyzePhotos({
   vision: fakeVisionPort,

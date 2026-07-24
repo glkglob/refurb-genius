@@ -57,7 +57,7 @@ export type { GenerateEstimateInput, AIGeneratedRoom, AIGeneratedItem } from "@/
 export { createDefaultFeasibilityService } from "@/features/feasibility";
 export type { FeasibilityStudy } from "@/features/feasibility";
 
-export { analysisStore } from "@/features/ai-upload/infrastructure";
+export { analysisStore } from "@/features/ai-upload";
 export { ROOM_TYPES, CONDITION_LEVELS, REFURB_LEVELS } from "@/features/ai-upload";
 
 export {
