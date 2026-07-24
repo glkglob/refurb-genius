@@ -38,7 +38,7 @@ import {
   getLatestProjectEstimate,
   persistedEstimateInput,
   type PersistedProjectEstimate,
-} from "@/features/estimate/infrastructure";
+} from "@/features/estimate";
 
 export const Route = createFileRoute("/_authed/projects/$id/report")({
   head: () => ({ meta: [{ title: "Investor report — Refurb Genius" }] }),

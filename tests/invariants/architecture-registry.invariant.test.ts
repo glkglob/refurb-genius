@@ -12,14 +12,18 @@ import {
   AI_BOUNDARIES,
   ARCHITECTURE_AREAS,
   ARCHITECTURE_EXCEPTIONS,
+  ARCHITECTURE_OBJECTIVES,
   DEPENDENCY_RULES,
   ENFORCEMENT_INVENTORY,
   EXCEPTION_REQUIRED_FIELDS,
   HOOKS_ALLOWLIST,
   LEGACY_IMPORT_BASELINE,
   LIB_ALLOWLIST,
+  MIGRATION_CANDIDATES,
+  MIGRATION_REGISTER_META,
   OWNERSHIP,
   REGISTRY_META,
+  SCORING_CATEGORIES,
   SERVICES_ALLOWLIST,
   TRANSITIONAL_LAYERS,
   UNRESOLVED,
@@ -46,14 +50,32 @@ RULE_IDS.add("transitional-no-expand");
 RULE_IDS.add("legacy-import-baseline");
 RULE_IDS.add("pkg-no-app-src");
 
-test("registry meta describes Phase 5 with data integrity ratchets", () => {
-  assert.equal(REGISTRY_META.phase, 5);
-  assert.ok(REGISTRY_META.purpose.includes("data") || REGISTRY_META.purpose.includes("integrity"));
+test("registry meta describes Phase 9 with data integrity and migration register", () => {
+  assert.ok(REGISTRY_META.phase >= 5);
+  assert.ok(
+    REGISTRY_META.purpose.includes("data") ||
+      REGISTRY_META.purpose.includes("integrity") ||
+      REGISTRY_META.purpose.includes("migration"),
+  );
   assert.ok(existsSync(join(ROOT, REGISTRY_META.policySourceOfTruth)));
   assert.ok(existsSync(join(ROOT, REGISTRY_META.freezeSourceOfTruth)));
   assert.ok(existsSync(join(ROOT, REGISTRY_META.evidenceSourceOfTruth)));
   assert.ok(existsSync(join(ROOT, REGISTRY_META.legacyImportBaselineSourceOfTruth)));
   assert.ok(existsSync(join(ROOT, REGISTRY_META.dataRegistry)));
+  assert.ok(existsSync(join(ROOT, REGISTRY_META.migrationRegister)));
+  assert.ok(existsSync(join(ROOT, REGISTRY_META.candidateScoring)));
+});
+
+test("migration register has unique candidate IDs and frozen scoring categories", () => {
+  const ids = MIGRATION_CANDIDATES.map((c) => c.id);
+  assert.equal(ids.length, new Set(ids).size, "duplicate migration candidate ids");
+  assert.ok(MIGRATION_CANDIDATES.some((c) => c.id === "C2" && c.status === "Completed"));
+  assert.ok(MIGRATION_CANDIDATES.some((c) => c.id === "C1" && c.status === "Completed"));
+  assert.ok(MIGRATION_CANDIDATES.some((c) => c.id === "C6" && c.status === "Completed"));
+  assert.ok(MIGRATION_CANDIDATES.some((c) => c.id === "C8" && c.status === "Reclassified"));
+  assert.ok(ARCHITECTURE_OBJECTIVES.some((o) => o.id === "AO-1"));
+  assert.equal(SCORING_CATEGORIES.length, 7);
+  assert.ok(MIGRATION_REGISTER_META.scoringSourceOfTruth.includes("candidate-scoring"));
 });
 
 test("ownership registry has required product and platform records", () => {

@@ -5,6 +5,7 @@
 > **Decision record:** [ADR 0001](./adr/0001-adopt-rules-first-incremental-architecture-governance.md) · [ADR index](./adr/README.md).
 > **Architecture registry:** [`tests/invariants/config/`](../../tests/invariants/config/) (machine-readable metadata).
 > **Data architecture registry:** [`tests/invariants/config/data/`](../../tests/invariants/config/data/) (Phase 4 — ownership, tenancy, tables, storage).
+> **Migration register:** [`tests/invariants/config/migration-register.ts`](../../tests/invariants/config/migration-register.ts) · scoring: [`candidate-scoring.ts`](../../tests/invariants/config/candidate-scoring.ts) (Phase 9).
 > **Docs index:** [docs/README.md](../README.md).
 > **Agent operational guide:** [`CLAUDE.md`](../../CLAUDE.md) (implementation rules; this document governs architecture policy).
 
@@ -406,7 +407,8 @@ Longer platform sketch: [Platform Architecture Plan](./platform-architecture-pla
 | -------- | ----------------------------- |
 | [Phase 0 inventory](./phase-0-inventory-report.md) | Evidence for current state |
 | [Phase 6 migration candidate](./phase-6-migration-candidate.md) | C1 trades feature extraction — complete (`9d7a8d5`) |
-| [Phase 7 migration candidate](./phase-7-migration-candidate.md) | C6 retire unused `src/services` facades — implemented; commit gated |
+| [Phase 7 migration candidate](./phase-7-migration-candidate.md) | C6 services facades retired — complete (`7aac73c`) |
+| Migration register (config) | Living C1–C8 + AO-1; C2 estimate public API seal completed (Phase 9) |
 | [ADR index](./adr/README.md) | ADR process (immutable, append-only) |
 | [ADR 0001](./adr/0001-adopt-rules-first-incremental-architecture-governance.md) | Governance decision |
 | [docs/README.md](../README.md) | Documentation index |

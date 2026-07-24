@@ -33,7 +33,7 @@ import {
   getLatestRoomEstimate,
   type SaveAIEstimateInput,
   type PersistedRoomEstimate,
-} from "@/features/estimate/infrastructure";
+} from "@/features/estimate";
 import { logger } from "@/lib/logger";
 import type { ProjectWithProgress } from "@/lib/mappers";
 import { estimateQueryOptions, projectKeys } from "@/lib/queries/projects";

@@ -35,7 +35,7 @@ import {
 } from "@/lib/floorplan";
 import { FloorplanScene } from "./FloorplanScene";
 import type { Tables } from "@repo/supabase";
-import type { PersistedRoomEstimate } from "@/features/estimate/infrastructure";
+import type { PersistedRoomEstimate } from "@/features/estimate";
 
 type FloorplanModelRow = Tables<"floorplan_models">;
 type FloorplanAnnotationRow = Tables<"floorplan_annotations">;

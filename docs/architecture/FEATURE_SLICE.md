@@ -225,8 +225,8 @@ see [domain-ownership-audit.md](./domain-ownership-audit.md).
 
 Allowed:
 
-- `features/<slice>/index.ts`
-- `features/<slice>/infrastructure/index.ts` (wiring and composition only)
+- `features/<slice>/index.ts` (preferred public API)
+- `features/<slice>/infrastructure/index.ts` (wiring only — **except estimate**, sealed Phase 9 C2)
 
 Forbidden:
 
@@ -235,18 +235,20 @@ Forbidden:
 - `features/<slice>/presentation/*`
 - `features/<slice>/infrastructure/repositories/*`
 - `features/<slice>/infrastructure/adapters/*`
+- **`@/features/estimate/infrastructure` from outside the estimate slice** (use `@/features/estimate`)
 
-No deep imports across slices.
+No deep repository/adapter imports across slices.
 
 Examples:
 
 ```ts
 // ✅ allowed
 import { usePhotos } from "@/features/ai-upload";
-import { getLatestProjectEstimate } from "@/features/estimate/infrastructure";
+import { getLatestProjectEstimate, saveProjectEstimate } from "@/features/estimate";
 
 // ❌ forbidden
 import { usePhotos } from "@/features/ai-upload/presentation/hooks/usePhotos";
+import { getLatestProjectEstimate } from "@/features/estimate/infrastructure";
 import { PersistedRoomEstimate } from "@/features/estimate/infrastructure/repositories/estimate.repository";
 ```
 

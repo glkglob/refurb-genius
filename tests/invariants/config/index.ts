@@ -16,11 +16,13 @@ export * from "./exceptions";
 export * from "./enforcement-inventory";
 export * from "./frozen-path-allowlists";
 export * from "./legacy-import-baseline";
+export * from "./candidate-scoring";
+export * from "./migration-register";
 export * as data from "./data/index";
 
 export const REGISTRY_META = {
-  phase: 5,
-  purpose: "architecture-registry-plus-data-integrity-ratchets",
+  phase: 9,
+  purpose: "architecture-registry-plus-data-integrity-and-migration-register",
   lastUpdated: "2026-07-24",
   owner: "platform architecture",
   governingSequence: "document → register → enforce → baseline → migrate",
@@ -30,6 +32,9 @@ export const REGISTRY_META = {
   legacyImportBaselineSourceOfTruth: "tests/invariants/config/legacy-import-baseline.ts",
   /** Data ownership / tenancy + integrity ratchets (Phase 4–5) */
   dataRegistry: "tests/invariants/config/data/",
+  /** Living migration candidates + objectives (Phase 9) */
+  migrationRegister: "tests/invariants/config/migration-register.ts",
+  candidateScoring: "tests/invariants/config/candidate-scoring.ts",
   policySourceOfTruth: "docs/architecture/overview.md",
   evidenceSourceOfTruth: "docs/architecture/phase-0-inventory-report.md",
 } as const;
