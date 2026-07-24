@@ -6,10 +6,19 @@ import { EmptyState } from "@/components/EmptyState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useProjects } from "@/hooks/useProjects";
 import { ProjectCard } from "@/components/ProjectCard";
+import { supabase } from "@/platform/supabase/browser";
+import {
+  consumeNewUserOnboarding,
+  hasCompletedFirstStudy as readFirstStudyCelebration,
+  ONBOARDING_GOAL_OPTIONS,
+  readOnboardingGoal,
+  writeOnboardingGoal,
+} from "@/features/auth";
 import { useEffect, useState } from "react";
 import {
   Briefcase,
@@ -43,9 +52,6 @@ export const Route = createFileRoute("/_authed/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — Refurb Genius" }] }),
   component: Dashboard,
 });
-
-const NEW_USER_ONBOARDING_KEY = "refurb-genius:onboarding:new-user";
-const FIRST_STUDY_CELEBRATION_KEY = "refurb-genius:first-study-celebration";
 
 // ---------------------------------------------------------------------------
 // Data hook
@@ -164,14 +170,35 @@ function DashboardContent() {
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
   const [showOnboardingCard, setShowOnboardingCard] = useState(false);
   const [hasCompletedFirstStudy, setHasCompletedFirstStudy] = useState(false);
+  const [onboardingGoal, setOnboardingGoal] = useState("");
+  const [goalSaving, setGoalSaving] = useState(false);
 
   useEffect(() => {
-    if (window.localStorage.getItem(NEW_USER_ONBOARDING_KEY) === "1") {
+    // Consume once so the welcome card does not reappear after dismiss/reload.
+    if (consumeNewUserOnboarding()) {
       setShowOnboardingCard(true);
-      window.localStorage.removeItem(NEW_USER_ONBOARDING_KEY);
     }
-    setHasCompletedFirstStudy(window.localStorage.getItem(FIRST_STUDY_CELEBRATION_KEY) === "1");
+    setOnboardingGoal(readOnboardingGoal());
+    setHasCompletedFirstStudy(readFirstStudyCelebration());
   }, []);
+
+  async function handleOnboardingGoalChange(goal: string) {
+    const next = writeOnboardingGoal(goal);
+    setOnboardingGoal(next);
+    if (!next) return;
+
+    setGoalSaving(true);
+    try {
+      // Best-effort remote mirror; localStorage already holds the selection for this browser.
+      await supabase.auth.updateUser({
+        data: { onboarding_goal: next },
+      });
+    } catch {
+      // local preference remains available offline / if metadata update fails
+    } finally {
+      setGoalSaving(false);
+    }
+  }
 
   const jobCount =
     jobsState.status === "ready" ? jobsState.jobs.filter((j) => j.status !== "closed").length : 0;
@@ -188,7 +215,7 @@ function DashboardContent() {
     >
       {showOnboardingCard && (
         <Card className="mb-6 border-accent/40 bg-accent/10">
-          <CardContent className="space-y-3 p-5">
+          <CardContent className="space-y-4 p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-foreground">
@@ -202,6 +229,37 @@ function DashboardContent() {
                 Dismiss
               </Button>
             </div>
+
+            <div className="space-y-1.5 rounded-lg border border-border/50 bg-background/50 p-3">
+              <Label htmlFor="dashboard-onboarding-goal" className="text-sm font-medium">
+                What do you want to do first?{" "}
+                <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <p id="dashboard-onboarding-goal-hint" className="text-xs text-muted-foreground">
+                Helps us highlight the right next step. You can change this anytime by dismissing
+                and continuing from Quick actions.
+              </p>
+              <select
+                id="dashboard-onboarding-goal"
+                value={onboardingGoal}
+                onChange={(event) => void handleOnboardingGoalChange(event.target.value)}
+                disabled={goalSaving}
+                aria-describedby="dashboard-onboarding-goal-hint"
+                className={cn(
+                  "field-surface flex h-10 w-full max-w-md rounded-xl px-3 text-sm",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                  "disabled:cursor-not-allowed disabled:opacity-50",
+                )}
+              >
+                <option value="">Choose a starting focus…</option>
+                {ONBOARDING_GOAL_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="grid gap-2 md:grid-cols-3">
               <OnboardingCheckItem done={projectCount > 0} label="Create your first project" />
               <OnboardingCheckItem

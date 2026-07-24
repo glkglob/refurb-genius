@@ -3,7 +3,6 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
-  Building2,
   Eye,
   EyeOff,
   Home,
@@ -26,12 +25,12 @@ import { auth, fromSupabaseUser } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { AUTH_USER_QUERY_KEY } from "@/hooks/useAuth";
 import { identifyAnalyticsUser, trackEvent, trackSignupCompleted } from "@/lib/analytics";
+import { markNewUserOnboarding } from "@/features/auth/onboardingStorage";
 
 export type AuthMode = "signin" | "signup" | "reset";
 
 const MAX_ATTEMPTS = 3;
 const LOCKOUT_MS = 60_000;
-const NEW_USER_ONBOARDING_KEY = "refurb-genius:onboarding:new-user";
 
 type AuthExperienceProps = {
   initialMode: AuthMode;
@@ -72,7 +71,6 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
-  const [onboardingGoal, setOnboardingGoal] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
@@ -127,13 +125,14 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
   const pageHeading = useMemo(() => {
     if (isSignIn) return "Welcome back";
-    if (isSignUp) return "Create your account";
+    if (isSignUp) return "Create your Refurb Genius account";
     return "Reset your password";
   }, [isSignIn, isSignUp]);
 
   const pageSubheading = useMemo(() => {
     if (isSignIn) return "Sign in to continue analysing UK property refurb opportunities.";
-    if (isSignUp) return "Start building investor-grade feasibility studies in minutes.";
+    if (isSignUp)
+      return "Set up secure access, then start photo-led scopes, estimates, and ROI feasibility work.";
     return "Choose a new password to regain access to your account.";
   }, [isSignIn, isSignUp]);
 
@@ -216,9 +215,8 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
         password,
         options: {
           data: {
-            full_name: name,
-            company_name: company || undefined,
-            onboarding_goal: onboardingGoal || undefined,
+            full_name: name.trim() || undefined,
+            company_name: company.trim() || undefined,
           },
         },
       });
@@ -228,7 +226,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
       trackSignupCompleted("email", data.user?.id);
 
       if (data.session) {
-        window.localStorage.setItem(NEW_USER_ONBOARDING_KEY, "1");
+        markNewUserOnboarding();
         queryClient.setQueryData(AUTH_USER_QUERY_KEY, fromSupabaseUser(data.user));
         toast.success("Account created. Welcome to Refurb Genius.");
         await navigateAfterAuth();
@@ -389,101 +387,143 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
   return (
     <AuthPageShell>
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-border/60 bg-card/80 shadow-2xl shadow-black/45 backdrop-blur-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 lg:grid-cols-[1.1fr_1fr]">
-        <div className="relative hidden border-r border-border/60 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8 lg:block">
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-border/60 bg-card/80 shadow-2xl shadow-black/45 backdrop-blur-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+        {/* Product value panel — desktop only; content reflects shipped product capabilities */}
+        <aside
+          className="relative hidden border-r border-border/60 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8 lg:flex lg:flex-col"
+          aria-label="Product overview"
+        >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(45,212,191,0.14),transparent_40%),radial-gradient(circle_at_80%_70%,rgba(59,130,246,0.14),transparent_35%)]" />
           <div className="relative flex h-full flex-col">
             <div className="mb-8 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20 ring-1 ring-accent/40">
-                <Home className="h-5 w-5 text-accent" />
+                <Home
+                  {...decorativeIconProps}
+                  className="pointer-events-none h-5 w-5 text-accent"
+                />
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">Refurb Genius</p>
-                <p className="text-xs text-muted-foreground">
-                  AI-Powered UK Property Refurbishment Analysis
-                </p>
+                <p className="text-xs text-muted-foreground">UK property refurbishment analysis</p>
               </div>
             </div>
 
             <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-              Investor-grade refurb intelligence in one secure workspace
+              Feasibility, estimates, and ROI in one workspace
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Turn property photos into scopes, estimates, and ROI-ready feasibility studies aligned
-              to UK market realities.
+              Built for UK investors and developers who need structured refurb scopes, cost
+              estimates, and shareable feasibility outputs from property photos.
             </p>
 
-            <div className="mt-8 space-y-3">
+            <ul className="mt-8 space-y-3">
               {[
                 "Photo analysis and room-level condition scoring",
                 "Deterministic refurb estimates and ROI scenarios",
-                "Feasibility snapshots for lenders and JV partners",
+                "Feasibility exports for lenders and JV partners",
               ].map((item) => (
-                <div key={item} className="flex items-start gap-2 text-sm text-foreground/90">
-                  <Sparkles className="mt-0.5 h-4 w-4 text-accent" />
+                <li key={item} className="flex items-start gap-2 text-sm text-foreground/90">
+                  <Sparkles
+                    {...decorativeIconProps}
+                    className="pointer-events-none mt-0.5 h-4 w-4 shrink-0 text-accent"
+                  />
                   <span>{item}</span>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
 
-            <div className="mt-auto grid grid-cols-2 gap-3 pt-8">
-              <div className="rounded-lg border border-border/60 bg-background/40 p-3">
-                <p className="text-xs text-muted-foreground">Built for</p>
-                <p className="mt-1 text-sm font-medium">UK Investors</p>
+            <div className="mt-auto space-y-3 pt-10">
+              <div className="rounded-xl border border-border/60 bg-background/40 p-4">
+                <div className="flex items-start gap-2">
+                  <ShieldCheck
+                    {...decorativeIconProps}
+                    className="pointer-events-none mt-0.5 h-4 w-4 shrink-0 text-accent"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      Secured with Supabase Auth
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Email/password, magic links, and social sign-in are handled by Supabase with
+                      encrypted sessions. Your account stays under your control.
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="rounded-lg border border-border/60 bg-background/40 p-3">
-                <p className="text-xs text-muted-foreground">Security</p>
-                <p className="mt-1 text-sm font-medium">Supabase Auth</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-border/60 bg-background/40 p-3">
+                  <p className="text-xs text-muted-foreground">Built for</p>
+                  <p className="mt-1 text-sm font-medium">UK property investors</p>
+                </div>
+                <div className="rounded-lg border border-border/60 bg-background/40 p-3">
+                  <p className="text-xs text-muted-foreground">Workspace</p>
+                  <p className="mt-1 text-sm font-medium">Projects, studies & trades</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </aside>
 
-        <div className="p-5 sm:p-8">
-          <div className="mb-6 flex items-center justify-between gap-3 lg:hidden">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/20">
-                <Home className="h-4 w-4 text-accent" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold leading-none">Refurb Genius</p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  AI-Powered UK Property Refurbishment Analysis
-                </p>
-              </div>
+        <div className="min-w-0 p-5 sm:p-8">
+          <div className="mb-6 flex items-center gap-2 lg:hidden">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/20">
+              <Home {...decorativeIconProps} className="pointer-events-none h-4 w-4 text-accent" />
             </div>
-          </div>
-
-          <div className="mb-5 rounded-xl border border-border/60 bg-background/50 p-1">
-            <div className="grid grid-cols-2 gap-1">
-              <Button
-                type="button"
-                variant={isSignIn ? "default" : "ghost"}
-                className="h-10 w-full"
-                onClick={() => switchMode("signin")}
-                aria-pressed={isSignIn}
-              >
-                Sign in
-              </Button>
-              <Button
-                type="button"
-                variant={isSignUp ? "default" : "ghost"}
-                className="h-10 w-full"
-                onClick={() => switchMode("signup")}
-                aria-pressed={isSignUp}
-              >
-                Sign up
-              </Button>
+            <div>
+              <p className="text-sm font-semibold leading-none">Refurb Genius</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                UK property refurbishment analysis
+              </p>
             </div>
           </div>
 
-          <div className="mb-5">
+          {!isReset && (
+            <div
+              className="mb-5 rounded-xl border border-border/60 bg-background/50 p-1"
+              role="tablist"
+              aria-label="Authentication mode"
+            >
+              <div className="grid grid-cols-2 gap-1">
+                <Button
+                  type="button"
+                  role="tab"
+                  variant={isSignIn ? "default" : "ghost"}
+                  className="h-10 w-full"
+                  onClick={() => switchMode("signin")}
+                  aria-selected={isSignIn}
+                >
+                  Sign in
+                </Button>
+                <Button
+                  type="button"
+                  role="tab"
+                  variant={isSignUp ? "default" : "ghost"}
+                  className="h-10 w-full"
+                  onClick={() => switchMode("signup")}
+                  aria-selected={isSignUp}
+                >
+                  Sign up
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <header className="mb-5">
             <h1 className="text-2xl font-semibold tracking-tight">{pageHeading}</h1>
             <p className="mt-1 text-sm text-muted-foreground">{pageSubheading}</p>
-          </div>
+          </header>
+
+          {isSignUp && (
+            <div className="mb-5 rounded-lg border border-border/50 bg-background/35 px-3 py-2.5 lg:hidden">
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Photo-led scopes, refurb estimates, and ROI feasibility — secured with Supabase
+                Auth.
+              </p>
+            </div>
+          )}
 
           {error && (
-            <Alert variant="destructive" className="mb-4" role="alert" aria-live="polite">
+            <Alert variant="destructive" className="mb-4" role="alert" aria-live="assertive">
               <AlertCircle {...decorativeIconProps} className="pointer-events-none h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
@@ -503,60 +543,29 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
           )}
 
           <form className="space-y-4" onSubmit={handleSubmit} noValidate>
-            {isSignUp && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <Label htmlFor="name">Name</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    placeholder="Alex Morgan"
-                    autoComplete="name"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="company">Company (optional)</Label>
-                  <Input
-                    id="company"
-                    value={company}
-                    onChange={(event) => setCompany(event.target.value)}
-                    placeholder="Northbridge Property Ltd"
-                    autoComplete="organization"
-                  />
-                </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="onboarding-goal">What do you want to do first?</Label>
-                  <Input
-                    id="onboarding-goal"
-                    list="onboarding-goals"
-                    value={onboardingGoal}
-                    onChange={(event) => setOnboardingGoal(event.target.value)}
-                    placeholder="Run my first feasibility study"
-                  />
-                  <datalist id="onboarding-goals">
-                    <option value="Run my first feasibility study" />
-                    <option value="Estimate refurb costs on a project" />
-                    <option value="Model ROI for an investment deal" />
-                    <option value="Prepare an investor report export" />
-                  </datalist>
-                </div>
-              </div>
-            )}
-
+            {/* 1. Email */}
             <div className="space-y-1.5">
               <Label htmlFor="email">Email address</Label>
               <Input
                 id="email"
                 type="email"
+                inputMode="email"
                 autoComplete="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="you@company.co.uk"
                 required
+                disabled={formDisabled}
+                aria-describedby={isSignUp ? "email-hint" : undefined}
               />
+              {isSignUp && (
+                <p id="email-hint" className="text-xs text-muted-foreground">
+                  We&apos;ll use this for sign-in and account recovery.
+                </p>
+              )}
             </div>
 
+            {/* 2. Password */}
             <div className="space-y-1.5">
               <Label htmlFor="password">{isReset ? "New password" : "Password"}</Label>
               <div className="relative">
@@ -566,8 +575,11 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                   autoComplete={isSignIn ? "current-password" : "new-password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder={isSignIn ? "Enter your password" : "Create a strong password"}
+                  placeholder={isSignIn ? "Enter your password" : "At least 6 characters"}
                   required
+                  disabled={formDisabled || (isSignIn && isLocked)}
+                  aria-describedby={isSignUp ? "password-hint" : undefined}
+                  className="pr-11"
                 />
                 <Button
                   type="button"
@@ -576,6 +588,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                   className="absolute right-1 top-1 h-8 w-8"
                   onClick={() => setShowPassword((current) => !current)}
                   aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={formDisabled}
                 >
                   {showPassword ? (
                     <EyeOff {...decorativeIconProps} />
@@ -584,8 +597,14 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                   )}
                 </Button>
               </div>
+              {isSignUp && (
+                <p id="password-hint" className="text-xs text-muted-foreground">
+                  Minimum 6 characters. You can change this later from your account.
+                </p>
+              )}
             </div>
 
+            {/* 3. Confirm password */}
             {(isSignUp || isReset) && (
               <div className="space-y-1.5">
                 <Label htmlFor="confirm-password">Confirm password</Label>
@@ -598,6 +617,8 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                     onChange={(event) => setConfirmPassword(event.target.value)}
                     placeholder="Re-enter password"
                     required
+                    disabled={formDisabled}
+                    className="pr-11"
                   />
                   <Button
                     type="button"
@@ -610,6 +631,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                         ? "Hide confirmation password"
                         : "Show confirmation password"
                     }
+                    disabled={formDisabled}
                   >
                     {showConfirmPassword ? (
                       <EyeOff {...decorativeIconProps} />
@@ -619,6 +641,44 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                   </Button>
                 </div>
               </div>
+            )}
+
+            {/* 4–5. Optional profile details after credentials */}
+            {isSignUp && (
+              <fieldset className="space-y-3 rounded-xl border border-border/60 bg-background/30 p-3 sm:p-4">
+                <legend className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Profile details
+                </legend>
+                <p className="text-xs text-muted-foreground">
+                  Optional — helps personalise your workspace. You can skip and add later.
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5 sm:col-span-1">
+                    <Label htmlFor="name">Full name</Label>
+                    <Input
+                      id="name"
+                      value={name}
+                      onChange={(event) => setName(event.target.value)}
+                      placeholder="Alex Morgan"
+                      autoComplete="name"
+                      disabled={formDisabled}
+                    />
+                  </div>
+                  <div className="space-y-1.5 sm:col-span-1">
+                    <Label htmlFor="company">
+                      Company <span className="font-normal text-muted-foreground">(optional)</span>
+                    </Label>
+                    <Input
+                      id="company"
+                      value={company}
+                      onChange={(event) => setCompany(event.target.value)}
+                      placeholder="Northbridge Property Ltd"
+                      autoComplete="organization"
+                      disabled={formDisabled}
+                    />
+                  </div>
+                </div>
+              </fieldset>
             )}
 
             {isSignUp && (
@@ -633,10 +693,12 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                   type="checkbox"
                   checked={agreeTerms}
                   onChange={(event) => setAgreeTerms(event.target.checked)}
+                  disabled={formDisabled}
                   className={cn(
                     "mt-0.5 h-5 w-5 shrink-0 cursor-pointer appearance-none rounded-md border-2 border-primary/60 bg-field",
                     "checked:border-primary checked:bg-primary",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                    "disabled:cursor-not-allowed disabled:opacity-50",
                   )}
                 />
                 <Label
@@ -645,7 +707,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                 >
                   I agree to the{" "}
                   <a
-                    className="text-accent hover:underline"
+                    className="text-accent underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
                     href="/terms"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -654,7 +716,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                   </a>{" "}
                   and{" "}
                   <a
-                    className="text-accent hover:underline"
+                    className="text-accent underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
                     href="/privacy"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -695,88 +757,118 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
           </form>
 
           {!isReset && (
-            <>
-              <div className="mt-4 flex items-center justify-between text-xs">
-                {/* Only show forgot-password on sign-in so a disabled control is not left in the tree. */}
-                {isSignIn ? (
+            <div className="mt-5 space-y-4">
+              {/* Passwordless / recovery — kept separate from social OAuth */}
+              <div className="rounded-xl border border-border/50 bg-background/25 p-3">
+                <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                  Passwordless access
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  {isSignIn ? (
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="h-auto justify-start p-0 text-sm text-muted-foreground"
+                      onClick={handleForgotPassword}
+                      disabled={formDisabled}
+                    >
+                      {forgotPasswordLoading ? "Sending reset email..." : "Forgot password?"}
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Prefer not to set a password yet? Use a one-time email link.
+                    </p>
+                  )}
                   <Button
                     type="button"
-                    variant="link"
-                    className="h-auto p-0 text-muted-foreground"
-                    onClick={handleForgotPassword}
-                    disabled={forgotPasswordLoading}
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-full sm:w-auto"
+                    onClick={handleMagicLink}
+                    disabled={formDisabled}
+                    aria-describedby="magic-link-hint"
                   >
-                    {forgotPasswordLoading ? "Sending reset email..." : "Forgot password?"}
+                    {magicLinkLoading ? (
+                      <>
+                        <Loader2
+                          {...decorativeIconProps}
+                          className="pointer-events-none h-4 w-4 animate-spin"
+                        />
+                        Sending magic link...
+                      </>
+                    ) : (
+                      <>
+                        <Mail {...decorativeIconProps} className="pointer-events-none h-4 w-4" />
+                        Email me a magic link
+                      </>
+                    )}
                   </Button>
-                ) : (
-                  <span />
-                )}
-
-                <Button
-                  type="button"
-                  variant="link"
-                  className="h-auto p-0 text-muted-foreground"
-                  onClick={handleMagicLink}
-                  disabled={magicLinkLoading}
-                >
-                  {magicLinkLoading ? "Sending magic link..." : "Use magic link instead"}
-                </Button>
+                </div>
+                <p id="magic-link-hint" className="mt-2 text-xs text-muted-foreground">
+                  Uses the email address above. Check your inbox for a secure sign-in link.
+                </p>
               </div>
 
-              <div className="my-5 flex items-center gap-3">
+              <div
+                className="flex items-center gap-3"
+                role="separator"
+                aria-label="Or continue with social account"
+              >
                 <Separator className="flex-1" />
                 <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                  or
+                  Or continue with
                 </span>
                 <Separator className="flex-1" />
               </div>
 
-              <Button
-                type="button"
-                variant="secondary"
-                className="h-10 w-full"
-                onClick={handleGoogleAuth}
-                disabled={formDisabled || (isSignIn && isLocked)}
-              >
-                {oauthLoading ? (
-                  <>
-                    <Loader2
-                      {...decorativeIconProps}
-                      className="pointer-events-none h-4 w-4 animate-spin"
-                    />
-                    Connecting...
-                  </>
-                ) : (
-                  <>
-                    <GoogleIcon />
-                    Continue with Google
-                  </>
-                )}
-              </Button>
+              <div className="grid gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-10 w-full"
+                  onClick={handleGoogleAuth}
+                  disabled={formDisabled || (isSignIn && isLocked)}
+                >
+                  {oauthLoading ? (
+                    <>
+                      <Loader2
+                        {...decorativeIconProps}
+                        className="pointer-events-none h-4 w-4 animate-spin"
+                      />
+                      Connecting to Google...
+                    </>
+                  ) : (
+                    <>
+                      <GoogleIcon />
+                      Continue with Google
+                    </>
+                  )}
+                </Button>
 
-              <Button
-                type="button"
-                variant="secondary"
-                className="h-10 w-full"
-                onClick={handleAppleAuth}
-                disabled={formDisabled || (isSignIn && isLocked)}
-              >
-                {appleLoading ? (
-                  <>
-                    <Loader2
-                      {...decorativeIconProps}
-                      className="pointer-events-none h-4 w-4 animate-spin"
-                    />
-                    Connecting...
-                  </>
-                ) : (
-                  <>
-                    <AppleIcon />
-                    Continue with Apple
-                  </>
-                )}
-              </Button>
-            </>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="h-10 w-full"
+                  onClick={handleAppleAuth}
+                  disabled={formDisabled || (isSignIn && isLocked)}
+                >
+                  {appleLoading ? (
+                    <>
+                      <Loader2
+                        {...decorativeIconProps}
+                        className="pointer-events-none h-4 w-4 animate-spin"
+                      />
+                      Connecting to Apple...
+                    </>
+                  ) : (
+                    <>
+                      <AppleIcon />
+                      Continue with Apple
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           )}
 
           <div className="mt-5 text-center text-xs text-muted-foreground">
@@ -796,7 +888,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
               {...decorativeIconProps}
               className="pointer-events-none h-3.5 w-3.5 text-accent"
             />
-            Secure • Protected by Supabase
+            <span>Secure authentication powered by Supabase</span>
           </div>
         </div>
       </div>
