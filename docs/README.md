@@ -1,13 +1,22 @@
 # Refurb Genius — Docs
 
 > **Start here:** [`CLAUDE.md`](../CLAUDE.md) (repo root) for agent/contributor rules.
-> Architecture index: [`architecture/overview.md`](./architecture/overview.md).
+> **Authoritative architecture policy:** [`architecture/overview.md`](./architecture/overview.md).
+> **ADR index:** [`architecture/adr/README.md`](./architecture/adr/README.md).
+> **Governance ADR:** [`architecture/adr/0001-adopt-rules-first-incremental-architecture-governance.md`](./architecture/adr/0001-adopt-rules-first-incremental-architecture-governance.md).
+> **Phase 0 evidence:** [`architecture/phase-0-inventory-report.md`](./architecture/phase-0-inventory-report.md).
+> **Architecture registry:** [`../tests/invariants/config/`](../tests/invariants/config/).
+> **Data architecture registry:** [`../tests/invariants/config/data/`](../tests/invariants/config/data/) (Phase 4).
 
 ## Architecture
 
 | Document                                                                     | Description                                                |
 | ---------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| [Architecture Overview](./architecture/overview.md)                          | Monorepo structure, financial invariant, build pipeline    |
+| [Architecture Overview](./architecture/overview.md)                          | **Authoritative** platform model, ownership, freezes, enforcement honesty |
+| [ADR index](./architecture/adr/README.md)                                    | ADR process (immutable, append-only) and catalogue         |
+| [ADR 0001 — Rules-first governance](./architecture/adr/0001-adopt-rules-first-incremental-architecture-governance.md) | Document → register → enforce → baseline → migrate |
+| [Phase 0 inventory](./architecture/phase-0-inventory-report.md)              | Verified tree, dependencies, Supabase/AI maps (evidence)   |
+| [Architecture registry](../tests/invariants/config/README.md)                | Machine-readable ownership / dependency / freeze metadata  |
 | [Feature-Slice Architecture](./architecture/FEATURE_SLICE.md)                | Vertical slices, layering rules, migration state           |
 | [Platform Boundary](./architecture/platform-boundary.md)                     | Vendor SDK seams (OpenAI, Supabase, PostHog)               |
 | [Dependency Rules](./architecture/dependency-rules.md)                       | One-way import hierarchy between packages                  |

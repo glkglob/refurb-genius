@@ -13,6 +13,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join, basename } from "node:path";
 import test from "node:test";
+import { UI_MIGRATION_BOUNDARY_EXCEPTIONS } from "./config/exceptions.ts";
 
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const SRC_UI = join(ROOT, "src/components/ui");
@@ -151,11 +152,9 @@ test("@repo/ui package components and barrel do not import from app layer (@/ or
     "packages/ui/src/index.ts must not import from @/ (app layer)",
   );
 
-  // Known pre-existing exception: sidebar.tsx depends on app hook useIsMobile (from @/hooks/use-mobile).
-  // This is a boundary smell but was present at time of its migration; do not regress on *new* migrations.
-  // When fixing, either move the hook or make isMobile injectable via props/context.
-  const BOUNDARY_EXCEPTIONS = new Set(["sidebar.tsx"]);
-
+  // Known pre-existing exception — registry: UI_MIGRATION_BOUNDARY_EXCEPTIONS
+  // sidebar.tsx depends on app hook useIsMobile; do not regress on *new* migrations.
+  const BOUNDARY_EXCEPTIONS = new Set<string>(UI_MIGRATION_BOUNDARY_EXCEPTIONS);
   // Check the *newly* migrated component sources (the 11 from this task) for boundary compliance.
   // (Sidebar and some earlier migrations have known exceptions; we lock the rule going forward for new work.)
   const componentFiles = NEWLY_MIGRATED.map((n) => pkgComponentPath(n));

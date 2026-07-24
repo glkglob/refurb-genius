@@ -64,3 +64,6 @@ property-intel/
 
 # npm lockfile — this repo uses pnpm (pnpm-lock.yaml)
 package-lock.json
+
+# Local test artefacts
+reports/auth-signup-pass/
