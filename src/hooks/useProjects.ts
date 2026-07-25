@@ -2,9 +2,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
 import { supabase } from "@/platform/supabase/browser";
 import type { ProjectStage, NewProjectInput } from "@/core/projects/domain";
-import { rowToProject, type ProjectWithProgress } from "@/lib/mappers";
 import {
   projectKeys,
+  projectsListQueryOptions,
   projectQueryOptions,
   projectStagePatch,
   applyProjectStageOptimistic,
@@ -18,21 +18,12 @@ import { createProjectServerFn } from "@/serverFns/projects";
 
 export type { ProjectWithProgress } from "@/lib/mappers";
 
-async function fetchProjects(): Promise<ProjectWithProgress[]> {
-  const { data, error } = await supabase
-    .from("projects")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  return (data ?? []).map(rowToProject);
-}
-
+/** Dashboard / product Projects list — canonical cache: projectKeys.all (C4c-6). */
 export function useProjects() {
   const { user } = useAuth();
   return useQuery({
-    queryKey: projectKeys.all,
-    queryFn: fetchProjects,
-    enabled: !!user,
+    ...projectsListQueryOptions(),
+    enabled: Boolean(user),
   });
 }
 

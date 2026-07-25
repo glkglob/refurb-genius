@@ -46,6 +46,33 @@ export const projectKeys = {
 } as const;
 
 /**
+ * Canonical full Projects list fetch (C4c-6).
+ * Single network authority for dashboard + catalog adapters.
+ */
+export async function fetchProjectsList(): Promise<ProjectWithProgress[]> {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) {
+    logger.error("[queries] projects list fetch failed", { error: error.message });
+    throw new Error(error.message);
+  }
+  return (data ?? []).map(rowToProject);
+}
+
+/**
+ * Canonical Projects list query options (C4c-6).
+ * Key is exactly projectKeys.all — shared by useProjects and catalog adapters.
+ * Auth gating (`enabled`) is applied by hooks (useAuth user present).
+ */
+export const projectsListQueryOptions = () =>
+  queryOptions<ProjectWithProgress[]>({
+    queryKey: projectKeys.all,
+    queryFn: fetchProjectsList,
+  });
+
+/**
  * Query options for a single project with progress flags.
  * Sensible defaults for a detail view: 5min stale, 10min gc, single retry.
  */

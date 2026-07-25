@@ -132,15 +132,15 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     status: "In Progress",
     blastRadius: "T2",
     problem:
-      "Projects client ownership: hooks/RQ live path established; residual list-key split (project-catalog) and optional stage hardening remain after store retirement.",
+      "Projects client ownership: hooks/RQ list+detail+store retirement done; optional stage hardening and C4c close-out remain.",
     currentOwner: "src/hooks/useProjects + React Query + createProjectServerFn",
     targetOwner:
-      "Hooks + RQ sole Projects client cache; create via serverFn; catalog list-key converged; C4c closed via governance",
+      "Hooks + RQ sole Projects client cache; create via serverFn; catalog adapter on projectKeys.all; C4c closed via governance",
     dependencies: ["C4a"],
     dependents: ["C5"],
     evidence: {
       notes:
-        "C4c In Progress. C4c-1: list query-key baseline (projectKeys.all). C4c-2: useProject → projectQueryOptions / projectKeys.byId. C4c-3: list/detail mutation sync. C4c-4: root auth/query-cache lifecycle isolation. C4c-5: projectStore runtime retired (deleted projectStore.ts + store-backed projectHelpers); lib/projects domain-only re-exports; mockData no longer exports projectStore; React Query + useProjects* remain sole live Projects client cache authority; no Projects store auth listener. Deferred: Projects catalog list-key convergence (C4c-6); optional stage hardening (C4c-7); C4c completion governance (C4c-8). Out of scope: photoStore (C5), full auth singleton retirement, SQL/schema/RLS. C4c is not complete.",
+        'C4c In Progress. C4c-1: list query-key baseline (projectKeys.all). C4c-2: useProject → projectQueryOptions / projectKeys.byId. C4c-3: list/detail mutation sync. C4c-4: root auth/query-cache lifecycle isolation. C4c-5: projectStore retired. C4c-6: Projects list authority convergence — projectsListQueryOptions owns projectKeys.all; useProjects + useProjectCatalog share one cache; ["project-catalog"] removed; catalog is pure adapter (toProjectCatalog); auth-gated enabled on both list hooks; create exact invalidate covers all list consumers. Deferred: optional stage hardening (C4c-7); C4c completion governance (C4c-8). Out of scope: photoStore (C5), full auth singleton retirement, SQL/schema/RLS. C4c is not complete.',
     },
   },
   {

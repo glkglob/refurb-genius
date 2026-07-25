@@ -170,16 +170,23 @@ test("projects query keys — useProjects list operations use projectKeys.all", 
   assert.match(
     text,
     /from\s+["']@\/lib\/queries\/projects["']/,
-    "useProjects must import projectKeys from @/lib/queries/projects",
+    "useProjects must import from @/lib/queries/projects",
   );
-  assert.match(text, /projectKeys\.all/, "useProjects must reference projectKeys.all");
+  assert.match(
+    text,
+    /projectsListQueryOptions\s*\(/,
+    "useProjects must call projectsListQueryOptions() (C4c-6 shared list authority)",
+  );
+  assert.match(
+    text,
+    /projectKeys\.all/,
+    "useProjects must reference projectKeys.all for mutations",
+  );
   assert.equal(
     findRawProjectsListKeys(text, "src/hooks/useProjects.ts").length,
     0,
     "useProjects must not contain raw Projects list query keys",
   );
-  // List query + mutation cache ops use the factory key (C4c-3 adds exact: true)
-  assert.match(text, /queryKey:\s*projectKeys\.all/);
   assert.match(
     text,
     /invalidateQueries\(\{\s*queryKey:\s*projectKeys\.all\s*,\s*exact:\s*true\s*\}\)/,
@@ -190,11 +197,78 @@ test("projects query keys — useProjects list operations use projectKeys.all", 
     /cancelQueries\(\{\s*queryKey:\s*projectKeys\.all\s*,\s*exact:\s*true\s*\}\)/,
     "stage must cancel projectKeys.all with exact: true",
   );
-  // List get/set live in C4c-3 helpers in the factory module
+  // List get/set + list query options live in the factory module
   const factoryPath = join(ROOT, CANONICAL_FACTORY);
   const factoryText = readFileSync(factoryPath, "utf8");
+  assert.match(
+    factoryText,
+    /export\s+const\s+projectsListQueryOptions/,
+    "factory must export projectsListQueryOptions",
+  );
+  assert.match(
+    factoryText,
+    /queryKey:\s*projectKeys\.all/,
+    "projectsListQueryOptions must use projectKeys.all",
+  );
   assert.match(factoryText, /getQueryData(?:<[^>]*>)?\(\s*projectKeys\.all\s*\)/);
   assert.match(factoryText, /setQueryData(?:<[^>]*>)?\(\s*projectKeys\.all\s*,/);
+});
+
+test("projects query keys — C4c-6 catalog adapter uses canonical list (no project-catalog)", () => {
+  const catalogPath = join(
+    ROOT,
+    "src/features/feasibility/presentation/hooks/useProjectCatalog.ts",
+  );
+  assert.ok(existsSync(catalogPath), "missing useProjectCatalog");
+  const text = readFileSync(catalogPath, "utf8");
+  assert.match(
+    text,
+    /projectsListQueryOptions\s*\(/,
+    "useProjectCatalog must call projectsListQueryOptions() (not merely import)",
+  );
+  assert.doesNotMatch(
+    text,
+    /\[\s*["']project-catalog["']\s*\]/,
+    'useProjectCatalog must not use ["project-catalog"] key',
+  );
+  assert.doesNotMatch(
+    text,
+    /supabase\.from\s*\(\s*["']projects["']\s*\)/,
+    "useProjectCatalog must not fetch Projects list directly",
+  );
+  assert.equal(
+    findRawProjectsListKeys(text, "useProjectCatalog").length,
+    0,
+    "catalog must not use raw Projects list keys",
+  );
+});
+
+test("projects query keys — no runtime project-catalog key under src", () => {
+  const violations: string[] = [];
+  for (const root of SCAN_ROOTS) {
+    for (const file of listTsFiles(root)) {
+      const rel = relative(ROOT, file).replace(/\\/g, "/");
+      if (rel.endsWith(".test.ts") || rel.endsWith(".test.tsx")) continue;
+      const text = readFileSync(file, "utf8");
+      // Strip // comments so migration notes do not false-positive
+      const code = text
+        .split("\n")
+        .map((line) => {
+          const idx = line.indexOf("//");
+          if (idx === -1) return line;
+          return line.slice(0, idx);
+        })
+        .join("\n");
+      if (/\[\s*["']project-catalog["']\s*\]/.test(code)) {
+        violations.push(rel);
+      }
+    }
+  }
+  assert.deepEqual(
+    violations,
+    [],
+    `runtime ["project-catalog"] key forbidden under src:\n${violations.join("\n")}`,
+  );
 });
 
 // ─── Self-contained negative / positive probes (no production file mutation) ─
@@ -247,9 +321,10 @@ test("projects query keys — probe: supabase.from projects table accepted", () 
   assert.equal(findRawProjectsListKeys(sample, "probe").length, 0);
 });
 
-test('projects query keys — probe: ["project-catalog"] accepted', () => {
+test('projects query keys — probe: ["project-catalog"] is forbidden at runtime (C4c-6)', () => {
+  // Structural ban is production-scanned; probe documents the forbidden literal.
   const sample = `queryKey: ["project-catalog"]`;
-  assert.equal(findRawProjectsListKeys(sample, "probe").length, 0);
+  assert.match(sample, /\[\s*["']project-catalog["']\s*\]/);
 });
 
 test("projects query keys — probe: database table declaration accepted", () => {

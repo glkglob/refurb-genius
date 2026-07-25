@@ -3,6 +3,7 @@ import { QueryClient } from "@tanstack/react-query";
 import type { ProjectWithProgress } from "@/lib/mappers";
 import {
   projectKeys,
+  projectsListQueryOptions,
   projectQueryOptions,
   projectStageDoneField,
   projectStagePatch,
@@ -58,6 +59,23 @@ describe("projectKeys (C4c-1 serialized identity)", () => {
     expect(projectKeys.all).not.toContain("detail");
     expect(projectKeys.byId("abc")).not.toContain("list");
     expect(projectKeys.byId("abc")).not.toContain("detail");
+  });
+});
+
+describe("projectsListQueryOptions (C4c-6 canonical list authority)", () => {
+  it("queryKey is exactly projectKeys.all", () => {
+    expect(projectsListQueryOptions().queryKey).toEqual(projectKeys.all);
+    expect(projectsListQueryOptions().queryKey).toEqual(["projects"]);
+  });
+
+  it("shares serialized identity with projectKeys.all", () => {
+    expect(JSON.stringify(projectsListQueryOptions().queryKey)).toBe(
+      JSON.stringify(projectKeys.all),
+    );
+  });
+
+  it("exposes a list queryFn (shared network authority)", () => {
+    expect(typeof projectsListQueryOptions().queryFn).toBe("function");
   });
 });
 
