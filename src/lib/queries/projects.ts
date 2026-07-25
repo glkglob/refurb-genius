@@ -117,25 +117,34 @@ export const estimateQueryOptions = (projectId: string) =>
   });
 
 /**
+ * Canonical authenticated project-photo list fetch (C5-1).
+ * Single network authority for product-UI photo lists (usePhotos, route prefetch).
+ * Does not touch photoStore; AI catalog still uses store.list until C5-2.
+ */
+export async function fetchProjectPhotosList(projectId: string): Promise<ProjectPhoto[]> {
+  const { data, error } = await supabase
+    .from("photos")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("uploaded_at", { ascending: true });
+
+  if (error) {
+    logger.error("[queries] photos fetch failed", { projectId, error: error.message });
+    throw new Error(error.message);
+  }
+  return (data ?? []).map(rowToPhoto);
+}
+
+/**
  * Query options for project photos.
- * Canonical photos query — shared by usePhotos and project tab prefetch.
+ * Canonical photos query — shared by usePhotos and project tab prefetch (C5-1).
+ * Key: projectKeys.photosByProject. Fetch: fetchProjectPhotosList.
+ * Auth gating (`enabled` with user) is applied by usePhotos; factory enables on projectId.
  */
 export const photosQueryOptions = (projectId: string) =>
   queryOptions<ProjectPhoto[]>({
     queryKey: projectKeys.photosByProject(projectId),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("photos")
-        .select("*")
-        .eq("project_id", projectId)
-        .order("uploaded_at", { ascending: true });
-
-      if (error) {
-        logger.error("[queries] photos fetch failed", { projectId, error: error.message });
-        throw new Error(error.message);
-      }
-      return (data ?? []).map(rowToPhoto);
-    },
+    queryFn: () => fetchProjectPhotosList(projectId),
     enabled: !!projectId,
     staleTime: 30 * 1000, // 30s - photos can be added frequently
     gcTime: 5 * 60 * 1000,

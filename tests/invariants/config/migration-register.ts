@@ -154,17 +154,20 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "C5",
     title: "Photos / Storage Ownership Migration",
-    status: "Planned",
+    status: "In Progress",
     blastRadius: "T3",
-    problem: "src/lib/photos mixed with ai-upload and UI consumers; object storage concerns split.",
-    currentOwner: "src/lib/photos (+ ai-upload infrastructure partial)",
-    targetOwner: "Clear media ownership (split before execution)",
+    problem:
+      "src/lib/photos mixed with ai-upload and UI consumers; dual photo list reads (RQ product UI vs photoStore.list for AI); dual upload writers (hooks vs BulkPhotoUpload); object storage concerns split.",
+    currentOwner:
+      "Product-UI list: photosQueryOptions / fetchProjectPhotosList / projectKeys.photosByProject (C5-1). Writes + memory: photoStore + BulkPhotoUpload. AI catalog: photoStore.list (C5-2).",
+    targetOwner:
+      "Clear media ownership: single product-UI list authority (C5-1 done); AI catalog on same fetch (C5-2); unified write path (C5-3); retire photoStore + Projects barrel photo re-exports; optional storage/server hardening",
     dependencies: ["C4", "C4c"],
     dependents: [],
     evidence: {
       productionImporters: 9,
       notes:
-        "Split C5a ai-upload ownership clarity / C5b remaining consumers. C4/C4c Projects ownership is complete; C5 remains separate for photoStore, upload/delete, storage paths, media query ownership, storage RLS, and Projects barrel photo compatibility re-exports. Prefer sequencing after C4c (done).",
+        "C5 In Progress. C5-1: authenticated product-UI photo list sealed — projectKeys.photosByProject retained; photosQueryOptions retained; fetchProjectPhotosList named fetch authority; usePhotos + route prefetch/fetchQuery remain on factory; inv-photos-query-keys active. Claim is product-UI RQ list authority only — not entire Photos domain while photoStore.list remains. Pending: C5-2 AI catalog/room-analysis migrate off photoStore.list; C5-3 upload/delete convergence (photoStore + BulkPhotoUpload); later store auth-listener cleanup, photoStore retirement, Projects barrel photo re-export retirement, optional storage/server hardening. Out of scope for C5-1: SQL/RLS rewrite, public gallery merge, photo-analysis key consolidation, photos_done. C4/C4c remain Completed. C5 is not complete.",
     },
   },
   {

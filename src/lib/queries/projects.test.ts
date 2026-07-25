@@ -1,6 +1,27 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import type { ProjectWithProgress } from "@/lib/mappers";
+
+const { fromMock, loggerError } = vi.hoisted(() => ({
+  fromMock: vi.fn(),
+  loggerError: vi.fn(),
+}));
+
+vi.mock("@/platform/supabase/browser", () => ({
+  supabase: {
+    from: fromMock,
+  },
+}));
+
+vi.mock("@/lib/logger", () => ({
+  logger: {
+    error: loggerError,
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+  },
+}));
+
 import {
   projectKeys,
   projectsListQueryOptions,
@@ -12,6 +33,8 @@ import {
   applyProjectStageOptimistic,
   restoreProjectStageCaches,
   seedProjectDetailCache,
+  fetchProjectPhotosList,
+  photosQueryOptions,
 } from "./projects";
 
 function makeProject(overrides: Partial<ProjectWithProgress> = {}): ProjectWithProgress {
@@ -247,5 +270,121 @@ describe("C4c-3 create detail seed", () => {
     expect(qc.getQueryData(projectKeys.estimateByProject("new-1"))).toBeUndefined();
     expect(qc.getQueryData(projectKeys.financialsByProject("new-1"))).toBeUndefined();
     expect(qc.getQueryData(projectKeys.all)).toBeUndefined();
+  });
+});
+
+describe("projectKeys.photosByProject (C5-1)", () => {
+  it('serializes as ["projects", projectId, "photos"]', () => {
+    expect(projectKeys.photosByProject("project-a")).toEqual(["projects", "project-a", "photos"]);
+  });
+
+  it("identical IDs produce identical keys", () => {
+    expect(projectKeys.photosByProject("p1")).toEqual(projectKeys.photosByProject("p1"));
+    expect(JSON.stringify(projectKeys.photosByProject("p1"))).toBe(
+      JSON.stringify(["projects", "p1", "photos"]),
+    );
+  });
+
+  it("different IDs produce different keys", () => {
+    expect(projectKeys.photosByProject("a")).not.toEqual(projectKeys.photosByProject("b"));
+  });
+});
+
+describe("fetchProjectPhotosList (C5-1 canonical product-photo list fetch)", () => {
+  beforeEach(() => {
+    fromMock.mockReset();
+    loggerError.mockReset();
+  });
+
+  function mockPhotosChain(result: { data: unknown; error: { message: string } | null }) {
+    const order = vi.fn().mockResolvedValue(result);
+    const eq = vi.fn().mockReturnValue({ order });
+    const select = vi.fn().mockReturnValue({ eq });
+    fromMock.mockReturnValue({ select });
+    return { select, eq, order };
+  }
+
+  it("queries photos by project_id ordered by uploaded_at ascending", async () => {
+    const row = {
+      id: "ph1",
+      project_id: "proj-1",
+      url: "https://example.com/a.jpg",
+      name: "a.jpg",
+      size: 100,
+      uploaded_at: "2026-01-02T00:00:00.000Z",
+      storage_path: "u1/proj-1/ph1.jpg",
+      user_id: "u1",
+    };
+    const { select, eq, order } = mockPhotosChain({ data: [row], error: null });
+
+    const out = await fetchProjectPhotosList("proj-1");
+
+    expect(fromMock).toHaveBeenCalledWith("photos");
+    expect(select).toHaveBeenCalledWith("*");
+    expect(eq).toHaveBeenCalledWith("project_id", "proj-1");
+    expect(order).toHaveBeenCalledWith("uploaded_at", { ascending: true });
+    expect(out).toEqual([
+      {
+        id: "ph1",
+        projectId: "proj-1",
+        url: "https://example.com/a.jpg",
+        name: "a.jpg",
+        size: 100,
+        uploadedAt: "2026-01-02T00:00:00.000Z",
+        storagePath: "u1/proj-1/ph1.jpg",
+      },
+    ]);
+  });
+
+  it("returns empty array when data is null", async () => {
+    mockPhotosChain({ data: null, error: null });
+    await expect(fetchProjectPhotosList("proj-1")).resolves.toEqual([]);
+  });
+
+  it("logs and throws on Supabase error", async () => {
+    mockPhotosChain({ data: null, error: { message: "boom" } });
+    await expect(fetchProjectPhotosList("proj-1")).rejects.toThrow("boom");
+    expect(loggerError).toHaveBeenCalledWith(
+      "[queries] photos fetch failed",
+      expect.objectContaining({ projectId: "proj-1", error: "boom" }),
+    );
+  });
+});
+
+describe("photosQueryOptions (C5-1 canonical product-photo list options)", () => {
+  beforeEach(() => {
+    fromMock.mockReset();
+    loggerError.mockReset();
+  });
+
+  it("queryKey equals projectKeys.photosByProject(projectId)", () => {
+    const id = "proj-xyz";
+    expect(photosQueryOptions(id).queryKey).toEqual(projectKeys.photosByProject(id));
+    expect(photosQueryOptions(id).queryKey).toEqual(["projects", id, "photos"]);
+  });
+
+  it("preserves stale/gc/retry and enabled semantics", () => {
+    const opts = photosQueryOptions("proj-1");
+    expect(opts.enabled).toBe(true);
+    expect(photosQueryOptions("").enabled).toBe(false);
+    expect(opts.staleTime).toBe(30 * 1000);
+    expect(opts.gcTime).toBe(5 * 60 * 1000);
+    expect(opts.retry).toBe(1);
+  });
+
+  it("queryFn resolves through fetchProjectPhotosList", async () => {
+    const order = vi.fn().mockResolvedValue({ data: [], error: null });
+    const eq = vi.fn().mockReturnValue({ order });
+    const select = vi.fn().mockReturnValue({ eq });
+    fromMock.mockReturnValue({ select });
+
+    const opts = photosQueryOptions("proj-2");
+    expect(typeof opts.queryFn).toBe("function");
+    // queryOptions wraps queryFn; call through the options entry
+    const fn = opts.queryFn as (ctx: unknown) => Promise<unknown>;
+    await fn({} as never);
+    expect(fromMock).toHaveBeenCalledWith("photos");
+    expect(eq).toHaveBeenCalledWith("project_id", "proj-2");
+    expect(order).toHaveBeenCalledWith("uploaded_at", { ascending: true });
   });
 });
