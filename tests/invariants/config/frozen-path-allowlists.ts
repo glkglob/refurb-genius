@@ -44,6 +44,7 @@ export const LIB_ALLOWLIST = [
   "src/lib/queries/photo-analysis.ts",
   "src/lib/queries/pitch-decks.test.ts",
   "src/lib/queries/pitch-decks.ts",
+  "src/lib/queries/projects.test.ts",
   "src/lib/queries/projects.ts",
   "src/lib/rate-limit.ts",
   "src/lib/redesign.ts",

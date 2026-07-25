@@ -108,6 +108,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-projects-query-keys",
+    kind: "invariant",
+    source: "tests/invariants/projects-query-keys.invariant.test.ts",
+    description:
+      'C4c-1 Projects list query keys: canonical projectKeys only in src/lib/queries/projects.ts; no raw ["projects"] list-key literals in runtime query APIs; use projectKeys.all',
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

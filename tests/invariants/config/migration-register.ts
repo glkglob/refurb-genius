@@ -129,7 +129,7 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "C4c",
     title: "Live Project Hooks & Runtime Ownership",
-    status: "Planned",
+    status: "In Progress",
     blastRadius: "T2",
     problem: "useProjects owns browser Supabase list/stage updates; dual paths with store.",
     currentOwner: "src/hooks/useProjects + browser Supabase",
@@ -137,7 +137,8 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     dependencies: ["C4a"],
     dependents: ["C5"],
     evidence: {
-      notes: "Do not start until C4a completes. Prefer serverFn parity for stage updates.",
+      notes:
+        'C4c-1 started: runtime-neutral Projects list query-key baseline — useProjects uses projectKeys.all (serialized ["projects"]); raw list-key literals forbidden by inv-projects-query-keys. Deferred: list/detail sync (C4c-2), stage multi-key (C4c-3), auth lifecycle clear (C4c-4). Prefer serverFn parity for stage updates later.',
     },
   },
   {

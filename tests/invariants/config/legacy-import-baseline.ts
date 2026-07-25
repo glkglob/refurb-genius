@@ -106,6 +106,7 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/hooks/useOpportunities.ts|@/core/projects/domain",
   "src/hooks/useProjects.ts|@/core/projects/domain",
   "src/hooks/useProjects.ts|@/lib/mappers",
+  "src/hooks/useProjects.ts|@/lib/queries/projects",
   "src/hooks/useRole.ts|@/lib/role",
   "src/routes/__root.tsx|@/lib/logger",
   "src/routes/__root.tsx|@/lib/sentry",

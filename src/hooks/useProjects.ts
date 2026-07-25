@@ -3,6 +3,7 @@ import { useAuth } from "./useAuth";
 import { supabase } from "@/platform/supabase/browser";
 import type { ProjectStage, NewProjectInput } from "@/core/projects/domain";
 import { rowToProject, type ProjectWithProgress } from "@/lib/mappers";
+import { projectKeys } from "@/lib/queries/projects";
 
 // NEW: server-side create mutation (SSR + hard-refresh safe).
 // Replaces the previous client-only supabase.auth.getUser() + insert.
@@ -22,7 +23,7 @@ async function fetchProjects(): Promise<ProjectWithProgress[]> {
 export function useProjects() {
   const { user } = useAuth();
   return useQuery({
-    queryKey: ["projects"],
+    queryKey: projectKeys.all,
     queryFn: fetchProjects,
     enabled: !!user,
   });
@@ -63,7 +64,7 @@ export function useCreateProject() {
      */
     mutationFn: (input: NewProjectInput) => createProjectServerFn({ data: input }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      queryClient.invalidateQueries({ queryKey: projectKeys.all });
     },
   });
 }
@@ -92,15 +93,15 @@ export function useSetProjectStage() {
       if (error) throw new Error(error.message);
     },
     onMutate: async ({ id, stage, value }) => {
-      await queryClient.cancelQueries({ queryKey: ["projects"] });
-      const previous = queryClient.getQueryData<ProjectWithProgress[]>(["projects"]);
-      queryClient.setQueryData<ProjectWithProgress[]>(["projects"], (old) =>
+      await queryClient.cancelQueries({ queryKey: projectKeys.all });
+      const previous = queryClient.getQueryData<ProjectWithProgress[]>(projectKeys.all);
+      queryClient.setQueryData<ProjectWithProgress[]>(projectKeys.all, (old) =>
         old?.map((p) => (p.id === id ? { ...p, [`${stage}_done`]: value } : p)),
       );
       return { previous };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(["projects"], context.previous);
+      if (context?.previous) queryClient.setQueryData(projectKeys.all, context.previous);
     },
   });
 }
