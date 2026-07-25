@@ -50,13 +50,18 @@
  *   gradually migrate to serverFn calls.
  */
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { getCurrentUserServerFn } from "@/serverFns/auth";
 import { auth, type AuthUser } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import {
+  UNRESOLVED_AUTH_IDENTITY,
+  applyAuthQueryCacheTransition,
+  type PreviousAuthIdentity,
+} from "@/lib/auth-query-lifecycle";
 
 /**
  * Canonical query key for the current authenticated user.
@@ -105,7 +110,8 @@ export interface UseAuthResult {
 
   /**
    * Convenience wrapper around the legacy `auth.signOut()`.
-   * After calling, the query cache is immediately cleared and listeners notified.
+   * Isolation of non-auth query cache is owned by the root AuthProvider
+   * lifecycle bridge (C4c-4), not by this wrapper.
    *
    * @deprecated You can also import { auth } from "@/lib/auth" directly when
    * the hook is not already in scope (e.g. inside event handlers in Sidebar).
@@ -120,6 +126,10 @@ export interface UseAuthResult {
  * automatically fetch the user via a server round-trip on first mount
  * (or when cache is stale) using only cookie data — therefore it works
  * correctly even on a hard browser refresh of a deep-linked protected page.
+ *
+ * Note: identity-boundary cache isolation is mounted only in AuthProvider
+ * (single coordinator). Consumer calls to useAuth() do not install additional
+ * lifecycle listeners.
  */
 export function useAuth(): UseAuthResult {
   const queryClient = useQueryClient();
@@ -169,23 +179,6 @@ export function useAuth(): UseAuthResult {
 
   const { data, isLoading, refetch: rqRefetch } = query;
 
-  // Keep the TanStack Query cache in sync with the legacy client-side
-  // Supabase auth listener. After any `auth.signIn*` / `auth.signOut()` call
-  // the singleton's onAuthStateChange (and explicit notify in signIn/signOut)
-  // will fire. By writing the value into the query cache we give every
-  // `useAuth()` consumer an *instant* update without an extra round-trip.
-  //
-  // This is the bridge that makes the two worlds coexist cleanly during the
-  // migration and gives us the best of both:
-  //   • serverFn = authoritative on hard refresh / SSR
-  //   • client listener = immediate feedback after local mutations
-  useEffect(() => {
-    const unsubscribe = auth.onChange((newUser) => {
-      queryClient.setQueryData(AUTH_USER_QUERY_KEY, newUser);
-    });
-    return unsubscribe;
-  }, [queryClient]);
-
   // Normalised refetch that returns just the user (or null) for convenience.
   const refetch = async (): Promise<AuthUser | null> => {
     const result = await rqRefetch();
@@ -197,12 +190,10 @@ export function useAuth(): UseAuthResult {
   const isAuthenticated = Boolean(user);
   const hydrated = !isLoading;
 
+  // Isolation is owned by AuthProvider's single lifecycle bridge.
+  // Do not setQueryData(null) here — that would bypass cancel/remove.
   const signOut = async (): Promise<void> => {
     await auth.signOut();
-    // Force the cache to the signed-out state immediately.
-    // The listener above will also receive the notification from lib/auth,
-    // but an explicit set is harmless and guarantees timing.
-    queryClient.setQueryData(AUTH_USER_QUERY_KEY, null);
   };
 
   return {
@@ -216,11 +207,52 @@ export function useAuth(): UseAuthResult {
 }
 
 /**
+ * C4c-4: single app-lifetime auth/query-cache lifecycle bridge.
+ *
+ * Mounted only from AuthProvider so there is exactly one previous-identity
+ * tracker and one serialized transition chain. Consumer useAuth() calls must
+ * not install additional onChange isolation handlers.
+ */
+function useAuthQueryCacheLifecycleBridge(): void {
+  const queryClient = useQueryClient();
+  const previousIdentityRef = useRef<PreviousAuthIdentity>(UNRESOLVED_AUTH_IDENTITY);
+  const transitionChainRef = useRef(Promise.resolve());
+
+  useEffect(() => {
+    let disposed = false;
+
+    const unsubscribe = auth.onChange((newUser) => {
+      transitionChainRef.current = transitionChainRef.current
+        .then(async () => {
+          if (disposed) return;
+          const result = await applyAuthQueryCacheTransition(
+            queryClient,
+            previousIdentityRef.current,
+            newUser,
+          );
+          if (!disposed) {
+            previousIdentityRef.current = result.nextPreviousIdentity;
+          }
+        })
+        .catch((err) => {
+          if (process.env.NODE_ENV !== "production") {
+            logger.warn("[useAuth] auth cache transition failed", { error: String(err) });
+          }
+        });
+    });
+
+    return () => {
+      disposed = true;
+      unsubscribe();
+    };
+  }, [queryClient]);
+}
+
+/**
  * Root-level Auth provider.
  *
- * Call `useAuth()` inside this component (and therefore mount the TanStack
- * Query subscription + legacy-listener bridge) exactly once for the whole
- * application.
+ * Primes the auth query and installs the **single** auth/query-cache lifecycle
+ * bridge for the application lifetime.
  *
  * Must be rendered **inside** a `<QueryClientProvider>` (it calls
  * `useQueryClient()` and `useQuery` via the hook).
@@ -245,9 +277,9 @@ export function useAuth(): UseAuthResult {
  * `getCurrentUserServerFn`) so the value survives hard refresh / direct nav.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Prime the auth query and install the listener bridge for the app lifetime.
-  // Safe to call unconditionally; the hook gracefully handles "no user" and
-  // all error paths internally.
+  // Prime the auth query for the app lifetime.
   useAuth();
+  // Exactly one lifecycle coordinator (must not live inside every useAuth call).
+  useAuthQueryCacheLifecycleBridge();
   return children;
 }

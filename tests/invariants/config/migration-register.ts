@@ -138,7 +138,7 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     dependents: ["C5"],
     evidence: {
       notes:
-        "C4c In Progress. C4c-1: list query-key baseline (projectKeys.all). C4c-2: useProject → projectQueryOptions / projectKeys.byId. C4c-3: list/detail mutation sync — useSetProjectStage dual optimistic patch (exact cancel list+detail; detail only when object cached); useCreateProject seeds byId + exact list invalidate; nested keys not broadly cancelled/invalidated. Deferred: auth cache lifecycle (C4c-4), compatibility/store retirement (later). Prefer serverFn parity for stage updates later. C4c is not complete.",
+        "C4c In Progress. C4c-1: list query-key baseline (projectKeys.all). C4c-2: useProject → projectQueryOptions / projectKeys.byId. C4c-3: list/detail mutation sync. C4c-4: root auth/query-cache lifecycle — applyAuthQueryCacheTransition on auth.onChange; stable user id comparison; first observation non-destructive (unresolved sentinel); A→null and A→B cancel+remove non-auth queries; exact AUTH_USER_QUERY_KEY preserved; serialized rapid transitions; signOut relies on coordinator (not setQueryData-only). Project keys/mutations unchanged. Deferred: store/compatibility retirement (later). C4c is not complete.",
     },
   },
   {

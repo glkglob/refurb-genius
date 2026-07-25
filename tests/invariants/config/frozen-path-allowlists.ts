@@ -8,6 +8,8 @@ export const LIB_ALLOWLIST = [
   "src/lib/ai-quality-feedback.ts",
   "src/lib/analytics.ts",
   "src/lib/auth.ts",
+  "src/lib/auth-query-lifecycle.test.ts",
+  "src/lib/auth-query-lifecycle.ts",
   "src/lib/concurrency.ts",
   "src/lib/deal-copilot/dealAnalysis.ts",
   "src/lib/deal-copilot/dealFormatting.ts",

@@ -118,6 +118,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-auth-query-cache-lifecycle",
+    kind: "invariant",
+    source: "tests/invariants/auth-query-cache-lifecycle.invariant.test.ts",
+    description:
+      "C4c-4 auth/query-cache lifecycle: root auth.onChange delegates to applyAuthQueryCacheTransition; exact AUTH_USER_QUERY_KEY preserved; non-auth cancel+remove on identity boundary; signOut not sole isolation path; no queryClient.clear",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

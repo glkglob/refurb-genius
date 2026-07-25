@@ -98,6 +98,7 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/components/ui/skeleton.tsx|@/lib/utils",
   "src/components/ui/textarea.tsx|@/lib/utils",
   "src/hooks/useAuth.ts|@/lib/auth",
+  "src/hooks/useAuth.ts|@/lib/auth-query-lifecycle",
   "src/hooks/useAuth.ts|@/lib/logger",
   "src/hooks/useGallery.ts|@/lib/auth",
   "src/hooks/useGallery.ts|@/lib/logger",
