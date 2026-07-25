@@ -13,7 +13,7 @@ grade specification and cost plan.
 
 | Concern              | Module            | Notes                                                      |
 | -------------------- | ----------------- | ---------------------------------------------------------- |
-| Project schema       | `@/core/projects` | `Project`, `NewProjectInput`, `projectStore`, helpers.     |
+| Project schema       | `@/core/projects` | Domain types (`Project`, `NewProjectInput`, helpers). Live data via canonical Projects hooks/query options — Refurb IQ does not own Projects cache or persistence. |
 | Estimate items       | `@/core/pricing`  | `PricingEstimateItem` + `runPricingEngine` line items.     |
 | Refurb pricing       | `@/core/pricing`  | Region / condition / finish multipliers, VAT, contingency. |
 | Reporting            | `@/core/reports`  | `buildReport` + `ReportSection` for client-facing exports. |

@@ -13,7 +13,7 @@ manually inside Refurb Genius today.
 
 | Concern              | Module            | Notes                                                        |
 | -------------------- | ----------------- | ------------------------------------------------------------ |
-| Project schema       | `@/core/projects` | `Project`, `NewProjectInput`, `projectStore`, helpers.       |
+| Project schema       | `@/core/projects` | Domain types (`Project`, `NewProjectInput`, helpers). Live data via React Query Projects hooks/query options — no projectStore. |
 | Refurb pricing       | `@/core/pricing`  | `runPricingEngine` — deterministic, region-aware.            |
 | Investor metrics     | `@/core/roi`      | `runRoiEngine` — ROI, yield, profit, score, risk.            |
 | Reporting            | `@/core/reports`  | `buildReport` — structured report object.                    |
@@ -29,11 +29,12 @@ Files are intentionally absent today — they are listed here so the seams are
 obvious to future contributors.
 
 - `acquisitionPipeline/` — kanban-style stages (Sourced → Underwritten →
-  Offer → Won/Lost). Wraps `projectStore` with a pipeline view; does not
-  fork the project schema.
+  Offer → Won/Lost). Presentation over canonical Projects IDs and React Query
+  Projects data — does not own Projects persistence or fork the project schema.
 - `opportunities/` — candidate deals ingested from feeds (portals, off-market
-  lists, agent emails). Each opportunity converts into a `Project` via
-  `createProject` once the user chooses to underwrite it.
+  lists, agent emails). Each opportunity converts into a `Project` via the
+  canonical create path (`createProjectServerFn` / Projects hooks) once the user
+  chooses to underwrite it.
 - `savedSearches/` — persisted filter sets (region, price band, yield
   threshold). Reuses `UK_REGIONS` and `PropertyType` from `@/core/projects`.
 - `alerts/` — fan-out notifications when a new opportunity matches a saved

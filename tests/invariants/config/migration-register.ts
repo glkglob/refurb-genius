@@ -79,18 +79,20 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "C4",
     title: "Projects Ownership Migration",
-    status: "Planned",
+    status: "Completed",
     blastRadius: "T3",
     problem:
-      "Project domain/persistence still concentrated in frozen src/lib/projects with multi-layer fan-out.",
-    currentOwner: "src/lib/projects + core/hooks/serverFns",
-    targetOwner: "Staged seams C4a → C4b → C4c (not a single PR)",
+      "Resolved: Project domain, store dual-path, and live client runtime were concentrated across lib/core/hooks; now pure domain + React Query ownership (C4a→C4b→C4c).",
+    currentOwner:
+      "src/core/projects/domain (pure) + React Query (src/hooks/useProjects, src/lib/queries/projects) + createProjectServerFn; lib/projects domain-only compat",
+    targetOwner:
+      "Same as currentOwner — C4a domain, C4b store relocation (historical), C4c RQ sole cache + store retirement",
     dependencies: [],
     dependents: ["C4a", "C4b", "C4c", "C5"],
     evidence: {
-      productionImporters: 11,
+      commit: "6f57a02",
       notes:
-        "Umbrella only. Split: C4a pure domain types/helpers; C4b projectStore; C4c hooks/runtime. Do not ship monolithic C4.",
+        "Umbrella completed via staged seams: C4a pure domain (5b561fd); C4b projectStore ownership relocation to core (5b04d0e); C4c live hooks/RQ + store retirement + list authority (4e37136…6f57a02). Final architecture: pure Projects domain under src/core/projects/domain; product list/detail via projectKeys + projectsListQueryOptions/projectQueryOptions; create via createProjectServerFn; no Projects singleton store; lib/projects domain-only. C5 Photos/Storage is a separate Planned candidate — C4 completion does not complete C5, photoStore, media RLS, or storage paths. Deferred outside C4: optional stage hardening, full auth unification, mutation-cache isolation, browser E2E.",
     },
   },
   {
@@ -100,14 +102,15 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     blastRadius: "T1",
     problem:
       "Project domain types/constants/pure helpers were co-defined with browser projectStore in src/lib/projects.",
-    currentOwner: "src/core/projects/domain (pure) + lib/projects store/compat shim",
+    currentOwner:
+      "src/core/projects/domain (pure; historical phase also left store on lib/projects until C4b/C4c-5)",
     targetOwner: "src/core/projects/domain (re-exports @repo/types + pure helpers)",
     dependencies: ["C4"],
     dependents: ["C4b", "C4c"],
     evidence: {
       commit: "5b561fd",
       notes:
-        "Completion Phase 12G. Implementation complete: pure Projects domain at src/core/projects/domain (types/constants re-export @repo/types; estimatedRefurbCost/estimatedProfit helpers; barrel index). lib/projects is store + compatibility re-export; projectStore body preserved. Domain invariant active: tests/invariants/projects-domain-purity.invariant.test.ts. Phase 12D independent verification PASS. Implementation commit 5b561fdaa34b7d9693142f6e056f85e89f775017 (24 files). Push Phase 12F: de6295a..5b561fd main -> main; HEAD == origin/main; divergence 0 0. Required CI success (CI run 30131858639: ci + invariant-tests; Security run 30131858614: gitleaks, dependency-audit, server-only-boundary, client-bundle-secret-smoke). Pages + Vercel success. Supabase Preview external check failed (non-required; no schema change in C4a) — non-blocking. Excludes: projectStore redesign (C4b), useProjects behaviour (C4c), Photos/C5, SQL/schema/RLS. C4 umbrella remains Planned; C4b/C4c Planned; AO-1 Active unaffected.",
+        "Completion Phase 12G. Implementation complete: pure Projects domain at src/core/projects/domain (types/constants re-export @repo/types; estimatedRefurbCost/estimatedProfit helpers; barrel index). At C4a close, lib/projects remained store + compatibility re-export with projectStore body preserved (store retirement is C4c-5, not C4a). Domain invariant active: tests/invariants/projects-domain-purity.invariant.test.ts. Phase 12D independent verification PASS. Implementation commit 5b561fdaa34b7d9693142f6e056f85e89f775017 (24 files). Push Phase 12F: de6295a..5b561fd main -> main. Required CI success (CI run 30131858639; Security 30131858614). Supabase Preview external non-required. Excludes: projectStore redesign (C4b), useProjects behaviour (C4c), Photos/C5, SQL/schema/RLS. Historical: C4 umbrella was still Planned at C4a close; later completed with C4c.",
     },
   },
   {
@@ -115,32 +118,37 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     title: "Project Store Ownership / Deprecation",
     status: "Completed",
     blastRadius: "T2",
-    problem: "Browser projectStore remains in src/lib/projects with dual cache vs React Query.",
-    currentOwner: "src/core/projects/projectStore.ts (implementation) + lib/projects compat shim",
-    targetOwner: "src/core/projects/projectStore.ts (canonical); lib/projects re-export only",
+    problem:
+      "Browser projectStore lived in src/lib/projects with dual cache vs React Query (phase problem at C4b start).",
+    currentOwner:
+      "Historical phase target was src/core/projects/projectStore.ts; store runtime later deleted by C4c-5 — no current projectStore owner",
+    targetOwner:
+      "Historical: core projectStore + lib re-export only. Superseded: C4c-5 retired the store; live cache is React Query only",
     dependencies: ["C4a"],
     dependents: ["C4c"],
     evidence: {
       commit: "5b04d0e",
       notes:
-        "Completion Phase 13G. Ownership inversion complete: projectStore runtime body lives only in src/core/projects/projectStore.ts; src/lib/projects.ts is re-export-only (domain + store). No dual store instance; no reverse core→@/lib/projects edge. Behaviour-preserving relocation (import-path adjustments only). Domain purity + store ownership invariant: tests/invariants/projects-domain-purity.invariant.test.ts. Phase 13D independent verification PASS. Implementation commit 5b04d0ef1c7769d01d8ae4ddd1babf1baea1d4af. Push Phase 13F: f76ef73..5b04d0e main -> main; HEAD == origin/main; divergence 0 0. Required CI success (CI run 30133888553: ci typecheck/lint/build:vercel + invariant-tests 176/176 including C4b ownership tests; Security run 30133888444: gitleaks, dependency-audit report-only, server-only-boundary, client-bundle-secret-smoke). Pages + Vercel success. Supabase Preview external non-required. Excludes: hooks/RQ convergence (C4c), Photos/C5, SQL/schema/RLS, store deletion. Dual-cache convergence remains C4c. C4 umbrella remains Planned; C4c/C5 Planned; AO-1 Active unaffected.",
+        "Completion Phase 13G. Ownership inversion complete for that phase: projectStore runtime body lived only in src/core/projects/projectStore.ts; src/lib/projects.ts re-export-only (domain + store). No dual store instance; no reverse core→@/lib/projects edge. Behaviour-preserving relocation (import-path adjustments only). This phase did not delete the store — deletion is C4c-5 (b0455b0). Domain purity + store ownership invariant evolved with C4c-5 retirement. Implementation commit 5b04d0ef1c7769d01d8ae4ddd1babf1baea1d4af. Push Phase 13F: f76ef73..5b04d0e. Required CI success (CI 30133888553; Security 30133888444). Excludes at phase close: hooks/RQ convergence (C4c), Photos/C5, SQL/schema/RLS. Historical sequence only.",
     },
   },
   {
     id: "C4c",
     title: "Live Project Hooks & Runtime Ownership",
-    status: "In Progress",
+    status: "Completed",
     blastRadius: "T2",
     problem:
-      "Projects client ownership: hooks/RQ list+detail+store retirement done; optional stage hardening and C4c close-out remain.",
-    currentOwner: "src/hooks/useProjects + React Query + createProjectServerFn",
+      "Resolved: dual Projects client paths (store + RQ), non-canonical detail/list ownership, dual list keys, and missing identity-boundary query isolation.",
+    currentOwner:
+      "React Query sole Projects client cache: src/hooks/useProjects + src/lib/queries/projects (projectKeys, projectsListQueryOptions, projectQueryOptions); createProjectServerFn; root applyAuthQueryCacheTransition; useProjectCatalog presentation adapter",
     targetOwner:
-      "Hooks + RQ sole Projects client cache; create via serverFn; catalog adapter on projectKeys.all; C4c closed via governance",
+      "Same as currentOwner — hooks + RQ sole cache; projectKeys.all list; projectKeys.byId detail; catalog adapter; no projectStore",
     dependencies: ["C4a"],
     dependents: ["C5"],
     evidence: {
+      commit: "6f57a02",
       notes:
-        'C4c In Progress. C4c-1: list query-key baseline (projectKeys.all). C4c-2: useProject → projectQueryOptions / projectKeys.byId. C4c-3: list/detail mutation sync. C4c-4: root auth/query-cache lifecycle isolation. C4c-5: projectStore retired. C4c-6: Projects list authority convergence — projectsListQueryOptions owns projectKeys.all; useProjects + useProjectCatalog share one cache; ["project-catalog"] removed; catalog is pure adapter (toProjectCatalog); auth-gated enabled on both list hooks; create exact invalidate covers all list consumers. Deferred: optional stage hardening (C4c-7); C4c completion governance (C4c-8). Out of scope: photoStore (C5), full auth singleton retirement, SQL/schema/RLS. C4c is not complete.',
+        'C4c Completed. Final definition: all live Projects client reads/mutations use canonical React Query hooks and projectKeys; ProjectStore removed; product list consumers share one query authority; identity-boundary cache isolation enforced; compatibility surfaces expose no mutable Projects store APIs; create uses createProjectServerFn; remaining auth platform, Photos/Storage (C5), optional stage hardening, mutation-cache isolation, and browser E2E are outside C4c. Phases: C4c-1 (4e37136) projectKeys.all list baseline; C4c-2 (3b544d7) useProject → projectQueryOptions/byId; C4c-3 (b154abd) list/detail mutation sync (create seeds byId + exact list invalidate; stage dual-cache optimism); C4c-4 (cf62a20) root auth/query-cache lifecycle isolation; C4c-5 (b0455b0) projectStore + store helpers retired; C4c-6 (6f57a02) projectsListQueryOptions sole list authority, useProjectCatalog adapter, ["project-catalog"] removed. Architecture: projectKeys.all sole product list key; projectsListQueryOptions()/fetchProjectsList sole full-list authority; projectQueryOptions/byId detail; stage mutates canonical list+detail RQ caches (browser Supabase write retained); auth-boundary non-auth purge via AuthProvider bridge. Deferred non-blocking: optional stage onSuccess/serverFn (C4c-7 never required); broader rename-resistant list enforcement; browser create-to-Analyze E2E. Out of scope (not claimed): full auth unification, mutation-cache isolation, photoStore/C5, SQL/schema/RLS. Invariants: inv-projects-query-keys, inv-projects-domain-purity, inv-auth-query-cache-lifecycle. Remote: C4c-6E CI/Security/Pages/Vercel success on 6f57a02; Supabase Preview external non-blocking.',
     },
   },
   {
@@ -156,7 +164,7 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     evidence: {
       productionImporters: 9,
       notes:
-        "Split C5a ai-upload ownership clarity / C5b remaining consumers. Should follow project seams (after C4c preferred).",
+        "Split C5a ai-upload ownership clarity / C5b remaining consumers. C4/C4c Projects ownership is complete; C5 remains separate for photoStore, upload/delete, storage paths, media query ownership, storage RLS, and Projects barrel photo compatibility re-exports. Prefer sequencing after C4c (done).",
     },
   },
   {

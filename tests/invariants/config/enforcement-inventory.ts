@@ -102,7 +102,7 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     kind: "invariant",
     source: "tests/invariants/projects-domain-purity.invariant.test.ts",
     description:
-      "C4a domain purity (domain pure; Project types not redefined in lib) + C4c-5 projectStore retirement (no projectStore definition/import under src; lib/projects domain-only; no core→@/lib/projects reverse edge; no store-backed helpers)",
+      "C4/C4c sealed: C4a domain purity (domain pure; Project types not redefined in lib) + C4c-5 projectStore retirement (no projectStore definition/import under src; lib/projects domain-only; no core→@/lib/projects reverse edge; no store-backed helpers)",
     enforcementLevel: "enforced",
     owner: "platform architecture",
     status: "active",
@@ -112,7 +112,7 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     kind: "invariant",
     source: "tests/invariants/projects-query-keys.invariant.test.ts",
     description:
-      'C4c Projects query keys: canonical projectKeys in src/lib/queries/projects.ts; projectsListQueryOptions owns full list (projectKeys.all); no raw ["projects"] list keys; no ["project-catalog"] dual list; useProjectCatalog is adapter only; useProject uses projectQueryOptions/byId; stage dual-cache sync; create seeds byId + exact list invalidate',
+      'C4/C4c sealed: canonical projectKeys; projectsListQueryOptions owns full list (projectKeys.all); no raw ["projects"] list keys; no ["project-catalog"] dual list; useProjectCatalog adapter only; useProject uses projectQueryOptions/byId; stage dual-cache sync; create seeds byId + exact list invalidate',
     enforcementLevel: "enforced",
     owner: "platform architecture",
     status: "active",
@@ -122,7 +122,7 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     kind: "invariant",
     source: "tests/invariants/auth-query-cache-lifecycle.invariant.test.ts",
     description:
-      "C4c-4 auth/query-cache lifecycle: root auth.onChange delegates to applyAuthQueryCacheTransition; exact AUTH_USER_QUERY_KEY preserved; non-auth cancel+remove on identity boundary; signOut not sole isolation path; no queryClient.clear",
+      "C4c-4 sealed: root auth.onChange delegates to applyAuthQueryCacheTransition; exact AUTH_USER_QUERY_KEY preserved; non-auth cancel+remove on identity boundary; signOut not sole isolation path; no queryClient.clear (Projects list is non-auth and is purged on identity boundary)",
     enforcementLevel: "enforced",
     owner: "platform architecture",
     status: "active",
