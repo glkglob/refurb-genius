@@ -178,12 +178,23 @@ test("projects query keys — useProjects list operations use projectKeys.all", 
     0,
     "useProjects must not contain raw Projects list query keys",
   );
-  // Ensure the six list-cache call sites use the factory (not a different key)
+  // List query + mutation cache ops use the factory key (C4c-3 adds exact: true)
   assert.match(text, /queryKey:\s*projectKeys\.all/);
-  assert.match(text, /invalidateQueries\(\{\s*queryKey:\s*projectKeys\.all\s*\}\)/);
-  assert.match(text, /cancelQueries\(\{\s*queryKey:\s*projectKeys\.all\s*\}\)/);
-  assert.match(text, /getQueryData(?:<[^>]*>)?\(\s*projectKeys\.all\s*\)/);
-  assert.match(text, /setQueryData(?:<[^>]*>)?\(\s*projectKeys\.all\s*,/);
+  assert.match(
+    text,
+    /invalidateQueries\(\{\s*queryKey:\s*projectKeys\.all\s*,\s*exact:\s*true\s*\}\)/,
+    "create must invalidate projectKeys.all with exact: true",
+  );
+  assert.match(
+    text,
+    /cancelQueries\(\{\s*queryKey:\s*projectKeys\.all\s*,\s*exact:\s*true\s*\}\)/,
+    "stage must cancel projectKeys.all with exact: true",
+  );
+  // List get/set live in C4c-3 helpers in the factory module
+  const factoryPath = join(ROOT, CANONICAL_FACTORY);
+  const factoryText = readFileSync(factoryPath, "utf8");
+  assert.match(factoryText, /getQueryData(?:<[^>]*>)?\(\s*projectKeys\.all\s*\)/);
+  assert.match(factoryText, /setQueryData(?:<[^>]*>)?\(\s*projectKeys\.all\s*,/);
 });
 
 // ─── Self-contained negative / positive probes (no production file mutation) ─
@@ -446,5 +457,86 @@ export function useProject(id: string) {
   assert.ok(
     hits.some((h) => h.forbidden.includes("missing canonical")),
     `expected missing-canonical hit, got: ${JSON.stringify(hits)}`,
+  );
+});
+
+// ─── C4c-3: list/detail mutation synchronization ────────────────────────────
+
+test("projects query keys — C4c-3 stage dual-cache sync uses exact list and detail keys", () => {
+  const hookPath = join(ROOT, USE_PROJECTS_HOOK);
+  const text = readFileSync(hookPath, "utf8");
+
+  // Stage mutation must reference both authorities
+  assert.match(text, /projectKeys\.byId/, "stage sync must reference projectKeys.byId");
+  assert.match(
+    text,
+    /cancelQueries\(\{\s*queryKey:\s*projectKeys\.byId\([^)]+\)\s*,\s*exact:\s*true\s*\}\)/,
+    "stage must cancel projectKeys.byId with exact: true",
+  );
+  assert.match(
+    text,
+    /cancelQueries\(\{\s*queryKey:\s*projectKeys\.all\s*,\s*exact:\s*true\s*\}\)/,
+    "stage must cancel projectKeys.all with exact: true (not broad prefix)",
+  );
+  // Must use dual-cache optimistic helper (not list-only inline patch)
+  assert.match(
+    text,
+    /applyProjectStageOptimistic/,
+    "stage onMutate must use applyProjectStageOptimistic for dual-cache patch",
+  );
+  assert.match(
+    text,
+    /restoreProjectStageCaches/,
+    "stage onError must use restoreProjectStageCaches",
+  );
+
+  // Forbid broad list-only cancel without exact (regression of pre-C4c-3 pattern)
+  assert.equal(
+    /cancelQueries\(\{\s*queryKey:\s*projectKeys\.all\s*\}\)/.test(text) &&
+      !/cancelQueries\(\{\s*queryKey:\s*projectKeys\.all\s*,\s*exact:\s*true\s*\}\)/.test(text),
+    false,
+    "stage must not cancel projectKeys.all without exact: true",
+  );
+});
+
+test("projects query keys — C4c-3 create seeds detail and exact-invalidates list", () => {
+  const hookPath = join(ROOT, USE_PROJECTS_HOOK);
+  const text = readFileSync(hookPath, "utf8");
+
+  assert.match(
+    text,
+    /seedProjectDetailCache/,
+    "create onSuccess must seed detail via seedProjectDetailCache",
+  );
+  assert.match(
+    text,
+    /invalidateQueries\(\{\s*queryKey:\s*projectKeys\.all\s*,\s*exact:\s*true\s*\}\)/,
+    "create must invalidate projectKeys.all with exact: true",
+  );
+  // Must not invalidate byId without exact (would hit nested resources)
+  const broadByIdInvalidate =
+    /invalidateQueries\(\{\s*queryKey:\s*projectKeys\.byId\([^)]+\)\s*\}\)/.test(text) &&
+    !/invalidateQueries\(\{\s*queryKey:\s*projectKeys\.byId\([^)]+\)\s*,\s*exact:\s*true/.test(
+      text,
+    );
+  assert.equal(
+    broadByIdInvalidate,
+    false,
+    "must not invalidate projectKeys.byId without exact: true",
+  );
+});
+
+test("projects query keys — C4c-3 factory helpers use projectKeys factory only", () => {
+  const factoryPath = join(ROOT, CANONICAL_FACTORY);
+  const text = readFileSync(factoryPath, "utf8");
+  assert.match(text, /function applyProjectStageOptimistic/);
+  assert.match(text, /function restoreProjectStageCaches/);
+  assert.match(text, /function seedProjectDetailCache/);
+  assert.match(text, /projectKeys\.byId/);
+  assert.match(text, /projectKeys\.all/);
+  assert.equal(
+    findRawProjectsListKeys(text, CANONICAL_FACTORY).length,
+    0,
+    "helpers must not introduce raw list-key literals outside factory all definition",
   );
 });

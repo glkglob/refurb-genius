@@ -205,3 +205,122 @@ export function rollbackList<T>(
     queryClient.setQueryData(queryKey, previous);
   }
 }
+
+// ─── C4c-3: Project list/detail mutation cache helpers ─────────────────────
+
+/** Stage progress booleans on ProjectWithProgress (photos_done, …). */
+export type ProjectStageDoneField =
+  | "photos_done"
+  | "analysis_done"
+  | "estimate_done"
+  | "report_done";
+
+/** Partial progress patch for stage optimistic updates. */
+export type ProjectProgressPatch = Partial<Pick<ProjectWithProgress, ProjectStageDoneField>>;
+
+/** Maps workflow stage name → ProjectWithProgress progress field. */
+export function projectStageDoneField(
+  stage: "photos" | "analysis" | "estimate" | "report",
+): ProjectStageDoneField {
+  return `${stage}_done`;
+}
+
+export function projectStagePatch(
+  stage: "photos" | "analysis" | "estimate" | "report",
+  value: boolean,
+): ProjectProgressPatch {
+  return { [projectStageDoneField(stage)]: value };
+}
+
+/**
+ * Immutable list patch: update matching project id only.
+ * Returns undefined when list cache is absent (does not invent []).
+ */
+export function patchProjectInList(
+  projects: ProjectWithProgress[] | undefined,
+  projectId: string,
+  patch: ProjectProgressPatch,
+): ProjectWithProgress[] | undefined {
+  if (projects === undefined) return undefined;
+  return projects.map((p) => (p.id === projectId ? { ...p, ...patch } : p));
+}
+
+/**
+ * Immutable detail patch.
+ * - undefined → undefined (absent cache; never fabricate)
+ * - null → null (missing-project result; never fabricate)
+ * - object → shallow-merged ProjectWithProgress
+ */
+export function patchProjectDetail(
+  project: ProjectWithProgress | null | undefined,
+  patch: ProjectProgressPatch,
+): ProjectWithProgress | null | undefined {
+  if (project === undefined) return undefined;
+  if (project === null) return null;
+  return { ...project, ...patch };
+}
+
+export type ProjectStageCacheSnapshot = {
+  previousList: ProjectWithProgress[] | undefined;
+  previousDetail: ProjectWithProgress | null | undefined;
+};
+
+/**
+ * Apply stage optimistic updates to list + detail caches.
+ * Detail is written only when an existing Project object is cached
+ * (not when undefined or null).
+ */
+export function applyProjectStageOptimistic(
+  queryClient: QueryClient,
+  projectId: string,
+  patch: ProjectProgressPatch,
+): ProjectStageCacheSnapshot {
+  const previousList = queryClient.getQueryData<ProjectWithProgress[]>(projectKeys.all);
+  const previousDetail = queryClient.getQueryData<ProjectWithProgress | null>(
+    projectKeys.byId(projectId),
+  );
+
+  if (previousList !== undefined) {
+    queryClient.setQueryData<ProjectWithProgress[]>(
+      projectKeys.all,
+      patchProjectInList(previousList, projectId, patch),
+    );
+  }
+
+  // Only patch a real Project object — never seed absent or null detail.
+  if (previousDetail != null) {
+    queryClient.setQueryData<ProjectWithProgress | null>(
+      projectKeys.byId(projectId),
+      patchProjectDetail(previousDetail, patch),
+    );
+  }
+
+  return { previousList, previousDetail };
+}
+
+/**
+ * Restore list and detail snapshots independently.
+ * - undefined previous → leave cache absent (do not write)
+ * - null detail previous → restore null
+ * - array/object previous → restore value
+ */
+export function restoreProjectStageCaches(
+  queryClient: QueryClient,
+  projectId: string,
+  snapshot: ProjectStageCacheSnapshot,
+): void {
+  if (snapshot.previousList !== undefined) {
+    queryClient.setQueryData(projectKeys.all, snapshot.previousList);
+  }
+  if (snapshot.previousDetail !== undefined) {
+    queryClient.setQueryData(projectKeys.byId(projectId), snapshot.previousDetail);
+  }
+}
+
+/** Seed canonical detail cache after create (complete ProjectWithProgress). */
+export function seedProjectDetailCache(
+  queryClient: QueryClient,
+  project: ProjectWithProgress,
+): void {
+  queryClient.setQueryData(projectKeys.byId(project.id), project);
+}

@@ -112,7 +112,7 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     kind: "invariant",
     source: "tests/invariants/projects-query-keys.invariant.test.ts",
     description:
-      'C4c Projects query keys: canonical projectKeys only in src/lib/queries/projects.ts; no raw ["projects"] list-key literals in runtime query APIs; use projectKeys.all for list; useProject must use projectQueryOptions/projectKeys.byId (not list-derived find)',
+      'C4c Projects query keys: canonical projectKeys only in src/lib/queries/projects.ts; no raw ["projects"] list-key literals; projectKeys.all for list; useProject uses projectQueryOptions/byId; stage dual-cache sync with exact list/detail cancel; create seeds byId + exact list invalidate',
     enforcementLevel: "enforced",
     owner: "platform architecture",
     status: "active",

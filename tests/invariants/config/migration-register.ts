@@ -138,7 +138,7 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     dependents: ["C5"],
     evidence: {
       notes:
-        'C4c In Progress. C4c-1: list query-key baseline — useProjects uses projectKeys.all (serialized ["projects"]); raw list-key literals forbidden by inv-projects-query-keys. C4c-2: useProject converges onto projectQueryOptions / projectKeys.byId (hook-layer auth enabled + isLoading→isPending); no longer list-derived find. Deferred: list/detail mutation synchronization (C4c-3), auth cache lifecycle clear (C4c-4), compatibility/store retirement (later). Prefer serverFn parity for stage updates later. C4c is not complete.',
+        "C4c In Progress. C4c-1: list query-key baseline (projectKeys.all). C4c-2: useProject → projectQueryOptions / projectKeys.byId. C4c-3: list/detail mutation sync — useSetProjectStage dual optimistic patch (exact cancel list+detail; detail only when object cached); useCreateProject seeds byId + exact list invalidate; nested keys not broadly cancelled/invalidated. Deferred: auth cache lifecycle (C4c-4), compatibility/store retirement (later). Prefer serverFn parity for stage updates later. C4c is not complete.",
     },
   },
   {

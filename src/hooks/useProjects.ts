@@ -3,7 +3,14 @@ import { useAuth } from "./useAuth";
 import { supabase } from "@/platform/supabase/browser";
 import type { ProjectStage, NewProjectInput } from "@/core/projects/domain";
 import { rowToProject, type ProjectWithProgress } from "@/lib/mappers";
-import { projectKeys, projectQueryOptions } from "@/lib/queries/projects";
+import {
+  projectKeys,
+  projectQueryOptions,
+  projectStagePatch,
+  applyProjectStageOptimistic,
+  restoreProjectStageCaches,
+  seedProjectDetailCache,
+} from "@/lib/queries/projects";
 
 // NEW: server-side create mutation (SSR + hard-refresh safe).
 // Replaces the previous client-only supabase.auth.getUser() + insert.
@@ -69,17 +76,25 @@ export function useCreateProject() {
      *   - calls `requireUser()` (cookie-validated via the server Supabase client)
      *   - writes the row using the real `user.id` from the validated session
      *
-     * The rest of the hook (React Query caching, onSuccess invalidation, error
-     * handling in the form) is unchanged so the UI in projects.new.tsx continues
-     * to work identically.
+     * C4c-3: onSuccess seeds projectKeys.byId and invalidates the list with exact: true
+     * so nested Project resource queries are not broadly refetched.
      */
     mutationFn: (input: NewProjectInput) => createProjectServerFn({ data: input }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.all });
+    onSuccess: (project) => {
+      seedProjectDetailCache(queryClient, project);
+      queryClient.invalidateQueries({ queryKey: projectKeys.all, exact: true });
     },
   });
 }
 
+/**
+ * Stage progress mutation (C4c-3).
+ *
+ * Dual-cache optimistic sync: projectKeys.all + projectKeys.byId(id) when detail
+ * is already a cached Project. Cancels only exact list/detail keys (not nested).
+ * Overlapping stage mutations may still race on rollback (accepted; same class as
+ * pre-C4c-3 list-only optimism).
+ */
 export function useSetProjectStage() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -104,15 +119,23 @@ export function useSetProjectStage() {
       if (error) throw new Error(error.message);
     },
     onMutate: async ({ id, stage, value }) => {
-      await queryClient.cancelQueries({ queryKey: projectKeys.all });
-      const previous = queryClient.getQueryData<ProjectWithProgress[]>(projectKeys.all);
-      queryClient.setQueryData<ProjectWithProgress[]>(projectKeys.all, (old) =>
-        old?.map((p) => (p.id === id ? { ...p, [`${stage}_done`]: value } : p)),
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: projectKeys.all, exact: true }),
+        queryClient.cancelQueries({ queryKey: projectKeys.byId(id), exact: true }),
+      ]);
+      const snapshot = applyProjectStageOptimistic(
+        queryClient,
+        id,
+        projectStagePatch(stage, value),
       );
-      return { previous };
+      return { ...snapshot, id };
     },
     onError: (_err, _vars, context) => {
-      if (context?.previous) queryClient.setQueryData(projectKeys.all, context.previous);
+      if (!context) return;
+      restoreProjectStageCaches(queryClient, context.id, {
+        previousList: context.previousList,
+        previousDetail: context.previousDetail,
+      });
     },
   });
 }
