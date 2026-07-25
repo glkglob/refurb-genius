@@ -1,9 +1,12 @@
 /**
- * C4c-1 — Projects list query-key contract.
+ * C4c-1 / C4c-2 — Projects list + detail query-key contract.
  *
- * Runtime Projects list cache operations must use projectKeys.all from
+ * C4c-1: Runtime Projects list cache operations must use projectKeys.all from
  * src/lib/queries/projects.ts. Raw ["projects"] / ['projects'] query-key
  * literals are forbidden outside the canonical factory definition.
+ *
+ * C4c-2: useProject must not derive a single project from the list cache
+ * (useProjects + .find). It must use projectQueryOptions / projectKeys.byId.
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -12,7 +15,10 @@ import test from "node:test";
 
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const CANONICAL_FACTORY = "src/lib/queries/projects.ts";
+const USE_PROJECTS_HOOK = "src/hooks/useProjects.ts";
 const REQUIRED_REPLACEMENT = "projectKeys.all (from @/lib/queries/projects)";
+const REQUIRED_DETAIL_REPLACEMENT =
+  "projectQueryOptions(id) / projectKeys.byId (canonical detail; not list-derived find)";
 
 /** Roots scanned for raw Projects list query keys and duplicate factories. */
 const SCAN_ROOTS = [
@@ -248,4 +254,197 @@ test("projects query keys — probe: factory all definition accepted", () => {
 test("projects query keys — probe: second projectKeys factory rejected by scanner scope", () => {
   // The production scan counts export const projectKeys; fixture proves the pattern.
   assert.match(`export const projectKeys = { all: ["projects"] as const };`, PROJECT_KEYS_EXPORT);
+});
+
+// ─── C4c-2: useProject must not be list-derived ─────────────────────────────
+
+export type ListDerivedHit = {
+  file: string;
+  forbidden: string;
+  detail: string;
+};
+
+/**
+ * Extract the body of `export function useProject(...) { ... }` (brace-balanced).
+ * Static/regex-level extraction — not a full AST. Sufficient for this narrow hook.
+ */
+export function extractUseProjectBody(content: string): string | null {
+  const match = content.match(/export\s+function\s+useProject\s*\([^)]*\)\s*(?::\s*[^{]+)?\{/);
+  if (!match || match.index === undefined) return null;
+  const start = match.index + match[0].length - 1; // at '{'
+  let depth = 0;
+  for (let i = start; i < content.length; i++) {
+    const ch = content[i];
+    if (ch === "{") depth++;
+    else if (ch === "}") {
+      depth--;
+      if (depth === 0) {
+        return content.slice(start + 1, i);
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Detect list-derived single-project reads inside a useProject implementation.
+ * Exported for fixture probes. Narrow: only flags useProjects() call + .find
+ * derivation patterns, or missing canonical detail authority when useProject exists.
+ */
+export function findListDerivedUseProject(
+  content: string,
+  fileLabel = "fixture",
+): ListDerivedHit[] {
+  const body = extractUseProjectBody(content);
+  if (body === null) return [];
+
+  const hits: ListDerivedHit[] = [];
+
+  // Forbidden: call useProjects() inside useProject (list derivation)
+  if (/\buseProjects\s*\(/.test(body)) {
+    hits.push({
+      file: fileLabel,
+      forbidden: "useProjects() inside useProject",
+      detail: "useProject must not call useProjects; use projectQueryOptions / projectKeys.byId",
+    });
+  }
+
+  // Forbidden: .find(...) used to pick a project from a collection
+  if (/\.find\s*\(/.test(body)) {
+    hits.push({
+      file: fileLabel,
+      forbidden: ".find(...) inside useProject",
+      detail:
+        "useProject must not derive a Project via .find on the list cache; use projectQueryOptions",
+    });
+  }
+
+  // Required: must reference projectQueryOptions or projectKeys.byId
+  const hasCanonical =
+    /\bprojectQueryOptions\s*\(/.test(body) || /\bprojectKeys\.byId\s*\(/.test(body);
+  if (!hasCanonical) {
+    hits.push({
+      file: fileLabel,
+      forbidden: "missing canonical detail authority",
+      detail: `useProject must use ${REQUIRED_DETAIL_REPLACEMENT}`,
+    });
+  }
+
+  return hits;
+}
+
+function formatListDerivedHit(hit: ListDerivedHit): string {
+  return (
+    `${hit.file}: forbidden list-derived useProject\n` +
+    `  forbidden pattern: ${hit.forbidden}\n` +
+    `  required canonical replacement: ${REQUIRED_DETAIL_REPLACEMENT}\n` +
+    `  detail: ${hit.detail}`
+  );
+}
+
+test("projects query keys — C4c-2 useProject uses canonical detail (not list-derived)", () => {
+  const hookPath = join(ROOT, USE_PROJECTS_HOOK);
+  assert.ok(existsSync(hookPath), `missing ${USE_PROJECTS_HOOK}`);
+  const text = readFileSync(hookPath, "utf8");
+  const body = extractUseProjectBody(text);
+  assert.ok(body !== null, "expected export function useProject in useProjects.ts");
+
+  const hits = findListDerivedUseProject(text, USE_PROJECTS_HOOK);
+  assert.equal(
+    hits.length,
+    0,
+    hits.map(formatListDerivedHit).join("\n\n") || "unexpected list-derived useProject",
+  );
+
+  assert.match(
+    text,
+    /projectQueryOptions/,
+    "useProjects.ts must reference projectQueryOptions for detail reads",
+  );
+  assert.match(body!, /projectQueryOptions\s*\(/, "useProject body must call projectQueryOptions");
+  // useProject body must not call useProjects (list derivation)
+  assert.equal(/\buseProjects\s*\(/.test(body!), false, "useProject must not call useProjects()");
+  assert.equal(/\.find\s*\(/.test(body!), false, "useProject must not use .find(...)");
+});
+
+// ─── C4c-2 negative / positive probes ───────────────────────────────────────
+
+test("C4c-2 probe: list-derived useProject with useProjects + find rejected", () => {
+  const sample = `
+export function useProject(id: string) {
+  const { data } = useProjects();
+  return { data: data?.find((project) => project.id === id) };
+}
+`;
+  const hits = findListDerivedUseProject(sample, "probe-list-derived");
+  assert.ok(hits.length >= 2, `expected useProjects + find hits, got: ${JSON.stringify(hits)}`);
+  assert.ok(hits.some((h) => h.forbidden.includes("useProjects")));
+  assert.ok(hits.some((h) => h.forbidden.includes(".find")));
+});
+
+test("C4c-2 probe: list-derived useProject with spread rest rejected", () => {
+  const sample = `
+export function useProject(id: string) {
+  const projectsQuery = useProjects();
+  const project = projectsQuery.data?.find((item) => item.id === id);
+  return { ...projectsQuery, data: project };
+}
+`;
+  const hits = findListDerivedUseProject(sample, "probe-spread");
+  assert.ok(hits.length >= 2, `expected rejections, got: ${JSON.stringify(hits)}`);
+});
+
+test("C4c-2 probe: direct projectQueryOptions accepted", () => {
+  const sample = `
+export function useProject(id: string) {
+  return useQuery(projectQueryOptions(id));
+}
+`;
+  assert.equal(findListDerivedUseProject(sample, "probe-canonical").length, 0);
+});
+
+test("C4c-2 probe: projectQueryOptions with enabled override accepted", () => {
+  const sample = `
+export function useProject(id: string) {
+  const query = useQuery({
+    ...projectQueryOptions(id),
+    enabled: Boolean(id),
+  });
+  return { ...query, isLoading: query.isPending };
+}
+`;
+  assert.equal(findListDerivedUseProject(sample, "probe-enabled").length, 0);
+});
+
+test("C4c-2 probe: useProjects list hook itself not flagged as useProject", () => {
+  const sample = `
+export function useProjects() {
+  return useQuery({ queryKey: projectKeys.all });
+}
+`;
+  // No useProject export → scanner returns no hits
+  assert.equal(findListDerivedUseProject(sample, "probe-list-only").length, 0);
+});
+
+test("C4c-2 probe: catalog-local .find outside useProject accepted", () => {
+  const sample = `
+export function useProjectCatalog() {
+  const selected = catalogProjects.find((project) => project.id === id);
+  return selected;
+}
+`;
+  assert.equal(findListDerivedUseProject(sample, "probe-catalog").length, 0);
+});
+
+test("C4c-2 probe: useProject without canonical authority rejected", () => {
+  const sample = `
+export function useProject(id: string) {
+  return useQuery({ queryKey: ["something", id], queryFn: async () => null });
+}
+`;
+  const hits = findListDerivedUseProject(sample, "probe-no-canonical");
+  assert.ok(
+    hits.some((h) => h.forbidden.includes("missing canonical")),
+    `expected missing-canonical hit, got: ${JSON.stringify(hits)}`,
+  );
 });

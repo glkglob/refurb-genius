@@ -3,7 +3,7 @@ import { useAuth } from "./useAuth";
 import { supabase } from "@/platform/supabase/browser";
 import type { ProjectStage, NewProjectInput } from "@/core/projects/domain";
 import { rowToProject, type ProjectWithProgress } from "@/lib/mappers";
-import { projectKeys } from "@/lib/queries/projects";
+import { projectKeys, projectQueryOptions } from "@/lib/queries/projects";
 
 // NEW: server-side create mutation (SSR + hard-refresh safe).
 // Replaces the previous client-only supabase.auth.getUser() + insert.
@@ -29,16 +29,27 @@ export function useProjects() {
   });
 }
 
+/**
+ * Single-project detail read (C4c-2).
+ *
+ * Canonical authority: projectQueryOptions / projectKeys.byId.
+ * Hook-layer enabled requires both projectId and authenticated user so
+ * unauthenticated/hydrating states stay pending (isLoading → isPending).
+ * Missing rows resolve to null (consumers use falsy checks).
+ */
 export function useProject(id: string) {
-  const { data: projects, ...rest } = useProjects();
+  const { user } = useAuth();
+  const query = useQuery({
+    ...projectQueryOptions(id),
+    enabled: Boolean(id && user),
+  });
   return {
-    ...rest,
+    ...query,
     // `isLoading` is false while the query is *disabled* (auth still
     // hydrating), which made pages treat "not loaded yet" as "not found"
     // and bounce to /dashboard. `isPending` stays true until we actually
     // have data, so report that instead.
-    isLoading: rest.isPending,
-    data: projects?.find((p) => p.id === id),
+    isLoading: query.isPending,
   };
 }
 
