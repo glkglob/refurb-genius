@@ -160,15 +160,15 @@ export const PERSISTENCE_SURFACES: PersistenceSurface[] = [
     id: "client-memory-cache",
     label: "In-memory client caches",
     owner: "app shell / stores",
-    responsibility: "opportunityStore, projectStore caches, React Query caches",
+    responsibility: "opportunityStore and React Query caches (projectStore retired C4c-5)",
     writeAuthority: "Client process only (not multi-tenant authority)",
     readAuthority: "Same browser session",
     enforcementStatus: "documented",
     transitional: true,
     paths: [
       "src/core/dealCopilot/opportunityStore.ts",
-      "src/core/projects/projectStore.ts",
-      "src/lib/projects.ts",
+      "src/hooks/useProjects.ts",
+      "src/lib/queries/projects.ts",
     ],
     authority: {
       mayRead: true,

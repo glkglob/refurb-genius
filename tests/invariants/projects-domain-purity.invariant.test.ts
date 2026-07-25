@@ -1,10 +1,10 @@
 /**
- * Phase 12C C4a — Projects domain purity.
- * Phase 13C C4b — projectStore ownership under core; lib is compat-only.
+ * C4a — Projects domain purity.
+ * C4c-5 — projectStore retirement (no Projects singleton store under src).
  *
  * Files under src/core/projects/domain must remain pure (no React, Supabase,
  * hooks, routes, presentation, serverFns, or lib/projects).
- * Runtime store body lives in src/core/projects/projectStore.ts only.
+ * No projectStore implementation or production import may exist under src.
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -15,6 +15,7 @@ const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const DOMAIN_DIR = join(ROOT, "src/core/projects/domain");
 const CORE_PROJECTS_DIR = join(ROOT, "src/core/projects");
 const STORE_PATH = join(ROOT, "src/core/projects/projectStore.ts");
+const HELPERS_PATH = join(ROOT, "src/core/projects/projectHelpers.ts");
 const LIB_PROJECTS_PATH = join(ROOT, "src/lib/projects.ts");
 const IMPORT_PATTERN = /\b(?:import|export)\s+(?:type\s+)?(?:[^;]*?\s+from\s+)?["']([^"']+)["']/g;
 
@@ -36,6 +37,16 @@ const FORBIDDEN_PREFIXES = [
   "@/lib/queries",
   "@/lib/auth",
   "@supabase/",
+] as const;
+
+/** Specifiers that reintroduce the retired Projects store surface. */
+const FORBIDDEN_STORE_SPECIFIERS = [
+  "@/core/projects/projectStore",
+  "@/core/projects/projectHelpers",
+  "./projectStore",
+  "../projectStore",
+  "./projectHelpers",
+  "../projectHelpers",
 ] as const;
 
 function listTsFiles(dir: string): string[] {
@@ -122,29 +133,96 @@ test("projects domain purity — lib/projects does not redefine Project type bod
   assert.match(text, /@\/core\/projects\/domain/);
 });
 
-test("projects store ownership — implementation lives in core projectStore", () => {
-  assert.ok(existsSync(STORE_PATH), "missing src/core/projects/projectStore.ts");
-  const storeText = readFileSync(STORE_PATH, "utf8");
-  assert.match(
-    storeText,
-    /export const projectStore\s*=/,
-    "canonical projectStore must be defined in src/core/projects/projectStore.ts",
+test("projects store retirement — projectStore file and definition are absent", () => {
+  assert.equal(
+    existsSync(STORE_PATH),
+    false,
+    "src/core/projects/projectStore.ts must not exist (C4c-5 retirement)",
+  );
+  assert.equal(
+    existsSync(HELPERS_PATH),
+    false,
+    "src/core/projects/projectHelpers.ts must not exist (store-backed helpers retired)",
+  );
+
+  const defs: string[] = [];
+  for (const file of collectSrcTsFiles(join(ROOT, "src"))) {
+    const rel = relative(ROOT, file).replace(/\\/g, "/");
+    const text = readFileSync(file, "utf8");
+    if (/export\s+const\s+projectStore\s*=/.test(text)) {
+      defs.push(rel);
+    }
+  }
+  assert.deepEqual(
+    defs,
+    [],
+    `no projectStore definition allowed under src, found:\n${defs.join("\n")}`,
   );
 });
 
-test("projects store ownership — lib/projects is re-export only", () => {
+test("projects store retirement — no production import of projectStore or store helpers", () => {
+  const violations: string[] = [];
+  for (const file of collectSrcTsFiles(join(ROOT, "src"))) {
+    const rel = relative(ROOT, file).replace(/\\/g, "/");
+    const content = readFileSync(file, "utf8");
+
+    for (const match of content.matchAll(new RegExp(IMPORT_PATTERN.source, "g"))) {
+      const specifier = match[1] ?? "";
+      if (
+        FORBIDDEN_STORE_SPECIFIERS.some((s) => specifier === s || specifier.startsWith(`${s}/`))
+      ) {
+        violations.push(`${rel} imports ${specifier}`);
+      }
+      if (specifier.endsWith("/projectStore") || specifier.endsWith("/projectHelpers")) {
+        violations.push(`${rel} imports ${specifier}`);
+      }
+    }
+
+    // Named import of the symbol (not comments-only prose in string-heavy files)
+    if (/\bimport\s*\{[^}]*\bprojectStore\b[^}]*\}\s*from\s*["']/.test(content)) {
+      violations.push(`${rel} named-imports projectStore`);
+    }
+    if (/\bexport\s*\{[^}]*\bprojectStore\b[^}]*\}/.test(content)) {
+      violations.push(`${rel} re-exports projectStore`);
+    }
+  }
+
+  assert.deepEqual(
+    violations,
+    [],
+    `production source must not import or re-export projectStore:\n${violations.join("\n")}`,
+  );
+});
+
+/** Drop // line comments so retirement docs do not trip symbol bans. */
+function codeWithoutLineComments(source: string): string {
+  return source
+    .split("\n")
+    .map((line) => {
+      const idx = line.indexOf("//");
+      if (idx === -1) return line;
+      const before = line.slice(0, idx);
+      if (before.endsWith(":")) return line;
+      return before;
+    })
+    .join("\n");
+}
+
+test("projects store retirement — lib/projects is domain-only (no mutable store surface)", () => {
   assert.ok(existsSync(LIB_PROJECTS_PATH));
   const text = readFileSync(LIB_PROJECTS_PATH, "utf8");
+  const code = codeWithoutLineComments(text);
 
+  assert.doesNotMatch(code, /\bprojectStore\b/, "lib/projects must not export/use projectStore");
   assert.doesNotMatch(
-    text,
-    /export const projectStore\s*=/,
-    "lib/projects must not define projectStore implementation",
+    code,
+    /ProjectStoreSnapshot/,
+    "lib/projects must not export ProjectStoreSnapshot",
   );
-  assert.match(
-    text,
-    /export\s*\{[^}]*\bprojectStore\b[^}]*\}\s*from\s*["']@\/core\/projects\/projectStore["']/,
-    "lib/projects must re-export projectStore from @/core/projects/projectStore",
+  assert.doesNotMatch(
+    code,
+    /export const projectStore\s*=/,
+    "lib/projects must not define projectStore",
   );
 
   const runtimeMarkers = [
@@ -156,31 +234,14 @@ test("projects store ownership — lib/projects is re-export only", () => {
   ];
   for (const marker of runtimeMarkers) {
     assert.doesNotMatch(
-      text,
+      code,
       marker,
       `lib/projects must not contain runtime store marker ${marker}`,
     );
   }
 });
 
-test("projects store ownership — exactly one projectStore definition under src", () => {
-  const srcRoot = join(ROOT, "src");
-  const defs: string[] = [];
-  for (const file of collectSrcTsFiles(srcRoot)) {
-    const rel = relative(ROOT, file).replace(/\\/g, "/");
-    const text = readFileSync(file, "utf8");
-    if (/export const projectStore\s*=/.test(text)) {
-      defs.push(rel);
-    }
-  }
-  assert.deepEqual(
-    defs,
-    ["src/core/projects/projectStore.ts"],
-    `expected exactly one projectStore definition, found:\n${defs.join("\n")}`,
-  );
-});
-
-test("projects store ownership — core/projects does not import lib/projects", () => {
+test("projects store retirement — core/projects does not import lib/projects", () => {
   const violations: string[] = [];
   for (const file of listTsFiles(CORE_PROJECTS_DIR)) {
     const rel = relative(ROOT, file).replace(/\\/g, "/");
@@ -196,5 +257,18 @@ test("projects store ownership — core/projects does not import lib/projects", 
     violations,
     [],
     `core/projects must not import @/lib/projects:\n${violations.join("\n")}`,
+  );
+});
+
+test("projects store retirement — core barrel does not export store surface", () => {
+  const indexPath = join(CORE_PROJECTS_DIR, "index.ts");
+  assert.ok(existsSync(indexPath));
+  const code = codeWithoutLineComments(readFileSync(indexPath, "utf8"));
+  assert.doesNotMatch(code, /\bprojectStore\b/, "core/projects index must not export projectStore");
+  assert.doesNotMatch(code, /projectHelpers/, "core/projects index must not export projectHelpers");
+  assert.doesNotMatch(
+    code,
+    /\bcreateProject\b|\bgetProjectById\b|\bcalculateProjectProgress\b/,
+    "core/projects index must not export store-backed helpers",
   );
 });

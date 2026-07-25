@@ -1,8 +1,8 @@
-// Compatibility re-exports only (C4b).
+// Compatibility re-exports only (C4b / C4c-5).
 //
 // Canonical pure domain: @/core/projects/domain
-// Canonical projectStore runtime: @/core/projects/projectStore
-// This module must not host store state, Supabase calls, or auth subscriptions.
+// projectStore runtime retired (C4c-5). Live Projects client cache: React Query + useProjects*.
+// This module must not host store state, Supabase calls, auth subscriptions, or mutable caches.
 
 export type {
   Project,
@@ -18,6 +18,3 @@ export {
   estimatedRefurbCost,
   estimatedProfit,
 } from "@/core/projects/domain";
-
-export { projectStore } from "@/core/projects/projectStore";
-export type { ProjectStoreSnapshot } from "@/core/projects/projectStore";

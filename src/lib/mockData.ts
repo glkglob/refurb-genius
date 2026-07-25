@@ -1,10 +1,4 @@
-export {
-  UK_REGIONS,
-  PROPERTY_TYPES,
-  projectStore,
-  estimatedRefurbCost,
-  estimatedProfit,
-} from "./projects";
+export { UK_REGIONS, PROPERTY_TYPES, estimatedRefurbCost, estimatedProfit } from "./projects";
 export type { Project, PropertyType, UKRegion } from "./projects";
 
 export { DISCLAIMER } from "@repo/core";

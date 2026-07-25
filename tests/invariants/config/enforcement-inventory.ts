@@ -102,7 +102,7 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     kind: "invariant",
     source: "tests/invariants/projects-domain-purity.invariant.test.ts",
     description:
-      "C4a domain purity (domain pure; Project types not redefined in lib) + C4b store ownership (projectStore defined only in src/core/projects/projectStore.ts; lib/projects re-export-only; no core→@/lib/projects reverse edge)",
+      "C4a domain purity (domain pure; Project types not redefined in lib) + C4c-5 projectStore retirement (no projectStore definition/import under src; lib/projects domain-only; no core→@/lib/projects reverse edge; no store-backed helpers)",
     enforcementLevel: "enforced",
     owner: "platform architecture",
     status: "active",
