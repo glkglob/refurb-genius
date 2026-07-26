@@ -1,5 +1,5 @@
 /**
- * C5-1 + C5-2 — Authenticated product-photo list query authority.
+ * C5-1 + C5-2 + C5-3B2 — Authenticated product-photo list query authority + hook writers.
  *
  * Seals:
  * - projectKeys.photosByProject as the sole product list key family
@@ -7,8 +7,10 @@
  * - usePhotos must call photosQueryOptions(
  * - AI catalog + room-analysis mock source reads use fetchProjectPhotosList (C5-2)
  * - zero production photoStore.list call sites outside the store definition
+ * - usePhotos hooks use uploadProjectPhotos / removeProjectPhoto (C5-3B2)
+ * - usePhotos hooks must not call photoStore.upload / photoStore.remove
  *
- * Does NOT require photoStore retirement or write convergence (C5-3+).
+ * Does NOT require photoStore retirement or BulkPhotoUpload migration (C5-3B3+).
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -263,9 +265,62 @@ test("photos query keys — probe: photosQueryOptions call-site pattern", () => 
   assert.doesNotMatch(badImportOnly, /photosQueryOptions\s*\(/);
 });
 
-test("photos query keys — probe: store upload/remove remain allowed", () => {
+// ─── C5-3B2 hook writers → canonical photos-write ───────────────────────────
+
+test("photos query keys — usePhotos hooks call canonical write primitives", () => {
   const hookPath = join(ROOT, USE_PHOTOS_HOOK);
-  const text = readFileSync(hookPath, "utf8");
-  assert.match(text, /photoStore\s*\.\s*upload\s*\(/);
-  assert.match(text, /photoStore\s*\.\s*remove\s*\(/);
+  assert.ok(existsSync(hookPath), `missing ${USE_PHOTOS_HOOK}`);
+  const text = stripComments(readFileSync(hookPath, "utf8"));
+  assert.match(
+    text,
+    /uploadProjectPhotos\s*\(/,
+    `${USE_PHOTOS_HOOK} must call uploadProjectPhotos(`,
+  );
+  assert.match(text, /removeProjectPhoto\s*\(/, `${USE_PHOTOS_HOOK} must call removeProjectPhoto(`);
+  assert.match(
+    text,
+    /from\s+["']@\/lib\/photos-write["']/,
+    `${USE_PHOTOS_HOOK} must import from @/lib/photos-write`,
+  );
+});
+
+test("photos query keys — usePhotos hooks must not call photoStore upload/remove", () => {
+  const hookPath = join(ROOT, USE_PHOTOS_HOOK);
+  const raw = readFileSync(hookPath, "utf8");
+  // Strip block + line comments so documentation mentions cannot false-positive.
+  const text = raw
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split("\n")
+    .map(stripLineComments)
+    .join("\n");
+  assert.doesNotMatch(
+    text,
+    /photoStore\s*\.\s*upload\s*\(/,
+    `${USE_PHOTOS_HOOK} must not call photoStore.upload (C5-3B2)`,
+  );
+  assert.doesNotMatch(
+    text,
+    /photoStore\s*\.\s*remove\s*\(/,
+    `${USE_PHOTOS_HOOK} must not call photoStore.remove (C5-3B2)`,
+  );
+  // No runtime value import of the store on the migrated hook path.
+  assert.doesNotMatch(
+    text,
+    /\bphotoStore\b/,
+    `${USE_PHOTOS_HOOK} must not import or reference photoStore after C5-3B2`,
+  );
+});
+
+test("photos query keys — probe: BulkPhotoUpload may still call photoStore writers until C5-3B3", () => {
+  const bulkPath = join(ROOT, "src/components/BulkPhotoUpload.tsx");
+  assert.ok(existsSync(bulkPath), "missing BulkPhotoUpload.tsx");
+  const text = stripComments(readFileSync(bulkPath, "utf8"));
+  // Temporary dual-writer: Bulk remains on store (or direct storage) until C5-3B3.
+  // Do not globally ban photoStore.upload/remove yet.
+  assert.ok(
+    /photoStore\s*\.\s*upload\s*\(/.test(text) ||
+      /from\s*\(\s*["']photos["']\s*\)/.test(text) ||
+      /storage\s*\.\s*from\s*\(/.test(text),
+    "BulkPhotoUpload must remain a production write path until C5-3B3",
+  );
 });
