@@ -21,7 +21,8 @@ export type AnalyzePhotosDeps = {
 
 export function makeAnalyzePhotos({ vision, analyses, photos }: AnalyzePhotosDeps) {
   return async function analyzePhotos(command: AnalyzePhotosCommand): Promise<RoomAnalysis[]> {
-    const photoList = command.photos ?? photos?.listPhotos(command.projectId) ?? [];
+    // Explicit photos override the catalog. Catalog is async (C5-2 / fetchProjectPhotosList).
+    const photoList = command.photos ?? (photos ? await photos.listPhotos(command.projectId) : []);
 
     const results = await vision.analyzePhotos({
       projectId: command.projectId,

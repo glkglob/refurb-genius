@@ -118,8 +118,9 @@ export const estimateQueryOptions = (projectId: string) =>
 
 /**
  * Canonical authenticated project-photo list fetch (C5-1).
- * Single network authority for product-UI photo lists (usePhotos, route prefetch).
- * Does not touch photoStore; AI catalog still uses store.list until C5-2.
+ * Single network authority for product-UI photo lists (usePhotos, route prefetch)
+ * and AI source-photo catalog / mock room-analysis reads (C5-2).
+ * Does not touch photoStore; store remains for upload/remove until later C5 phases.
  */
 export async function fetchProjectPhotosList(projectId: string): Promise<ProjectPhoto[]> {
   const { data, error } = await supabase

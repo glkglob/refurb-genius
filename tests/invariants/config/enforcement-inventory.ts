@@ -132,7 +132,7 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     kind: "invariant",
     source: "tests/invariants/photos-query-keys.invariant.test.ts",
     description:
-      "C5-1: one canonical authenticated product-photo list key (projectKeys.photosByProject); fetchProjectPhotosList + photosQueryOptions own the list fetch; usePhotos must call photosQueryOptions(); transitional photoStore.list only in AI catalog/room-analysis repos (C5-2); public gallery and photo-analysis keys remain separate; does not claim photoStore retirement or write convergence",
+      "C5-1/C5-2: one canonical authenticated product-photo list key (projectKeys.photosByProject); fetchProjectPhotosList + photosQueryOptions own the list fetch; usePhotos must call photosQueryOptions(); AI catalog + room-analysis mock source reads must call fetchProjectPhotosList; zero production photoStore.list outside store definition; public gallery and photo-analysis keys remain separate; does not claim photoStore retirement or write convergence",
     enforcementLevel: "enforced",
     owner: "platform architecture",
     status: "active",

@@ -7,7 +7,7 @@
 import { supabase } from "@/platform/supabase/browser";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import { photoStore } from "@/lib/photos";
+import { fetchProjectPhotosList } from "@/lib/queries/projects";
 import type { Tables } from "@repo/supabase";
 import { buildMockRoomAnalyses, type AnalysisSource, type RoomAnalysis } from "../../domain";
 import type { RoomAnalysisRepository as RoomAnalysisRepositoryPort } from "../../application/ports";
@@ -97,8 +97,9 @@ function delay(ms = 1200) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-function buildFromProjectPhotos(projectId: string): RoomAnalysis[] {
-  const photos = photoStore.list(projectId);
+/** Source photos for mock analysis — canonical C5-1 list (C5-2). */
+async function buildFromProjectPhotos(projectId: string): Promise<RoomAnalysis[]> {
+  const photos = await fetchProjectPhotosList(projectId);
   return buildMockRoomAnalyses(
     photos.map((p) => ({ id: p.id, url: p.url, name: p.name, size: p.size })),
   );
@@ -132,10 +133,10 @@ export class SupabaseRoomAnalysisRepository implements RoomAnalysisRepositoryPor
     return () => listeners.delete(fn);
   }
 
-  /** Dev-only mock run from local photo metadata (mockPhotoAnalysisProvider). */
+  /** Dev-only mock run from project photo metadata (mockPhotoAnalysisProvider). */
   async runMock(projectId: string): Promise<RoomAnalysis[]> {
     await delay();
-    const result = buildFromProjectPhotos(projectId);
+    const result = await buildFromProjectPhotos(projectId);
     await this.save(projectId, result);
     return result;
   }

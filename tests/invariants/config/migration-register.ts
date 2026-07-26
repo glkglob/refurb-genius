@@ -159,15 +159,15 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     problem:
       "src/lib/photos mixed with ai-upload and UI consumers; dual photo list reads (RQ product UI vs photoStore.list for AI); dual upload writers (hooks vs BulkPhotoUpload); object storage concerns split.",
     currentOwner:
-      "Product-UI list: photosQueryOptions / fetchProjectPhotosList / projectKeys.photosByProject (C5-1). Writes + memory: photoStore + BulkPhotoUpload. AI catalog: photoStore.list (C5-2).",
+      "Product-UI + AI source-photo list: photosQueryOptions / fetchProjectPhotosList / projectKeys.photosByProject (C5-1/C5-2). Writes + memory: photoStore + BulkPhotoUpload (C5-3).",
     targetOwner:
-      "Clear media ownership: single product-UI list authority (C5-1 done); AI catalog on same fetch (C5-2); unified write path (C5-3); retire photoStore + Projects barrel photo re-exports; optional storage/server hardening",
+      "Clear media ownership: single product-UI list authority (C5-1 done); AI catalog on same fetch (C5-2 done); unified write path (C5-3); retire photoStore + Projects barrel photo re-exports; optional storage/server hardening",
     dependencies: ["C4", "C4c"],
     dependents: [],
     evidence: {
       productionImporters: 9,
       notes:
-        "C5 In Progress. C5-1: authenticated product-UI photo list sealed — projectKeys.photosByProject retained; photosQueryOptions retained; fetchProjectPhotosList named fetch authority; usePhotos + route prefetch/fetchQuery remain on factory; inv-photos-query-keys active. Claim is product-UI RQ list authority only — not entire Photos domain while photoStore.list remains. Pending: C5-2 AI catalog/room-analysis migrate off photoStore.list; C5-3 upload/delete convergence (photoStore + BulkPhotoUpload); later store auth-listener cleanup, photoStore retirement, Projects barrel photo re-export retirement, optional storage/server hardening. Out of scope for C5-1: SQL/RLS rewrite, public gallery merge, photo-analysis key consolidation, photos_done. C4/C4c remain Completed. C5 is not complete.",
+        "C5 In Progress. C5-1: authenticated product-UI photo list sealed — projectKeys.photosByProject; photosQueryOptions; fetchProjectPhotosList; usePhotos + route prefetch/fetchQuery; inv-photos-query-keys. C5-2: AI source-photo list reads converged — BrowserPhotoCatalogRepository.listPhotos and room-analysis runMock/buildFromProjectPhotos use fetchProjectPhotosList; PhotoCatalogPort.listPhotos is async; makeAnalyzePhotos awaits catalog; zero production photoStore.list call sites outside store definition. Claim is list-read convergence only — not write convergence or photoStore retirement. Pending: C5-3 upload/delete convergence (photoStore + BulkPhotoUpload); later store auth-listener cleanup, photoStore retirement, Projects barrel photo re-export retirement, optional storage/server hardening. Out of scope: SQL/RLS rewrite, public gallery merge, photo-analysis key consolidation, photos_done. C4/C4c remain Completed. C5 is not complete.",
     },
   },
   {

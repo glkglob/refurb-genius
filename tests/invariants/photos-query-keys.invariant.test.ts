@@ -1,13 +1,14 @@
 /**
- * C5-1 — Authenticated product-photo list query authority.
+ * C5-1 + C5-2 — Authenticated product-photo list query authority.
  *
  * Seals:
  * - projectKeys.photosByProject as the sole product list key family
  * - fetchProjectPhotosList + photosQueryOptions as the named fetch/options authority
  * - usePhotos must call photosQueryOptions(
+ * - AI catalog + room-analysis mock source reads use fetchProjectPhotosList (C5-2)
+ * - zero production photoStore.list call sites outside the store definition
  *
- * Does NOT require photoStore retirement (C5-5).
- * Transitional photoStore.list consumers are allowlisted for C5-2.
+ * Does NOT require photoStore retirement or write convergence (C5-3+).
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -17,15 +18,13 @@ import test from "node:test";
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const CANONICAL_FACTORY = "src/lib/queries/projects.ts";
 const USE_PHOTOS_HOOK = "src/features/ai-upload/presentation/hooks/usePhotos.ts";
-
-/** Production photoStore.list call sites deferred to C5-2 (AI catalog / mock analysis). */
-const PHOTOSTORE_LIST_ALLOWLIST = new Set([
-  "src/features/ai-upload/infrastructure/repositories/photo-catalog.repository.ts",
-  "src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts",
-]);
+const PHOTO_CATALOG_REPO =
+  "src/features/ai-upload/infrastructure/repositories/photo-catalog.repository.ts";
+const ROOM_ANALYSIS_REPO =
+  "src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts";
 
 /**
- * Modules allowed to call supabase.from("photos") during C5-1 transition.
+ * Modules allowed to call supabase.from("photos") during C5 transition.
  * Writes (BulkPhotoUpload) and store internals remain until C5-3/C5-5.
  */
 const PHOTOS_TABLE_ALLOWLIST = new Set([
@@ -175,40 +174,66 @@ test("photos query keys — from('photos') restricted to transitional allowlist"
   assert.deepEqual(
     violations,
     [],
-    `supabase.from("photos") outside C5-1 allowlist:\n${violations.join("\n")}\nallowed:\n${[...PHOTOS_TABLE_ALLOWLIST].join("\n")}`,
+    `supabase.from("photos") outside photos-table allowlist:\n${violations.join("\n")}\nallowed:\n${[...PHOTOS_TABLE_ALLOWLIST].join("\n")}`,
   );
 });
 
-// ─── photoStore.list transitional allowlist ──────────────────────────────────
+// ─── photoStore.list — zero production call sites (C5-2) ─────────────────────
 
 const PHOTOSTORE_LIST = /photoStore\s*\.\s*list\s*\(/;
+const FETCH_PROJECT_PHOTOS = /fetchProjectPhotosList\s*\(/;
 
-test("photos query keys — photoStore.list limited to C5-2 deferred AI repositories", () => {
+test("photos query keys — zero production photoStore.list call sites outside store definition", () => {
   const violations: string[] = [];
   for (const root of SCAN_ROOTS) {
     for (const file of listTsFiles(root)) {
       const rel = relPath(file);
-      if (rel === "src/lib/photos.ts") continue; // definition site
+      if (rel === "src/lib/photos.ts") continue; // definition site may remain until C5-5
       const code = stripComments(readFileSync(file, "utf8"));
-      if (!PHOTOSTORE_LIST.test(code)) continue;
-      if (PHOTOSTORE_LIST_ALLOWLIST.has(rel)) continue;
-      violations.push(rel);
+      if (PHOTOSTORE_LIST.test(code)) {
+        violations.push(rel);
+      }
     }
   }
   assert.deepEqual(
     violations,
     [],
-    `photoStore.list outside C5-2 allowlist:\n${violations.join("\n")}\nallowed:\n${[...PHOTOSTORE_LIST_ALLOWLIST].join("\n")}`,
+    `production photoStore.list forbidden outside src/lib/photos.ts:\n${violations.join("\n")}`,
   );
 });
 
-test("photos query keys — C5-2 deferred photoStore.list consumers still exist", () => {
-  for (const rel of PHOTOSTORE_LIST_ALLOWLIST) {
-    const full = join(ROOT, rel);
-    assert.ok(existsSync(full), `missing deferred consumer ${rel}`);
-    const text = readFileSync(full, "utf8");
-    assert.match(text, PHOTOSTORE_LIST, `${rel} must still use photoStore.list until C5-2`);
-  }
+test("photos query keys — AI photo-catalog repository calls fetchProjectPhotosList", () => {
+  const full = join(ROOT, PHOTO_CATALOG_REPO);
+  assert.ok(existsSync(full), `missing ${PHOTO_CATALOG_REPO}`);
+  const text = stripComments(readFileSync(full, "utf8"));
+  assert.match(
+    text,
+    FETCH_PROJECT_PHOTOS,
+    `${PHOTO_CATALOG_REPO} must call fetchProjectPhotosList(`,
+  );
+  assert.doesNotMatch(text, PHOTOSTORE_LIST, `${PHOTO_CATALOG_REPO} must not call photoStore.list`);
+  assert.doesNotMatch(
+    text,
+    FROM_PHOTOS,
+    `${PHOTO_CATALOG_REPO} must not call from("photos") directly`,
+  );
+});
+
+test("photos query keys — AI room-analysis repository calls fetchProjectPhotosList", () => {
+  const full = join(ROOT, ROOM_ANALYSIS_REPO);
+  assert.ok(existsSync(full), `missing ${ROOM_ANALYSIS_REPO}`);
+  const text = stripComments(readFileSync(full, "utf8"));
+  assert.match(
+    text,
+    FETCH_PROJECT_PHOTOS,
+    `${ROOM_ANALYSIS_REPO} must call fetchProjectPhotosList(`,
+  );
+  assert.doesNotMatch(text, PHOTOSTORE_LIST, `${ROOM_ANALYSIS_REPO} must not call photoStore.list`);
+  assert.doesNotMatch(
+    text,
+    FROM_PHOTOS,
+    `${ROOM_ANALYSIS_REPO} must not call from("photos") directly`,
+  );
 });
 
 // ─── Separate surfaces remain allowed (self-contained probes) ────────────────
@@ -235,4 +260,11 @@ test("photos query keys — probe: photosQueryOptions call-site pattern", () => 
   const badImportOnly = `import { photosQueryOptions } from "@/lib/queries/projects";\n// unused`;
   assert.match(good, /photosQueryOptions\s*\(/);
   assert.doesNotMatch(badImportOnly, /photosQueryOptions\s*\(/);
+});
+
+test("photos query keys — probe: store upload/remove remain allowed", () => {
+  const hookPath = join(ROOT, USE_PHOTOS_HOOK);
+  const text = readFileSync(hookPath, "utf8");
+  assert.match(text, /photoStore\s*\.\s*upload\s*\(/);
+  assert.match(text, /photoStore\s*\.\s*remove\s*\(/);
 });

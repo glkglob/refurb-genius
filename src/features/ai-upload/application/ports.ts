@@ -14,7 +14,8 @@ export interface RoomAnalysisRepository {
 }
 
 export interface PhotoCatalogPort {
-  listPhotos(projectId: string): AnalysisPhotoSource[];
+  /** Resolves project source photos for analysis (C5-2: async canonical list). */
+  listPhotos(projectId: string): Promise<AnalysisPhotoSource[]>;
 }
 
 export interface AiVisionPort {
