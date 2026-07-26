@@ -2,13 +2,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const { fromMock, insertMock, deleteEqMock, deleteMock, selectMock, singleMock } = vi.hoisted(
-  () => {
+const { fromMock, insertMock, deleteEqMock, deleteMock, selectMock, singleMock, quoteInsertMock } =
+  vi.hoisted(() => {
     const singleMock = vi.fn();
     const selectMock = vi.fn(() => ({ single: singleMock }));
     const insertMock = vi.fn(() => ({ select: selectMock }));
     const deleteEqMock = vi.fn();
     const deleteMock = vi.fn(() => ({ eq: deleteEqMock }));
+    const quoteInsertMock = vi.fn();
     const fromMock = vi.fn((table: string) => {
       if (table === "trade_favorites") {
         return {
@@ -16,11 +17,23 @@ const { fromMock, insertMock, deleteEqMock, deleteMock, selectMock, singleMock }
           delete: deleteMock,
         };
       }
+      if (table === "quote_requests") {
+        return {
+          insert: quoteInsertMock,
+        };
+      }
       return {};
     });
-    return { fromMock, insertMock, deleteEqMock, deleteMock, selectMock, singleMock };
-  },
-);
+    return {
+      fromMock,
+      insertMock,
+      deleteEqMock,
+      deleteMock,
+      selectMock,
+      singleMock,
+      quoteInsertMock,
+    };
+  });
 
 vi.mock("@/platform/supabase/browser", () => ({
   supabase: {
@@ -37,7 +50,7 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { addTradeFavorite, removeTradeFavorite } from "./marketplace-write";
+import { addTradeFavorite, removeTradeFavorite, createQuoteRequest } from "./marketplace-write";
 
 describe("marketplace-write", () => {
   beforeEach(() => {
@@ -45,6 +58,7 @@ describe("marketplace-write", () => {
     insertMock.mockImplementation(() => ({ select: selectMock }));
     selectMock.mockImplementation(() => ({ single: singleMock }));
     deleteMock.mockImplementation(() => ({ eq: deleteEqMock }));
+    quoteInsertMock.mockResolvedValue({ error: null });
   });
 
   it("add inserts into trade_favorites with exact payload", async () => {
@@ -123,6 +137,145 @@ describe("marketplace-write", () => {
       "favoriteId is required",
     );
     expect(fromMock).not.toHaveBeenCalled();
+  });
+
+  describe("createQuoteRequest", () => {
+    it("inserts into quote_requests with exact required payload", async () => {
+      await createQuoteRequest({
+        userId: "user-a",
+        tradespersonId: "tp-1",
+        projectId: "proj-1",
+        title: "Quote request for Acme",
+        message: "Full kitchen refit",
+      });
+
+      expect(fromMock).toHaveBeenCalledWith("quote_requests");
+      expect(quoteInsertMock).toHaveBeenCalledWith([
+        {
+          user_id: "user-a",
+          tradesperson_id: "tp-1",
+          project_id: "proj-1",
+          status: "pending",
+          title: "Quote request for Acme",
+          message: "Full kitchen refit",
+        },
+      ]);
+      const payload = quoteInsertMock.mock.calls[0][0][0] as Record<string, unknown>;
+      expect(payload).not.toHaveProperty("proposed_price");
+    });
+
+    it("preserves empty project_id string", async () => {
+      await createQuoteRequest({
+        userId: "user-a",
+        tradespersonId: "tp-1",
+        projectId: "",
+        title: "Quote request for Acme",
+        message: "Scope",
+      });
+
+      expect(quoteInsertMock).toHaveBeenCalledWith([
+        expect.objectContaining({
+          project_id: "",
+          status: "pending",
+        }),
+      ]);
+    });
+
+    it("includes numeric proposed_price without pence conversion", async () => {
+      await createQuoteRequest({
+        userId: "user-a",
+        tradespersonId: "tp-1",
+        projectId: "proj-1",
+        title: "Quote request for Acme",
+        message: "Scope",
+        proposedPrice: 4500.5,
+      });
+
+      expect(quoteInsertMock).toHaveBeenCalledWith([
+        expect.objectContaining({
+          proposed_price: 4500.5,
+        }),
+      ]);
+    });
+
+    it("rejects empty userId before IO", async () => {
+      await expect(
+        createQuoteRequest({
+          userId: " ",
+          tradespersonId: "tp-1",
+          projectId: "",
+          title: "T",
+          message: "M",
+        }),
+      ).rejects.toThrow("userId is required");
+      expect(fromMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects empty tradespersonId before IO", async () => {
+      await expect(
+        createQuoteRequest({
+          userId: "user-a",
+          tradespersonId: "",
+          projectId: "",
+          title: "T",
+          message: "M",
+        }),
+      ).rejects.toThrow("tradespersonId is required");
+      expect(fromMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects empty title before IO", async () => {
+      await expect(
+        createQuoteRequest({
+          userId: "user-a",
+          tradespersonId: "tp-1",
+          projectId: "",
+          title: "  ",
+          message: "M",
+        }),
+      ).rejects.toThrow("title is required");
+      expect(fromMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects empty or whitespace-only message before IO", async () => {
+      await expect(
+        createQuoteRequest({
+          userId: "user-a",
+          tradespersonId: "tp-1",
+          projectId: "",
+          title: "T",
+          message: "   ",
+        }),
+      ).rejects.toThrow("message is required");
+      expect(fromMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects non-finite proposedPrice before IO", async () => {
+      await expect(
+        createQuoteRequest({
+          userId: "user-a",
+          tradespersonId: "tp-1",
+          projectId: "",
+          title: "T",
+          message: "M",
+          proposedPrice: Number.NaN,
+        }),
+      ).rejects.toThrow("Proposed price must be a valid number");
+      expect(fromMock).not.toHaveBeenCalled();
+    });
+
+    it("throws meaningful Error on Supabase failure", async () => {
+      quoteInsertMock.mockResolvedValue({ error: { message: "fk violation" } });
+      await expect(
+        createQuoteRequest({
+          userId: "user-a",
+          tradespersonId: "tp-1",
+          projectId: "proj-1",
+          title: "T",
+          message: "M",
+        }),
+      ).rejects.toThrow("fk violation");
+    });
   });
 
   it("module source has no React or React Query dependency", () => {

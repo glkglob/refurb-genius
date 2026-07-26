@@ -242,20 +242,20 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "AO-1B2",
     title: "Marketplace quote-request creation extraction",
-    status: "Planned",
+    status: "In Progress",
     blastRadius: "T1",
     problem:
       "QuoteRequestDialog imports platform Supabase and auth.getUser, builds quote_requests insert payload, and owns mutation + project-scoped invalidation in presentation.",
     currentOwner:
-      "Presentation: src/components/marketplace/QuoteRequestDialog.tsx (supabase.from(quote_requests).insert; auth.getUser; marketplaceKeys.quoteRequestsByProject invalidate).",
+      "Writes: src/lib/marketplace-write.ts createQuoteRequest. Mutation + exact project invalidation: useCreateQuoteRequest. Presentation: QuoteRequestDialog via useAuth + useCreateQuoteRequest (form/toasts/reset/close only). Reads: quoteRequestsByProjectQueryOptions / marketplaceKeys.quoteRequestsByProject.",
     targetOwner:
-      "Canonical quote-request write primitive (extend marketplace-write or peer module) + presentation-safe mutation hook; dialog retains UI/toasts/props only",
+      "Presentation free of Supabase for quote create; canonical write primitive + presentation-safe hook; React Query remains project quote-list cache authority",
     dependencies: ["AO-1B1"],
     dependents: [],
     evidence: {
       productionImporters: 1,
       notes:
-        "Selected as next AO-1 child after AO-1B1 close-out (AO-1A inventory + post-B1 residual scan). P2, low risk, single-table create path, no schema/RLS/Realtime required. Source-compatible dialog props expected. Not started — plan phase AO-1B2A next.",
+        'AO-1B2 implemented locally, pending independent verification/commit/CI. Extends marketplace-write with createQuoteRequest (payload preserves project_id including "", status pending, title template, optional proposed_price without pence conversion). useCreateQuoteRequest owns retry:false + exact marketplaceKeys.quoteRequestsByProject invalidation when projectId truthy. QuoteRequestDialog props unchanged; authReady gating; success toast/reset/close order preserved. Lexical invariant tests/invariants/marketplace-quote-request-presentation.invariant.test.ts. Deferred: MessagingInbox Realtime, floorplan, photo-analysis, Auth UI. AO-1 remains Active; AO-1B1 remains Completed.',
     },
   },
 ];
@@ -267,7 +267,7 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
     title: "Presentation Layer Owns No Infrastructure",
     status: "Active",
     description:
-      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a). Next planned child: AO-1B2 quote-request creation. Not completed by a single child slice; remaining P2 surfaces include MessagingInbox+Realtime, floorplan mutations, photo-analysis writes, admin metrics, dashboard onboarding Auth update, Auth presentation isolation.",
+      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation In Progress locally). Not completed by a single child slice; remaining P2 surfaces include MessagingInbox+Realtime, floorplan mutations, photo-analysis writes, admin metrics, dashboard onboarding Auth update, Auth presentation isolation.",
     relatedCandidates: ["C3", "C8", "AO-1B1", "AO-1B2"],
   },
 ];

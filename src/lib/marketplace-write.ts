@@ -1,7 +1,7 @@
 /**
- * Canonical browser-side marketplace write primitives (AO-1B1).
+ * Canonical browser-side marketplace write primitives (AO-1B1 / AO-1B2).
  *
- * Owns direct inserts/deletes for `trade_favorites`.
+ * Owns direct inserts/deletes for `trade_favorites` and inserts for `quote_requests`.
  * Does NOT coordinate React Query, Auth resolution, or UI toasts —
  * presentation/hooks supply identity and cache orchestration.
  */
@@ -23,6 +23,20 @@ export interface TradeFavoriteRecord {
   userId: string;
   tradespersonId: string;
   createdAt?: string;
+}
+
+export interface CreateQuoteRequestInput {
+  userId: string;
+  tradespersonId: string;
+  /**
+   * Persisted as project_id. Empty string is allowed to match current
+   * QuoteRequestDialog projectless behaviour (do not convert to null/omit).
+   */
+  projectId: string;
+  title: string;
+  message: string;
+  /** Optional budget in the same units as the UI (numeric pounds, not pence). */
+  proposedPrice?: number;
 }
 
 function requireNonEmpty(value: string, label: string): string {
@@ -86,6 +100,59 @@ export async function removeTradeFavorite(input: RemoveTradeFavoriteInput): Prom
   if (error) {
     logger.error("[marketplace-write] removeTradeFavorite failed", {
       favoriteId,
+      error: error.message,
+    });
+    throw new Error(error.message);
+  }
+}
+
+/**
+ * Insert a marketplace quote request.
+ *
+ * Preserves current QuoteRequestDialog payload semantics, including:
+ * - project_id may be "" (projectless marketplace flow)
+ * - proposed_price omitted when undefined (type/schema drift uses a narrow cast)
+ * - no pence conversion
+ *
+ * Does not return a row — current UX does not require the inserted record.
+ */
+export async function createQuoteRequest(input: CreateQuoteRequestInput): Promise<void> {
+  const userId = requireNonEmpty(input.userId, "userId");
+  const tradespersonId = requireNonEmpty(input.tradespersonId, "tradespersonId");
+  const title = requireNonEmpty(input.title, "title");
+  const message = requireNonEmpty(input.message, "message");
+
+  // projectId is intentionally not requireNonEmpty — "" is a valid current product value.
+  if (typeof input.projectId !== "string") {
+    throw new Error("projectId is required");
+  }
+  const projectId = input.projectId;
+
+  if (input.proposedPrice !== undefined && !Number.isFinite(input.proposedPrice)) {
+    throw new Error("Proposed price must be a valid number");
+  }
+
+  // Generated Insert types omit proposed_price (schema drift). Narrow escape hatch only.
+  const payload: Record<string, unknown> = {
+    user_id: userId,
+    tradesperson_id: tradespersonId,
+    project_id: projectId,
+    status: "pending",
+    title,
+    message,
+  };
+  if (input.proposedPrice !== undefined) {
+    payload.proposed_price = input.proposedPrice;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- proposed_price not in generated Insert
+  const { error } = await supabase.from("quote_requests").insert([payload] as any);
+
+  if (error) {
+    logger.error("[marketplace-write] createQuoteRequest failed", {
+      userId,
+      tradespersonId,
+      projectId: projectId || null,
       error: error.message,
     });
     throw new Error(error.message);

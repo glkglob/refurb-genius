@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -15,11 +14,9 @@ import { Input } from "@repo/ui";
 import { Label } from "@repo/ui";
 import { Textarea } from "@repo/ui";
 import { toast } from "sonner";
-import { supabase } from "@/platform/supabase/browser";
-import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import { marketplaceKeys, quoteRequestsByProjectQueryOptions } from "@/lib/queries/marketplace";
-import type { TablesInsert } from "@repo/supabase";
+import { useAuth } from "@/hooks/useAuth";
+import { useCreateQuoteRequest } from "@/features/marketplace";
 import { LabourRateGuide } from "@/components/marketplace/LabourRateGuide";
 
 interface QuoteRequestDialogProps {
@@ -44,66 +41,69 @@ export function QuoteRequestDialog({
 }: QuoteRequestDialogProps) {
   const [message, setMessage] = useState("");
   const [proposedPrice, setProposedPrice] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const queryClient = useQueryClient();
-  const user = auth.getUser();
+  const { user, isLoading: authLoading, hydrated } = useAuth();
+  const userId = user?.id;
+  const authReady = hydrated && !authLoading;
 
-  const submitMutation = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error("You must be signed in");
-      if (!message.trim()) throw new Error("Message is required");
-
-      // project_id is optional in the marketplace flow; empty string keeps legacy rows insertable.
-      const payload: TablesInsert<"quote_requests"> & { proposed_price?: number } = {
-        project_id: projectId ?? "",
-        tradesperson_id: tradespersonId,
-        user_id: user.id,
-        status: "pending",
-        title: `Quote request for ${tradespersonName}`,
-        message: message.trim(),
-      };
-
-      const trimmedPrice = proposedPrice.trim();
-      if (trimmedPrice) {
-        const parsedPrice = Number(trimmedPrice);
-        if (!Number.isFinite(parsedPrice)) {
-          throw new Error("Proposed price must be a valid number");
-        }
-        payload.proposed_price = parsedPrice;
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await supabase.from("quote_requests").insert([payload] as any);
-
-      if (error) throw error;
-    },
-    onSuccess: async () => {
-      toast.success("Quote request sent!", {
-        description: `The tradesperson will be notified. ${projectId ? "Linked to your project." : ""}`,
-      });
-      setMessage("");
-      setProposedPrice("");
-      onOpenChange(false);
-
-      if (projectId) {
-        await queryClient.invalidateQueries({
-          queryKey: marketplaceKeys.quoteRequestsByProject(projectId),
-        });
-      }
-      // Also invalidate general if needed
-    },
-    onError: (err: Error) => {
-      logger.error("[marketplace] quote request failed", { error: err.message });
-      toast.error("Failed to send request", { description: err.message });
-    },
-    onSettled: () => setIsSubmitting(false),
-  });
+  const createQuoteMutation = useCreateQuoteRequest(userId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    submitMutation.mutate();
+    if (!authReady) {
+      return;
+    }
+    if (!userId) {
+      toast.error("Failed to send request", { description: "You must be signed in" });
+      return;
+    }
+    if (!message.trim()) {
+      toast.error("Failed to send request", { description: "Message is required" });
+      return;
+    }
+
+    let price: number | undefined;
+    const trimmedPrice = proposedPrice.trim();
+    if (trimmedPrice) {
+      const parsedPrice = Number(trimmedPrice);
+      if (!Number.isFinite(parsedPrice)) {
+        toast.error("Failed to send request", {
+          description: "Proposed price must be a valid number",
+        });
+        return;
+      }
+      price = parsedPrice;
+    }
+
+    createQuoteMutation.mutate(
+      {
+        tradespersonId,
+        projectId,
+        title: `Quote request for ${tradespersonName}`,
+        message: message.trim(),
+        proposedPrice: price,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Quote request sent!", {
+            description: `The tradesperson will be notified. ${projectId ? "Linked to your project." : ""}`,
+          });
+          setMessage("");
+          setProposedPrice("");
+          onOpenChange(false);
+        },
+        onError: (err) => {
+          logger.error("[marketplace] quote request failed", {
+            error: err instanceof Error ? err.message : String(err),
+          });
+          toast.error("Failed to send request", {
+            description: err instanceof Error ? err.message : String(err),
+          });
+        },
+      },
+    );
   };
+
+  const pending = createQuoteMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -159,8 +159,8 @@ export function QuoteRequestDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting || !message.trim()}>
-              {isSubmitting ? "Sending..." : "Send Quote Request"}
+            <Button type="submit" disabled={pending || !authReady || !message.trim()}>
+              {pending ? "Sending..." : "Send Quote Request"}
             </Button>
           </DialogFooter>
         </form>
