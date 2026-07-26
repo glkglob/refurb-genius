@@ -242,7 +242,7 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "AO-1B2",
     title: "Marketplace quote-request creation extraction",
-    status: "In Progress",
+    status: "Completed",
     blastRadius: "T1",
     problem:
       "QuoteRequestDialog imports platform Supabase and auth.getUser, builds quote_requests insert payload, and owns mutation + project-scoped invalidation in presentation.",
@@ -253,9 +253,29 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     dependencies: ["AO-1B1"],
     dependents: [],
     evidence: {
+      commit: "fcc13b6",
+      productionImporters: 0,
+      notes:
+        "AO-1B2 Completed. One child slice of Active AO-1 (does not complete AO-1). Implementation commit fcc13b6be7ed323f820ddb3e015e541117b06036 (parent 6dc0e4a); subject refactor(marketplace): extract quote request creation; 11 files. Outcomes: QuoteRequestDialog direct Supabase/auth.getUser/quote_requests insert/useMutation/QueryClient invalidation removed; createQuoteRequest in marketplace-write preserves project_id including empty string, status pending, title template, optional proposed_price without pence conversion; useCreateQuoteRequest owns retry:false + exact marketplaceKeys.quoteRequestsByProject invalidation when projectId truthy; public dialog props and sole marketplace consumer preserved; lexical seal tests/invariants/marketplace-quote-request-presentation.invariant.test.ts. Push: fast-forward origin/main to fcc13b6. CI on exact SHA: CI 30220461945 success (ci + invariant-tests); Security 30220461988 success (gitleaks, dependency-audit, server-only-boundary, client-bundle-secret-smoke); Pages 30220461675 success (build/deploy/report-build-status); Vercel success; Supabase Preview success. Accepted non-blocking: lexical invariant bypasses (F-M1), jsdom price-branch gap (F-M2), dual logging (F-L1), empty project_id pre-existing FK risk (F-I1), generated-type drift cast (F-I2). Deferred: MessagingInbox send/Realtime, floorplan, photo-analysis, admin metrics, Auth UI. AO-1 remains Active; AO-1B1 remains Completed.",
+    },
+  },
+  {
+    id: "AO-1B3.1",
+    title: "Marketplace message send mutation extraction",
+    status: "Planned",
+    blastRadius: "T1",
+    problem:
+      "MessagingInbox owns trade_messages insert, auth.getUser identity, and send-mutation invalidation of marketplaceKeys.messagesByQuote in presentation; Realtime channel lifecycle is co-located but independently separable.",
+    currentOwner:
+      "Presentation: src/components/marketplace/MessagingInbox.tsx (supabase.from(trade_messages).insert; auth.getUser; useMutation; invalidate messagesByQuote). Realtime channel lifecycle still in same file (deferred to AO-1B3.2).",
+    targetOwner:
+      "Canonical send write in marketplace-write (or peer); presentation-safe useSendTradeMessage hook; MessagingInbox retains composer UI/toasts; Realtime remains deferred",
+    dependencies: ["AO-1B2"],
+    dependents: ["AO-1B3.2"],
+    evidence: {
       productionImporters: 1,
       notes:
-        'AO-1B2 implemented locally, pending independent verification/commit/CI. Extends marketplace-write with createQuoteRequest (payload preserves project_id including "", status pending, title template, optional proposed_price without pence conversion). useCreateQuoteRequest owns retry:false + exact marketplaceKeys.quoteRequestsByProject invalidation when projectId truthy. QuoteRequestDialog props unchanged; authReady gating; success toast/reset/close order preserved. Lexical invariant tests/invariants/marketplace-quote-request-presentation.invariant.test.ts. Deferred: MessagingInbox Realtime, floorplan, photo-analysis, Auth UI. AO-1 remains Active; AO-1B1 remains Completed.',
+        "Selected as next AO-1 child after AO-1B2 close-out. Send mutation and Realtime channel (useEffect + channel + removeChannel) are independently testable; first executable slice is send-only (AO-1B3.1). Realtime extraction planned as AO-1B3.2 (C3 dealchat pattern). Not started — plan phase AO-1B3A next.",
     },
   },
 ];
@@ -267,8 +287,8 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
     title: "Presentation Layer Owns No Infrastructure",
     status: "Active",
     description:
-      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation In Progress locally). Not completed by a single child slice; remaining P2 surfaces include MessagingInbox+Realtime, floorplan mutations, photo-analysis writes, admin metrics, dashboard onboarding Auth update, Auth presentation isolation.",
-    relatedCandidates: ["C3", "C8", "AO-1B1", "AO-1B2"],
+      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6). Next planned child: AO-1B3.1 marketplace message send mutation (Realtime deferred to AO-1B3.2). Not completed by a single child slice; remaining P2 surfaces include MessagingInbox Realtime, floorplan multi-table mutations, photo-analysis writes, admin metrics reads, dashboard onboarding Auth update, Auth presentation isolation.",
+    relatedCandidates: ["C3", "C8", "AO-1B1", "AO-1B2", "AO-1B3.1"],
   },
 ];
 

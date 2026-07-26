@@ -152,7 +152,7 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     kind: "invariant",
     source: "tests/invariants/marketplace-quote-request-presentation.invariant.test.ts",
     description:
-      "AO-1B2 (local, pending verification): QuoteRequestDialog must call useCreateQuoteRequest; banned platform Supabase, auth.getUser, .from(quote_requests), useQueryClient/invalidateQueries in dialog; quote_requests inserts sealed to src/lib/marketplace-write.ts createQuoteRequest; reads remain src/lib/queries/marketplace.ts; project quote cache key marketplaceKeys.quoteRequestsByProject; no optimistic create. Strength: lexical. Does not claim MessagingInbox or full AO-1 presentation debt resolved.",
+      "AO-1B2 Completed (fcc13b6): QuoteRequestDialog direct Supabase access prohibited; direct Auth resolution (auth.getUser) prohibited; direct QueryClient/invalidateQueries ownership prohibited; component must call useCreateQuoteRequest; write authority src/lib/marketplace-write.ts createQuoteRequest; read authority src/lib/queries/marketplace.ts; mutation and invalidation authority useCreateQuoteRequest; query-key authority marketplaceKeys.quoteRequestsByProject; automatic mutation retry disabled; no optimistic create. Strength: lexical (comment-stripped source scan; alias/dynamic-import bypasses remain possible). Does not claim MessagingInbox, Realtime, or full AO-1 presentation debt resolved.",
     enforcementLevel: "enforced",
     owner: "platform architecture",
     status: "active",
