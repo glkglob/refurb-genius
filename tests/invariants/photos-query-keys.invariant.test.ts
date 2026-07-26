@@ -30,6 +30,7 @@ const ROOM_ANALYSIS_REPO =
 const PHOTOS_TABLE_ALLOWLIST = new Set([
   "src/lib/queries/projects.ts",
   "src/lib/photos.ts",
+  "src/lib/photos-write.ts",
   "src/lib/queries/gallery.ts",
   "src/lib/ai-quality-audit.ts",
   "src/components/BulkPhotoUpload.tsx",

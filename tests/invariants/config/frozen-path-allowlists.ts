@@ -30,6 +30,8 @@ export const LIB_ALLOWLIST = [
   "src/lib/mockData.ts",
   "src/lib/observability.ts",
   "src/lib/photos.ts",
+  "src/lib/photos-write.test.ts",
+  "src/lib/photos-write.ts",
   "src/lib/pitchDeck.test.ts",
   "src/lib/pitchDeck.ts",
   "src/lib/projects.ts",
