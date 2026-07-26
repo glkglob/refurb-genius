@@ -162,7 +162,17 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     kind: "invariant",
     source: "tests/invariants/marketplace-message-send-presentation.invariant.test.ts",
     description:
-      "AO-1B3.1 Completed (fa12ccc): MessagingInbox direct trade_messages insert prohibited; legacy Auth resolution (auth.getUser) prohibited; send-owned useMutation prohibited; component must call useSendTradeMessage and resolveTradeMessageRecipient; write authority src/lib/marketplace-write.ts sendTradeMessage; read authority src/lib/queries/marketplace.ts; message-send mutation and send invalidation authority useSendTradeMessage (marketplaceKeys.messagesByQuote; retry:false); recipient derivation authority resolveTradeMessageRecipient; Realtime channel ownership still MessagingInbox (AO-1B3.2 Planned) — Supabase import, channel, postgres_changes, removeChannel, useQueryClient remain allowed until Realtime extraction. Strength: lexical (comment-stripped source scan; alias/dynamic-import bypasses remain possible). Does not claim full Supabase ban in MessagingInbox, Realtime ownership migrated, messaging fully migrated, schema drift resolved, recipient profile-ID semantics corrected, AST-level enforcement, AO-1B3 complete, or AO-1 complete.",
+      "AO-1B3.1 Completed (fa12ccc): MessagingInbox direct trade_messages insert prohibited; legacy Auth resolution (auth.getUser) prohibited; send-owned useMutation prohibited; component must call useSendTradeMessage and resolveTradeMessageRecipient; write authority src/lib/marketplace-write.ts sendTradeMessage; read authority src/lib/queries/marketplace.ts; message-send mutation and send invalidation authority useSendTradeMessage (marketplaceKeys.messagesByQuote; retry:false); recipient derivation authority resolveTradeMessageRecipient. Realtime ownership sealed separately by AO-1B3.2 (inv-marketplace-messaging-realtime-presentation). Strength: lexical (comment-stripped source scan; alias/dynamic-import bypasses remain possible). Does not claim messaging fully migrated, schema drift resolved, recipient profile-ID semantics corrected, AST-level enforcement, AO-1B3 complete, or AO-1 complete.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
+    id: "inv-marketplace-messaging-realtime-presentation",
+    kind: "invariant",
+    source: "tests/invariants/marketplace-messaging-realtime-presentation.invariant.test.ts",
+    description:
+      "AO-1B3.2 In Progress: MessagingInbox direct Supabase client access prohibited; direct channel lifecycle (channel/removeChannel/postgres_changes) prohibited; direct useQueryClient ownership prohibited; component must call useTradeMessagesRealtime; Realtime authority src/features/marketplace/presentation/hooks/useTradeMessagesRealtime.ts; Realtime invalidation authority useTradeMessagesRealtime (marketplaceKeys.messagesByQuote); write authority marketplace-write.ts; read authority queries/marketplace.ts; send authority useSendTradeMessage; recipient authority resolveTradeMessageRecipient. Strength: lexical (comment-stripped source scan; alias/dynamic-import bypasses remain possible). Does not claim AO-1 complete, all presentation infrastructure removed app-wide, AST-level enforcement, or schema/recipient product fixes.",
     enforcementLevel: "enforced",
     owner: "platform architecture",
     status: "active",

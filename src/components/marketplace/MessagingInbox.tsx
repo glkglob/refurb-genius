@@ -1,22 +1,24 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@repo/ui";
 import { Input } from "@repo/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
 import { ScrollArea } from "@repo/ui";
 import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/platform/supabase/browser";
 import { logger } from "@/lib/logger";
 import {
   tradeMessagesQueryOptions,
   quoteRequestsByProjectQueryOptions,
-  marketplaceKeys,
 } from "@/lib/queries/marketplace";
 import { useAuth } from "@/hooks/useAuth";
-import { useSendTradeMessage, resolveTradeMessageRecipient } from "@/features/marketplace";
+import {
+  useSendTradeMessage,
+  resolveTradeMessageRecipient,
+  useTradeMessagesRealtime,
+} from "@/features/marketplace";
 
 interface MessagingInboxProps {
   projectId?: string;
@@ -25,11 +27,11 @@ interface MessagingInboxProps {
 export function MessagingInbox({ projectId }: MessagingInboxProps) {
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
-  const queryClient = useQueryClient();
   const { user, isLoading: authLoading, hydrated } = useAuth();
   const userId = user?.id;
   const authReady = hydrated && !authLoading;
   const sendMessageMutation = useSendTradeMessage(userId);
+  useTradeMessagesRealtime(selectedQuoteId);
 
   // Reset selected conversation when the project changes so stale thread IDs
   // from a different project aren't left selected.
@@ -46,38 +48,6 @@ export function MessagingInbox({ projectId }: MessagingInboxProps) {
     ...tradeMessagesQueryOptions(selectedQuoteId || ""),
     enabled: !!selectedQuoteId,
   });
-
-  // Realtime subscription for new messages
-  useEffect(() => {
-    if (!selectedQuoteId) return;
-
-    const channel = supabase
-      .channel(`trade-messages-${selectedQuoteId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "trade_messages",
-          filter: `quote_request_id=eq.${selectedQuoteId}`,
-        },
-        (payload) => {
-          // Optimistically update or refetch
-          queryClient.invalidateQueries({
-            queryKey: marketplaceKeys.messagesByQuote(selectedQuoteId),
-          });
-        },
-      )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          logger.info("[marketplace] realtime subscribed to messages", { selectedQuoteId });
-        }
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [selectedQuoteId, queryClient]);
 
   const handleSendError = (err: Error) => {
     logger.error("[marketplace] send message failed", { error: err.message });

@@ -5,8 +5,9 @@
  * reassignment of a Supabase client imported under another name, dynamic
  * import strings split across concatenations, unusual chained syntax.
  *
- * Does NOT ban Supabase Realtime usage in MessagingInbox (deferred to AO-1B3.2).
- * Does NOT claim MessagingInbox is infrastructure-free.
+ * Realtime presentation ownership is sealed separately by AO-1B3.2
+ * (marketplace-messaging-realtime-presentation.invariant.test.ts).
+ * Does NOT claim MessagingInbox is infrastructure-free app-wide.
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -89,25 +90,12 @@ test("marketplace message send — MessagingInbox bans send-path Auth and insert
     INSERT_AFTER_FROM,
     `${INBOX} must not chain .from("trade_messages").insert`,
   );
-  // Send-owned useMutation is banned; Realtime may keep useQueryClient.
+  // Send-owned useMutation is banned; Realtime QueryClient ownership is sealed by AO-1B3.2.
   assert.doesNotMatch(
     text,
     /useMutation\s*[<(]/,
     `${INBOX} must not own useMutation after send extraction`,
   );
-});
-
-test("marketplace message send — Realtime Supabase usage remains allowed", () => {
-  const full = join(ROOT, INBOX);
-  const text = stripAllComments(readFileSync(full, "utf8"));
-
-  assert.match(text, /@\/platform\/supabase/, `${INBOX} may keep platform supabase for Realtime`);
-  assert.match(text, /\.channel\s*\(/, `${INBOX} must retain channel creation`);
-  assert.match(text, /postgres_changes/, `${INBOX} must retain postgres_changes`);
-  assert.match(text, /removeChannel/, `${INBOX} must retain removeChannel`);
-  assert.match(text, /useQueryClient/, `${INBOX} must retain useQueryClient for Realtime`);
-  // Table name in Realtime config is allowed (not an insert).
-  assert.match(text, /trade_messages/, `${INBOX} may reference trade_messages for Realtime`);
 });
 
 test("marketplace message send — trade_messages inserts limited to marketplace-write", () => {
@@ -165,23 +153,6 @@ test("marketplace message send — probe: auth.getUser is banned pattern", () =>
 test("marketplace message send — probe: string-only useSendTradeMessage does not satisfy call", () => {
   const sample = `const useSendTradeMessage = "string only";`;
   assert.doesNotMatch(sample, /useSendTradeMessage\s*\(/);
-});
-
-test("marketplace message send — probe: Realtime subscription remains allowed pattern", () => {
-  const sample = `supabase
-  .channel("messages")
-  .on(
-    "postgres_changes",
-    {
-      schema: "public",
-      table: "trade_messages",
-    },
-    callback,
-  );`;
-  const text = stripAllComments(sample);
-  assert.match(text, /postgres_changes/);
-  assert.match(text, /trade_messages/);
-  assert.doesNotMatch(text, INSERT_AFTER_FROM);
 });
 
 test("marketplace message send — probe: insert in other presentation component fails write-authority", () => {

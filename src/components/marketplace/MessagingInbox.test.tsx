@@ -9,13 +9,7 @@ const mutate = vi.fn();
 const toastError = vi.fn();
 const toastSuccess = vi.fn();
 const loggerError = vi.fn();
-const channelOn = vi.fn();
-const channelSubscribe = vi.fn();
-const removeChannel = vi.fn();
-const channel = {
-  on: channelOn,
-  subscribe: channelSubscribe,
-};
+const useTradeMessagesRealtime = vi.fn();
 
 let mockUser: { id: string } | null = { id: "user-owner" };
 let mockIsPending = false;
@@ -59,6 +53,7 @@ vi.mock("@/features/marketplace", async () => {
       mutate,
       isPending: mockIsPending,
     }),
+    useTradeMessagesRealtime: (...args: unknown[]) => useTradeMessagesRealtime(...args),
   };
 });
 
@@ -75,16 +70,6 @@ vi.mock("@/lib/logger", () => ({
     warn: vi.fn(),
     info: vi.fn(),
     debug: vi.fn(),
-  },
-}));
-
-vi.mock("@/platform/supabase/browser", () => ({
-  supabase: {
-    channel: vi.fn(() => channel),
-    removeChannel: (...args: unknown[]) => removeChannel(...args),
-    from: vi.fn(() => {
-      throw new Error("send path must not use supabase.from");
-    }),
   },
 }));
 
@@ -140,11 +125,7 @@ beforeEach(() => {
   toastError.mockReset();
   toastSuccess.mockReset();
   loggerError.mockReset();
-  channelOn.mockReset();
-  channelSubscribe.mockReset();
-  removeChannel.mockReset();
-  channelOn.mockReturnValue(channel);
-  channelSubscribe.mockReturnValue(channel);
+  useTradeMessagesRealtime.mockReset();
   mockUser = { id: "user-owner" };
   mockIsPending = false;
   mockAuthLoading = false;
@@ -326,30 +307,46 @@ describe("MessagingInbox presentation", () => {
     expect(screen.getByText(/Conversation • quote-aa/i)).toBeTruthy();
   });
 
-  it("Realtime channel is created for selected quote", () => {
+  it("calls useTradeMessagesRealtime with null then selected quote ID", () => {
     quotesData.push(QUOTE_OWNER);
-    const { unmount } = renderInbox("proj-1");
+    renderInbox("proj-1");
+    expect(useTradeMessagesRealtime).toHaveBeenCalled();
+    expect(useTradeMessagesRealtime.mock.calls[0][0]).toBe(null);
+
     fireEvent.click(screen.getByText(/Quote #quote-aa/i));
-    expect(channelOn).toHaveBeenCalled();
-    expect(channelSubscribe).toHaveBeenCalled();
-    unmount();
-    expect(removeChannel).toHaveBeenCalled();
+    const lastArg =
+      useTradeMessagesRealtime.mock.calls[useTradeMessagesRealtime.mock.calls.length - 1][0];
+    expect(lastArg).toBe(QUOTE_OWNER.id);
   });
 
-  it("source retains Realtime and has no send insert or auth.getUser", () => {
+  it("quote change updates useTradeMessagesRealtime argument", () => {
+    quotesData.push(QUOTE_OWNER, QUOTE_OTHER);
+    renderInbox("proj-1");
+    fireEvent.click(screen.getByText(/Quote #quote-aa/i));
+    expect(
+      useTradeMessagesRealtime.mock.calls[useTradeMessagesRealtime.mock.calls.length - 1][0],
+    ).toBe(QUOTE_OWNER.id);
+    fireEvent.click(screen.getByText(/Quote #quote-ot/i));
+    expect(
+      useTradeMessagesRealtime.mock.calls[useTradeMessagesRealtime.mock.calls.length - 1][0],
+    ).toBe(QUOTE_OTHER.id);
+  });
+
+  it("source uses Realtime hook and has no direct Supabase or QueryClient ownership", () => {
     const src = readFileSync(
       join(process.cwd(), "src/components/marketplace/MessagingInbox.tsx"),
       "utf8",
     );
+    expect(src).toMatch(/useTradeMessagesRealtime\s*\(/);
     expect(src).toMatch(/useSendTradeMessage\s*\(/);
     expect(src).toMatch(/resolveTradeMessageRecipient\s*\(/);
     expect(src).toMatch(/useAuth\s*\(/);
     expect(src).not.toMatch(/auth\.getUser\s*\(/);
     expect(src).not.toMatch(/\.from\s*\(\s*["']trade_messages["']\s*\)[\s\S]{0,80}\.insert/);
-    expect(src).toMatch(/\.channel\s*\(/);
-    expect(src).toMatch(/postgres_changes/);
-    expect(src).toMatch(/removeChannel/);
-    expect(src).toMatch(/useQueryClient/);
-    expect(src).toMatch(/@\/platform\/supabase\/browser/);
+    expect(src).not.toMatch(/\.channel\s*\(/);
+    expect(src).not.toMatch(/postgres_changes/);
+    expect(src).not.toMatch(/removeChannel/);
+    expect(src).not.toMatch(/useQueryClient/);
+    expect(src).not.toMatch(/@\/platform\/supabase\/browser/);
   });
 });

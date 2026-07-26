@@ -267,9 +267,9 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     problem:
       "MessagingInbox owns trade_messages insert, auth.getUser identity, and send-mutation invalidation of marketplaceKeys.messagesByQuote in presentation; Realtime channel lifecycle is co-located but independently separable.",
     currentOwner:
-      "Writes: src/lib/marketplace-write.ts sendTradeMessage. Mutation + exact messagesByQuote invalidation: useSendTradeMessage. Recipient: resolveTradeMessageRecipient (exact formula). Presentation: MessagingInbox via useAuth + hook (composer/toasts/reset). Realtime channel lifecycle still in MessagingInbox (deferred to AO-1B3.2).",
+      "Writes: src/lib/marketplace-write.ts sendTradeMessage. Mutation + exact messagesByQuote invalidation: useSendTradeMessage. Recipient: resolveTradeMessageRecipient (exact formula). Presentation: MessagingInbox via useAuth + hook (composer/toasts/reset). Realtime channel lifecycle extracted under AO-1B3.2 (useTradeMessagesRealtime).",
     targetOwner:
-      "Canonical send write in marketplace-write; presentation-safe useSendTradeMessage hook; MessagingInbox retains composer UI/toasts; Realtime remains deferred",
+      "Canonical send write in marketplace-write; presentation-safe useSendTradeMessage hook; MessagingInbox retains composer UI/toasts; Realtime owned by AO-1B3.2 hook",
     dependencies: ["AO-1B2"],
     dependents: ["AO-1B3.2"],
     evidence: {
@@ -282,20 +282,20 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "AO-1B3.2",
     title: "Marketplace messaging Realtime lifecycle extraction",
-    status: "Planned",
+    status: "In Progress",
     blastRadius: "T1",
     problem:
       "MessagingInbox still owns Supabase Realtime channel creation, postgres_changes INSERT subscription, messagesByQuote invalidation callback, subscription logging, and removeChannel cleanup for trade_messages.",
     currentOwner:
-      "Presentation: src/components/marketplace/MessagingInbox.tsx (supabase.channel trade-messages-${selectedQuoteId}; postgres_changes INSERT; filter quote_request_id=eq.${selectedQuoteId}; invalidate marketplaceKeys.messagesByQuote; removeChannel; useQueryClient).",
+      "Realtime: useTradeMessagesRealtime (channel trade-messages-${id}; postgres_changes INSERT; filter quote_request_id=eq.${id}; invalidate marketplaceKeys.messagesByQuote; SUBSCRIBED log; removeChannel). Presentation: MessagingInbox retains UI, reads, send path (AO-1B3.1); no Supabase client or useQueryClient in MessagingInbox.",
     targetOwner:
-      "Presentation-safe useTradeMessagesRealtime (or peer) owns channel lifecycle and Realtime invalidation; MessagingInbox retains UI, reads, and send path (AO-1B3.1); no Supabase client or useQueryClient in MessagingInbox after extraction",
+      "Presentation-safe useTradeMessagesRealtime owns channel lifecycle and Realtime invalidation; MessagingInbox retains UI, reads, and send path (AO-1B3.1); no Supabase client or useQueryClient in MessagingInbox after extraction",
     dependencies: ["AO-1B3.1"],
     dependents: [],
     evidence: {
-      productionImporters: 1,
+      productionImporters: 0,
       notes:
-        "Selected as next AO-1 child after AO-1B3.1 close-out. Send path already extracted (fa12ccc). Realtime useEffect is independently separable and was preserved byte-identical during AO-1B3.1. Pattern peer: C3 useDealMessagesChannel. Not started — plan phase AO-1B3.2A next. Does not complete AO-1 alone.",
+        "AO-1B3.2 In Progress — implemented locally, pending independent verification. Outcomes (local): Realtime effect removed from MessagingInbox; useTradeMessagesRealtime owns channel lifecycle; Supabase import and useQueryClient removed from MessagingInbox; exact channel/filter/invalidation/log (metadata key selectedQuoteId)/cleanup preserved; send and read paths unchanged; lexical seal tests/invariants/marketplace-messaging-realtime-presentation.invariant.test.ts; AO-1B3.1 send invariant corrected to stop requiring Realtime ownership in MessagingInbox. Does not complete AO-1; no parent AO-1B3 entry introduced.",
     },
   },
 ];
@@ -307,7 +307,7 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
     title: "Presentation Layer Owns No Infrastructure",
     status: "Active",
     description:
-      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; next planned child AO-1B3.2 MessagingInbox Realtime lifecycle). Not completed by a single child slice; remaining P2 surfaces include MessagingInbox Realtime, floorplan multi-table mutations, photo-analysis writes, admin metrics reads, dashboard onboarding Auth update, Auth presentation isolation.",
+      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle In Progress). Not completed by a single child slice; remaining P2 surfaces include floorplan multi-table mutations, photo-analysis writes, admin metrics reads, dashboard onboarding Auth update, Auth presentation isolation, and other presentation-infrastructure debt.",
     relatedCandidates: ["C3", "C8", "AO-1B1", "AO-1B2", "AO-1B3.1", "AO-1B3.2"],
   },
 ];
