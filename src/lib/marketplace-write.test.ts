@@ -2,38 +2,53 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const { fromMock, insertMock, deleteEqMock, deleteMock, selectMock, singleMock, quoteInsertMock } =
-  vi.hoisted(() => {
-    const singleMock = vi.fn();
-    const selectMock = vi.fn(() => ({ single: singleMock }));
-    const insertMock = vi.fn(() => ({ select: selectMock }));
-    const deleteEqMock = vi.fn();
-    const deleteMock = vi.fn(() => ({ eq: deleteEqMock }));
-    const quoteInsertMock = vi.fn();
-    const fromMock = vi.fn((table: string) => {
-      if (table === "trade_favorites") {
-        return {
-          insert: insertMock,
-          delete: deleteMock,
-        };
-      }
-      if (table === "quote_requests") {
-        return {
-          insert: quoteInsertMock,
-        };
-      }
-      return {};
-    });
-    return {
-      fromMock,
-      insertMock,
-      deleteEqMock,
-      deleteMock,
-      selectMock,
-      singleMock,
-      quoteInsertMock,
-    };
+const {
+  fromMock,
+  insertMock,
+  deleteEqMock,
+  deleteMock,
+  selectMock,
+  singleMock,
+  quoteInsertMock,
+  messageInsertMock,
+} = vi.hoisted(() => {
+  const singleMock = vi.fn();
+  const selectMock = vi.fn(() => ({ single: singleMock }));
+  const insertMock = vi.fn(() => ({ select: selectMock }));
+  const deleteEqMock = vi.fn();
+  const deleteMock = vi.fn(() => ({ eq: deleteEqMock }));
+  const quoteInsertMock = vi.fn();
+  const messageInsertMock = vi.fn();
+  const fromMock = vi.fn((table: string) => {
+    if (table === "trade_favorites") {
+      return {
+        insert: insertMock,
+        delete: deleteMock,
+      };
+    }
+    if (table === "quote_requests") {
+      return {
+        insert: quoteInsertMock,
+      };
+    }
+    if (table === "trade_messages") {
+      return {
+        insert: messageInsertMock,
+      };
+    }
+    return {};
   });
+  return {
+    fromMock,
+    insertMock,
+    deleteEqMock,
+    deleteMock,
+    selectMock,
+    singleMock,
+    quoteInsertMock,
+    messageInsertMock,
+  };
+});
 
 vi.mock("@/platform/supabase/browser", () => ({
   supabase: {
@@ -50,7 +65,12 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { addTradeFavorite, removeTradeFavorite, createQuoteRequest } from "./marketplace-write";
+import {
+  addTradeFavorite,
+  removeTradeFavorite,
+  createQuoteRequest,
+  sendTradeMessage,
+} from "./marketplace-write";
 
 describe("marketplace-write", () => {
   beforeEach(() => {
@@ -59,6 +79,7 @@ describe("marketplace-write", () => {
     selectMock.mockImplementation(() => ({ single: singleMock }));
     deleteMock.mockImplementation(() => ({ eq: deleteEqMock }));
     quoteInsertMock.mockResolvedValue({ error: null });
+    messageInsertMock.mockResolvedValue({ error: null });
   });
 
   it("add inserts into trade_favorites with exact payload", async () => {
@@ -278,10 +299,138 @@ describe("marketplace-write", () => {
     });
   });
 
-  it("module source has no React or React Query dependency", () => {
+  describe("sendTradeMessage", () => {
+    it("inserts into trade_messages with exact payload using body", async () => {
+      await sendTradeMessage({
+        quoteRequestId: "quote-1",
+        senderId: "user-a",
+        recipientId: "user-b",
+        body: "Hello there",
+      });
+
+      expect(fromMock).toHaveBeenCalledWith("trade_messages");
+      expect(messageInsertMock).toHaveBeenCalledWith({
+        quote_request_id: "quote-1",
+        sender_id: "user-a",
+        recipient_id: "user-b",
+        body: "Hello there",
+      });
+      const payload = messageInsertMock.mock.calls[0][0] as Record<string, unknown>;
+      expect(payload).not.toHaveProperty("content");
+      expect(payload).not.toHaveProperty("project_id");
+      expect(payload).not.toHaveProperty("read_at");
+      expect(payload).not.toHaveProperty("created_at");
+      expect(Object.keys(payload).sort()).toEqual(
+        ["body", "quote_request_id", "recipient_id", "sender_id"].sort(),
+      );
+    });
+
+    it("trims body before insert", async () => {
+      await sendTradeMessage({
+        quoteRequestId: "quote-1",
+        senderId: "user-a",
+        recipientId: "user-b",
+        body: "  Hello  ",
+      });
+
+      expect(messageInsertMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: "Hello",
+        }),
+      );
+    });
+
+    it("rejects empty quoteRequestId before IO", async () => {
+      await expect(
+        sendTradeMessage({
+          quoteRequestId: "  ",
+          senderId: "user-a",
+          recipientId: "user-b",
+          body: "Hi",
+        }),
+      ).rejects.toThrow("quoteRequestId is required");
+      expect(fromMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects empty senderId before IO", async () => {
+      await expect(
+        sendTradeMessage({
+          quoteRequestId: "quote-1",
+          senderId: "",
+          recipientId: "user-b",
+          body: "Hi",
+        }),
+      ).rejects.toThrow("senderId is required");
+      expect(fromMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects empty recipientId before IO", async () => {
+      await expect(
+        sendTradeMessage({
+          quoteRequestId: "quote-1",
+          senderId: "user-a",
+          recipientId: " ",
+          body: "Hi",
+        }),
+      ).rejects.toThrow("recipientId is required");
+      expect(fromMock).not.toHaveBeenCalled();
+    });
+
+    it("rejects empty or whitespace-only body before IO", async () => {
+      await expect(
+        sendTradeMessage({
+          quoteRequestId: "quote-1",
+          senderId: "user-a",
+          recipientId: "user-b",
+          body: "   ",
+        }),
+      ).rejects.toThrow("body is required");
+      expect(fromMock).not.toHaveBeenCalled();
+    });
+
+    it("allows senderId equal to recipientId", async () => {
+      await expect(
+        sendTradeMessage({
+          quoteRequestId: "quote-1",
+          senderId: "user-a",
+          recipientId: "user-a",
+          body: "Self note",
+        }),
+      ).resolves.toBeUndefined();
+      expect(messageInsertMock).toHaveBeenCalled();
+    });
+
+    it("performs no .select() and returns void", async () => {
+      const result = await sendTradeMessage({
+        quoteRequestId: "quote-1",
+        senderId: "user-a",
+        recipientId: "user-b",
+        body: "Hi",
+      });
+      expect(result).toBeUndefined();
+      // message insert mock is a plain fn — no select chain attached
+      expect(messageInsertMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("throws meaningful Error on Supabase failure", async () => {
+      messageInsertMock.mockResolvedValue({ error: { message: "rls denied" } });
+      await expect(
+        sendTradeMessage({
+          quoteRequestId: "quote-1",
+          senderId: "user-a",
+          recipientId: "user-b",
+          body: "Hi",
+        }),
+      ).rejects.toThrow("rls denied");
+    });
+  });
+
+  it("module source has no React, React Query, Auth, or Realtime dependency", () => {
     const src = readFileSync(join(process.cwd(), "src/lib/marketplace-write.ts"), "utf8");
     expect(src).not.toMatch(/from\s+["']react["']/);
     expect(src).not.toMatch(/@tanstack\/react-query/);
     expect(src).not.toMatch(/useMutation|useQuery/);
+    expect(src).not.toMatch(/@\/lib\/auth|auth\.getUser/);
+    expect(src).not.toMatch(/\.channel\s*\(|postgres_changes|removeChannel/);
   });
 });

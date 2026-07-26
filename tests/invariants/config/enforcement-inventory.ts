@@ -158,6 +158,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-marketplace-message-send-presentation",
+    kind: "invariant",
+    source: "tests/invariants/marketplace-message-send-presentation.invariant.test.ts",
+    description:
+      "AO-1B3.1 In Progress (local implementation pending independent verification): MessagingInbox direct trade_messages insert prohibited; legacy Auth resolution (auth.getUser) prohibited; send-owned useMutation prohibited; component must call useSendTradeMessage and resolveTradeMessageRecipient; write authority src/lib/marketplace-write.ts sendTradeMessage; read authority src/lib/queries/marketplace.ts; send invalidation authority useSendTradeMessage (marketplaceKeys.messagesByQuote); Realtime channel ownership still MessagingInbox (deferred to AO-1B3.2) — Supabase import, channel, postgres_changes, removeChannel, useQueryClient remain allowed. Strength: lexical (comment-stripped source scan; alias/dynamic-import bypasses remain possible). Does not claim MessagingInbox infrastructure-free, messaging fully migrated, AO-1B3 complete, or AO-1 complete.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

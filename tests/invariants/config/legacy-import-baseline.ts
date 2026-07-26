@@ -68,7 +68,6 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/components/gallery/PublishToGallery.tsx|@/lib/gallery",
   "src/components/gallery/PublishToGallery.tsx|@/lib/logger",
   "src/components/gallery/PublishToGallery.tsx|@/lib/queries/gallery",
-  "src/components/marketplace/MessagingInbox.tsx|@/lib/auth",
   "src/components/marketplace/MessagingInbox.tsx|@/lib/logger",
   "src/components/marketplace/MessagingInbox.tsx|@/lib/queries/marketplace",
   "src/components/marketplace/QuoteRequestDialog.tsx|@/lib/logger",

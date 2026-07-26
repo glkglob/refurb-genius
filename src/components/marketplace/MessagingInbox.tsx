@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@repo/ui";
 import { Input } from "@repo/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
@@ -9,13 +9,14 @@ import { ScrollArea } from "@repo/ui";
 import { Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/platform/supabase/browser";
-import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import {
   tradeMessagesQueryOptions,
   quoteRequestsByProjectQueryOptions,
   marketplaceKeys,
 } from "@/lib/queries/marketplace";
+import { useAuth } from "@/hooks/useAuth";
+import { useSendTradeMessage, resolveTradeMessageRecipient } from "@/features/marketplace";
 
 interface MessagingInboxProps {
   projectId?: string;
@@ -25,13 +26,16 @@ export function MessagingInbox({ projectId }: MessagingInboxProps) {
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const queryClient = useQueryClient();
+  const { user, isLoading: authLoading, hydrated } = useAuth();
+  const userId = user?.id;
+  const authReady = hydrated && !authLoading;
+  const sendMessageMutation = useSendTradeMessage(userId);
 
   // Reset selected conversation when the project changes so stale thread IDs
   // from a different project aren't left selected.
   useEffect(() => {
     setSelectedQuoteId(null);
   }, [projectId]);
-  const user = auth.getUser();
 
   const { data: quotes = [], isLoading: quotesLoading } = useQuery({
     ...quoteRequestsByProjectQueryOptions(projectId || ""),
@@ -75,38 +79,44 @@ export function MessagingInbox({ projectId }: MessagingInboxProps) {
     };
   }, [selectedQuoteId, queryClient]);
 
-  const sendMessageMutation = useMutation({
-    mutationFn: async (content: string) => {
-      if (!user || !selectedQuoteId) throw new Error("No active quote or user");
-      const quote = quotes.find((q) => q.id === selectedQuoteId);
-      if (!quote) throw new Error("Quote not found");
-      const recipientId = user.id === quote.user_id ? quote.tradesperson_id : quote.user_id;
-      const { error } = await supabase.from("trade_messages").insert({
-        quote_request_id: selectedQuoteId,
-        sender_id: user.id,
-        recipient_id: recipientId,
-        body: content.trim(),
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      setNewMessage("");
-      if (selectedQuoteId) {
-        queryClient.invalidateQueries({
-          queryKey: marketplaceKeys.messagesByQuote(selectedQuoteId),
-        });
-      }
-    },
-    onError: (err: Error) => {
-      logger.error("[marketplace] send message failed", { error: err.message });
-      toast.error("Failed to send message");
-    },
-  });
+  const handleSendError = (err: Error) => {
+    logger.error("[marketplace] send message failed", { error: err.message });
+    toast.error("Failed to send message");
+  };
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedQuoteId) return;
-    sendMessageMutation.mutate(newMessage);
+    if (!authReady) return;
+    if (!userId) {
+      handleSendError(new Error("You must be signed in"));
+      return;
+    }
+    const quote = quotes.find((q) => q.id === selectedQuoteId);
+    if (!quote) {
+      handleSendError(new Error("Quote not found"));
+      return;
+    }
+    const recipientId = resolveTradeMessageRecipient({
+      currentUserId: userId,
+      quoteUserId: quote.user_id,
+      quoteTradespersonId: quote.tradesperson_id,
+    });
+    sendMessageMutation.mutate(
+      {
+        quoteRequestId: selectedQuoteId,
+        recipientId,
+        body: newMessage.trim(),
+      },
+      {
+        onSuccess: () => {
+          setNewMessage("");
+        },
+        onError: (err: Error) => {
+          handleSendError(err);
+        },
+      },
+    );
   };
 
   if (!projectId) {
@@ -226,7 +236,7 @@ export function MessagingInbox({ projectId }: MessagingInboxProps) {
                   type="submit"
                   size="icon"
                   aria-label="Send message"
-                  disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                  disabled={!newMessage.trim() || sendMessageMutation.isPending || !authReady}
                 >
                   <Send className="h-4 w-4" />
                 </Button>

@@ -1,7 +1,8 @@
 /**
- * Canonical browser-side marketplace write primitives (AO-1B1 / AO-1B2).
+ * Canonical browser-side marketplace write primitives (AO-1B1 / AO-1B2 / AO-1B3.1).
  *
- * Owns direct inserts/deletes for `trade_favorites` and inserts for `quote_requests`.
+ * Owns direct inserts/deletes for `trade_favorites`, inserts for `quote_requests`,
+ * and inserts for `trade_messages`.
  * Does NOT coordinate React Query, Auth resolution, or UI toasts —
  * presentation/hooks supply identity and cache orchestration.
  */
@@ -153,6 +154,47 @@ export async function createQuoteRequest(input: CreateQuoteRequestInput): Promis
       userId,
       tradespersonId,
       projectId: projectId || null,
+      error: error.message,
+    });
+    throw new Error(error.message);
+  }
+}
+
+export interface SendTradeMessageInput {
+  quoteRequestId: string;
+  senderId: string;
+  recipientId: string;
+  body: string;
+}
+
+/**
+ * Insert a marketplace trade message.
+ *
+ * Preserves current MessagingInbox payload semantics:
+ * - body field (not legacy foundation `content`)
+ * - no .select() / no returned row
+ * - sender/recipient equality is not client-rejected
+ *
+ * Does not resolve participants, Auth, React Query, or Realtime.
+ */
+export async function sendTradeMessage(input: SendTradeMessageInput): Promise<void> {
+  const quoteRequestId = requireNonEmpty(input.quoteRequestId, "quoteRequestId");
+  const senderId = requireNonEmpty(input.senderId, "senderId");
+  const recipientId = requireNonEmpty(input.recipientId, "recipientId");
+  const body = requireNonEmpty(input.body, "body");
+
+  const { error } = await supabase.from("trade_messages").insert({
+    quote_request_id: quoteRequestId,
+    sender_id: senderId,
+    recipient_id: recipientId,
+    body,
+  });
+
+  if (error) {
+    logger.error("[marketplace-write] sendTradeMessage failed", {
+      quoteRequestId,
+      senderId,
+      recipientId,
       error: error.message,
     });
     throw new Error(error.message);
