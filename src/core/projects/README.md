@@ -65,7 +65,7 @@ import { UK_REGIONS, PROPERTY_TYPES, estimatedRefurbCost } from "@/core/projects
 | **C4c-1…6** | RQ keys, detail, mutations, auth isolation, store retirement, list/catalog convergence | **Completed** |
 | **C4** umbrella | Domain + runtime Projects ownership | **Completed** |
 | **C4c** | Live hooks & runtime ownership | **Completed** |
-| **C5** | Photos / storage ownership | **In Progress** (C5-1…3 completed; C5-4 local) |
+| **C5** | Photos / storage ownership | **Completed** (76cf1c8; C5-1…C5-4) |
 
 ### Explicitly outside C4/C4c
 

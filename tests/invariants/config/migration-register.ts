@@ -23,7 +23,7 @@ export const MIGRATION_REGISTER_META = {
   scoringSourceOfTruth: "tests/invariants/config/candidate-scoring.ts",
   policySourceOfTruth: "docs/architecture/overview.md",
 } as const;
-// C5-4B2 local: photoStore retirement pending independent verification / commit / CI
+// C5 Photos/Storage ownership Completed (76cf1c8 + required CI)
 
 export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
@@ -155,20 +155,21 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "C5",
     title: "Photos / Storage Ownership Migration",
-    status: "In Progress",
+    status: "Completed",
     blastRadius: "T3",
     problem:
       "src/lib/photos mixed with ai-upload and UI consumers; dual photo list reads (RQ product UI vs photoStore.list for AI); dual upload writers (hooks vs BulkPhotoUpload); object storage concerns split.",
     currentOwner:
-      "Product-UI + AI list: photosQueryOptions / fetchProjectPhotosList / projectKeys.photosByProject. Writes: photos-write via hooks + BulkPhotoUpload. Types: photos-types. Helpers: file-utils. photoStore retired (C5-4 local).",
+      "Reads: fetchProjectPhotosList / photosQueryOptions / projectKeys.photosByProject (+ authorised gallery/audit readers). Writes: src/lib/photos-write.ts via hooks + BulkPhotoUpload. Types: src/lib/photos-types.ts. Helpers: formatFileSize in src/lib/file-utils.ts. List cache: React Query. Auth identity isolation: applyAuthQueryCacheTransition. photoStore and src/lib/photos.ts retired.",
     targetOwner:
       "Clear media ownership: list authority (C5-1); AI catalog (C5-2); unified writes (C5-3); photoStore + barrel retired (C5-4); optional storage/server hardening deferred as separate work",
     dependencies: ["C4", "C4c"],
     dependents: [],
     evidence: {
-      productionImporters: 9,
+      commit: "76cf1c8",
+      productionImporters: 0,
       notes:
-        "C5 In Progress (C5-4 local, pending independent verification/commit/CI). C5-1 list authority sealed. C5-2 AI list reads on fetchProjectPhotosList. C5-3B1 (068f710) photos-write primitives. C5-3B2 (c967715) hook writers. C5-3B3 (729be74) BulkPhotoUpload → uploadProjectPhotos; write seal. C5-4B1: ProjectPhoto → src/lib/photos-types.ts; formatFileSize → src/lib/file-utils.ts; all production type imports retargeted; upload route no longer loads legacy photos module for formatting. C5-4B2 local: src/lib/photos.ts deleted; photoStore definition/methods/cache/Auth listener removed; Projects barrel no longer exports photoStore/ProjectPhoto/formatFileSize; PHOTOS_TABLE_ALLOWLIST no longer includes photos.ts; frozen-path + data registries retargeted to photos-write/photos-types/file-utils/queries; no production photoStore or @/lib/photos imports; photo-module Auth listener banned; React Query remains list-cache authority; account-switch isolation via applyAuthQueryCacheTransition (unchanged). C5-4 and C5 remain In Progress until verification + commit + required CI. Out of scope (not required for C5 ownership completion): SQL/RLS rewrite, public gallery merge, photo-analysis key consolidation, photos_done, optional storage/server hardening. C4/C4c remain Completed.",
+        "C5 Completed. Ownership result: project-photo reads, writes, types, list-cache and Auth-transition responsibilities have explicit canonical owners. Phases: C5-1 list authority sealed (projectKeys.photosByProject + fetchProjectPhotosList + photosQueryOptions). C5-2 AI catalog + room-analysis on fetchProjectPhotosList. C5-3B1 (068f7107e0d030c4de180474b23eaed5166658d4) photos-write primitives. C5-3B2 (c967715b334798603e91158511f0fdae758e4ce1) hooks → uploadProjectPhotos/removeProjectPhoto. C5-3B3 (729be74037676ce07ae9c4ca0d1d74dc080aaa35) BulkPhotoUpload → uploadProjectPhotos; write seal. C5-4 (76cf1c8b17998efb7f8a8ee2b8a1be973d7eb4c6) ProjectPhoto → photos-types; formatFileSize → file-utils; src/lib/photos.ts deleted; photoStore + module-load Auth listener removed; Projects barrel no longer exports photoStore/ProjectPhoto/formatFileSize; PHOTOS_TABLE_ALLOWLIST without photos.ts; no-store/no-import/no-listener seals (lexical). Invariant: tests/invariants/photos-query-keys.invariant.test.ts. Remote C5-4E on 76cf1c8: CI 30193646150 success (ci + invariant-tests); Security 30193646151 success (gitleaks, dependency-audit, server-only-boundary, client-bundle-secret-smoke); Pages 30193645902 success; Vercel success; Supabase Preview success. Out of scope (not required for C5 ownership completion): SQL/RLS rewrite, public gallery merge, photo-analysis key consolidation, photos_done, optional storage/server hardening. C4/C4c remain Completed.",
     },
   },
   {
