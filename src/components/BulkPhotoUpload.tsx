@@ -22,7 +22,7 @@ import {
 } from "@/lib/photos-write";
 import { projectKeys } from "@/lib/queries/projects";
 import { isImageFile } from "@/features/ai-upload";
-import type { ProjectPhoto } from "@/lib/photos";
+import type { ProjectPhoto } from "@/lib/photos-types";
 
 type UploadStatus = "queued" | "uploading" | "uploaded" | "completed" | "failed";
 

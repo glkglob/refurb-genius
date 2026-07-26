@@ -27,7 +27,7 @@ import { logger } from "@/lib/logger";
 import { timeoutPromise, isTimeoutError } from "@/lib/timeout";
 import { ConcurrencyLimiter } from "@/lib/concurrency";
 import { rowToPhoto } from "@/lib/mappers";
-import type { ProjectPhoto } from "@/lib/photos";
+import type { ProjectPhoto } from "@/lib/photos-types";
 
 /** Sole Storage bucket for authenticated project photos. */
 export const PROJECT_PHOTOS_BUCKET = "project-photos";

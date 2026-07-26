@@ -4,7 +4,7 @@ import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
-import { formatFileSize } from "@/core/projects";
+import { formatFileSize } from "@/lib/file-utils";
 import { Upload, ImagePlus, X, Sparkles, Loader2, AlertCircle, ArrowRight } from "lucide-react";
 import { useRef, useState, type ChangeEvent } from "react";
 import { useProject, useSetProjectStage } from "@/hooks/useProjects";

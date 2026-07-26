@@ -11,7 +11,7 @@ import {
   type PhotoUploadItemEvent,
   type PhotoUploadItemState,
 } from "@/lib/photos-write";
-import type { ProjectPhoto } from "@/lib/photos";
+import type { ProjectPhoto } from "@/lib/photos-types";
 import { projectKeys } from "@/lib/queries/projects";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

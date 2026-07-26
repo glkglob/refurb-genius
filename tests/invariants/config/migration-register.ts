@@ -23,6 +23,7 @@ export const MIGRATION_REGISTER_META = {
   scoringSourceOfTruth: "tests/invariants/config/candidate-scoring.ts",
   policySourceOfTruth: "docs/architecture/overview.md",
 } as const;
+// C5-4B2 local: photoStore retirement pending independent verification / commit / CI
 
 export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
@@ -159,15 +160,15 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     problem:
       "src/lib/photos mixed with ai-upload and UI consumers; dual photo list reads (RQ product UI vs photoStore.list for AI); dual upload writers (hooks vs BulkPhotoUpload); object storage concerns split.",
     currentOwner:
-      "Product-UI + AI source-photo list: photosQueryOptions / fetchProjectPhotosList / projectKeys.photosByProject (C5-1/C5-2). Active project-photo writes: src/lib/photos-write.ts via useUploadPhotos/useRemovePhoto (C5-3B2) and BulkPhotoUpload → uploadProjectPhotos (C5-3B3 local). photoStore: dormant definition + core re-export pending C5-4.",
+      "Product-UI + AI list: photosQueryOptions / fetchProjectPhotosList / projectKeys.photosByProject. Writes: photos-write via hooks + BulkPhotoUpload. Types: photos-types. Helpers: file-utils. photoStore retired (C5-4 local).",
     targetOwner:
-      "Clear media ownership: single product-UI list authority (C5-1 done); AI catalog on same fetch (C5-2 done); unified write path (C5-3 done after B3 CI); retire photoStore + Projects barrel photo re-exports (C5-4); optional storage/server hardening",
+      "Clear media ownership: list authority (C5-1); AI catalog (C5-2); unified writes (C5-3); photoStore + barrel retired (C5-4); optional storage/server hardening deferred as separate work",
     dependencies: ["C4", "C4c"],
     dependents: [],
     evidence: {
       productionImporters: 9,
       notes:
-        "C5 In Progress. C5-1: authenticated product-UI photo list sealed — projectKeys.photosByProject; photosQueryOptions; fetchProjectPhotosList; usePhotos + route prefetch/fetchQuery; inv-photos-query-keys. C5-2: AI source-photo list reads converged — BrowserPhotoCatalogRepository.listPhotos and room-analysis runMock/buildFromProjectPhotos use fetchProjectPhotosList; zero production photoStore.list outside store definition. C5-3B1 Completed (068f710): canonical photos-write primitives. C5-3B2 Completed (c967715): hook writers → uploadProjectPhotos/removeProjectPhoto; React Query sole list cache; partial batch invalidation. C5-3B3 In Progress (local B1+B2, pending independent verification/commit/CI): BulkPhotoUpload migrated to uploadProjectPhotos({ projectId, files, concurrency: 3, onItemState }); direct Auth/Storage/photos-table writes and p-limit removed; stage-derived progress (no fake analyzing delay); PhotoUploadBatchError partial success; one projectKeys.photosByProject invalidation per changed batch; Bulk removed from PHOTOS_TABLE_ALLOWLIST; positive canonical-call + negative direct-write invariants sealed. Active production project-photo write call sites converged on photos-write. photoStore upload/remove remain dormant definitions with zero production callers; Auth listener and core barrel re-export deferred to C5-4. C5-3 and C5 remain In Progress until B3 verification/CI and C5-4 store retirement. Out of scope: SQL/RLS rewrite, public gallery merge, photo-analysis key consolidation, photos_done. C4/C4c remain Completed.",
+        "C5 In Progress (C5-4 local, pending independent verification/commit/CI). C5-1 list authority sealed. C5-2 AI list reads on fetchProjectPhotosList. C5-3B1 (068f710) photos-write primitives. C5-3B2 (c967715) hook writers. C5-3B3 (729be74) BulkPhotoUpload → uploadProjectPhotos; write seal. C5-4B1: ProjectPhoto → src/lib/photos-types.ts; formatFileSize → src/lib/file-utils.ts; all production type imports retargeted; upload route no longer loads legacy photos module for formatting. C5-4B2 local: src/lib/photos.ts deleted; photoStore definition/methods/cache/Auth listener removed; Projects barrel no longer exports photoStore/ProjectPhoto/formatFileSize; PHOTOS_TABLE_ALLOWLIST no longer includes photos.ts; frozen-path + data registries retargeted to photos-write/photos-types/file-utils/queries; no production photoStore or @/lib/photos imports; photo-module Auth listener banned; React Query remains list-cache authority; account-switch isolation via applyAuthQueryCacheTransition (unchanged). C5-4 and C5 remain In Progress until verification + commit + required CI. Out of scope (not required for C5 ownership completion): SQL/RLS rewrite, public gallery merge, photo-analysis key consolidation, photos_done, optional storage/server hardening. C4/C4c remain Completed.",
     },
   },
   {

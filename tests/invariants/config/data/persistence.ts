@@ -27,7 +27,7 @@ export const PERSISTENCE_SURFACES: PersistenceSurface[] = [
     readAuthority: "Authenticated browser client subject to RLS",
     enforcementStatus: "transitional",
     transitional: true,
-    paths: ["src/lib/projects.ts", "src/lib/photos.ts", "src/lib/queries"],
+    paths: ["src/lib/projects.ts", "src/lib/photos-write.ts", "src/lib/queries"],
     authority: {
       mayRead: true,
       mayWrite: true,
@@ -104,7 +104,7 @@ export const PERSISTENCE_SURFACES: PersistenceSurface[] = [
     readAuthority: "Public or private per bucket policy",
     enforcementStatus: "enforced",
     transitional: false,
-    paths: ["src/lib/photos.ts"],
+    paths: ["src/lib/photos-write.ts", "src/lib/gallery.ts", "src/lib/floorplan.ts"],
     authority: {
       mayRead: true,
       mayWrite: true,

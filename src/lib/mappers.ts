@@ -5,7 +5,7 @@
 // import from here.
 
 import type { Tables } from "@repo/supabase";
-import type { ProjectPhoto } from "./photos";
+import type { ProjectPhoto } from "@/lib/photos-types";
 import type { UKRegion, PropertyType, ProjectStatus } from "@/core/projects/domain";
 
 // ── Project row types ─────────────────────────────────────────────

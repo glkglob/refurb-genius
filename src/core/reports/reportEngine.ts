@@ -8,7 +8,7 @@
 // Same inputs → same output. Drives the report page today and is shaped
 // to drive a future PDF export without any further refactor.
 import type { Project } from "@/core/projects/domain";
-import type { ProjectPhoto } from "@/lib/photos";
+import type { ProjectPhoto } from "@/lib/photos-types";
 import type { RoomAnalysis, ConditionLevel } from "@/features/ai-upload";
 import type { RedesignConcept } from "@/lib/redesign";
 import {

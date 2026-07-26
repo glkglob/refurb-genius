@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ProjectPhoto } from "@/lib/photos";
+import type { ProjectPhoto } from "@/lib/photos-types";
 
 const { fetchProjectPhotosList } = vi.hoisted(() => ({
   fetchProjectPhotosList: vi.fn(),

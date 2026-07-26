@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement, type ReactNode } from "react";
-import type { ProjectPhoto } from "@/lib/photos";
+import type { ProjectPhoto } from "@/lib/photos-types";
 import { projectKeys } from "@/lib/queries/projects";
 import {
   PhotoUploadBatchError,
@@ -15,8 +15,6 @@ import {
 
 const uploadProjectPhotos = vi.fn();
 const removeProjectPhoto = vi.fn();
-const photoStoreUpload = vi.fn();
-const photoStoreRemove = vi.fn();
 const loggerWarn = vi.fn();
 
 vi.mock("@/lib/photos-write", async (importOriginal) => {
@@ -25,18 +23,6 @@ vi.mock("@/lib/photos-write", async (importOriginal) => {
     ...actual,
     uploadProjectPhotos: (...args: unknown[]) => uploadProjectPhotos(...args),
     removeProjectPhoto: (...args: unknown[]) => removeProjectPhoto(...args),
-  };
-});
-
-vi.mock("@/lib/photos", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/photos")>();
-  return {
-    ...actual,
-    photoStore: {
-      ...actual.photoStore,
-      upload: (...args: unknown[]) => photoStoreUpload(...args),
-      remove: (...args: unknown[]) => photoStoreRemove(...args),
-    },
   };
 });
 
@@ -105,8 +91,6 @@ function createTestQueryClient() {
 beforeEach(() => {
   uploadProjectPhotos.mockReset();
   removeProjectPhoto.mockReset();
-  photoStoreUpload.mockReset();
-  photoStoreRemove.mockReset();
   loggerWarn.mockReset();
 });
 
@@ -133,18 +117,16 @@ describe("useUploadPhotos", () => {
     });
   });
 
-  it("does not call photoStore.upload", async () => {
-    uploadProjectPhotos.mockResolvedValue([makePhoto("p1")]);
-    const qc = createTestQueryClient();
-    const { result } = renderHook(() => useUploadPhotos(PROJECT_ID), {
-      wrapper: createWrapper(qc),
-    });
-
-    await act(async () => {
-      await result.current.mutateAsync([makeFile("a.jpg")]);
-    });
-
-    expect(photoStoreUpload).not.toHaveBeenCalled();
+  it("source does not reference photoStore or legacy photos module", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const src = readFileSync(
+      join(process.cwd(), "src/features/ai-upload/presentation/hooks/usePhotos.ts"),
+      "utf8",
+    );
+    expect(src).not.toMatch(/\bphotoStore\b/);
+    expect(src).not.toMatch(/@\/lib\/photos["']/);
+    expect(src).toMatch(/uploadProjectPhotos/);
   });
 
   it("returns canonical photos and invalidates only the project photo list on full success", async () => {
@@ -385,22 +367,15 @@ describe("useRemovePhoto", () => {
     expect(arg).not.toHaveProperty("projectId");
   });
 
-  it("does not call photoStore.remove", async () => {
-    removeProjectPhoto.mockResolvedValue({
-      photoId: "p1",
-      storagePath: "user-1/proj-1/p1.jpg",
-      storageCleanup: "removed",
-    } satisfies PhotoRemovalResult);
-    const qc = createTestQueryClient();
-    const { result } = renderHook(() => useRemovePhoto(PROJECT_ID), {
-      wrapper: createWrapper(qc),
-    });
-
-    await act(async () => {
-      await result.current.mutateAsync("p1");
-    });
-
-    expect(photoStoreRemove).not.toHaveBeenCalled();
+  it("source remove path uses removeProjectPhoto only", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const src = readFileSync(
+      join(process.cwd(), "src/features/ai-upload/presentation/hooks/usePhotos.ts"),
+      "utf8",
+    );
+    expect(src).toMatch(/removeProjectPhoto\s*\(/);
+    expect(src).not.toMatch(/photoStore\s*\.\s*remove/);
   });
 
   it("optimistically removes the target photo from the project list", async () => {

@@ -5,7 +5,7 @@ import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { Checkbox } from "@repo/ui";
 import { AlertTriangle, CheckCircle, Sparkles, Edit2 } from "lucide-react";
-import type { ProjectPhoto } from "@/lib/photos";
+import type { ProjectPhoto } from "@/lib/photos-types";
 import type { PhotoAnalysisResultRow } from "@/lib/queries/photo-analysis";
 
 interface ParsedDefect {

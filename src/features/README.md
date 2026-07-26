@@ -106,7 +106,7 @@ not reimplement mid_total / ROI.
 | Feature | Owns (capability) | Notes |
 |---------|-------------------|--------|
 | `estimate` | Persist/create estimates, AI estimate pipeline | Pricing math → `@repo/services` |
-| `ai-upload` | Photos + vision analysis | `photoStore` still in `lib/photos` (infra debt) |
+| `ai-upload` | Photos + vision analysis | types `@/lib/photos-types`; writes `@/lib/photos-write`; list RQ (C5) |
 | `ai-design` | Redesign + scope analysis | Catalog data still in `lib/redesign` |
 | `roi` | ROI use cases + sensitivity | Engine → `@repo/services` |
 | `feasibility` | Study orchestration across slices | Imports other slices via public APIs only |

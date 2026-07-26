@@ -26,7 +26,7 @@ export const STORAGE_BUCKETS: StorageBucketRecord[] = [
     evidencePaths: [
       "supabase/migrations/20260508155054_53140776-1cf3-48c6-b05a-c2238aa4068d.sql",
       "supabase/migrations/20260610120000_ensure_project_photos_bucket.sql",
-      "src/lib/photos.ts",
+      "src/lib/photos-write.ts",
     ],
     migrationEvidence: "20260508155054_*, 20260610120000_ensure_project_photos_bucket.sql",
   },

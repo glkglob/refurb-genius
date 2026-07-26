@@ -42,8 +42,19 @@ import { UK_REGIONS, PROPERTY_TYPES, estimatedRefurbCost } from "@/core/projects
 ## Compatibility
 
 - `@/lib/projects` re-exports pure domain symbols only (no store APIs).
-- `@/core/projects` re-exports domain + mocks.
-- Photos re-exports (`photoStore`, `formatFileSize`, `ProjectPhoto`) are **legacy coupling (C5)** — do not expand. C4/C4c completion does not migrate photos/storage.
+- `@/core/projects` re-exports domain + mocks only (no photo store or photo barrel).
+
+### Photo ownership (C5 — not owned by this barrel)
+
+| Concern | Authority |
+|---------|-----------|
+| Type `ProjectPhoto` | `@/lib/photos-types` |
+| File size helper | `@/lib/file-utils` |
+| Authenticated list reads | `@/lib/queries/projects` (`fetchProjectPhotosList` / `photosQueryOptions`) |
+| Writes (upload/remove) | `@/lib/photos-write` |
+| List-cache | React Query `projectKeys.photosByProject` |
+
+`photoStore` and `src/lib/photos.ts` are **retired** (C5-4).
 
 ## Migration status
 
@@ -54,7 +65,7 @@ import { UK_REGIONS, PROPERTY_TYPES, estimatedRefurbCost } from "@/core/projects
 | **C4c-1…6** | RQ keys, detail, mutations, auth isolation, store retirement, list/catalog convergence | **Completed** |
 | **C4** umbrella | Domain + runtime Projects ownership | **Completed** |
 | **C4c** | Live hooks & runtime ownership | **Completed** |
-| **C5** | Photos / storage (`photoStore` re-export) | **Planned** (separate) |
+| **C5** | Photos / storage ownership | **In Progress** (C5-1…3 completed; C5-4 local) |
 
 ### Explicitly outside C4/C4c
 
@@ -62,4 +73,4 @@ import { UK_REGIONS, PROPERTY_TYPES, estimatedRefurbCost } from "@/core/projects
 - Mutation-cache identity-boundary handling
 - Optional stage server-function / post-success reconciliation
 - Browser E2E (create → Analyze)
-- Photos/Storage ownership (C5)
+- Optional C5 residual (gallery merge, RLS rewrite, etc.)

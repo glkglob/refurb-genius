@@ -21,7 +21,7 @@ import { floorplansByProjectQueryOptions } from "@/lib/queries/floorplans";
 import type { ProjectWithProgress } from "@/lib/mappers";
 import type { Financials } from "@/lib/queries/projects";
 import type { PersistedRoomEstimate } from "@/features/estimate";
-import type { ProjectPhoto } from "@/lib/photos";
+import type { ProjectPhoto } from "@/lib/photos-types";
 import type { PhotoAnalysisResultRow } from "@/lib/queries/photo-analysis";
 
 interface PitchDeckGeneratorProps {

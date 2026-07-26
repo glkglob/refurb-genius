@@ -25,7 +25,9 @@ export const DATA_FLOWS: DataFlow[] = [
     evidence: [
       "src/features/ai-upload",
       "src/features/estimate",
-      "src/lib/photos.ts",
+      "src/lib/photos-write.ts",
+      "src/lib/photos-types.ts",
+      "src/lib/queries/projects.ts",
       "src/platform/supabase",
     ],
   },

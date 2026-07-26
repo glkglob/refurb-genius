@@ -1,18 +1,16 @@
 /**
- * C5-1 + C5-2 + C5-3B2 + C5-3B3 — Product-photo list authority + write-path seal.
+ * C5-1 … C5-4 — Product-photo list authority, write-path seal, store retirement.
  *
  * Seals:
  * - projectKeys.photosByProject as the sole product list key family
  * - fetchProjectPhotosList + photosQueryOptions as the named fetch/options authority
  * - usePhotos must call photosQueryOptions(
  * - AI catalog + room-analysis mock source reads use fetchProjectPhotosList (C5-2)
- * - zero production photoStore.list call sites outside the store definition
+ * - zero production photoStore references under src (C5-4)
  * - usePhotos hooks use uploadProjectPhotos / removeProjectPhoto (C5-3B2)
  * - BulkPhotoUpload uses uploadProjectPhotos; no direct Auth/Storage/photos writes (C5-3B3)
  * - active production project-photo write call sites use @/lib/photos-write
- *
- * Does NOT require photoStore retirement or barrel cleanup (C5-4).
- * src/lib/photos.ts may remain as a temporary dormant-definition exception (zero callers).
+ * - src/lib/photos.ts deleted; no @/lib/photos imports; neutral types in photos-types
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -23,6 +21,9 @@ const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const CANONICAL_FACTORY = "src/lib/queries/projects.ts";
 const USE_PHOTOS_HOOK = "src/features/ai-upload/presentation/hooks/usePhotos.ts";
 const BULK_PHOTO_UPLOAD = "src/components/BulkPhotoUpload.tsx";
+const PHOTOS_TYPES = "src/lib/photos-types.ts";
+const FILE_UTILS = "src/lib/file-utils.ts";
+const LEGACY_PHOTOS = "src/lib/photos.ts";
 const PHOTO_CATALOG_REPO =
   "src/features/ai-upload/infrastructure/repositories/photo-catalog.repository.ts";
 const ROOM_ANALYSIS_REPO =
@@ -32,14 +33,12 @@ const ROOM_ANALYSIS_REPO =
  * Modules allowed to call supabase.from("photos").
  *
  * - src/lib/photos-write.ts — canonical active writer
- * - src/lib/photos.ts — temporary dormant store definition exception (C5-4 retirement)
  * - queries/projects, gallery, ai-quality-audit — read-only list/audit authority
  *
- * BulkPhotoUpload is intentionally NOT listed after C5-3B3.
+ * BulkPhotoUpload and retired src/lib/photos.ts are not listed.
  */
 const PHOTOS_TABLE_ALLOWLIST = new Set([
   "src/lib/queries/projects.ts",
-  "src/lib/photos.ts",
   "src/lib/photos-write.ts",
   "src/lib/queries/gallery.ts",
   "src/lib/ai-quality-audit.ts",
@@ -197,19 +196,19 @@ test("photos query keys — from('photos') restricted to transitional allowlist"
   );
 });
 
-// ─── photoStore.list — zero production call sites (C5-2) ─────────────────────
+// ─── photoStore — zero production references (C5-2 / C5-4) ──────────────────
 
-const PHOTOSTORE_LIST = /photoStore\s*\.\s*list\s*\(/;
+const PHOTOSTORE_ANY = /\bphotoStore\b/;
 const FETCH_PROJECT_PHOTOS = /fetchProjectPhotosList\s*\(/;
+const LIB_PHOTOS_IMPORT = /from\s+["']@\/lib\/photos["']|from\s+["']\.\/photos["']/;
 
-test("photos query keys — zero production photoStore.list call sites outside store definition", () => {
+test("photos query keys — zero production photoStore references under src", () => {
   const violations: string[] = [];
   for (const root of SCAN_ROOTS) {
     for (const file of listTsFiles(root)) {
       const rel = relPath(file);
-      if (rel === "src/lib/photos.ts") continue; // definition site may remain until C5-5
-      const code = stripComments(readFileSync(file, "utf8"));
-      if (PHOTOSTORE_LIST.test(code)) {
+      const code = stripAllComments(readFileSync(file, "utf8"));
+      if (PHOTOSTORE_ANY.test(code)) {
         violations.push(rel);
       }
     }
@@ -217,7 +216,7 @@ test("photos query keys — zero production photoStore.list call sites outside s
   assert.deepEqual(
     violations,
     [],
-    `production photoStore.list forbidden outside src/lib/photos.ts:\n${violations.join("\n")}`,
+    `production photoStore forbidden under src (C5-4 retired):\n${violations.join("\n")}`,
   );
 });
 
@@ -230,7 +229,7 @@ test("photos query keys — AI photo-catalog repository calls fetchProjectPhotos
     FETCH_PROJECT_PHOTOS,
     `${PHOTO_CATALOG_REPO} must call fetchProjectPhotosList(`,
   );
-  assert.doesNotMatch(text, PHOTOSTORE_LIST, `${PHOTO_CATALOG_REPO} must not call photoStore.list`);
+  assert.doesNotMatch(text, PHOTOSTORE_ANY, `${PHOTO_CATALOG_REPO} must not reference photoStore`);
   assert.doesNotMatch(
     text,
     FROM_PHOTOS,
@@ -247,7 +246,7 @@ test("photos query keys — AI room-analysis repository calls fetchProjectPhotos
     FETCH_PROJECT_PHOTOS,
     `${ROOM_ANALYSIS_REPO} must call fetchProjectPhotosList(`,
   );
-  assert.doesNotMatch(text, PHOTOSTORE_LIST, `${ROOM_ANALYSIS_REPO} must not call photoStore.list`);
+  assert.doesNotMatch(text, PHOTOSTORE_ANY, `${ROOM_ANALYSIS_REPO} must not reference photoStore`);
   assert.doesNotMatch(
     text,
     FROM_PHOTOS,
@@ -429,4 +428,94 @@ test("photos query keys — probe: Bulk direct-write patterns forbidden", () => 
       /\bp-limit\b|\bpLimit\s*\(/.test(text);
     assert.equal(hits, true, `probe should detect banned pattern: ${sample}`);
   }
+});
+
+// ─── C5-4 photoStore retirement seal ─────────────────────────────────────────
+
+test("photos query keys — legacy src/lib/photos.ts must not exist", () => {
+  assert.equal(
+    existsSync(join(ROOT, LEGACY_PHOTOS)),
+    false,
+    `${LEGACY_PHOTOS} must be deleted (C5-4); use photos-types + photos-write + file-utils`,
+  );
+});
+
+test("photos query keys — no production import of @/lib/photos or ./photos", () => {
+  const violations: string[] = [];
+  for (const root of SCAN_ROOTS) {
+    for (const file of listTsFiles(root)) {
+      const rel = relPath(file);
+      const code = stripAllComments(readFileSync(file, "utf8"));
+      if (LIB_PHOTOS_IMPORT.test(code)) {
+        violations.push(rel);
+      }
+    }
+  }
+  assert.deepEqual(
+    violations,
+    [],
+    `legacy @/lib/photos or ./photos import forbidden after C5-4:\n${violations.join("\n")}`,
+  );
+});
+
+test("photos query keys — Projects barrel must not export photoStore", () => {
+  const barrel = join(ROOT, "src/core/projects/index.ts");
+  assert.ok(existsSync(barrel), "missing projects barrel");
+  const text = stripAllComments(readFileSync(barrel, "utf8"));
+  assert.doesNotMatch(text, /\bphotoStore\b/, "Projects barrel must not export photoStore");
+  assert.doesNotMatch(
+    text,
+    /from\s+["']@\/lib\/photos["']/,
+    "Projects barrel must not import @/lib/photos",
+  );
+});
+
+test("photos query keys — photos-types is side-effect free", () => {
+  const full = join(ROOT, PHOTOS_TYPES);
+  assert.ok(existsSync(full), `missing ${PHOTOS_TYPES}`);
+  const text = stripAllComments(readFileSync(full, "utf8"));
+  assert.match(text, /export\s+type\s+ProjectPhoto/, "photos-types must export ProjectPhoto");
+  assert.doesNotMatch(text, /from\s+["']@\/platform\//, "photos-types must not import platform");
+  assert.doesNotMatch(text, /\bsupabase\b/, "photos-types must not reference supabase");
+  assert.doesNotMatch(text, /auth\.onChange/, "photos-types must not register Auth listeners");
+  assert.doesNotMatch(text, /\bphotoStore\b/, "photos-types must not define photoStore");
+});
+
+test("photos query keys — file-utils has no Auth/Supabase dependency", () => {
+  const full = join(ROOT, FILE_UTILS);
+  assert.ok(existsSync(full), `missing ${FILE_UTILS}`);
+  const text = stripAllComments(readFileSync(full, "utf8"));
+  assert.match(text, /export\s+function\s+formatFileSize/, "file-utils must export formatFileSize");
+  assert.doesNotMatch(text, /\bsupabase\b/, "file-utils must not reference supabase");
+  assert.doesNotMatch(
+    text,
+    /auth\.onChange|from\s+["']@\/lib\/auth["']/,
+    "file-utils must not depend on Auth",
+  );
+});
+
+test("photos query keys — no photo-module Auth listener under src/lib", () => {
+  const libRoot = join(ROOT, "src/lib");
+  const violations: string[] = [];
+  for (const file of listTsFiles(libRoot)) {
+    const rel = relPath(file);
+    if (!/photos|photo/i.test(rel)) continue;
+    const text = stripAllComments(readFileSync(file, "utf8"));
+    if (/auth\s*\.\s*onChange\s*\(/.test(text)) {
+      violations.push(rel);
+    }
+  }
+  assert.deepEqual(
+    violations,
+    [],
+    `photo-related lib modules must not register auth.onChange (C5-4):\n${violations.join("\n")}`,
+  );
+});
+
+test("photos query keys — retired photos.ts not on allowlist", () => {
+  assert.equal(
+    PHOTOS_TABLE_ALLOWLIST.has(LEGACY_PHOTOS),
+    false,
+    `${LEGACY_PHOTOS} must not remain on PHOTOS_TABLE_ALLOWLIST after C5-4`,
+  );
 });

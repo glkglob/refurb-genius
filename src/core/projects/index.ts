@@ -1,8 +1,9 @@
-// Shared project surface: pure domain (C4a/C4c-5), mocks, transitional photo re-exports.
+// Shared project surface: pure domain (C4a/C4c-5) and mocks.
 //
 // Prefer pure domain imports from `@/core/projects/domain`.
 // projectStore runtime retired (C4c-5). Live Projects client cache: React Query + useProjects*.
-// photoStore re-exports are legacy coupling (C5) — do not expand.
+// Photo ownership (C5-4): types → @/lib/photos-types; writes → @/lib/photos-write;
+// reads → @/lib/queries/projects; format helpers → @/lib/file-utils. No photoStore.
 
 export { PROPERTY_TYPES, UK_REGIONS, estimatedRefurbCost, estimatedProfit } from "./domain";
 export type {
@@ -15,6 +16,3 @@ export type {
 } from "./domain";
 
 export { MOCK_PROJECTS, getMockProjectById } from "./mockProjects";
-
-export { photoStore, formatFileSize } from "@/lib/photos";
-export type { ProjectPhoto } from "@/lib/photos";

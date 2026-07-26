@@ -126,13 +126,13 @@ export const SERVICE_OWNERSHIP: ServiceOwnership[] = [
   {
     id: "object-storage",
     label: "Object storage",
-    owningLayer: "platform + lib/photos (+ feature infrastructure)",
+    owningLayer: "platform + lib/photos-write + feature infrastructure",
     publicInterface:
-      "photoStore / platform supabase.storage (services/storage facade retired Phase 7 C6)",
+      "photos-write / platform supabase.storage (services/storage facade retired Phase 7 C6; photoStore retired C5-4)",
     persistenceAuthority: "Storage buckets + policies",
     dependencyDirection: "app → platform/supabase storage",
     enforcementStatus: "partial",
-    paths: ["src/lib/photos.ts"],
+    paths: ["src/lib/photos-write.ts", "src/lib/queries/projects.ts"],
     authority: {
       mayRead: true,
       mayWrite: true,

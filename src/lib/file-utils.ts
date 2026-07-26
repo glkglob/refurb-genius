@@ -53,3 +53,13 @@ export function imageContentType(file: File): string {
   const ext = fileExtension(file.name);
   return (ext && EXT_TO_MIME[ext]) || "image/jpeg";
 }
+
+/**
+ * Human-readable file size (B / KB / MB).
+ * Behaviour preserved from the former photos module helper (C5-4B1).
+ */
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}

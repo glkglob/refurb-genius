@@ -8,7 +8,7 @@ import {
   type PersistedRoomEstimate,
   type PersistedProjectEstimate,
 } from "@/features/estimate";
-import type { ProjectPhoto } from "@/lib/photos";
+import type { ProjectPhoto } from "@/lib/photos-types";
 import { logger } from "@/lib/logger";
 
 export type Financials = {
@@ -120,7 +120,7 @@ export const estimateQueryOptions = (projectId: string) =>
  * Canonical authenticated project-photo list fetch (C5-1).
  * Single network authority for product-UI photo lists (usePhotos, route prefetch)
  * and AI source-photo catalog / mock room-analysis reads (C5-2).
- * Does not touch photoStore; store remains for upload/remove until later C5 phases.
+ * Writes: src/lib/photos-write.ts. photoStore retired (C5-4).
  */
 export async function fetchProjectPhotosList(projectId: string): Promise<ProjectPhoto[]> {
   const { data, error } = await supabase
