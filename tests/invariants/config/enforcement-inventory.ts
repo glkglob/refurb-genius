@@ -142,7 +142,7 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     kind: "invariant",
     source: "tests/invariants/marketplace-favorites-presentation.invariant.test.ts",
     description:
-      "AO-1B1 (local, pending verification): TradepersonCard must call useToggleTradeFavorite; banned platform Supabase, auth.getUser, and .from(trade_favorites); trade_favorites writes sealed to src/lib/marketplace-write.ts; reads remain src/lib/queries/marketplace.ts; favorites cache key marketplaceKeys.favoritesByUser; React Query optimistic orchestration in hook. Strength: lexical. Does not claim full marketplace or AO-1 presentation debt resolved.",
+      "AO-1B1 Completed (322156a): TradepersonCard direct Supabase access prohibited; direct Auth resolution (auth.getUser) prohibited; direct trade_favorites writes prohibited; component must call useToggleTradeFavorite; write authority src/lib/marketplace-write.ts; read authority src/lib/queries/marketplace.ts; favorites cache authority React Query marketplaceKeys.favoritesByUser; canonical mutation orchestration useToggleTradeFavorite. Strength: lexical (comment-stripped source scan; alias/dynamic-import bypasses remain possible). Does not claim full marketplace, MessagingInbox, or AO-1 presentation debt resolved.",
     enforcementLevel: "enforced",
     owner: "platform architecture",
     status: "active",

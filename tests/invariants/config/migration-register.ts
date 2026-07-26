@@ -222,20 +222,40 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "AO-1B1",
     title: "Marketplace favorites mutation extraction",
-    status: "In Progress",
+    status: "Completed",
     blastRadius: "T1",
     problem:
       "TradepersonCard imported platform Supabase and auth.getUser, inserted/deleted trade_favorites, and owned optimistic React Query coordination in presentation.",
     currentOwner:
-      "Writes: src/lib/marketplace-write.ts (addTradeFavorite/removeTradeFavorite). Mutation + optimistic cache: useToggleTradeFavorite. Presentation: TradepersonCard via useAuth + useToggleTradeFavorite. Reads: tradeFavoritesQueryOptions / marketplaceKeys.favoritesByUser.",
+      "Writes: src/lib/marketplace-write.ts (addTradeFavorite/removeTradeFavorite). Mutation + optimistic cache: useToggleTradeFavorite. Presentation: TradepersonCard via useAuth + useToggleTradeFavorite. Reads: tradeFavoritesQueryOptions / marketplaceKeys.favoritesByUser. React Query list-cache authority retained.",
     targetOwner:
       "Presentation free of Supabase for favorites; canonical write primitive + presentation-safe hook; React Query remains favorites list-cache authority",
     dependencies: ["C1", "C5"],
     dependents: [],
     evidence: {
+      commit: "322156a",
+      productionImporters: 0,
+      notes:
+        "AO-1B1 Completed. One child slice of Active AO-1 (does not complete AO-1). Implementation commit 322156a1a4162f4820b40b4348189fd94aea01eb (parent 72bec16); subject refactor(marketplace): extract favorite mutations; 12 files. Outcomes: TradepersonCard direct Supabase/auth.getUser/trade_favorites insert-delete removed; writes in marketplace-write; optimistic cancel/snapshot/rollback/exact invalidate in useToggleTradeFavorite; reads/keys tradeFavoritesQueryOptions + marketplaceKeys.favoritesByUser preserved; public props and marketplace consumers unchanged; lexical seal tests/invariants/marketplace-favorites-presentation.invariant.test.ts. Push: fast-forward origin/main to 322156a. CI on exact SHA: CI 30217079372 success (ci + invariant-tests); Security 30217079353 success (gitleaks, dependency-audit, server-only-boundary, client-bundle-secret-smoke); Pages 30217078901 success (build/deploy/report-build-status); Vercel success; Supabase Preview success. Accepted non-blocking: multi-card snapshot rollback (F-M1), lexical invariant bypasses (F-M3), dual userId shape (F-L2). Deferred (not AO-1B1): QuoteRequestDialog, MessagingInbox Realtime, floorplan, photo-analysis, admin metrics, dashboard Auth update, Auth UI isolation.",
+    },
+  },
+  {
+    id: "AO-1B2",
+    title: "Marketplace quote-request creation extraction",
+    status: "Planned",
+    blastRadius: "T1",
+    problem:
+      "QuoteRequestDialog imports platform Supabase and auth.getUser, builds quote_requests insert payload, and owns mutation + project-scoped invalidation in presentation.",
+    currentOwner:
+      "Presentation: src/components/marketplace/QuoteRequestDialog.tsx (supabase.from(quote_requests).insert; auth.getUser; marketplaceKeys.quoteRequestsByProject invalidate).",
+    targetOwner:
+      "Canonical quote-request write primitive (extend marketplace-write or peer module) + presentation-safe mutation hook; dialog retains UI/toasts/props only",
+    dependencies: ["AO-1B1"],
+    dependents: [],
+    evidence: {
       productionImporters: 1,
       notes:
-        "AO-1B1 implemented locally, pending independent verification/commit/CI. Selected from AO-1A inventory (P2, low risk). Extracted trade_favorites insert/delete from TradepersonCard into src/lib/marketplace-write.ts; useToggleTradeFavorite owns cancel/optimistic/rollback/exact invalidate of marketplaceKeys.favoritesByUser; TradepersonCard props unchanged; signed-out toast preserved; narrow lexical invariant tests/invariants/marketplace-favorites-presentation.invariant.test.ts. Deferred: QuoteRequestDialog, MessagingInbox Realtime, floorplan, photo-analysis, Auth UI. AO-1 remains Active.",
+        "Selected as next AO-1 child after AO-1B1 close-out (AO-1A inventory + post-B1 residual scan). P2, low risk, single-table create path, no schema/RLS/Realtime required. Source-compatible dialog props expected. Not started — plan phase AO-1B2A next.",
     },
   },
 ];
@@ -247,8 +267,8 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
     title: "Presentation Layer Owns No Infrastructure",
     status: "Active",
     description:
-      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Achieved via multiple focused migrations (e.g. C3 channel lifecycle, AO-1B1 marketplace favorites). Not completed by a single child slice.",
-    relatedCandidates: ["C3", "C8", "AO-1B1"],
+      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a). Next planned child: AO-1B2 quote-request creation. Not completed by a single child slice; remaining P2 surfaces include MessagingInbox+Realtime, floorplan mutations, photo-analysis writes, admin metrics, dashboard onboarding Auth update, Auth presentation isolation.",
+    relatedCandidates: ["C3", "C8", "AO-1B1", "AO-1B2"],
   },
 ];
 
