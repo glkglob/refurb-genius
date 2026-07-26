@@ -1,20 +1,18 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui";
 import { Button } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { Heart, Star, MapPin, Phone, Mail } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/platform/supabase/browser";
-import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
+import { useAuth } from "@/hooks/useAuth";
 import {
   tradeSpecialtiesQueryOptions,
   tradeFavoritesQueryOptions,
-  marketplaceKeys,
 } from "@/lib/queries/marketplace";
-import { optimisticSetList, rollbackList } from "@/lib/queries/projects";
+import { useToggleTradeFavorite } from "@/features/marketplace";
 
 interface TradepersonCardProps {
   tradesperson: {
@@ -33,9 +31,9 @@ interface TradepersonCardProps {
 }
 
 export function TradepersonCard({ tradesperson, onRequestQuote, projectId }: TradepersonCardProps) {
-  const queryClient = useQueryClient();
-  const user = auth.getUser();
+  const { user, isLoading: authLoading, hydrated } = useAuth();
   const userId = user?.id;
+  const authReady = hydrated && !authLoading;
 
   const { data: specialties = [] } = useQuery(tradeSpecialtiesQueryOptions(tradesperson.id));
 
@@ -45,75 +43,36 @@ export function TradepersonCard({ tradesperson, onRequestQuote, projectId }: Tra
   });
 
   const isFavorited = favorites.some((f) => f.tradesperson_id === tradesperson.id);
+  const favoriteId = favorites.find((f) => f.tradesperson_id === tradesperson.id)?.id;
 
-  const toggleFavoriteMutation = useMutation({
-    mutationFn: async () => {
-      if (!userId) throw new Error("Sign in to favorite");
-
-      if (isFavorited) {
-        const fav = favorites.find((f) => f.tradesperson_id === tradesperson.id);
-        if (fav) {
-          const { error } = await supabase.from("trade_favorites").delete().eq("id", fav.id);
-          if (error) throw error;
-        }
-      } else {
-        const { error } = await supabase.from("trade_favorites").insert({
-          user_id: userId,
-          tradesperson_id: tradesperson.id,
-        });
-        if (error) throw error;
-      }
-    },
-    onMutate: async () => {
-      if (!userId) return;
-      await queryClient.cancelQueries({
-        queryKey: marketplaceKeys.favoritesByUser(userId),
-      });
-      const previous = optimisticSetList(
-        queryClient,
-        marketplaceKeys.favoritesByUser(userId),
-        (old = []) => {
-          if (isFavorited) {
-            return (old as Array<{ tradesperson_id?: string }>).filter(
-              (f: { tradesperson_id?: string }) => f.tradesperson_id !== tradesperson.id,
-            );
-          }
-          return [
-            ...old,
-            {
-              id: "temp-" + Date.now(),
-              user_id: userId,
-              tradesperson_id: tradesperson.id,
-              created_at: new Date().toISOString(),
-            },
-          ];
-        },
-      );
-      return { previous };
-    },
-    onError: (err, _vars, ctx) => {
-      if (ctx?.previous && userId) {
-        rollbackList(queryClient, marketplaceKeys.favoritesByUser(userId), ctx.previous);
-      }
-      logger.error("[marketplace] favorite toggle failed", { error: (err as Error).message });
-      toast.error("Failed to update favorites");
-    },
-    onSettled: () => {
-      if (userId) {
-        queryClient.invalidateQueries({
-          queryKey: marketplaceKeys.favoritesByUser(userId),
-        });
-      }
-    },
-  });
+  const toggleFavoriteMutation = useToggleTradeFavorite(userId);
 
   const handleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
+    // Wait for Auth to settle — avoid false "sign in" toast while session loads.
+    if (!authReady) {
+      return;
+    }
     if (!userId) {
       toast.error("Please sign in to save favorites");
       return;
     }
-    toggleFavoriteMutation.mutate();
+    toggleFavoriteMutation.mutate(
+      {
+        userId,
+        tradespersonId: tradesperson.id,
+        isFavorited,
+        favoriteId,
+      },
+      {
+        onError: (err) => {
+          logger.error("[marketplace] favorite toggle failed", {
+            error: err instanceof Error ? err.message : String(err),
+          });
+          toast.error("Failed to update favorites");
+        },
+      },
+    );
   };
 
   const displayRating = tradesperson.rating ?? 0;
@@ -133,7 +92,7 @@ export function TradepersonCard({ tradesperson, onRequestQuote, projectId }: Tra
             onClick={handleFavorite}
             className="p-1 rounded hover:bg-muted"
             aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
-            disabled={toggleFavoriteMutation.isPending}
+            disabled={toggleFavoriteMutation.isPending || !authReady}
           >
             <Heart
               className={`h-5 w-5 transition-colors ${

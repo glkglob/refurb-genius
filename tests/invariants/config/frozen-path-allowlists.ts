@@ -28,6 +28,8 @@ export const LIB_ALLOWLIST = [
   "src/lib/gallery.ts",
   "src/lib/logger.ts",
   "src/lib/mappers.ts",
+  "src/lib/marketplace-write.test.ts",
+  "src/lib/marketplace-write.ts",
   "src/lib/mockData.ts",
   "src/lib/observability.ts",
   "src/lib/photos-types.ts",

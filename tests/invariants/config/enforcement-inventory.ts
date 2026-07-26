@@ -138,6 +138,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-marketplace-favorites-presentation",
+    kind: "invariant",
+    source: "tests/invariants/marketplace-favorites-presentation.invariant.test.ts",
+    description:
+      "AO-1B1 (local, pending verification): TradepersonCard must call useToggleTradeFavorite; banned platform Supabase, auth.getUser, and .from(trade_favorites); trade_favorites writes sealed to src/lib/marketplace-write.ts; reads remain src/lib/queries/marketplace.ts; favorites cache key marketplaceKeys.favoritesByUser; React Query optimistic orchestration in hook. Strength: lexical. Does not claim full marketplace or AO-1 presentation debt resolved.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

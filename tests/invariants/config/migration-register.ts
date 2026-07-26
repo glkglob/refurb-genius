@@ -219,6 +219,25 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
         "Reclassified (not Cancelled). Architectural objective remains valid. Implementation strategy changed from a single migration candidate to incremental long-term objective AO-1.",
     },
   },
+  {
+    id: "AO-1B1",
+    title: "Marketplace favorites mutation extraction",
+    status: "In Progress",
+    blastRadius: "T1",
+    problem:
+      "TradepersonCard imported platform Supabase and auth.getUser, inserted/deleted trade_favorites, and owned optimistic React Query coordination in presentation.",
+    currentOwner:
+      "Writes: src/lib/marketplace-write.ts (addTradeFavorite/removeTradeFavorite). Mutation + optimistic cache: useToggleTradeFavorite. Presentation: TradepersonCard via useAuth + useToggleTradeFavorite. Reads: tradeFavoritesQueryOptions / marketplaceKeys.favoritesByUser.",
+    targetOwner:
+      "Presentation free of Supabase for favorites; canonical write primitive + presentation-safe hook; React Query remains favorites list-cache authority",
+    dependencies: ["C1", "C5"],
+    dependents: [],
+    evidence: {
+      productionImporters: 1,
+      notes:
+        "AO-1B1 implemented locally, pending independent verification/commit/CI. Selected from AO-1A inventory (P2, low risk). Extracted trade_favorites insert/delete from TradepersonCard into src/lib/marketplace-write.ts; useToggleTradeFavorite owns cancel/optimistic/rollback/exact invalidate of marketplaceKeys.favoritesByUser; TradepersonCard props unchanged; signed-out toast preserved; narrow lexical invariant tests/invariants/marketplace-favorites-presentation.invariant.test.ts. Deferred: QuoteRequestDialog, MessagingInbox Realtime, floorplan, photo-analysis, Auth UI. AO-1 remains Active.",
+    },
+  },
 ];
 
 /** Architecture objectives achieved incrementally (not single migrations). */
@@ -228,8 +247,8 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
     title: "Presentation Layer Owns No Infrastructure",
     status: "Active",
     description:
-      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Achieved via multiple focused migrations (e.g. C3 channel lifecycle), not one large refactor.",
-    relatedCandidates: ["C3", "C8"],
+      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Achieved via multiple focused migrations (e.g. C3 channel lifecycle, AO-1B1 marketplace favorites). Not completed by a single child slice.",
+    relatedCandidates: ["C3", "C8", "AO-1B1"],
   },
 ];
 
