@@ -1,5 +1,5 @@
 /**
- * C5-1 + C5-2 + C5-3B2 — Authenticated product-photo list query authority + hook writers.
+ * C5-1 + C5-2 + C5-3B2 + C5-3B3 — Product-photo list authority + write-path seal.
  *
  * Seals:
  * - projectKeys.photosByProject as the sole product list key family
@@ -8,9 +8,11 @@
  * - AI catalog + room-analysis mock source reads use fetchProjectPhotosList (C5-2)
  * - zero production photoStore.list call sites outside the store definition
  * - usePhotos hooks use uploadProjectPhotos / removeProjectPhoto (C5-3B2)
- * - usePhotos hooks must not call photoStore.upload / photoStore.remove
+ * - BulkPhotoUpload uses uploadProjectPhotos; no direct Auth/Storage/photos writes (C5-3B3)
+ * - active production project-photo write call sites use @/lib/photos-write
  *
- * Does NOT require photoStore retirement or BulkPhotoUpload migration (C5-3B3+).
+ * Does NOT require photoStore retirement or barrel cleanup (C5-4).
+ * src/lib/photos.ts may remain as a temporary dormant-definition exception (zero callers).
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -20,14 +22,20 @@ import test from "node:test";
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const CANONICAL_FACTORY = "src/lib/queries/projects.ts";
 const USE_PHOTOS_HOOK = "src/features/ai-upload/presentation/hooks/usePhotos.ts";
+const BULK_PHOTO_UPLOAD = "src/components/BulkPhotoUpload.tsx";
 const PHOTO_CATALOG_REPO =
   "src/features/ai-upload/infrastructure/repositories/photo-catalog.repository.ts";
 const ROOM_ANALYSIS_REPO =
   "src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts";
 
 /**
- * Modules allowed to call supabase.from("photos") during C5 transition.
- * Writes (BulkPhotoUpload) and store internals remain until C5-3/C5-5.
+ * Modules allowed to call supabase.from("photos").
+ *
+ * - src/lib/photos-write.ts — canonical active writer
+ * - src/lib/photos.ts — temporary dormant store definition exception (C5-4 retirement)
+ * - queries/projects, gallery, ai-quality-audit — read-only list/audit authority
+ *
+ * BulkPhotoUpload is intentionally NOT listed after C5-3B3.
  */
 const PHOTOS_TABLE_ALLOWLIST = new Set([
   "src/lib/queries/projects.ts",
@@ -35,7 +43,6 @@ const PHOTOS_TABLE_ALLOWLIST = new Set([
   "src/lib/photos-write.ts",
   "src/lib/queries/gallery.ts",
   "src/lib/ai-quality-audit.ts",
-  "src/components/BulkPhotoUpload.tsx",
 ]);
 
 const SCAN_ROOTS = [
@@ -74,6 +81,15 @@ function stripLineComments(line: string): string {
 
 function stripComments(text: string): string {
   return text.split("\n").map(stripLineComments).join("\n");
+}
+
+/** Strip block + line comments for write-path probes (avoids doc false positives). */
+function stripAllComments(text: string): string {
+  return text
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .split("\n")
+    .map(stripLineComments)
+    .join("\n");
 }
 
 function relPath(file: string): string {
@@ -311,16 +327,106 @@ test("photos query keys — usePhotos hooks must not call photoStore upload/remo
   );
 });
 
-test("photos query keys — probe: BulkPhotoUpload may still call photoStore writers until C5-3B3", () => {
-  const bulkPath = join(ROOT, "src/components/BulkPhotoUpload.tsx");
-  assert.ok(existsSync(bulkPath), "missing BulkPhotoUpload.tsx");
-  const text = stripComments(readFileSync(bulkPath, "utf8"));
-  // Temporary dual-writer: Bulk remains on store (or direct storage) until C5-3B3.
-  // Do not globally ban photoStore.upload/remove yet.
-  assert.ok(
-    /photoStore\s*\.\s*upload\s*\(/.test(text) ||
-      /from\s*\(\s*["']photos["']\s*\)/.test(text) ||
-      /storage\s*\.\s*from\s*\(/.test(text),
-    "BulkPhotoUpload must remain a production write path until C5-3B3",
+// ─── C5-3B3 BulkPhotoUpload → canonical photos-write ────────────────────────
+
+test("photos query keys — BulkPhotoUpload calls canonical uploadProjectPhotos", () => {
+  const bulkPath = join(ROOT, BULK_PHOTO_UPLOAD);
+  assert.ok(existsSync(bulkPath), `missing ${BULK_PHOTO_UPLOAD}`);
+  const text = stripAllComments(readFileSync(bulkPath, "utf8"));
+  assert.match(
+    text,
+    /from\s+["']@\/lib\/photos-write["']/,
+    `${BULK_PHOTO_UPLOAD} must import from @/lib/photos-write`,
   );
+  assert.match(
+    text,
+    /uploadProjectPhotos\s*\(/,
+    `${BULK_PHOTO_UPLOAD} must call uploadProjectPhotos(`,
+  );
+});
+
+test("photos query keys — BulkPhotoUpload bans direct Auth/Storage/photos/store writes", () => {
+  const bulkPath = join(ROOT, BULK_PHOTO_UPLOAD);
+  const text = stripAllComments(readFileSync(bulkPath, "utf8"));
+
+  assert.doesNotMatch(
+    text,
+    /supabase\s*\.\s*auth\s*\.\s*getUser\s*\(/,
+    `${BULK_PHOTO_UPLOAD} must not call supabase.auth.getUser (C5-3B3)`,
+  );
+  assert.doesNotMatch(
+    text,
+    /\bfromSupabaseUser\b/,
+    `${BULK_PHOTO_UPLOAD} must not use fromSupabaseUser for write Auth (C5-3B3)`,
+  );
+  assert.doesNotMatch(
+    text,
+    /(?:supabase\s*\.\s*)?storage\s*\.\s*from\s*\(/,
+    `${BULK_PHOTO_UPLOAD} must not call storage.from (C5-3B3)`,
+  );
+  assert.doesNotMatch(
+    text,
+    /(?:supabase\s*)?\.\s*from\s*\(\s*["']photos["']\s*\)/,
+    `${BULK_PHOTO_UPLOAD} must not call from("photos") (C5-3B3)`,
+  );
+  assert.doesNotMatch(
+    text,
+    /photoStore\s*(?:\.\s*upload\s*\(|\[\s*["']upload["']\s*\])/,
+    `${BULK_PHOTO_UPLOAD} must not call photoStore.upload (C5-3B3)`,
+  );
+  assert.doesNotMatch(
+    text,
+    /photoStore\s*(?:\.\s*remove\s*\(|\[\s*["']remove["']\s*\])/,
+    `${BULK_PHOTO_UPLOAD} must not call photoStore.remove (C5-3B3)`,
+  );
+  assert.doesNotMatch(
+    text,
+    /\bp-limit\b|\bpLimit\s*\(/,
+    `${BULK_PHOTO_UPLOAD} must not use p-limit (canonical batch concurrency owns this)`,
+  );
+  assert.doesNotMatch(
+    text,
+    /\bphotoStore\b/,
+    `${BULK_PHOTO_UPLOAD} must not reference photoStore after C5-3B3`,
+  );
+});
+
+test("photos query keys — BulkPhotoUpload is not on photos-table allowlist", () => {
+  assert.equal(
+    PHOTOS_TABLE_ALLOWLIST.has(BULK_PHOTO_UPLOAD),
+    false,
+    `${BULK_PHOTO_UPLOAD} must not remain on PHOTOS_TABLE_ALLOWLIST after C5-3B3`,
+  );
+});
+
+test("photos query keys — probe: Bulk canonical call pattern required", () => {
+  const good = `import { uploadProjectPhotos } from "@/lib/photos-write";\nawait uploadProjectPhotos({ projectId, files, concurrency: 3 });`;
+  const importOnly = `import { uploadProjectPhotos } from "@/lib/photos-write";\n// unused`;
+  const stringOnly = `const uploadProjectPhotos = "not a real call";`;
+  assert.match(good, /uploadProjectPhotos\s*\(/);
+  assert.match(good, /from\s+["']@\/lib\/photos-write["']/);
+  assert.doesNotMatch(importOnly, /uploadProjectPhotos\s*\(/);
+  assert.doesNotMatch(stringOnly, /uploadProjectPhotos\s*\(/);
+});
+
+test("photos query keys — probe: Bulk direct-write patterns forbidden", () => {
+  const banned = [
+    `await supabase.auth.getUser()`,
+    `supabase.storage.from("project-photos").upload(path, file)`,
+    `storage . from("project-photos")`,
+    `await supabase.from("photos").insert({})`,
+    `photoStore.upload(projectId, files)`,
+    `photoStore["upload"](projectId, files)`,
+    `import pLimit from "p-limit"; pLimit(3)`,
+  ];
+  for (const sample of banned) {
+    const text = stripAllComments(sample);
+    const hits =
+      /supabase\s*\.\s*auth\s*\.\s*getUser\s*\(/.test(text) ||
+      /(?:supabase\s*\.\s*)?storage\s*\.\s*from\s*\(/.test(text) ||
+      /(?:supabase\s*)?\.\s*from\s*\(\s*["']photos["']\s*\)/.test(text) ||
+      /photoStore\s*(?:\.\s*upload\s*\(|\[\s*["']upload["']\s*\])/.test(text) ||
+      /\bp-limit\b|\bpLimit\s*\(/.test(text);
+    assert.equal(hits, true, `probe should detect banned pattern: ${sample}`);
+  }
 });

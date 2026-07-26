@@ -17,7 +17,7 @@ export type {
 import type { ArchitectureObjective, MigrationCandidate } from "./migration-register.types.ts";
 
 export const MIGRATION_REGISTER_META = {
-  lastUpdated: "2026-07-25",
+  lastUpdated: "2026-07-26",
   phase: 9,
   purpose: "living-architecture-migration-register",
   scoringSourceOfTruth: "tests/invariants/config/candidate-scoring.ts",
@@ -159,15 +159,15 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     problem:
       "src/lib/photos mixed with ai-upload and UI consumers; dual photo list reads (RQ product UI vs photoStore.list for AI); dual upload writers (hooks vs BulkPhotoUpload); object storage concerns split.",
     currentOwner:
-      "Product-UI + AI source-photo list: photosQueryOptions / fetchProjectPhotosList / projectKeys.photosByProject (C5-1/C5-2). Canonical write primitives: src/lib/photos-write.ts (C5-3B1). Hook writers: useUploadPhotos/useRemovePhoto → uploadProjectPhotos/removeProjectPhoto (C5-3B2 local). Deferred writer: BulkPhotoUpload + photoStore (C5-3B3).",
+      "Product-UI + AI source-photo list: photosQueryOptions / fetchProjectPhotosList / projectKeys.photosByProject (C5-1/C5-2). Active project-photo writes: src/lib/photos-write.ts via useUploadPhotos/useRemovePhoto (C5-3B2) and BulkPhotoUpload → uploadProjectPhotos (C5-3B3 local). photoStore: dormant definition + core re-export pending C5-4.",
     targetOwner:
-      "Clear media ownership: single product-UI list authority (C5-1 done); AI catalog on same fetch (C5-2 done); unified write path (C5-3); retire photoStore + Projects barrel photo re-exports; optional storage/server hardening",
+      "Clear media ownership: single product-UI list authority (C5-1 done); AI catalog on same fetch (C5-2 done); unified write path (C5-3 done after B3 CI); retire photoStore + Projects barrel photo re-exports (C5-4); optional storage/server hardening",
     dependencies: ["C4", "C4c"],
     dependents: [],
     evidence: {
       productionImporters: 9,
       notes:
-        "C5 In Progress. C5-1: authenticated product-UI photo list sealed — projectKeys.photosByProject; photosQueryOptions; fetchProjectPhotosList; usePhotos + route prefetch/fetchQuery; inv-photos-query-keys. C5-2: AI source-photo list reads converged — BrowserPhotoCatalogRepository.listPhotos and room-analysis runMock/buildFromProjectPhotos use fetchProjectPhotosList; PhotoCatalogPort.listPhotos is async; makeAnalyzePhotos awaits catalog; zero production photoStore.list call sites outside store definition. C5-3B1 Completed (068f710): canonical photos-write primitives (uploadProjectPhoto(s), removeProjectPhoto, PhotoWriteError, PhotoUploadBatchError, PhotoRemovalResult). C5-3B2 In Progress (local implementation, pending independent verification/commit/CI): useUploadPhotos → uploadProjectPhotos; useRemovePhoto → removeProjectPhoto; React Query remains sole project-photo list cache (projectKeys.photosByProject); partial batch success invalidates then rethrows PhotoUploadBatchError; orphan-warning logged as mutation success; hook path no longer calls photoStore.upload/remove. BulkPhotoUpload remains deferred (C5-3B3). photoStore remains present until remaining consumers migrate. C5-3 and C5 remain In Progress — not complete. Out of scope: SQL/RLS rewrite, public gallery merge, photo-analysis key consolidation, photos_done, photoStore retirement. C4/C4c remain Completed.",
+        "C5 In Progress. C5-1: authenticated product-UI photo list sealed — projectKeys.photosByProject; photosQueryOptions; fetchProjectPhotosList; usePhotos + route prefetch/fetchQuery; inv-photos-query-keys. C5-2: AI source-photo list reads converged — BrowserPhotoCatalogRepository.listPhotos and room-analysis runMock/buildFromProjectPhotos use fetchProjectPhotosList; zero production photoStore.list outside store definition. C5-3B1 Completed (068f710): canonical photos-write primitives. C5-3B2 Completed (c967715): hook writers → uploadProjectPhotos/removeProjectPhoto; React Query sole list cache; partial batch invalidation. C5-3B3 In Progress (local B1+B2, pending independent verification/commit/CI): BulkPhotoUpload migrated to uploadProjectPhotos({ projectId, files, concurrency: 3, onItemState }); direct Auth/Storage/photos-table writes and p-limit removed; stage-derived progress (no fake analyzing delay); PhotoUploadBatchError partial success; one projectKeys.photosByProject invalidation per changed batch; Bulk removed from PHOTOS_TABLE_ALLOWLIST; positive canonical-call + negative direct-write invariants sealed. Active production project-photo write call sites converged on photos-write. photoStore upload/remove remain dormant definitions with zero production callers; Auth listener and core barrel re-export deferred to C5-4. C5-3 and C5 remain In Progress until B3 verification/CI and C5-4 store retirement. Out of scope: SQL/RLS rewrite, public gallery merge, photo-analysis key consolidation, photos_done. C4/C4c remain Completed.",
     },
   },
   {

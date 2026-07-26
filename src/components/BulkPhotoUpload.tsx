@@ -1,24 +1,37 @@
 "use client";
 
-import { useState, useCallback } from "react";
+/**
+ * Bulk project-photo uploader (C5-3B3B1).
+ *
+ * Write authority: uploadProjectPhotos (canonical photos-write).
+ * List cache: projectKeys.photosByProject via React Query invalidation.
+ * UI item ids are React-state identity only — not Storage or database IDs.
+ */
+import { useState, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Upload, CheckCircle2, XCircle, Loader2, AlertCircle } from "lucide-react";
+import { Upload, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@repo/ui";
 import { toast } from "sonner";
-import pLimit from "p-limit";
-import { supabase } from "@/platform/supabase/browser";
-import { fromSupabaseUser } from "@/lib/auth";
-import { logger } from "@/lib/logger";
-import { photosQueryOptions } from "@/lib/queries/projects";
-import { captureUploadError } from "@/lib/sentry";
-import { isImageFile, imageContentType } from "@/features/ai-upload";
+import {
+  uploadProjectPhotos,
+  PhotoUploadBatchError,
+  PhotoWriteError,
+  type PhotoUploadItemEvent,
+  type PhotoUploadItemState,
+  type PhotoWriteStage,
+} from "@/lib/photos-write";
+import { projectKeys } from "@/lib/queries/projects";
+import { isImageFile } from "@/features/ai-upload";
+import type { ProjectPhoto } from "@/lib/photos";
 
-type UploadStatus = "queued" | "uploading" | "uploaded" | "analyzing" | "completed" | "failed";
+type UploadStatus = "queued" | "uploading" | "uploaded" | "completed" | "failed";
 
 type UploadItem = {
-  id: string;
+  /** Local React list identity only — never used as Storage/DB authority. */
+  uiId: string;
   file: File;
   status: UploadStatus;
+  /** Stage-derived coarse progress (not byte transfer). */
   progress: number;
   error?: string;
   photoId?: string;
@@ -28,16 +41,77 @@ interface BulkPhotoUploadProps {
   projectId: string;
 }
 
-const MAX_CONCURRENT = 3;
-const BUCKET = "project-photos";
+const BATCH_CONCURRENCY = 3;
+
+/** Monotonic stage-derived progress; complete alone reaches 100. */
+const STAGE_PROGRESS: Record<PhotoUploadItemState, number> = {
+  queued: 0,
+  validating: 5,
+  authenticating: 10,
+  uploading: 40,
+  saving: 70,
+  "rolling-back": 70,
+  complete: 100,
+  failed: 70,
+};
+
+function statusForState(state: PhotoUploadItemState): UploadStatus {
+  switch (state) {
+    case "queued":
+      return "queued";
+    case "validating":
+    case "authenticating":
+    case "uploading":
+    case "rolling-back":
+      return "uploading";
+    case "saving":
+      return "uploaded";
+    case "complete":
+      return "completed";
+    case "failed":
+      return "failed";
+    default:
+      return "uploading";
+  }
+}
+
+function errorTextFromUnknown(error: unknown, stage?: PhotoWriteStage): string {
+  if (error instanceof PhotoWriteError) {
+    return error.message;
+  }
+  if (error instanceof Error && error.message) {
+    return stage ? `${error.message} (${stage})` : error.message;
+  }
+  if (stage) return `Upload failed (${stage})`;
+  return "Upload failed";
+}
+
+function applyStageProgress(current: number, state: PhotoUploadItemState): number {
+  const next = STAGE_PROGRESS[state] ?? current;
+  if (state === "complete") return 100;
+  // Never regress percentage except terminal failed (keep progress).
+  if (state === "failed") return Math.max(current, next);
+  return Math.max(current, next);
+}
 
 export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const processingRef = useRef(false);
   const queryClient = useQueryClient();
 
-  const updateItem = useCallback((id: string, updates: Partial<UploadItem>) => {
-    setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+  const updateItem = useCallback((uiId: string, updates: Partial<UploadItem>) => {
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.uiId !== uiId) return item;
+        const next = { ...item, ...updates };
+        if (typeof updates.progress === "number") {
+          next.progress = Math.max(item.progress, updates.progress);
+          if (updates.status === "completed") next.progress = 100;
+        }
+        return next;
+      }),
+    );
   }, []);
 
   const handleFiles = useCallback((files: FileList | File[]) => {
@@ -47,7 +121,7 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
       return;
     }
     const newItems: UploadItem[] = fileArray.map((file) => ({
-      id: crypto.randomUUID(),
+      uiId: crypto.randomUUID(),
       file,
       status: "queued",
       progress: 0,
@@ -56,112 +130,134 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
     setItems((prev) => [...prev, ...newItems]);
   }, []);
 
-  const processQueue = useCallback(async () => {
-    if (isProcessing || items.length === 0) return;
+  const onItemState = useCallback(
+    (batchSnapshot: UploadItem[], event: PhotoUploadItemEvent) => {
+      const target = batchSnapshot[event.index];
+      if (!target) return;
 
-    setIsProcessing(true);
-    const limiter = pLimit(MAX_CONCURRENT);
-    let failCount = 0;
+      const status = statusForState(event.state);
+      const progress = applyStageProgress(target.progress, event.state);
+      const patch: Partial<UploadItem> = { status, progress };
 
-    const queuedItems = items.filter((i) => i.status === "queued");
+      if (event.state === "complete" && event.photo) {
+        patch.photoId = event.photo.id;
+        patch.progress = 100;
+        patch.status = "completed";
+      }
+      if (event.state === "failed") {
+        patch.status = "failed";
+        patch.error = errorTextFromUnknown(event.error, event.stage);
+      }
 
-    const promises = queuedItems.map((item) =>
-      limiter(async () => {
-        try {
-          updateItem(item.id, { status: "uploading", progress: 10 });
+      updateItem(target.uiId, patch);
+    },
+    [updateItem],
+  );
 
-          const {
-            data: { user: sessionUser },
-            error: sessionError,
-          } = await supabase.auth.getUser();
-          const user = fromSupabaseUser(sessionUser);
-          if (!user || sessionError) throw new Error("Not authenticated");
+  const invalidateProjectPhotos = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: projectKeys.photosByProject(projectId),
+    });
+  }, [projectId, queryClient]);
 
-          const ext = item.file.name.split(".").pop() || "jpg";
-          const path = `${user.id}/${projectId}/${item.id}.${ext}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from(BUCKET)
-            .upload(path, item.file, {
-              upsert: false,
-              contentType: imageContentType(item.file),
-            });
-
-          if (uploadError) throw uploadError;
-
-          updateItem(item.id, { status: "uploaded", progress: 70 });
-
-          // Get public URL
-          const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-          const url = urlData.publicUrl;
-
-          // Insert metadata — roll back storage file on failure.
-          const { data: photoRow, error: insertError } = await supabase
-            .from("photos")
-            .insert({
-              project_id: projectId,
-              user_id: user.id,
-              storage_path: path,
-              url,
-              name: item.file.name,
-              size: item.file.size,
-            })
-            .select("id")
-            .single();
-
-          if (insertError) {
-            await supabase.storage
-              .from(BUCKET)
-              .remove([path])
-              .catch(() => {});
-            throw insertError;
-          }
-
-          updateItem(item.id, {
-            status: "analyzing",
-            progress: 85,
-            photoId: photoRow.id,
-          });
-
-          // Trigger AI analysis (after upload). In real system this would enqueue a job.
-          // Here we call a lightweight serverFn or just simulate + invalidate.
-          // For production we could call e.g. analyzePhotoServerFn({ data: { photoId: photoRow.id, projectId } })
-          // For now: short delay to represent AI work, then complete.
-          await new Promise((r) => setTimeout(r, 600));
-
-          updateItem(item.id, { status: "completed", progress: 100 });
-
-          // Invalidate photos query so list / other components update
-          await queryClient.invalidateQueries({
-            queryKey: photosQueryOptions(projectId).queryKey,
-          });
-
-          // Optionally trigger broader project analysis (non-blocking)
-          // e.g. triggerScopeAnalysis(projectId) but keep non-breaking here.
-        } catch (err: unknown) {
-          logger.error("[BulkPhotoUpload] item failed", {
-            id: item.id,
-            error: (err as Error)?.message,
-          });
-          captureUploadError(err, { projectId });
-          failCount++;
-          updateItem(item.id, {
-            status: "failed",
-            error: (err instanceof Error ? err.message : null) || "Upload failed",
-          });
-        }
-      }),
-    );
-
-    await Promise.allSettled(promises);
-    setIsProcessing(false);
-
-    if (failCount > 0) {
-      toast.error(`${failCount} file${failCount > 1 ? "s" : ""} failed to upload.`);
-    } else {
+  const applyFullSuccess = useCallback(
+    (batchSnapshot: UploadItem[], photos: ProjectPhoto[]) => {
+      photos.forEach((photo, index) => {
+        const target = batchSnapshot[index];
+        if (!target) return;
+        updateItem(target.uiId, {
+          status: "completed",
+          progress: 100,
+          photoId: photo.id,
+        });
+      });
+      invalidateProjectPhotos();
       toast.success("Upload complete.");
+    },
+    [invalidateProjectPhotos, updateItem],
+  );
+
+  const applyBatchError = useCallback(
+    (batchSnapshot: UploadItem[], error: PhotoUploadBatchError) => {
+      const failedIndexes = new Set(error.failures.map((f) => f.index));
+
+      // Successes: ordered by original input index (complement of failures, same order as input).
+      let successCursor = 0;
+      for (let index = 0; index < batchSnapshot.length; index++) {
+        const target = batchSnapshot[index];
+        if (!target) continue;
+        if (failedIndexes.has(index)) continue;
+        const photo = error.successes[successCursor++];
+        updateItem(target.uiId, {
+          status: "completed",
+          progress: 100,
+          photoId: photo?.id,
+        });
+      }
+
+      for (const failure of error.failures) {
+        const target = batchSnapshot[failure.index];
+        if (!target) continue;
+        updateItem(target.uiId, {
+          status: "failed",
+          error: errorTextFromUnknown(failure.cause, failure.stage),
+        });
+      }
+
+      if (error.successes.length > 0) {
+        invalidateProjectPhotos();
+      }
+
+      const failCount = error.failures.length;
+      toast.error(`${failCount} file${failCount > 1 ? "s" : ""} failed to upload.`);
+    },
+    [invalidateProjectPhotos, updateItem],
+  );
+
+  const applyTotalUnknownFailure = useCallback(
+    (batchSnapshot: UploadItem[], err: unknown) => {
+      const message = errorTextFromUnknown(err);
+      for (const target of batchSnapshot) {
+        updateItem(target.uiId, { status: "failed", error: message });
+      }
+      toast.error(
+        `${batchSnapshot.length} file${batchSnapshot.length > 1 ? "s" : ""} failed to upload.`,
+      );
+    },
+    [updateItem],
+  );
+
+  const processQueue = useCallback(async () => {
+    if (processingRef.current) return;
+
+    // Immutable snapshot of currently queued items — event indexes map only to this batch.
+    const batchSnapshot = items.filter((i) => i.status === "queued");
+    if (batchSnapshot.length === 0) return;
+
+    processingRef.current = true;
+    setIsProcessing(true);
+
+    const files = batchSnapshot.map((i) => i.file);
+
+    try {
+      const photos = await uploadProjectPhotos({
+        projectId,
+        files,
+        concurrency: BATCH_CONCURRENCY,
+        onItemState: (event) => onItemState(batchSnapshot, event),
+      });
+      applyFullSuccess(batchSnapshot, photos);
+    } catch (err: unknown) {
+      if (err instanceof PhotoUploadBatchError) {
+        applyBatchError(batchSnapshot, err);
+      } else {
+        applyTotalUnknownFailure(batchSnapshot, err);
+      }
+    } finally {
+      processingRef.current = false;
+      setIsProcessing(false);
     }
-  }, [items, isProcessing, projectId, queryClient, updateItem]);
+  }, [items, projectId, onItemState, applyFullSuccess, applyBatchError, applyTotalUnknownFailure]);
 
   const onDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
@@ -176,8 +272,8 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
   const onDragOver = (e: React.DragEvent) => e.preventDefault();
 
   const startUpload = () => {
-    if (items.some((i) => i.status === "queued")) {
-      processQueue();
+    if (items.some((i) => i.status === "queued") && !processingRef.current) {
+      void processQueue();
     }
   };
 
@@ -185,14 +281,12 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
     setItems((prev) => prev.filter((i) => i.status !== "completed" && i.status !== "failed"));
   };
 
-  const removeItem = (id: string) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
+  const removeItem = (uiId: string) => {
+    setItems((prev) => prev.filter((i) => i.uiId !== uiId));
   };
 
   const hasQueued = items.some((i) => i.status === "queued");
-  const hasActive = items.some(
-    (i) => i.status === "uploading" || i.status === "uploaded" || i.status === "analyzing",
-  );
+  const hasActive = items.some((i) => i.status === "uploading" || i.status === "uploaded");
 
   return (
     <div className="space-y-4">
@@ -214,14 +308,14 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
           />
         </label>
         <p className="mt-1 text-xs text-muted-foreground">
-          Max 3 concurrent. AI analysis runs after each upload.
+          Max {BATCH_CONCURRENCY} concurrent uploads. Progress is stage-based (not byte transfer).
         </p>
       </div>
 
       {items.length > 0 && (
         <>
           <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">{items.length} files queued</div>
+            <div className="text-sm text-muted-foreground">{items.length} files selected</div>
             <div className="flex gap-2">
               {hasQueued && !hasActive && (
                 <Button size="sm" onClick={startUpload} disabled={isProcessing}>
@@ -236,7 +330,7 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
 
           <div className="space-y-2">
             {items.map((item) => (
-              <div key={item.id} className="flex items-center gap-3 rounded border p-3 text-sm">
+              <div key={item.uiId} className="flex items-center gap-3 rounded border p-3 text-sm">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="font-medium truncate">{item.file.name}</span>
@@ -250,6 +344,11 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
                       style={{ width: `${item.progress}%` }}
                     />
                   </div>
+                  {item.error && (
+                    <p className="mt-1 text-xs text-red-600 truncate" title={item.error}>
+                      {item.error}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 text-xs uppercase tracking-widest">
@@ -260,12 +359,7 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
                     </span>
                   )}
                   {item.status === "uploaded" && (
-                    <span className="flex items-center gap-1 text-blue-600">Uploaded</span>
-                  )}
-                  {item.status === "analyzing" && (
-                    <span className="flex items-center gap-1 text-purple-600">
-                      <Loader2 className="h-3 w-3 animate-spin" /> Analyzing
-                    </span>
+                    <span className="flex items-center gap-1 text-blue-600">Saving</span>
                   )}
                   {item.status === "completed" && (
                     <span className="flex items-center gap-1 text-green-600">
@@ -284,7 +378,7 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6"
-                    onClick={() => removeItem(item.id)}
+                    onClick={() => removeItem(item.uiId)}
                   >
                     <XCircle className="h-4 w-4" />
                   </Button>
@@ -298,7 +392,7 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
       {hasActive && (
         <div className="text-xs text-muted-foreground flex items-center gap-2">
           <Loader2 className="h-3 w-3 animate-spin" />
-          Processing uploads (max {MAX_CONCURRENT} concurrent). Photos will appear in the project
+          Processing uploads (max {BATCH_CONCURRENCY} concurrent). Photos will appear in the project
           once complete.
         </div>
       )}
