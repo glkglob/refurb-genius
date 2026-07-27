@@ -17,7 +17,7 @@ export type {
 import type { ArchitectureObjective, MigrationCandidate } from "./migration-register.types.ts";
 
 export const MIGRATION_REGISTER_META = {
-  lastUpdated: "2026-07-26",
+  lastUpdated: "2026-07-27",
   phase: 9,
   purpose: "living-architecture-migration-register",
   scoringSourceOfTruth: "tests/invariants/config/candidate-scoring.ts",
@@ -342,7 +342,7 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "AO-1D1",
     title: "Admin Metrics Read Extraction",
-    status: "In Progress",
+    status: "Completed",
     blastRadius: "T1",
     problem:
       "Admin route owned direct platform Supabase reads for platform stats counts, seven-day activity row length, recent projects list, and users list via inline loaders and local useEffect orchestration.",
@@ -353,9 +353,10 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     dependencies: ["AO-1"],
     dependents: [],
     evidence: {
+      commit: "d3cab3f",
       productionImporters: 0,
       notes:
-        "AO-1D1 In Progress — implemented locally, pending independent verification. Outcomes (local): three independent admin metrics authorities in src/features/admin; exact R1–R5 read contracts preserved (count/head projects and profiles; 7d projects select id + length; recent projects limit 5; users limit 10); stats Promise.all parallelism preserved; soft PostgREST failures (zeros / warn+[]); mount-once query options (retry false, no focus/reconnect refetch, staleTime Infinity); admin route removes platform Supabase, logger, inline loaders, and useEffect; RequireAdmin and AIMetricsDashboard retained. Lexical seal tests/invariants/admin-metrics-presentation.invariant.test.ts. Does not complete AO-1; does not migrate dashboard Auth, AuthExperience, FloorplanViewer, EstimateBuilder, DealChat, or AI metrics diagnostics.",
+        "AO-1D1 Completed. One child slice of Active AO-1 (does not complete AO-1; no parent umbrella introduced). Implementation commit d3cab3f6c87d1778a1123a05d71b4ed03aa27642 (parent 9bf7c46); subject refactor(admin): extract metrics read ownership; 17 files. Independent verification: PASS WITH NON-BLOCKING FINDINGS (F-L1–F-I4). Outcomes: direct platform Supabase removed from admin.tsx; direct .from calls removed; inline loadPlatformStats/loadRecentProjects/loadUsers and useEffect loaders removed; logger import removed from route. fetchAdminPlatformStats established as R1–R3 read authority (projects count exact/head; profiles count exact/head; projects select id + gte created_at now−7d evaluated at call time + data?.length||0; returned PostgREST errors ignored → zeros; Promise.all concurrency). fetchAdminRecentProjects established as R4 (projects select id,name,address,status,created_at; order created_at desc; limit 5; error → logger.warn + []). fetchAdminUsers established as R5 (profiles select id,full_name,email,role,created_at; order created_at desc; limit 10; error → RLS warn + []). adminKeys established without projectKeys reuse ([admin], [admin,platform-stats], [admin,recent-projects], [admin,users]). Three independent admin*QueryOptions (retry:false; refetchOnWindowFocus:false; refetchOnReconnect:false; staleTime:Infinity; no polling). Three independent hooks (useAdminPlatformStats/useAdminRecentProjects/useAdminUsers; one useQuery each; no useQueries/useMutation/useQueryClient/combined hook). Three independent section lifecycles preserved (stats/projects/users loading/error/ready without global blocking). Soft failures remain soft; genuine thrown exceptions produce section-only error UI. Route path /admin, head Admin — Refurb Genius, labels, empty states, fallbacks, badges, toLocaleDateString, section order (Platform Stats → AI Operations → Recent Projects → Users) unchanged. RequireAdmin and parent _authed access control unchanged; AIMetricsDashboard unchanged. No writes, Auth ownership, schema, migration, RLS, or Storage change. Lexical seal tests/invariants/admin-metrics-presentation.invariant.test.ts. Push: successful fast-forward origin/main to d3cab3f. CI on exact SHA: CI 30298227222 success (ci + invariant-tests); Security 30298227253 success (gitleaks, dependency-audit, server-only-boundary, client-bundle-secret-smoke); Pages 30298225865 success (build/deploy/report-build-status); Vercel success; Supabase Preview success (no schema/migration/RLS change). Accepted non-blocking: F-L1 internal barrels beyond root public API, F-L2 route tests mock hooks, F-L3 17-path vs provisional 14, F-I1 remount may serve RQ cache under Infinite staleTime, F-I2 lexical invariant bypasses, F-I3 threshold helper exported internally, F-I4 root barrel comment mismatch. Admin metrics read AO-1 work COMPLETE for /admin; route retains authorised presentation orchestration only. Deferred outside AO-1D1: FloorplanViewer multi-table mutations and estimate sync, dashboard onboarding Auth update, AuthExperience presentation isolation, EstimateBuilder save mutation/QueryClient, DealChat residual mutation/QueryClient, BulkPhotoUpload QueryClient invalidation, auth_.callback Auth/QueryClient, dual estimate query keys. AO-1 remains Active; AO-1B1/B2/B3.1/B3.2/C1/C2 remain Completed; C5 remains Completed.",
     },
   },
 ];
@@ -367,7 +368,7 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
     title: "Presentation Layer Owns No Infrastructure",
     status: "Active",
     description:
-      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle Completed at d407cc6; AO-1C1 PhotoAnalysisViewer write extraction Completed at 0802bcc; AO-1C2 PhotoAnalysisViewer Apply-to-Estimate cache extraction Completed at fe28f25; AO-1D1 Admin Metrics Read Extraction In Progress locally). Not completed by a single child slice; remaining P2 surfaces include floorplan multi-table mutations and FloorplanViewer estimate sync, dashboard onboarding Auth update, Auth presentation isolation, DealChat residual mutation/QueryClient ownership, EstimateBuilder save mutation/QueryClient ownership, dual estimate query-key cleanup, and other presentation-infrastructure debt.",
+      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle Completed at d407cc6; AO-1C1 PhotoAnalysisViewer write extraction Completed at 0802bcc; AO-1C2 PhotoAnalysisViewer Apply-to-Estimate cache extraction Completed at fe28f25; AO-1D1 Admin Metrics Read Extraction Completed at d3cab3f). Not completed by a single child slice; remaining P2 surfaces include floorplan multi-table mutations and FloorplanViewer estimate sync, dashboard onboarding Auth update, Auth presentation isolation, DealChat residual mutation/QueryClient ownership, EstimateBuilder save mutation/QueryClient ownership, dual estimate query-key cleanup, and other presentation-infrastructure debt.",
     relatedCandidates: [
       "C3",
       "C8",
