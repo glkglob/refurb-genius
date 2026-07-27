@@ -209,6 +209,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-dashboard-onboarding-auth-presentation",
+    kind: "invariant",
+    source: "tests/invariants/dashboard-onboarding-auth-presentation.invariant.test.ts",
+    description:
+      "AO-1D2 In Progress — implemented locally, pending independent verification: dashboard direct platform Supabase Auth ownership prohibited; direct auth.updateUser prohibited; route-owned onboarding_goal Auth payload prohibited; component must call useOnboardingGoalSelection. Auth metadata mirror authority: src/features/auth/infrastructure/updateAuthOnboardingGoal.ts. Onboarding selection orchestration: useOnboardingGoalSelection (local write first; silent thrown Auth failures; no useMutation/QueryClient). Onboarding localStorage: onboardingStorage.ts. Dashboard presentation and new-user welcome-card consume: dashboard route plus onboardingStorage. Parent authentication: _authed route boundary unchanged. Strength: lexical (comment-stripped source scan; alias/dynamic-import bypasses remain possible). Does not claim AO-1 complete, all dashboard infrastructure migrated, all dashboard Auth ownership migrated, AuthExperience migrated, auth callback migrated, or AST/semantic enforcement.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

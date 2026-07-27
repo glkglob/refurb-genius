@@ -23,6 +23,7 @@ export const MIGRATION_REGISTER_META = {
   scoringSourceOfTruth: "tests/invariants/config/candidate-scoring.ts",
   policySourceOfTruth: "docs/architecture/overview.md",
 } as const;
+// AO-1D2 Dashboard Onboarding Auth Extraction In Progress (local)
 // C5 Photos/Storage ownership Completed (76cf1c8 + required CI)
 
 export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
@@ -359,6 +360,25 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
         "AO-1D1 Completed. One child slice of Active AO-1 (does not complete AO-1; no parent umbrella introduced). Implementation commit d3cab3f6c87d1778a1123a05d71b4ed03aa27642 (parent 9bf7c46); subject refactor(admin): extract metrics read ownership; 17 files. Independent verification: PASS WITH NON-BLOCKING FINDINGS (F-L1–F-I4). Outcomes: direct platform Supabase removed from admin.tsx; direct .from calls removed; inline loadPlatformStats/loadRecentProjects/loadUsers and useEffect loaders removed; logger import removed from route. fetchAdminPlatformStats established as R1–R3 read authority (projects count exact/head; profiles count exact/head; projects select id + gte created_at now−7d evaluated at call time + data?.length||0; returned PostgREST errors ignored → zeros; Promise.all concurrency). fetchAdminRecentProjects established as R4 (projects select id,name,address,status,created_at; order created_at desc; limit 5; error → logger.warn + []). fetchAdminUsers established as R5 (profiles select id,full_name,email,role,created_at; order created_at desc; limit 10; error → RLS warn + []). adminKeys established without projectKeys reuse ([admin], [admin,platform-stats], [admin,recent-projects], [admin,users]). Three independent admin*QueryOptions (retry:false; refetchOnWindowFocus:false; refetchOnReconnect:false; staleTime:Infinity; no polling). Three independent hooks (useAdminPlatformStats/useAdminRecentProjects/useAdminUsers; one useQuery each; no useQueries/useMutation/useQueryClient/combined hook). Three independent section lifecycles preserved (stats/projects/users loading/error/ready without global blocking). Soft failures remain soft; genuine thrown exceptions produce section-only error UI. Route path /admin, head Admin — Refurb Genius, labels, empty states, fallbacks, badges, toLocaleDateString, section order (Platform Stats → AI Operations → Recent Projects → Users) unchanged. RequireAdmin and parent _authed access control unchanged; AIMetricsDashboard unchanged. No writes, Auth ownership, schema, migration, RLS, or Storage change. Lexical seal tests/invariants/admin-metrics-presentation.invariant.test.ts. Push: successful fast-forward origin/main to d3cab3f. CI on exact SHA: CI 30298227222 success (ci + invariant-tests); Security 30298227253 success (gitleaks, dependency-audit, server-only-boundary, client-bundle-secret-smoke); Pages 30298225865 success (build/deploy/report-build-status); Vercel success; Supabase Preview success (no schema/migration/RLS change). Accepted non-blocking: F-L1 internal barrels beyond root public API, F-L2 route tests mock hooks, F-L3 17-path vs provisional 14, F-I1 remount may serve RQ cache under Infinite staleTime, F-I2 lexical invariant bypasses, F-I3 threshold helper exported internally, F-I4 root barrel comment mismatch. Admin metrics read AO-1 work COMPLETE for /admin; route retains authorised presentation orchestration only. Deferred outside AO-1D1: FloorplanViewer multi-table mutations and estimate sync, dashboard onboarding Auth update, AuthExperience presentation isolation, EstimateBuilder save mutation/QueryClient, DealChat residual mutation/QueryClient, BulkPhotoUpload QueryClient invalidation, auth_.callback Auth/QueryClient, dual estimate query keys. AO-1 remains Active; AO-1B1/B2/B3.1/B3.2/C1/C2 remain Completed; C5 remains Completed.",
     },
   },
+  {
+    id: "AO-1D2",
+    title: "Dashboard Onboarding Auth Extraction",
+    status: "In Progress",
+    blastRadius: "T1",
+    problem:
+      "Dashboard route owned direct platform Supabase Auth metadata mirror for onboarding_goal via supabase.auth.updateUser after local onboarding-goal selection.",
+    currentOwner:
+      "Auth mirror: src/features/auth/infrastructure/updateAuthOnboardingGoal.ts. Selection orchestration: useOnboardingGoalSelection (writeOnboardingGoal first, then Auth). Storage: onboardingStorage.ts. Presentation: dashboard route retains card, select, mount consume/hydrate, and UI.",
+    targetOwner:
+      "Feature-owned Auth metadata mirror and presentation hook; dashboard retains UI, new-user card, first-study hydration, and local mount orchestration; no platform Supabase in the route",
+    dependencies: ["AO-1"],
+    dependents: [],
+    evidence: {
+      productionImporters: 0,
+      notes:
+        "AO-1D2 In Progress — implemented locally, pending independent verification. Outcomes (local): direct platform Supabase removed from dashboard route; direct auth.updateUser removed; updateAuthOnboardingGoal established as Auth metadata mirror authority (payload { data: { onboarding_goal } } only; returned Auth errors uninspected; no session/profile refresh); useOnboardingGoalSelection established as onboarding selection orchestration authority (local write first; React goal state before Auth await; empty goal clears local storage and skips Auth; thrown Auth failures silent; isSaving local React state; no useMutation/QueryClient/invalidation); mount hydration remains local-only (consumeNewUserOnboarding, hydrateOnboardingGoal, first-study read); new-user consume semantics unchanged; first-study hydration unchanged; AuthExperience unchanged; parent _authed access unchanged; dashboard UI unchanged. Lexical seal tests/invariants/dashboard-onboarding-auth-presentation.invariant.test.ts. Does not complete AO-1; does not migrate AuthExperience, auth callback, trades dashboard effects, EstimateBuilder, DealChat, or FloorplanViewer.",
+    },
+  },
 ];
 
 /** Architecture objectives achieved incrementally (not single migrations). */
@@ -368,7 +388,7 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
     title: "Presentation Layer Owns No Infrastructure",
     status: "Active",
     description:
-      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle Completed at d407cc6; AO-1C1 PhotoAnalysisViewer write extraction Completed at 0802bcc; AO-1C2 PhotoAnalysisViewer Apply-to-Estimate cache extraction Completed at fe28f25; AO-1D1 Admin Metrics Read Extraction Completed at d3cab3f). Not completed by a single child slice; remaining P2 surfaces include floorplan multi-table mutations and FloorplanViewer estimate sync, dashboard onboarding Auth update, Auth presentation isolation, DealChat residual mutation/QueryClient ownership, EstimateBuilder save mutation/QueryClient ownership, dual estimate query-key cleanup, and other presentation-infrastructure debt.",
+      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle Completed at d407cc6; AO-1C1 PhotoAnalysisViewer write extraction Completed at 0802bcc; AO-1C2 PhotoAnalysisViewer Apply-to-Estimate cache extraction Completed at fe28f25; AO-1D1 Admin Metrics Read Extraction Completed at d3cab3f; AO-1D2 Dashboard Onboarding Auth Extraction In Progress locally). Not completed by a single child slice; remaining P2 surfaces include floorplan multi-table mutations and FloorplanViewer estimate sync, Auth presentation isolation, DealChat residual mutation/QueryClient ownership, EstimateBuilder save mutation/QueryClient ownership, dual estimate query-key cleanup, and other presentation-infrastructure debt.",
     relatedCandidates: [
       "C3",
       "C8",
@@ -379,6 +399,7 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
       "AO-1C1",
       "AO-1C2",
       "AO-1D1",
+      "AO-1D2",
     ],
   },
 ];

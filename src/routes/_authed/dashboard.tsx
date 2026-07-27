@@ -11,13 +11,11 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useProjects } from "@/hooks/useProjects";
 import { ProjectCard } from "@/components/ProjectCard";
-import { supabase } from "@/platform/supabase/browser";
 import {
   consumeNewUserOnboarding,
   hasCompletedFirstStudy as readFirstStudyCelebration,
   ONBOARDING_GOAL_OPTIONS,
-  readOnboardingGoal,
-  writeOnboardingGoal,
+  useOnboardingGoalSelection,
 } from "@/features/auth";
 import { useEffect, useState } from "react";
 import {
@@ -167,35 +165,21 @@ function DashboardContent() {
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
   const [showOnboardingCard, setShowOnboardingCard] = useState(false);
   const [hasCompletedFirstStudy, setHasCompletedFirstStudy] = useState(false);
-  const [onboardingGoal, setOnboardingGoal] = useState("");
-  const [goalSaving, setGoalSaving] = useState(false);
+  const {
+    onboardingGoal,
+    isSaving: goalSaving,
+    hydrateOnboardingGoal,
+    applyOnboardingGoal,
+  } = useOnboardingGoalSelection();
 
   useEffect(() => {
     // Consume once so the welcome card does not reappear after dismiss/reload.
     if (consumeNewUserOnboarding()) {
       setShowOnboardingCard(true);
     }
-    setOnboardingGoal(readOnboardingGoal());
+    hydrateOnboardingGoal();
     setHasCompletedFirstStudy(readFirstStudyCelebration());
-  }, []);
-
-  async function handleOnboardingGoalChange(goal: string) {
-    const next = writeOnboardingGoal(goal);
-    setOnboardingGoal(next);
-    if (!next) return;
-
-    setGoalSaving(true);
-    try {
-      // Best-effort remote mirror; localStorage already holds the selection for this browser.
-      await supabase.auth.updateUser({
-        data: { onboarding_goal: next },
-      });
-    } catch {
-      // local preference remains available offline / if metadata update fails
-    } finally {
-      setGoalSaving(false);
-    }
-  }
+  }, [hydrateOnboardingGoal]);
 
   const jobCount =
     jobsState.status === "ready" ? jobsState.jobs.filter((j) => j.status !== "closed").length : 0;
@@ -239,7 +223,9 @@ function DashboardContent() {
               <select
                 id="dashboard-onboarding-goal"
                 value={onboardingGoal}
-                onChange={(event) => void handleOnboardingGoalChange(event.target.value)}
+                onChange={(event) => {
+                  void applyOnboardingGoal(event.target.value);
+                }}
                 disabled={goalSaving}
                 aria-describedby="dashboard-onboarding-goal-hint"
                 className={cn(
