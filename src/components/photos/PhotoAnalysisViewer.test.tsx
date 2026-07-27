@@ -1,5 +1,5 @@
 /**
- * AO-1C1 — PhotoAnalysisViewer uses canonical analysis write hook.
+ * AO-1C1 / AO-1C2 — PhotoAnalysisViewer uses canonical write + apply-estimate hooks.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -11,10 +11,12 @@ import type { ProjectPhoto } from "@/lib/photos-types";
 import type { PhotoAnalysisResultRow } from "@/lib/queries/photo-analysis";
 
 const mutate = vi.fn();
+const applyPhotoAnalysesToEstimate = vi.fn();
 const toastError = vi.fn();
 const toastSuccess = vi.fn();
 const toastInfo = vi.fn();
 const useUpdatePhotoAnalysisResult = vi.fn();
+const useApplyPhotoAnalysesToEstimate = vi.fn();
 
 let mockIsPending = false;
 
@@ -24,6 +26,15 @@ vi.mock("@/features/ai-upload", async () => {
   return {
     ...actual,
     useUpdatePhotoAnalysisResult: (...args: unknown[]) => useUpdatePhotoAnalysisResult(...args),
+  };
+});
+
+vi.mock("@/features/estimate", async () => {
+  const actual = await vi.importActual<typeof import("@/features/estimate")>("@/features/estimate");
+  return {
+    ...actual,
+    useApplyPhotoAnalysesToEstimate: (...args: unknown[]) =>
+      useApplyPhotoAnalysesToEstimate(...args),
   };
 });
 
@@ -96,6 +107,7 @@ function renderViewer(
 
 beforeEach(() => {
   mutate.mockReset();
+  applyPhotoAnalysesToEstimate.mockReset();
   toastError.mockReset();
   toastSuccess.mockReset();
   toastInfo.mockReset();
@@ -105,6 +117,11 @@ beforeEach(() => {
     mutate,
     isPending: mockIsPending,
   }));
+  useApplyPhotoAnalysesToEstimate.mockReset();
+  useApplyPhotoAnalysesToEstimate.mockImplementation(() => ({
+    applyPhotoAnalysesToEstimate,
+  }));
+  applyPhotoAnalysesToEstimate.mockReturnValue({ analysisCount: 1, roomCount: 1 });
   mutate.mockImplementation(
     (
       _vars: unknown,
@@ -121,9 +138,10 @@ beforeEach(() => {
 });
 
 describe("PhotoAnalysisViewer presentation", () => {
-  it("calls useUpdatePhotoAnalysisResult with projectId", () => {
+  it("calls useUpdatePhotoAnalysisResult and useApplyPhotoAnalysesToEstimate with projectId", () => {
     renderViewer();
     expect(useUpdatePhotoAnalysisResult).toHaveBeenCalledWith(PROJECT);
+    expect(useApplyPhotoAnalysesToEstimate).toHaveBeenCalledWith(PROJECT);
   });
 
   it("renders with required props and photo card content", () => {
@@ -240,17 +258,19 @@ describe("PhotoAnalysisViewer presentation", () => {
     });
   });
 
-  it("source has no platform Supabase, useMutation, or direct photo_analysis_results write", () => {
+  it("source has no platform Supabase, useMutation, QueryClient, or direct estimate cache ops", () => {
     const src = readFileSync(
       join(process.cwd(), "src/components/photos/PhotoAnalysisViewer.tsx"),
       "utf8",
     );
     expect(src).toMatch(/useUpdatePhotoAnalysisResult\s*\(/);
+    expect(src).toMatch(/useApplyPhotoAnalysesToEstimate\s*\(/);
     expect(src).not.toMatch(/@\/platform\/supabase/);
     expect(src).not.toMatch(/useMutation/);
     expect(src).not.toMatch(/photo_analysis_results/);
-    expect(src).toMatch(/useQueryClient/);
-    expect(src).toMatch(/estimateQueryOptions/);
+    expect(src).not.toMatch(/useQueryClient/);
+    expect(src).not.toMatch(/estimateQueryOptions/);
+    expect(src).not.toMatch(/setQueryData|invalidateQueries/);
   });
 
   it("unanalyzed photo shows info toast and does not open edit dialog", () => {
@@ -261,5 +281,38 @@ describe("PhotoAnalysisViewer presentation", () => {
     fireEvent.click(screen.getByRole("button", { name: /View Details/i }));
     expect(toastInfo).toHaveBeenCalledWith("No analysis data for this photo yet.");
     expect(screen.queryByText(/Analysis for Kitchen.jpg/i)).toBeNull();
+  });
+
+  it("Apply this to Estimate calls hook with analysis row and shows success toast", async () => {
+    renderViewer();
+    await openEditDialog();
+    fireEvent.click(screen.getByRole("button", { name: /Apply this to Estimate/i }));
+
+    expect(applyPhotoAnalysesToEstimate).toHaveBeenCalledTimes(1);
+    expect(applyPhotoAnalysesToEstimate).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "analysis-1", category: "Kitchen" }),
+    ]);
+    expect(toastSuccess).toHaveBeenCalledWith("Applied 1 analysis(es) to Estimate", {
+      description: "1 room(s) suggested. Switch to Estimate Builder tab.",
+    });
+  });
+
+  it("bulk Apply Selected resolves selected analysis and clears selection bar", async () => {
+    renderViewer();
+    fireEvent.click(screen.getByRole("checkbox", { name: /Select for apply/i }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Apply Selected to Estimate/i })).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Apply Selected to Estimate/i }));
+
+    expect(applyPhotoAnalysesToEstimate).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "analysis-1" }),
+    ]);
+    expect(toastSuccess).toHaveBeenCalledWith("Applied 1 analysis(es) to Estimate", {
+      description: "1 room(s) suggested. Switch to Estimate Builder tab.",
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /Apply Selected to Estimate/i })).toBeNull();
+    });
   });
 });

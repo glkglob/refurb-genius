@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@repo/ui";
 import { Card, CardContent } from "@repo/ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@repo/ui";
@@ -10,13 +9,12 @@ import { Textarea } from "@repo/ui";
 import { Label } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { toast } from "sonner";
-import { estimateQueryOptions } from "@/lib/queries/projects";
 import { useUpdatePhotoAnalysisResult } from "@/features/ai-upload";
+import { useApplyPhotoAnalysesToEstimate } from "@/features/estimate";
 import { PhotoAnalysisFilters } from "./PhotoAnalysisFilters";
 import { PhotoAnalysisCard } from "./PhotoAnalysisCard";
 import type { ProjectPhoto } from "@/lib/photos-types";
 import type { PhotoAnalysisResultRow } from "@/lib/queries/photo-analysis";
-import type { PersistedRoomEstimate } from "@/features/estimate";
 
 interface PhotoAnalysisViewerProps {
   projectId: string;
@@ -66,8 +64,8 @@ interface SelectedSuggestion {
 }
 
 export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalysisViewerProps) {
-  const queryClient = useQueryClient();
   const editMutation = useUpdatePhotoAnalysisResult(projectId);
+  const { applyPhotoAnalysesToEstimate } = useApplyPhotoAnalysesToEstimate(projectId);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -219,8 +217,8 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
     );
   };
 
-  // Apply single or selected to Estimate (optimistic + invalidate)
-  const applyToEstimate = async (singleAnalysis?: PhotoAnalysisResultRow) => {
+  // Apply single or selected to Estimate (cache via canonical hook)
+  const applyToEstimate = (singleAnalysis?: PhotoAnalysisResultRow) => {
     const toApply = singleAnalysis
       ? [singleAnalysis]
       : (Array.from(selectedIds)
@@ -232,70 +230,10 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
       return;
     }
 
-    const estimateKey = estimateQueryOptions(projectId).queryKey;
-    const current = queryClient.getQueryData<PersistedRoomEstimate | null>(estimateKey);
+    const { analysisCount, roomCount } = applyPhotoAnalysesToEstimate(toApply);
 
-    // Build suggested rooms/items from analyses
-    const suggestedRooms: Record<string, { name: string; items: Record<string, unknown>[] }> = {};
-
-    toApply.forEach((analysis) => {
-      const data = rowToParsed(analysis);
-      const roomName = data.room || "General / Unspecified";
-      if (!suggestedRooms[roomName]) {
-        suggestedRooms[roomName] = { name: roomName, items: [] };
-      }
-
-      // Defects -> items
-      (data.defects || []).forEach((def: ParsedDefect, idx: number) => {
-        suggestedRooms[roomName].items.push({
-          id: `sugg-${analysis.id}-${idx}`,
-          name: def.description,
-          category: def.category || data.category || "General",
-          quantity: 1,
-          unit: "item",
-          unit_cost:
-            def.estimated_cost ||
-            (data.cost_suggestions?.mid ? Math.round(data.cost_suggestions.mid / 10) : 150),
-          notes: `From AI photo analysis (conf ${Math.round((analysis.confidence_score || 0.8) * 100)}%)`,
-        });
-      });
-
-      // Materials
-      (data.material_estimates || []).forEach((mat, idx: number) => {
-        suggestedRooms[roomName].items.push({
-          id: `sugg-mat-${analysis.id}-${idx}`,
-          name: mat.name,
-          category: data.category || "Materials",
-          quantity: mat.quantity || 1,
-          unit: mat.unit || "item",
-          unit_cost: mat.cost_per_unit || 50,
-          notes: "AI material estimate",
-        });
-      });
-    });
-
-    const newRooms = Object.values(suggestedRooms).map((r) => ({
-      id: crypto.randomUUID(),
-      name: r.name,
-      items: r.items,
-    }));
-
-    // Merge into current estimate rooms (append or create)
-    const existingRooms = current?.rooms || [];
-    const mergedRooms = [...existingRooms, ...newRooms];
-
-    // Optimistic update query data (invalidate as specified)
-    if (current) {
-      queryClient.setQueryData(estimateKey, { ...current, rooms: mergedRooms } as never);
-    } else {
-      queryClient.setQueryData(estimateKey, { rooms: mergedRooms } as never);
-    }
-
-    // Invalidate as required
-    queryClient.invalidateQueries({ queryKey: estimateKey });
-
-    toast.success(`Applied ${toApply.length} analysis(es) to Estimate`, {
-      description: `${newRooms.length} room(s) suggested. Switch to Estimate Builder tab.`,
+    toast.success(`Applied ${analysisCount} analysis(es) to Estimate`, {
+      description: `${roomCount} room(s) suggested. Switch to Estimate Builder tab.`,
     });
 
     // Clear selection

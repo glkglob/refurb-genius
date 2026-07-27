@@ -5,8 +5,9 @@
  * reassignment of a Supabase client imported under another name, dynamic
  * import strings split across concatenations.
  *
- * Allows residual useQueryClient for Apply-to-Estimate client cache work.
- * Does not ban all photo-analysis infrastructure app-wide.
+ * After AO-1C2, residual estimate QueryClient ownership is sealed separately
+ * by photo-analysis-viewer-apply-estimate-presentation.invariant.test.ts.
+ * This write invariant no longer requires useQueryClient in the viewer.
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
@@ -98,11 +99,21 @@ test("photo analysis viewer write — PhotoAnalysisViewer bans direct Supabase a
   );
 });
 
-test("photo analysis viewer write — PhotoAnalysisViewer retains estimate QueryClient ownership", () => {
+test("photo analysis viewer write — PhotoAnalysisViewer retains AO-1C1 edit hook and not write infrastructure", () => {
   const full = join(ROOT, VIEWER);
   const text = stripAllComments(readFileSync(full, "utf8"));
-  assert.match(text, /useQueryClient/, `${VIEWER} retains useQueryClient for Apply to Estimate`);
-  assert.match(text, /estimateQueryOptions/, `${VIEWER} retains estimateQueryOptions`);
+  assert.match(
+    text,
+    /useUpdatePhotoAnalysisResult\s*\(/,
+    `${VIEWER} retains useUpdatePhotoAnalysisResult for analysis edit`,
+  );
+  // Estimate cache ownership is AO-1C2 (separate invariant). Write seal must not
+  // require residual useQueryClient / estimateQueryOptions in the component.
+  assert.doesNotMatch(
+    text,
+    /@\/platform\/supabase/,
+    `${VIEWER} must not import platform supabase (write path)`,
+  );
 });
 
 test("photo analysis viewer write — canonical hook owns optimistic analysis cache", () => {
@@ -193,11 +204,12 @@ test("photo analysis viewer write — probe: string-only hook name does not sati
   assert.doesNotMatch(sample, /useUpdatePhotoAnalysisResult\s*\(/);
 });
 
-test("photo analysis viewer write — probe: useQueryClient for estimate remains allowed pattern", () => {
-  const sample = `const queryClient = useQueryClient();
-queryClient.setQueryData(estimateQueryOptions(projectId).queryKey, data);
+test("photo analysis viewer write — probe: estimate cache ops are not part of write seal", () => {
+  // AO-1C2 owns estimate cache extraction; write invariant only seals analysis UPDATE.
+  const sample = `const editMutation = useUpdatePhotoAnalysisResult(projectId);
+const { applyPhotoAnalysesToEstimate } = useApplyPhotoAnalysesToEstimate(projectId);
 `;
-  assert.match(sample, /useQueryClient/);
-  assert.match(sample, /estimateQueryOptions/);
+  assert.match(sample, /useUpdatePhotoAnalysisResult\s*\(/);
+  assert.match(sample, /useApplyPhotoAnalysesToEstimate\s*\(/);
   assert.doesNotMatch(sample, FROM_ANALYSIS);
 });

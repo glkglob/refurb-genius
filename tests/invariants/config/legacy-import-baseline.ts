@@ -79,7 +79,6 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/components/photos/PhotoAnalysisViewer.test.tsx|@/lib/queries/photo-analysis",
   "src/components/photos/PhotoAnalysisViewer.tsx|@/lib/photos-types",
   "src/components/photos/PhotoAnalysisViewer.tsx|@/lib/queries/photo-analysis",
-  "src/components/photos/PhotoAnalysisViewer.tsx|@/lib/queries/projects",
   "src/components/pitch-deck/PitchDeckGenerator.tsx|@/lib/auth",
   "src/components/pitch-deck/PitchDeckGenerator.tsx|@/lib/logger",
   "src/components/pitch-deck/PitchDeckGenerator.tsx|@/lib/mappers",
