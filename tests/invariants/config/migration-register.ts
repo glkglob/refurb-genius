@@ -339,6 +339,25 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
         "AO-1C2 Completed. One child slice of Active AO-1 (does not complete AO-1; no parent umbrella introduced). Implementation commit fe28f25baaf7a20dbb443487d492dbfd5a5eb49a (parent 39b7929); subject refactor(estimate): extract photo-analysis apply cache ownership; 12 files. Independent verification: PASS WITH NON-BLOCKING FINDINGS (F-L1–F-I5). Outcomes: useQueryClient and estimateQueryOptions removed from PhotoAnalysisViewer; direct getQueryData/setQueryData/invalidateQueries removed from viewer; mapPhotoAnalysesToEstimateRooms established as pure mapping authority (category→room; General / Unspecified fallback; within-apply grouping; first-seen room order; defects then materials; crypto.randomUUID room IDs; sugg-/sugg-mat- item IDs; exact cost/quantity/category/confidence/note formulas; UUID side effect only); useApplyPhotoAnalysesToEstimate established as canonical Apply cache authority (estimateQueryOptions(projectId).queryKey only → [projects, projectId, estimate]; getQueryData once; append-only merge; truthy current preserves fields; null/undefined → { rooms }; setQueryData before void fire-and-forget invalidateQueries; no useMutation; no toast; no Auth/Supabase; no room-estimate key; returns { analysisCount, roomCount }); PhotoAnalysisViewer retains selection, empty guard (No analyses selected), success toast and description, clear selection after success, single/bulk shared applyToEstimate, AO-1C1 useUpdatePhotoAnalysisResult edit path; public props projectId/photos/analyses and sole projects.$id.index consumer unchanged; no pending state; no server/database write; append-only rooms with no existing-room name dedupe. Lexical seal tests/invariants/photo-analysis-viewer-apply-estimate-presentation.invariant.test.ts; AO-1C1 write seal retained (residual QC expectation removed only). Push: successful fast-forward origin/main to fe28f25. CI on exact SHA: CI 30245273944 success (ci + invariant-tests); Security 30245274019 success (gitleaks, dependency-audit, server-only-boundary, client-bundle-secret-smoke); Pages 30245273257 success (build/deploy/report-build-status); Vercel success; Supabase Preview success (no schema/migration/RLS change). Accepted non-blocking: F-L1 empty bulk UI path not e2e (bar hidden when none selected), F-L2 component tests mock Apply hook, F-I1 lexical bypasses, F-I2 vestigial async removed, F-I3 explicit void invalidateQueries, F-I4 explicit mapper item/room types, F-I5 DialogContent a11y warning. Deferred outside AO-1C2: dual estimate query keys, EstimateBuilder saveAIEstimate ownership, FloorplanViewer multi-table mutations and estimate sync, admin metrics reads, dashboard onboarding Auth update, Auth presentation isolation, DealChat residual mutation/QueryClient. PhotoAnalysisViewer has no remaining direct QueryClient, Supabase, mutation, or cache infrastructure ownership. AO-1 remains Active; AO-1B1/B2/B3.1/B3.2/C1 remain Completed; C5 remains Completed.",
     },
   },
+  {
+    id: "AO-1D1",
+    title: "Admin Metrics Read Extraction",
+    status: "In Progress",
+    blastRadius: "T1",
+    problem:
+      "Admin route owned direct platform Supabase reads for platform stats counts, seven-day activity row length, recent projects list, and users list via inline loaders and local useEffect orchestration.",
+    currentOwner:
+      "Reads: src/features/admin/infrastructure/adminMetricsRead.ts (fetchAdminPlatformStats / fetchAdminRecentProjects / fetchAdminUsers). Query options: adminKeys + admin*QueryOptions (mount-once). Hooks: useAdminPlatformStats, useAdminRecentProjects, useAdminUsers. Presentation: admin route maps independent query states; RequireAdmin and AIMetricsDashboard unchanged.",
+    targetOwner:
+      "Feature-owned admin metrics reads and three independent React Query authorities; admin route retains UI, section mapping, and RequireAdmin gate; no platform Supabase in the route",
+    dependencies: ["AO-1"],
+    dependents: [],
+    evidence: {
+      productionImporters: 0,
+      notes:
+        "AO-1D1 In Progress — implemented locally, pending independent verification. Outcomes (local): three independent admin metrics authorities in src/features/admin; exact R1–R5 read contracts preserved (count/head projects and profiles; 7d projects select id + length; recent projects limit 5; users limit 10); stats Promise.all parallelism preserved; soft PostgREST failures (zeros / warn+[]); mount-once query options (retry false, no focus/reconnect refetch, staleTime Infinity); admin route removes platform Supabase, logger, inline loaders, and useEffect; RequireAdmin and AIMetricsDashboard retained. Lexical seal tests/invariants/admin-metrics-presentation.invariant.test.ts. Does not complete AO-1; does not migrate dashboard Auth, AuthExperience, FloorplanViewer, EstimateBuilder, DealChat, or AI metrics diagnostics.",
+    },
+  },
 ];
 
 /** Architecture objectives achieved incrementally (not single migrations). */
@@ -348,8 +367,18 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
     title: "Presentation Layer Owns No Infrastructure",
     status: "Active",
     description:
-      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle Completed at d407cc6; AO-1C1 PhotoAnalysisViewer write extraction Completed at 0802bcc; AO-1C2 PhotoAnalysisViewer Apply-to-Estimate cache extraction Completed at fe28f25). Not completed by a single child slice; remaining P2 surfaces include floorplan multi-table mutations and FloorplanViewer estimate sync, admin metrics reads, dashboard onboarding Auth update, Auth presentation isolation, DealChat residual mutation/QueryClient ownership, EstimateBuilder save mutation/QueryClient ownership, dual estimate query-key cleanup, and other presentation-infrastructure debt.",
-    relatedCandidates: ["C3", "C8", "AO-1B1", "AO-1B2", "AO-1B3.1", "AO-1B3.2", "AO-1C1", "AO-1C2"],
+      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle Completed at d407cc6; AO-1C1 PhotoAnalysisViewer write extraction Completed at 0802bcc; AO-1C2 PhotoAnalysisViewer Apply-to-Estimate cache extraction Completed at fe28f25; AO-1D1 Admin Metrics Read Extraction In Progress locally). Not completed by a single child slice; remaining P2 surfaces include floorplan multi-table mutations and FloorplanViewer estimate sync, dashboard onboarding Auth update, Auth presentation isolation, DealChat residual mutation/QueryClient ownership, EstimateBuilder save mutation/QueryClient ownership, dual estimate query-key cleanup, and other presentation-infrastructure debt.",
+    relatedCandidates: [
+      "C3",
+      "C8",
+      "AO-1B1",
+      "AO-1B2",
+      "AO-1B3.1",
+      "AO-1B3.2",
+      "AO-1C1",
+      "AO-1C2",
+      "AO-1D1",
+    ],
   },
 ];
 

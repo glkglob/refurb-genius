@@ -109,7 +109,7 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/routes/__root.tsx|@/lib/logger",
   "src/routes/__root.tsx|@/lib/sentry",
   "src/routes/_authed.tsx|@/lib/auth",
-  "src/routes/_authed/admin.tsx|@/lib/logger",
+
   "src/routes/_authed/dashboard.tsx|@/core/trades",
   "src/routes/_authed/dashboard.tsx|@/core/trades/tradesJob.selectors",
   "src/routes/_authed/dashboard.tsx|@/lib/utils",

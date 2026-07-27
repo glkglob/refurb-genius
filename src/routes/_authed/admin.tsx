@@ -6,10 +6,8 @@ import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import { AIMetricsDashboard } from "@/components/AIMetricsDashboard";
 import { Card, CardContent } from "@/components/ui/card";
-import { useEffect, useState } from "react";
 import { Activity, BarChart3, Users, Folder } from "lucide-react";
-import { supabase } from "@/platform/supabase/browser";
-import { logger } from "@/lib/logger";
+import { useAdminPlatformStats, useAdminRecentProjects, useAdminUsers } from "@/features/admin";
 
 export const Route = createFileRoute("/_authed/admin")({
   head: () => ({
@@ -18,140 +16,47 @@ export const Route = createFileRoute("/_authed/admin")({
   component: AdminPage,
 });
 
-interface PlatformStats {
-  totalProjects: number;
-  totalUsers: number;
-  recentActivityCount: number;
-}
-
-interface RecentProject {
-  id: string;
-  name: string;
-  address: string;
-  status: string;
-  created_at: string;
-}
-
-interface User {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  role: string;
-  created_at: string;
-}
-
-type StatsState =
-  | { status: "loading" }
-  | { status: "ready"; stats: PlatformStats }
-  | { status: "error"; message: string };
-
-type ProjectsState =
-  | { status: "loading" }
-  | { status: "ready"; projects: RecentProject[] }
-  | { status: "error"; message: string };
-
-type UsersState =
-  | { status: "loading" }
-  | { status: "ready"; users: User[] }
-  | { status: "error"; message: string };
-
-async function loadPlatformStats(): Promise<PlatformStats> {
-  const [projectsRes, profilesRes, projectCountRes] = await Promise.all([
-    supabase.from("projects").select("id", { count: "exact", head: true }),
-    supabase.from("profiles").select("id", { count: "exact", head: true }),
-    supabase
-      .from("projects")
-      .select("id")
-      .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
-  ]);
-
-  return {
-    totalProjects: projectsRes.count || 0,
-    totalUsers: profilesRes.count || 0,
-    recentActivityCount: projectCountRes.data?.length || 0,
-  };
-}
-
-async function loadRecentProjects(): Promise<RecentProject[]> {
-  const { data, error } = await supabase
-    .from("projects")
-    .select("id, name, address, status, created_at")
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  if (error) {
-    logger.warn("[Admin] Could not load recent projects", { error: error.message });
-    return [];
-  }
-
-  return data || [];
-}
-
-async function loadUsers(): Promise<User[]> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, role, created_at")
-    .order("created_at", { ascending: false })
-    .limit(10);
-
-  if (error) {
-    logger.warn("[Admin] Could not load users (RLS may restrict access)", { error: error.message });
-    return [];
-  }
-
-  return data || [];
-}
-
 function AdminPage() {
-  const [statsState, setStatsState] = useState<StatsState>({ status: "loading" });
-  const [projectsState, setProjectsState] = useState<ProjectsState>({ status: "loading" });
-  const [usersState, setUsersState] = useState<UsersState>({ status: "loading" });
+  const statsQuery = useAdminPlatformStats();
+  const projectsQuery = useAdminRecentProjects();
+  const usersQuery = useAdminUsers();
 
-  useEffect(() => {
-    let cancelled = false;
+  const statsState =
+    statsQuery.isPending || statsQuery.isLoading
+      ? ({ status: "loading" } as const)
+      : statsQuery.isError
+        ? ({
+            status: "error",
+            message:
+              statsQuery.error instanceof Error
+                ? statsQuery.error.message
+                : "Failed to load platform stats",
+          } as const)
+        : ({ status: "ready", stats: statsQuery.data! } as const);
 
-    Promise.all([
-      loadPlatformStats()
-        .then((stats) => {
-          if (!cancelled) setStatsState({ status: "ready", stats });
-        })
-        .catch((err) => {
-          if (!cancelled)
-            setStatsState({
-              status: "error",
-              message: err instanceof Error ? err.message : "Failed to load platform stats",
-            });
-        }),
+  const projectsState =
+    projectsQuery.isPending || projectsQuery.isLoading
+      ? ({ status: "loading" } as const)
+      : projectsQuery.isError
+        ? ({
+            status: "error",
+            message:
+              projectsQuery.error instanceof Error
+                ? projectsQuery.error.message
+                : "Failed to load recent projects",
+          } as const)
+        : ({ status: "ready", projects: projectsQuery.data ?? [] } as const);
 
-      loadRecentProjects()
-        .then((projects) => {
-          if (!cancelled) setProjectsState({ status: "ready", projects });
-        })
-        .catch((err) => {
-          if (!cancelled)
-            setProjectsState({
-              status: "error",
-              message: err instanceof Error ? err.message : "Failed to load recent projects",
-            });
-        }),
-
-      loadUsers()
-        .then((users) => {
-          if (!cancelled) setUsersState({ status: "ready", users });
-        })
-        .catch((err) => {
-          if (!cancelled)
-            setUsersState({
-              status: "error",
-              message: err instanceof Error ? err.message : "Failed to load users",
-            });
-        }),
-    ]);
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const usersState =
+    usersQuery.isPending || usersQuery.isLoading
+      ? ({ status: "loading" } as const)
+      : usersQuery.isError
+        ? ({
+            status: "error",
+            message:
+              usersQuery.error instanceof Error ? usersQuery.error.message : "Failed to load users",
+          } as const)
+        : ({ status: "ready", users: usersQuery.data ?? [] } as const);
 
   return (
     <RequireAdmin>

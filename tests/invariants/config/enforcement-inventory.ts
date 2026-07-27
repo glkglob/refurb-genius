@@ -199,6 +199,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-admin-metrics-presentation",
+    kind: "invariant",
+    source: "tests/invariants/admin-metrics-presentation.invariant.test.ts",
+    description:
+      "AO-1D1 In Progress: admin route platform Supabase ownership prohibited; direct .from reads prohibited; retired inline loadPlatformStats/loadRecentProjects/loadUsers prohibited; component must call useAdminPlatformStats, useAdminRecentProjects, and useAdminUsers. Read authority: src/features/admin/infrastructure/adminMetricsRead.ts (exact R1–R5; soft PostgREST failures; Promise.all for stats). Query authority: adminKeys + admin*QueryOptions (retry false; no focus/reconnect refetch; staleTime Infinity). Hook authority: useAdminMetrics hooks (three independent useQuery). Access control remains RequireAdmin (out of slice). AIMetricsDashboard remains local diagnostics (out of slice). Strength: lexical (comment-stripped source scan; alias/dynamic-import bypasses remain possible). Does not claim AO-1 complete, all admin infrastructure migrated, dashboard Auth extraction, or AST/semantic enforcement.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",
