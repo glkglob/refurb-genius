@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertCircle,
   Eye,
@@ -21,11 +20,10 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/platform/supabase/browser";
-import { auth, fromSupabaseUser } from "@/lib/auth";
+import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import { AUTH_USER_QUERY_KEY } from "@/hooks/useAuth";
-import { identifyAnalyticsUser, trackEvent, trackSignupCompleted } from "@/lib/analytics";
-import { markNewUserOnboarding } from "@/features/auth/onboardingStorage";
+import { trackEvent } from "@/lib/analytics";
+import { useAuthPasswordCredentials } from "./hooks/useAuthPasswordCredentials";
 
 export type AuthMode = "signin" | "signup" | "reset";
 
@@ -62,7 +60,7 @@ const decorativeIconProps = {
 
 export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const { signInWithPassword, signUpWithPassword } = useAuthPasswordCredentials();
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
 
@@ -186,15 +184,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
     setSubmitting(true);
     try {
       if (isSignIn) {
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (signInError) throw signInError;
-
-        queryClient.setQueryData(AUTH_USER_QUERY_KEY, fromSupabaseUser(data.user));
-        identifyAnalyticsUser(data.user?.id);
-        trackEvent("user_signed_in", { provider: "email" });
+        await signInWithPassword(email, password);
 
         setFailedAttempts(0);
         setLockedUntil(null);
@@ -210,24 +200,14 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
         return;
       }
 
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const outcome = await signUpWithPassword({
         email,
         password,
-        options: {
-          data: {
-            full_name: name.trim() || undefined,
-            company_name: company.trim() || undefined,
-          },
-        },
+        fullName: name.trim() || undefined,
+        companyName: company.trim() || undefined,
       });
-      if (signUpError) throw signUpError;
 
-      identifyAnalyticsUser(data.user?.id);
-      trackSignupCompleted("email", data.user?.id);
-
-      if (data.session) {
-        markNewUserOnboarding();
-        queryClient.setQueryData(AUTH_USER_QUERY_KEY, fromSupabaseUser(data.user));
+      if (outcome === "session") {
         toast.success("Account created. Welcome to Refurb Genius.");
         await navigateAfterAuth();
       } else {

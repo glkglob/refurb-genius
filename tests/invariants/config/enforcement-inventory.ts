@@ -219,6 +219,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-auth-experience-password-presentation",
+    kind: "invariant",
+    source: "tests/invariants/auth-experience-password-presentation.invariant.test.ts",
+    description:
+      "AO-1E1.1 In Progress — implemented locally, pending independent verification: AuthExperience direct password sign-in (signInWithPassword) prohibited; direct password signup (supabase.auth.signUp) prohibited; password-flow AUTH_USER_QUERY_KEY seed, fromSupabaseUser, markNewUserOnboarding, identifyAnalyticsUser, and trackSignupCompleted prohibited in component; component must call useAuthPasswordCredentials. Password Auth authority: signInWithPasswordEmail and signUpWithPasswordEmail (throw returned errors; signup metadata full_name/company_name only; no emailRedirectTo). Password orchestration: useAuthPasswordCredentials (cache seed + analytics + session-present onboarding flag). Residual OAuth/OTP/recovery Auth in AuthExperience still allowed until AO-1E1.2/E1.3. Strength: lexical (comment-stripped source scan; alias/dynamic-import bypasses remain possible). Does not claim AO-1 complete, AO-1E1 complete, AuthExperience fully migrated, auth callback migrated, or AST/semantic enforcement.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",
