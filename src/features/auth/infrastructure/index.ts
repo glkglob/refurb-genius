@@ -12,3 +12,8 @@ export {
   type SignUpWithPasswordEmailInput,
   type SignUpWithPasswordEmailResult,
 } from "./signUpWithPasswordEmail";
+export {
+  startOAuthSignIn,
+  type AuthOAuthProvider,
+  type StartOAuthSignInInput,
+} from "./startOAuthSignIn";

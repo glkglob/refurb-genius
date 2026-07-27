@@ -1,5 +1,5 @@
 /**
- * AO-1E1.1 — AuthExperience password credential presentation contracts.
+ * AO-1E1.1 / AO-1E1.2 — AuthExperience password and OAuth presentation contracts.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -9,17 +9,26 @@ import { join } from "node:path";
 
 const signInWithPassword = vi.fn();
 const signUpWithPassword = vi.fn();
+const startGoogleOAuth = vi.fn();
+const startAppleOAuth = vi.fn();
 const navigate = vi.fn();
 const toastSuccess = vi.fn();
 const updatePassword = vi.fn();
 const resetPasswordForEmail = vi.fn();
-const signInWithOAuth = vi.fn();
 const signInWithOtp = vi.fn();
+const loggerError = vi.fn();
 
 vi.mock("./hooks/useAuthPasswordCredentials", () => ({
   useAuthPasswordCredentials: () => ({
     signInWithPassword: (...args: unknown[]) => signInWithPassword(...args),
     signUpWithPassword: (...args: unknown[]) => signUpWithPassword(...args),
+  }),
+}));
+
+vi.mock("./hooks/useOAuthSignIn", () => ({
+  useOAuthSignIn: () => ({
+    startGoogleOAuth: (...args: unknown[]) => startGoogleOAuth(...args),
+    startAppleOAuth: (...args: unknown[]) => startAppleOAuth(...args),
   }),
 }));
 
@@ -44,11 +53,11 @@ vi.mock("sonner", () => ({
 }));
 
 vi.mock("@/lib/logger", () => ({
-  logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
-}));
-
-vi.mock("@/lib/analytics", () => ({
-  trackEvent: vi.fn(),
+  logger: {
+    error: (...args: unknown[]) => loggerError(...args),
+    info: vi.fn(),
+    warn: vi.fn(),
+  },
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -61,7 +70,6 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("@/platform/supabase/browser", () => ({
   supabase: {
     auth: {
-      signInWithOAuth: (...args: unknown[]) => signInWithOAuth(...args),
       signInWithOtp: (...args: unknown[]) => signInWithOtp(...args),
     },
   },
@@ -74,18 +82,21 @@ const SRC = join(__dirname, "AuthExperience.tsx");
 beforeEach(() => {
   signInWithPassword.mockReset();
   signUpWithPassword.mockReset();
+  startGoogleOAuth.mockReset();
+  startAppleOAuth.mockReset();
   navigate.mockReset();
   toastSuccess.mockReset();
   updatePassword.mockReset();
   resetPasswordForEmail.mockReset();
-  signInWithOAuth.mockReset();
   signInWithOtp.mockReset();
+  loggerError.mockReset();
   signInWithPassword.mockResolvedValue(undefined);
   signUpWithPassword.mockResolvedValue("session");
+  startGoogleOAuth.mockResolvedValue(undefined);
+  startAppleOAuth.mockResolvedValue(undefined);
   navigate.mockResolvedValue(undefined);
   updatePassword.mockResolvedValue(undefined);
   resetPasswordForEmail.mockResolvedValue(undefined);
-  signInWithOAuth.mockResolvedValue({ error: null });
   signInWithOtp.mockResolvedValue({ error: null });
 });
 
@@ -211,19 +222,80 @@ describe("AuthExperience — password signup", () => {
   });
 });
 
-describe("AuthExperience — source boundary (AO-1E1.1 progressive)", () => {
-  it("uses password credential hook and bans direct password Auth methods", () => {
+describe("AuthExperience — OAuth presentation (AO-1E1.2)", () => {
+  it("calls startGoogleOAuth with redirect and leaves loading on success", async () => {
+    let resolveOAuth!: () => void;
+    startGoogleOAuth.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveOAuth = resolve;
+        }),
+    );
+
+    render(createElement(AuthExperience, { initialMode: "signin", redirect: "/projects" }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+
+    await waitFor(() => {
+      expect(startGoogleOAuth).toHaveBeenCalledWith("/projects");
+    });
+    expect(screen.getByText(/connecting to google/i)).toBeTruthy();
+
+    resolveOAuth();
+    await waitFor(() => {
+      expect(startGoogleOAuth).toHaveBeenCalledTimes(1);
+    });
+    // Success leaves oauthLoading true (no failure path) — spinner remains until unmount/redirect.
+    expect(screen.getByText(/connecting to google/i)).toBeTruthy();
+    expect(loggerError).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("clears Google loading and shows error copy on failure", async () => {
+    startGoogleOAuth.mockRejectedValue(new Error("provider blocked"));
+    render(createElement(AuthExperience, { initialMode: "signin" }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("provider blocked")).toBeTruthy();
+    });
+    expect(loggerError).toHaveBeenCalledWith("[auth] google auth failed", {
+      error: "Error: provider blocked",
+    });
+    expect(screen.getByRole("button", { name: /continue with google/i })).toBeTruthy();
+  });
+
+  it("calls startAppleOAuth and logs apple-specific failure", async () => {
+    startAppleOAuth.mockRejectedValue(new Error("Apple denied"));
+    render(createElement(AuthExperience, { initialMode: "signin", redirect: "/settings" }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with apple/i }));
+
+    await waitFor(() => {
+      expect(startAppleOAuth).toHaveBeenCalledWith("/settings");
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Apple denied")).toBeTruthy();
+    });
+    expect(loggerError).toHaveBeenCalledWith("[auth] apple auth failed", {
+      error: "Error: Apple denied",
+    });
+  });
+});
+
+describe("AuthExperience — source boundary (AO-1E1.1 / AO-1E1.2 progressive)", () => {
+  it("uses password and OAuth hooks; bans direct password and OAuth Auth methods", () => {
     const src = readFileSync(SRC, "utf8")
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/\/\/.*$/gm, "");
     expect(src).toMatch(/useAuthPasswordCredentials\s*\(/);
+    expect(src).toMatch(/useOAuthSignIn\s*\(/);
     expect(src).not.toMatch(/signInWithPassword\s*\(\s*\{/);
     expect(src).not.toMatch(/\.signInWithPassword\s*\(/);
     expect(src).not.toMatch(/auth\.signUp\s*\(|\.signUp\s*\(\s*\{/);
     expect(src).not.toMatch(/AUTH_USER_QUERY_KEY|setQueryData|fromSupabaseUser/);
     expect(src).not.toMatch(/markNewUserOnboarding|identifyAnalyticsUser|trackSignupCompleted/);
-    // Residual OAuth / OTP / recovery still allowed
-    expect(src).toMatch(/signInWithOAuth/);
+    expect(src).not.toMatch(/signInWithOAuth|\.signInWithOAuth\s*\(/);
+    expect(src).not.toMatch(/oauth_sign_in_initiated|trackEvent/);
+    // Residual OTP / recovery still allowed
     expect(src).toMatch(/signInWithOtp/);
     expect(src).toMatch(/resetPasswordForEmail|updatePassword/);
   });

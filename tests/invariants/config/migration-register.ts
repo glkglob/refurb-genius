@@ -23,6 +23,7 @@ export const MIGRATION_REGISTER_META = {
   scoringSourceOfTruth: "tests/invariants/config/candidate-scoring.ts",
   policySourceOfTruth: "docs/architecture/overview.md",
 } as const;
+// AO-1E1.2 AuthExperience OAuth Extraction In Progress (local)
 // AO-1E1.1 AuthExperience Password Credential Extraction Completed (8bdf817 + required CI)
 // AO-1D2 Dashboard Onboarding Auth Extraction Completed (9b4da54 + required CI)
 // C5 Photos/Storage ownership Completed (76cf1c8 + required CI)
@@ -401,6 +402,25 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
         "AO-1E1.1 Completed. One child slice of Active AO-1 / AuthExperience workstream AO-1E1 (does not complete AO-1 or full AuthExperience isolation; no parent AO-1E1 register entry required). Implementation commit 8bdf817a54167d6cfcb32e886b364c857ae1e09a (parent 969d8ac); subject refactor(auth): extract AuthExperience password credentials; 13 files. Independent verification: PASS WITH NON-BLOCKING FINDINGS (F-L1–F-I4). Outcomes: direct supabase.auth.signInWithPassword removed from AuthExperience; direct supabase.auth.signUp removed; AUTH_USER_QUERY_KEY setQueryData, fromSupabaseUser, markNewUserOnboarding, identifyAnalyticsUser, and trackSignupCompleted removed from component for password flows. signInWithPasswordEmail established as password sign-in Auth authority (client @/platform/supabase/browser; raw email/password; if (error) throw error; return { user }; no trim/lowercase; no QC/analytics/toast/nav/storage/tables). signUpWithPasswordEmail established as password signup Auth authority (payload options.data full_name/company_name only; no emailRedirectTo/company/role/onboarding_goal; throw returned errors; return { user, session }). useAuthPasswordCredentials established as password credential orchestration authority: sign-in order Auth → fromSupabaseUser → setQueryData(AUTH_USER_QUERY_KEY) → identifyAnalyticsUser → trackEvent user_signed_in provider email; signup order Auth → identifyAnalyticsUser → trackSignupCompleted email userId → session: markNewUserOnboarding + setQueryData then session outcome, no-session: awaiting_verification without mark/seed; rethrows for component lockout. AuthExperience retains validation (terms, password length ≥6, confirm match), MAX_ATTEMPTS=3 LOCKOUT_MS=60s rate-limit mapping, toast, destinationAfterAuth (reject /auth* → /dashboard), navigate replace true, submitting state, formDisabled omits appleLoading, verification card, modes, layout, copy, icons, accessibility. Residual OAuth signInWithOAuth Google/Apple deferred AO-1E1.2; residual signInWithOtp magic link, auth.resetPasswordForEmail, auth.updatePassword reset-mode deferred AO-1E1.3; auth_.callback separate. No schema/migration/RLS/Storage/provider/CAPTCHA change. Lexical progressive seal tests/invariants/auth-experience-password-presentation.invariant.test.ts. Push: successful fast-forward origin/main to 8bdf817. CI on exact SHA: CI 30310084621 success (ci + invariant-tests); Security 30310084630 success (gitleaks, dependency-audit, server-only-boundary, client-bundle-secret-smoke); Pages 30310083801 success (build/deploy/report-build-status); Vercel success; Supabase Preview success (no schema/migration/RLS change). Accepted non-blocking: F-L1 component tests mock hook, F-L2 lexical invariant bypasses, F-L3 narrowed primitive result objects, F-I1 root auth index unchanged, F-I2 QueryClient removed from AuthExperience (password-only former use), F-I3 string signup outcome, F-I4 DOM email whitespace pre-existing. AUTH EXPERIENCE PASSWORD CREDENTIAL WORK COMPLETE; further password credential slice not required. Deferred: AO-1E1.2 OAuth, AO-1E1.3 magic link and recovery, auth_.callback, EstimateBuilder, DealChat, FloorplanViewer, BulkPhoto residual QC, dual estimate keys. AO-1 remains Active; AO-1B1/B2/B3.1/B3.2/C1/C2/D1/D2 remain Completed; C5 remains Completed.",
     },
   },
+  {
+    id: "AO-1E1.2",
+    title: "AuthExperience OAuth Extraction",
+    status: "In Progress",
+    blastRadius: "T1",
+    problem:
+      "AuthExperience owned direct platform Supabase Auth OAuth initiation for Google and Apple via supabase.auth.signInWithOAuth, including callback URL construction, redirect_to query forwarding, and oauth_sign_in_initiated analytics.",
+    currentOwner:
+      "OAuth Auth: src/features/auth/infrastructure/startOAuthSignIn.ts. Initiation orchestration (callback URL, redirect_to, analytics): useOAuthSignIn. Presentation loading/logger/error copy/buttons: AuthExperience. Browser redirect: Supabase. Completion: auth_.callback.tsx.",
+    targetOwner:
+      "Feature-owned OAuth initiation primitive and presentation hook; AuthExperience retains provider loading flags, logger, error copy, and UI; callback remains separate; OTP/recovery remain until AO-1E1.3",
+    dependencies: ["AO-1", "AO-1E1.1"],
+    dependents: [],
+    evidence: {
+      productionImporters: 0,
+      notes:
+        "AO-1E1.2 In Progress — implemented locally, pending independent verification. Outcomes (local): direct supabase.auth.signInWithOAuth removed from AuthExperience; oauth_sign_in_initiated analytics removed from component. startOAuthSignIn established (providers google|apple; redirectTo + queryParams; if (error) throw error; void return; no window/analytics/logger/QC). useOAuthSignIn established (origin+/auth/callback; redirect ? { redirect_to } : undefined; analytics before Auth; rethrows). AuthExperience retains oauthLoading/appleLoading (success leaves true; failure clears), formDisabled omits appleLoading, provider-specific logger messages and fallback copy, buttons/icons/copy. Password AO-1E1.1 unchanged. Residual signInWithOtp, resetPasswordForEmail, updatePassword deferred AO-1E1.3; auth_.callback unchanged. Platform Supabase import retained for OTP. Lexical progressive seal tests/invariants/auth-experience-oauth-presentation.invariant.test.ts; password seal residual OAuth assertion updated. Does not complete AO-1 or full AuthExperience isolation. AO-1 remains Active; AO-1E1.1 remains Completed.",
+    },
+  },
 ];
 
 /** Architecture objectives achieved incrementally (not single migrations). */
@@ -410,7 +430,7 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
     title: "Presentation Layer Owns No Infrastructure",
     status: "Active",
     description:
-      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle Completed at d407cc6; AO-1C1 PhotoAnalysisViewer write extraction Completed at 0802bcc; AO-1C2 PhotoAnalysisViewer Apply-to-Estimate cache extraction Completed at fe28f25; AO-1D1 Admin Metrics Read Extraction Completed at d3cab3f; AO-1D2 Dashboard Onboarding Auth Extraction Completed at 9b4da54; AO-1E1.1 AuthExperience Password Credential Extraction Completed at 8bdf817). Not completed by a single child slice; remaining P2 surfaces include AuthExperience OAuth/OTP/recovery residuals (AO-1E1.2/E1.3), auth_.callback Auth/QueryClient ownership, FloorplanViewer multi-table mutations and estimate sync, DealChat residual mutation/QueryClient ownership, EstimateBuilder save mutation/QueryClient ownership, BulkPhotoUpload residual QueryClient invalidation, dual estimate query-key cleanup, and other presentation-infrastructure debt.",
+      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle Completed at d407cc6; AO-1C1 PhotoAnalysisViewer write extraction Completed at 0802bcc; AO-1C2 PhotoAnalysisViewer Apply-to-Estimate cache extraction Completed at fe28f25; AO-1D1 Admin Metrics Read Extraction Completed at d3cab3f; AO-1D2 Dashboard Onboarding Auth Extraction Completed at 9b4da54; AO-1E1.1 AuthExperience Password Credential Extraction Completed at 8bdf817; AO-1E1.2 AuthExperience OAuth Extraction In Progress locally). Not completed by a single child slice; remaining P2 surfaces include AuthExperience OTP/recovery residuals (AO-1E1.3), auth_.callback Auth/QueryClient ownership, FloorplanViewer multi-table mutations and estimate sync, DealChat residual mutation/QueryClient ownership, EstimateBuilder save mutation/QueryClient ownership, BulkPhotoUpload residual QueryClient invalidation, dual estimate query-key cleanup, and other presentation-infrastructure debt.",
     relatedCandidates: [
       "C3",
       "C8",
@@ -423,6 +443,7 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
       "AO-1D1",
       "AO-1D2",
       "AO-1E1.1",
+      "AO-1E1.2",
     ],
   },
 ];

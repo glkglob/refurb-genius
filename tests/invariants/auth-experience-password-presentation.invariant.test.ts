@@ -114,9 +114,14 @@ test("auth password presentation — infrastructure owns password Auth methods",
   assert.doesNotMatch(signUp, /useQuery|useMutation|QueryClient|localStorage|toast|logger/);
 });
 
-test("auth password presentation — residual OAuth and OTP remain allowed in component", () => {
+test("auth password presentation — residual OTP remains allowed; OAuth extracted under AO-1E1.2", () => {
   const text = stripAllComments(readFileSync(join(ROOT, COMPONENT), "utf8"));
-  assert.match(text, /signInWithOAuth/, "OAuth residual still present until AO-1E1.2");
+  // OAuth initiation extracted in AO-1E1.2 (useOAuthSignIn); do not require residual signInWithOAuth.
+  assert.doesNotMatch(
+    text,
+    /signInWithOAuth/,
+    `${COMPONENT} must not retain direct OAuth after AO-1E1.2`,
+  );
   assert.match(text, /signInWithOtp/, "OTP residual still present until AO-1E1.3");
 });
 

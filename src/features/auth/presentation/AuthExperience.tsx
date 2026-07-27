@@ -22,8 +22,8 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/platform/supabase/browser";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import { trackEvent } from "@/lib/analytics";
 import { useAuthPasswordCredentials } from "./hooks/useAuthPasswordCredentials";
+import { useOAuthSignIn } from "./hooks/useOAuthSignIn";
 
 export type AuthMode = "signin" | "signup" | "reset";
 
@@ -61,6 +61,7 @@ const decorativeIconProps = {
 export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   const navigate = useNavigate();
   const { signInWithPassword, signUpWithPassword } = useAuthPasswordCredentials();
+  const { startGoogleOAuth, startAppleOAuth } = useOAuthSignIn();
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
 
@@ -243,17 +244,9 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   async function handleGoogleAuth() {
     setError("");
     setOauthLoading(true);
-    trackEvent("oauth_sign_in_initiated", { provider: "google" });
 
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: redirect ? { redirect_to: redirect } : undefined,
-        },
-      });
-      if (oauthError) throw oauthError;
+      await startGoogleOAuth(redirect);
     } catch (err) {
       logger.error("[auth] google auth failed", { error: String(err) });
       setError(err instanceof Error ? err.message : "Google sign in failed.");
@@ -264,17 +257,9 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   async function handleAppleAuth() {
     setError("");
     setAppleLoading(true);
-    trackEvent("oauth_sign_in_initiated", { provider: "apple" });
 
     try {
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: "apple",
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: redirect ? { redirect_to: redirect } : undefined,
-        },
-      });
-      if (oauthError) throw oauthError;
+      await startAppleOAuth(redirect);
     } catch (err) {
       logger.error("[auth] apple auth failed", { error: String(err) });
       setError(err instanceof Error ? err.message : "Apple sign in failed.");
