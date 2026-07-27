@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@repo/ui";
 import { Card, CardContent } from "@repo/ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@repo/ui";
@@ -10,10 +10,8 @@ import { Textarea } from "@repo/ui";
 import { Label } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { toast } from "sonner";
-import { logger } from "@/lib/logger";
-import { supabase } from "@/platform/supabase/browser";
 import { estimateQueryOptions } from "@/lib/queries/projects";
-import { photoAnalysisByProjectQueryOptions } from "@/lib/queries/photo-analysis";
+import { useUpdatePhotoAnalysisResult } from "@/features/ai-upload";
 import { PhotoAnalysisFilters } from "./PhotoAnalysisFilters";
 import { PhotoAnalysisCard } from "./PhotoAnalysisCard";
 import type { ProjectPhoto } from "@/lib/photos-types";
@@ -69,6 +67,7 @@ interface SelectedSuggestion {
 
 export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalysisViewerProps) {
   const queryClient = useQueryClient();
+  const editMutation = useUpdatePhotoAnalysisResult(projectId);
 
   // Filters
   const [search, setSearch] = useState("");
@@ -201,75 +200,23 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
     }
   };
 
-  // Edit save with optimistic
-  const editMutation = useMutation({
-    mutationFn: async ({ id, newData }: { id: string; newData: ParsedAnalysis }) => {
-      const { error } = await supabase
-        .from("photo_analysis_results")
-        .update({
-          category: newData.category ?? null,
-          condition_report: newData.condition_report ?? null,
-          detected_defects: (newData.defects ??
-            []) as unknown as import("@repo/supabase/database.types").Json,
-          material_estimates: (newData.material_estimates ??
-            []) as unknown as import("@repo/supabase/database.types").Json,
-          cost_suggestions: (newData.cost_suggestions ??
-            {}) as unknown as import("@repo/supabase/database.types").Json,
-          confidence_score: newData.confidence ?? null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id);
-      if (error) throw error;
-      return { id, newData };
-    },
-    onMutate: async ({ id, newData }) => {
-      const key = photoAnalysisByProjectQueryOptions(projectId).queryKey;
-      await queryClient.cancelQueries({ queryKey: key });
-      const previous = queryClient.getQueryData<PhotoAnalysisResultRow[]>(key);
-      queryClient.setQueryData<PhotoAnalysisResultRow[]>(key, (old = []) =>
-        old.map((a) =>
-          a.id === id
-            ? {
-                ...a,
-                category: newData.category ?? null,
-                condition_report: newData.condition_report ?? null,
-                detected_defects: (newData.defects ??
-                  []) as unknown as import("@repo/supabase/database.types").Json,
-                material_estimates: (newData.material_estimates ??
-                  []) as unknown as import("@repo/supabase/database.types").Json,
-                cost_suggestions: (newData.cost_suggestions ??
-                  {}) as unknown as import("@repo/supabase/database.types").Json,
-                confidence_score: newData.confidence ?? null,
-              }
-            : a,
-        ),
-      );
-      return { previous };
-    },
-    onError: (_err, _vars, ctx) => {
-      if (ctx?.previous) {
-        queryClient.setQueryData(
-          photoAnalysisByProjectQueryOptions(projectId).queryKey,
-          ctx.previous,
-        );
-      }
-      toast.error("Failed to save edits");
-    },
-    onSuccess: () => {
-      toast.success("Analysis updated");
-      queryClient.invalidateQueries({
-        queryKey: photoAnalysisByProjectQueryOptions(projectId).queryKey,
-      });
-    },
-    onSettled: () => {
-      setDetailOpen(false);
-      setEditingAnalysis(null);
-    },
-  });
-
   const saveEdit = () => {
     if (!editingAnalysis) return;
-    editMutation.mutate({ id: editingAnalysis.analysis.id, newData: editForm });
+    editMutation.mutate(
+      { id: editingAnalysis.analysis.id, newData: editForm },
+      {
+        onError: () => {
+          toast.error("Failed to save edits");
+        },
+        onSuccess: () => {
+          toast.success("Analysis updated");
+        },
+        onSettled: () => {
+          setDetailOpen(false);
+          setEditingAnalysis(null);
+        },
+      },
+    );
   };
 
   // Apply single or selected to Estimate (optimistic + invalidate)

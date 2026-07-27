@@ -179,6 +179,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-photo-analysis-viewer-write-presentation",
+    kind: "invariant",
+    source: "tests/invariants/photo-analysis-viewer-write-presentation.invariant.test.ts",
+    description:
+      "AO-1C1 In Progress: PhotoAnalysisViewer direct Supabase client access prohibited; direct photo_analysis_results update prohibited; component-owned useMutation prohibited; component must call useUpdatePhotoAnalysisResult; write authority src/lib/photo-analysis-write.ts updatePhotoAnalysisResult; read authority src/lib/queries/photo-analysis.ts; mutation + optimistic analysis cache + success-only invalidation authority useUpdatePhotoAnalysisResult (photoAnalysisByProjectQueryOptions(projectId).queryKey; retry:false); residual useQueryClient retained for Apply-to-Estimate estimateQueryOptions cache only. Strength: lexical (comment-stripped source scan; alias/dynamic-import bypasses remain possible). Does not claim AO-1 complete, all PhotoAnalysisViewer infrastructure removed, Apply-to-Estimate migrated, C5 reopened, AST-level enforcement, or room/category product fix.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

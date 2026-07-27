@@ -35,6 +35,8 @@ export const LIB_ALLOWLIST = [
   "src/lib/photos-types.ts",
   "src/lib/photos-write.test.ts",
   "src/lib/photos-write.ts",
+  "src/lib/photo-analysis-write.test.ts",
+  "src/lib/photo-analysis-write.ts",
   "src/lib/pitchDeck.test.ts",
   "src/lib/pitchDeck.ts",
   "src/lib/projects.ts",

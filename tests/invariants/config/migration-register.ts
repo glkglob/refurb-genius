@@ -299,6 +299,25 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
         "AO-1B3.2 Completed. One child slice of Active AO-1 (does not complete AO-1; no parent AO-1B3 entry introduced). Implementation commit d407cc602bfc433ff07706830ea398bd15ebbc88 (parent 601d8f7); subject refactor(marketplace): extract messaging realtime lifecycle; 9 files. Independent verification: PASS WITH NON-BLOCKING FINDINGS (F-L1–F-I5). Outcomes: Realtime useEffect removed from MessagingInbox; platform Supabase import and useQueryClient removed from MessagingInbox; useTradeMessagesRealtime established as canonical Realtime authority (channel trade-messages-${id}; postgres_changes INSERT; schema public; table trade_messages; filter quote_request_id=eq.${id}; invalidate marketplaceKeys.messagesByQuote; SUBSCRIBED log with selectedQuoteId metadata; removeChannel cleanup; deps [quoteRequestId, queryClient]; falsy ID → no channel); send path unchanged (AO-1B3.1); read path unchanged (tradeMessagesQueryOptions / quoteRequestsByProjectQueryOptions); public MessagingInbox contract (projectId?) and sole marketplace route consumer preserved. Lexical seal tests/invariants/marketplace-messaging-realtime-presentation.invariant.test.ts; AO-1B3.1 send invariant corrected to stop requiring Realtime ownership in MessagingInbox. Push: successful fast-forward origin/main to d407cc6. CI on exact SHA: CI 30225709375 success (ci + invariant-tests); Security 30225709386 success (gitleaks, dependency-audit, server-only-boundary, client-bundle-secret-smoke); Pages 30225709151 success (build/deploy/report-build-status); Vercel success; Supabase Preview success (no schema/migration/RLS change). Marketplace messaging ownership workstream (send + Realtime) complete for MessagingInbox; component retains authorised UI/selection/read orchestration. Accepted non-blocking: F-L1 lexical bypasses, F-L2 theoretical late callback, F-I1 StrictMode cleanup/resubscribe, F-I2 no reconnect/retry, F-I3 unused payload removed, F-I4 logger/query baseline edges retained, F-I5 component tests mock Realtime hook. Deferred outside messaging: floorplan multi-table mutations, photo-analysis writes, admin metrics reads, dashboard onboarding Auth update, Auth presentation isolation. AO-1 remains Active; AO-1B1/B2/B3.1 remain Completed.",
     },
   },
+  {
+    id: "AO-1C1",
+    title: "PhotoAnalysisViewer write extraction",
+    status: "In Progress",
+    blastRadius: "T1",
+    problem:
+      "PhotoAnalysisViewer owns direct Supabase UPDATE of photo_analysis_results, useMutation orchestration, and optimistic React Query patch/invalidation of photoAnalysisByProjectQueryOptions in presentation.",
+    currentOwner:
+      "Writes: src/lib/photo-analysis-write.ts updatePhotoAnalysisResult. Mutation + optimistic analysis cache + success-only invalidation: useUpdatePhotoAnalysisResult(projectId). Presentation: PhotoAnalysisViewer via hook (toasts/dialog/pending) and residual useQueryClient for Apply-to-Estimate only. Reads: photoAnalysisByProjectQueryOptions / src/lib/queries/photo-analysis.ts.",
+    targetOwner:
+      "Canonical write primitive in photo-analysis-write; presentation-safe useUpdatePhotoAnalysisResult owns optimistic analysis cache; PhotoAnalysisViewer retains UI, toasts, dialog, and Apply-to-Estimate estimate cache; no platform Supabase or useMutation for analysis edit in the component",
+    dependencies: ["C5"],
+    dependents: [],
+    evidence: {
+      productionImporters: 0,
+      notes:
+        "AO-1C1 In Progress — implemented locally, pending independent verification. Outcomes (local): photo_analysis_results UPDATE moved to updatePhotoAnalysisResult; useUpdatePhotoAnalysisResult owns cancel/snapshot/optimistic patch/rollback/success-only invalidate on photoAnalysisByProjectQueryOptions(projectId).queryKey with retry:false; PhotoAnalysisViewer removes platform Supabase and useMutation; preserves room vs category payload quirk (UI room field; persisted category from newData.category); exact toasts and onSettled dialog close retained in component; Apply-to-Estimate residual useQueryClient retained. Lexical seal tests/invariants/photo-analysis-viewer-write-presentation.invariant.test.ts. Does not complete AO-1; does not migrate Apply-to-Estimate; does not reopen C5; no parent umbrella introduced.",
+    },
+  },
 ];
 
 /** Architecture objectives achieved incrementally (not single migrations). */
@@ -308,8 +327,8 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
     title: "Presentation Layer Owns No Infrastructure",
     status: "Active",
     description:
-      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle Completed at d407cc6). Not completed by a single child slice; remaining P2 surfaces include floorplan multi-table mutations, photo-analysis writes, admin metrics reads, dashboard onboarding Auth update, Auth presentation isolation, and other presentation-infrastructure debt.",
-    relatedCandidates: ["C3", "C8", "AO-1B1", "AO-1B2", "AO-1B3.1", "AO-1B3.2"],
+      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle Completed at d407cc6; AO-1C1 PhotoAnalysisViewer write extraction In Progress locally). Not completed by a single child slice; remaining P2 surfaces include floorplan multi-table mutations, Apply-to-Estimate presentation cache, admin metrics reads, dashboard onboarding Auth update, Auth presentation isolation, and other presentation-infrastructure debt.",
+    relatedCandidates: ["C3", "C8", "AO-1B1", "AO-1B2", "AO-1B3.1", "AO-1B3.2", "AO-1C1"],
   },
 ];
 

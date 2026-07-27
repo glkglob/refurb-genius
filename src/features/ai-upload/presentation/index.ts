@@ -20,6 +20,11 @@ export {
 export { useRoomAnalyses, useRunPhotoAnalysis, photoAnalysisKeys } from "./hooks/usePhotoAnalysis";
 export { usePhotos, useUploadPhotos, useRemovePhoto } from "./hooks/usePhotos";
 export {
+  useUpdatePhotoAnalysisResult,
+  type UpdatePhotoAnalysisResultMutationInput,
+  type UpdatePhotoAnalysisResultMutationResult,
+} from "./hooks/useUpdatePhotoAnalysisResult";
+export {
   PhotoAnalysisViewer,
   PhotoAnalysisCard,
   PhotoAnalysisFilters,
