@@ -302,10 +302,10 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
   {
     id: "AO-1C1",
     title: "PhotoAnalysisViewer write extraction",
-    status: "In Progress",
+    status: "Completed",
     blastRadius: "T1",
     problem:
-      "PhotoAnalysisViewer owns direct Supabase UPDATE of photo_analysis_results, useMutation orchestration, and optimistic React Query patch/invalidation of photoAnalysisByProjectQueryOptions in presentation.",
+      "PhotoAnalysisViewer owned direct Supabase UPDATE of photo_analysis_results, useMutation orchestration, and optimistic React Query patch/invalidation of photoAnalysisByProjectQueryOptions in presentation.",
     currentOwner:
       "Writes: src/lib/photo-analysis-write.ts updatePhotoAnalysisResult. Mutation + optimistic analysis cache + success-only invalidation: useUpdatePhotoAnalysisResult(projectId). Presentation: PhotoAnalysisViewer via hook (toasts/dialog/pending) and residual useQueryClient for Apply-to-Estimate only. Reads: photoAnalysisByProjectQueryOptions / src/lib/queries/photo-analysis.ts.",
     targetOwner:
@@ -313,9 +313,10 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
     dependencies: ["C5"],
     dependents: [],
     evidence: {
+      commit: "0802bcc",
       productionImporters: 0,
       notes:
-        "AO-1C1 In Progress — implemented locally, pending independent verification. Outcomes (local): photo_analysis_results UPDATE moved to updatePhotoAnalysisResult; useUpdatePhotoAnalysisResult owns cancel/snapshot/optimistic patch/rollback/success-only invalidate on photoAnalysisByProjectQueryOptions(projectId).queryKey with retry:false; PhotoAnalysisViewer removes platform Supabase and useMutation; preserves room vs category payload quirk (UI room field; persisted category from newData.category); exact toasts and onSettled dialog close retained in component; Apply-to-Estimate residual useQueryClient retained. Lexical seal tests/invariants/photo-analysis-viewer-write-presentation.invariant.test.ts. Does not complete AO-1; does not migrate Apply-to-Estimate; does not reopen C5; no parent umbrella introduced.",
+        "AO-1C1 Completed. One child slice of Active AO-1 (does not complete AO-1; no parent umbrella introduced). Implementation commit 0802bcca465703d26740d49292db7172546e072a (parent a49dd0c); subject refactor(photo-analysis): extract viewer write ownership; 12 files. Independent verification: PASS WITH NON-BLOCKING FINDINGS (F-L1–F-I5). Outcomes: direct photo_analysis_results UPDATE removed from PhotoAnalysisViewer; component edit useMutation removed; updatePhotoAnalysisResult established as canonical UPDATE authority (seven-field payload: category, condition_report, detected_defects, material_estimates, cost_suggestions, confidence_score, updated_at; .eq(id) only; no .select(); no Auth); useUpdatePhotoAnalysisResult established as canonical edit mutation and optimistic-cache authority (retry:false; cancel/snapshot/matching-row patch without optimistic updated_at; rollback; success-only invalidate photoAnalysisByProjectQueryOptions(projectId).queryKey); room/category quirk intentionally preserved (UI room field; persisted category from newData.category); exact toasts (Failed to save edits / Analysis updated) and onSettled dialog close retained in component; Apply-to-Estimate residual useQueryClient retained; public props projectId/photos/analyses and sole projects.$id.index consumer unchanged. Lexical seal tests/invariants/photo-analysis-viewer-write-presentation.invariant.test.ts. Push: successful fast-forward origin/main to 0802bcc. CI on exact SHA: CI 30230258095 success (ci + invariant-tests); Security 30230258114 success (gitleaks, dependency-audit, server-only-boundary, client-bundle-secret-smoke); Pages 30230257674 success (build/deploy/report-build-status); Vercel success; Supabase Preview success (no schema/migration/RLS change). Accepted non-blocking: F-L1 cancelQueries order not spied, F-L2 Apply-to-Estimate not re-driven e2e, F-I1 lexical bypasses, F-I2 per-mutate toast/dialog callbacks, F-I3 explicit retry false, F-I4 component tests mock hook, F-I5 DialogContent a11y warning. Deferred residual in PhotoAnalysisViewer: Apply-to-Estimate estimateQueryOptions setQueryData/invalidateQueries (client-only cache; no server write). Deferred outside photo write: floorplan multi-table mutations, admin metrics reads, dashboard onboarding Auth update, Auth presentation isolation. AO-1 remains Active; AO-1B1/B2/B3.1/B3.2 remain Completed; C5 remains Completed.",
     },
   },
 ];
@@ -327,7 +328,7 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
     title: "Presentation Layer Owns No Infrastructure",
     status: "Active",
     description:
-      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle Completed at d407cc6; AO-1C1 PhotoAnalysisViewer write extraction In Progress locally). Not completed by a single child slice; remaining P2 surfaces include floorplan multi-table mutations, Apply-to-Estimate presentation cache, admin metrics reads, dashboard onboarding Auth update, Auth presentation isolation, and other presentation-infrastructure debt.",
+      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle Completed at d407cc6; AO-1C1 PhotoAnalysisViewer write extraction Completed at 0802bcc). Not completed by a single child slice; remaining P2 surfaces include PhotoAnalysisViewer Apply-to-Estimate presentation cache, floorplan multi-table mutations, admin metrics reads, dashboard onboarding Auth update, Auth presentation isolation, DealChat residual mutation/QueryClient ownership, and other presentation-infrastructure debt.",
     relatedCandidates: ["C3", "C8", "AO-1B1", "AO-1B2", "AO-1B3.1", "AO-1B3.2", "AO-1C1"],
   },
 ];
