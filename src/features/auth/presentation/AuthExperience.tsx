@@ -19,11 +19,10 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/platform/supabase/browser";
-import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { useAuthPasswordCredentials } from "./hooks/useAuthPasswordCredentials";
 import { useOAuthSignIn } from "./hooks/useOAuthSignIn";
+import { useAuthEmailAccess } from "./hooks/useAuthEmailAccess";
 
 export type AuthMode = "signin" | "signup" | "reset";
 
@@ -62,6 +61,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   const navigate = useNavigate();
   const { signInWithPassword, signUpWithPassword } = useAuthPasswordCredentials();
   const { startGoogleOAuth, startAppleOAuth } = useOAuthSignIn();
+  const { sendMagicLink, requestPasswordReset, updatePassword } = useAuthEmailAccess();
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
 
@@ -195,7 +195,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
       }
 
       if (isReset) {
-        await auth.updatePassword(password);
+        await updatePassword(password);
         toast.success("Password updated. Please sign in with your new credentials.");
         await navigate({ to: "/auth", search: { mode: "signin", redirect }, replace: true });
         return;
@@ -276,20 +276,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
     setMagicLinkLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (redirect) params.set("redirect_to", redirect);
-      const redirectTo = `${window.location.origin}/auth/callback${
-        params.toString() ? `?${params.toString()}` : ""
-      }`;
-
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: redirectTo,
-        },
-      });
-      if (otpError) throw otpError;
-
+      await sendMagicLink(email, redirect);
       toast.success("Magic link sent. Check your inbox.");
     } catch (err) {
       logger.error("[auth] magic link failed", { error: String(err) });
@@ -308,7 +295,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
     setForgotPasswordLoading(true);
     try {
-      await auth.resetPasswordForEmail(email);
+      await requestPasswordReset(email);
       toast.success("Password reset email sent.");
     } catch (err) {
       logger.error("[auth] forgot password failed", { error: String(err) });

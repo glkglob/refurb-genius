@@ -1,7 +1,7 @@
 /**
  * AO-1E1.2 — AuthExperience must not own direct OAuth initiation Auth.
  *
- * Progressive seal: OTP and recovery remain temporarily allowed until AO-1E1.3.
+ * Progressive seal: OTP and recovery extracted under AO-1E1.3.
  *
  * Strength: lexical (comment-stripped source scan). Known bypasses: alias
  * reassignment, dynamic import string splits, computed property names.
@@ -54,9 +54,13 @@ test("auth oauth presentation — component bans direct signInWithOAuth", () => 
   );
 });
 
-test("auth oauth presentation — residual OTP remains allowed until AO-1E1.3", () => {
+test("auth oauth presentation — residual OTP extracted under AO-1E1.3", () => {
   const text = stripAllComments(readFileSync(join(ROOT, COMPONENT), "utf8"));
-  assert.match(text, /signInWithOtp/, "OTP residual still present until AO-1E1.3");
+  assert.doesNotMatch(
+    text,
+    /signInWithOtp/,
+    `${COMPONENT} must not retain direct OTP after AO-1E1.3`,
+  );
 });
 
 test("auth oauth presentation — hook owns analytics, callback URL, and primitive", () => {

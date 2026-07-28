@@ -17,3 +17,9 @@ export {
   type AuthOAuthProvider,
   type StartOAuthSignInInput,
 } from "./startOAuthSignIn";
+export { sendMagicLinkEmail, type SendMagicLinkEmailInput } from "./sendMagicLinkEmail";
+export {
+  requestPasswordResetEmail,
+  type RequestPasswordResetEmailInput,
+} from "./requestPasswordResetEmail";
+export { updateAuthUserPassword, type UpdateAuthUserPasswordInput } from "./updateAuthUserPassword";

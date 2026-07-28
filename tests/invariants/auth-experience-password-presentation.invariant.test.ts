@@ -114,15 +114,23 @@ test("auth password presentation — infrastructure owns password Auth methods",
   assert.doesNotMatch(signUp, /useQuery|useMutation|QueryClient|localStorage|toast|logger/);
 });
 
-test("auth password presentation — residual OTP remains allowed; OAuth extracted under AO-1E1.2", () => {
+test("auth password presentation — OAuth and email-access residuals extracted under AO-1E1.2/E1.3", () => {
   const text = stripAllComments(readFileSync(join(ROOT, COMPONENT), "utf8"));
-  // OAuth initiation extracted in AO-1E1.2 (useOAuthSignIn); do not require residual signInWithOAuth.
   assert.doesNotMatch(
     text,
     /signInWithOAuth/,
     `${COMPONENT} must not retain direct OAuth after AO-1E1.2`,
   );
-  assert.match(text, /signInWithOtp/, "OTP residual still present until AO-1E1.3");
+  assert.doesNotMatch(
+    text,
+    /signInWithOtp/,
+    `${COMPONENT} must not retain direct OTP after AO-1E1.3`,
+  );
+  assert.match(
+    text,
+    /useAuthEmailAccess\s*\(/,
+    `${COMPONENT} must call useAuthEmailAccess after AO-1E1.3`,
+  );
 });
 
 test("auth password presentation — probe: string-only hook name does not satisfy call", () => {

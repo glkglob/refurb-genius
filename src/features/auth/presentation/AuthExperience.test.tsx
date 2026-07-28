@@ -1,5 +1,5 @@
 /**
- * AO-1E1.1 / AO-1E1.2 — AuthExperience password and OAuth presentation contracts.
+ * AO-1E1.1 / AO-1E1.2 / AO-1E1.3 — AuthExperience presentation contracts.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -11,11 +11,11 @@ const signInWithPassword = vi.fn();
 const signUpWithPassword = vi.fn();
 const startGoogleOAuth = vi.fn();
 const startAppleOAuth = vi.fn();
+const sendMagicLink = vi.fn();
+const requestPasswordReset = vi.fn();
+const updatePassword = vi.fn();
 const navigate = vi.fn();
 const toastSuccess = vi.fn();
-const updatePassword = vi.fn();
-const resetPasswordForEmail = vi.fn();
-const signInWithOtp = vi.fn();
 const loggerError = vi.fn();
 
 vi.mock("./hooks/useAuthPasswordCredentials", () => ({
@@ -29,6 +29,14 @@ vi.mock("./hooks/useOAuthSignIn", () => ({
   useOAuthSignIn: () => ({
     startGoogleOAuth: (...args: unknown[]) => startGoogleOAuth(...args),
     startAppleOAuth: (...args: unknown[]) => startAppleOAuth(...args),
+  }),
+}));
+
+vi.mock("./hooks/useAuthEmailAccess", () => ({
+  useAuthEmailAccess: () => ({
+    sendMagicLink: (...args: unknown[]) => sendMagicLink(...args),
+    requestPasswordReset: (...args: unknown[]) => requestPasswordReset(...args),
+    updatePassword: (...args: unknown[]) => updatePassword(...args),
   }),
 }));
 
@@ -60,21 +68,6 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-vi.mock("@/lib/auth", () => ({
-  auth: {
-    updatePassword: (...args: unknown[]) => updatePassword(...args),
-    resetPasswordForEmail: (...args: unknown[]) => resetPasswordForEmail(...args),
-  },
-}));
-
-vi.mock("@/platform/supabase/browser", () => ({
-  supabase: {
-    auth: {
-      signInWithOtp: (...args: unknown[]) => signInWithOtp(...args),
-    },
-  },
-}));
-
 import { AuthExperience } from "./AuthExperience";
 
 const SRC = join(__dirname, "AuthExperience.tsx");
@@ -84,20 +77,20 @@ beforeEach(() => {
   signUpWithPassword.mockReset();
   startGoogleOAuth.mockReset();
   startAppleOAuth.mockReset();
+  sendMagicLink.mockReset();
+  requestPasswordReset.mockReset();
+  updatePassword.mockReset();
   navigate.mockReset();
   toastSuccess.mockReset();
-  updatePassword.mockReset();
-  resetPasswordForEmail.mockReset();
-  signInWithOtp.mockReset();
   loggerError.mockReset();
   signInWithPassword.mockResolvedValue(undefined);
   signUpWithPassword.mockResolvedValue("session");
   startGoogleOAuth.mockResolvedValue(undefined);
   startAppleOAuth.mockResolvedValue(undefined);
-  navigate.mockResolvedValue(undefined);
+  sendMagicLink.mockResolvedValue(undefined);
+  requestPasswordReset.mockResolvedValue(undefined);
   updatePassword.mockResolvedValue(undefined);
-  resetPasswordForEmail.mockResolvedValue(undefined);
-  signInWithOtp.mockResolvedValue({ error: null });
+  navigate.mockResolvedValue(undefined);
 });
 
 function fillEmailPassword(email = "user@example.com", password = "secret12") {
@@ -281,13 +274,96 @@ describe("AuthExperience — OAuth presentation (AO-1E1.2)", () => {
   });
 });
 
-describe("AuthExperience — source boundary (AO-1E1.1 / AO-1E1.2 progressive)", () => {
-  it("uses password and OAuth hooks; bans direct password and OAuth Auth methods", () => {
+describe("AuthExperience — email access presentation (AO-1E1.3)", () => {
+  it("calls sendMagicLink with email and redirect; toasts and clears loading", async () => {
+    render(createElement(AuthExperience, { initialMode: "signin", redirect: "/projects" }));
+    fireEvent.change(document.getElementById("email") as HTMLInputElement, {
+      target: { value: "user@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /email me a magic link/i }));
+
+    await waitFor(() => {
+      expect(sendMagicLink).toHaveBeenCalledWith("user@example.com", "/projects");
+    });
+    await waitFor(() => {
+      expect(toastSuccess).toHaveBeenCalledWith("Magic link sent. Check your inbox.");
+    });
+    expect(navigate).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: /email me a magic link/i })).toBeTruthy();
+  });
+
+  it("validates empty email for magic link without calling the hook", async () => {
+    render(createElement(AuthExperience, { initialMode: "signin" }));
+    fireEvent.click(screen.getByRole("button", { name: /email me a magic link/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Enter your email first to receive a magic link.")).toBeTruthy();
+    });
+    expect(sendMagicLink).not.toHaveBeenCalled();
+  });
+
+  it("clears magic loading and shows error on failure", async () => {
+    sendMagicLink.mockRejectedValue(new Error("otp blocked"));
+    render(createElement(AuthExperience, { initialMode: "signin" }));
+    fireEvent.change(document.getElementById("email") as HTMLInputElement, {
+      target: { value: "user@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /email me a magic link/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("otp blocked")).toBeTruthy();
+    });
+    expect(loggerError).toHaveBeenCalledWith("[auth] magic link failed", {
+      error: "Error: otp blocked",
+    });
+    expect(toastSuccess).not.toHaveBeenCalled();
+  });
+
+  it("calls requestPasswordReset and toasts on success", async () => {
+    render(createElement(AuthExperience, { initialMode: "signin" }));
+    fireEvent.change(document.getElementById("email") as HTMLInputElement, {
+      target: { value: "user@example.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /forgot password/i }));
+
+    await waitFor(() => {
+      expect(requestPasswordReset).toHaveBeenCalledWith("user@example.com");
+    });
+    await waitFor(() => {
+      expect(toastSuccess).toHaveBeenCalledWith("Password reset email sent.");
+    });
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("updates password in reset mode and navigates to sign-in", async () => {
+    render(createElement(AuthExperience, { initialMode: "reset", redirect: "/projects" }));
+    fillEmailPassword("user@example.com", "new-secret-12");
+    submitAuthForm();
+
+    await waitFor(() => {
+      expect(updatePassword).toHaveBeenCalledWith("new-secret-12");
+    });
+    await waitFor(() => {
+      expect(toastSuccess).toHaveBeenCalledWith(
+        "Password updated. Please sign in with your new credentials.",
+      );
+    });
+    expect(navigate).toHaveBeenCalledWith({
+      to: "/auth",
+      search: { mode: "signin", redirect: "/projects" },
+      replace: true,
+    });
+  });
+});
+
+describe("AuthExperience — source boundary (AO-1E1.1 / AO-1E1.2 / AO-1E1.3 progressive)", () => {
+  it("uses password, OAuth, and email-access hooks; bans residual direct Auth", () => {
     const src = readFileSync(SRC, "utf8")
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/\/\/.*$/gm, "");
     expect(src).toMatch(/useAuthPasswordCredentials\s*\(/);
     expect(src).toMatch(/useOAuthSignIn\s*\(/);
+    expect(src).toMatch(/useAuthEmailAccess\s*\(/);
     expect(src).not.toMatch(/signInWithPassword\s*\(\s*\{/);
     expect(src).not.toMatch(/\.signInWithPassword\s*\(/);
     expect(src).not.toMatch(/auth\.signUp\s*\(|\.signUp\s*\(\s*\{/);
@@ -295,8 +371,9 @@ describe("AuthExperience — source boundary (AO-1E1.1 / AO-1E1.2 progressive)",
     expect(src).not.toMatch(/markNewUserOnboarding|identifyAnalyticsUser|trackSignupCompleted/);
     expect(src).not.toMatch(/signInWithOAuth|\.signInWithOAuth\s*\(/);
     expect(src).not.toMatch(/oauth_sign_in_initiated|trackEvent/);
-    // Residual OTP / recovery still allowed
-    expect(src).toMatch(/signInWithOtp/);
-    expect(src).toMatch(/resetPasswordForEmail|updatePassword/);
+    expect(src).not.toMatch(/signInWithOtp/);
+    expect(src).not.toMatch(/resetPasswordForEmail/);
+    expect(src).not.toMatch(/@\/platform\/supabase/);
+    expect(src).not.toMatch(/from ["']@\/lib\/auth["']/);
   });
 });

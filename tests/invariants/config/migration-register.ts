@@ -23,6 +23,7 @@ export const MIGRATION_REGISTER_META = {
   scoringSourceOfTruth: "tests/invariants/config/candidate-scoring.ts",
   policySourceOfTruth: "docs/architecture/overview.md",
 } as const;
+// AO-1E1.3 AuthExperience Magic Link and Password Recovery Extraction In Progress (local)
 // AO-1E1.2 AuthExperience OAuth Extraction Completed (ce4384a + required CI)
 // AO-1E1.1 AuthExperience Password Credential Extraction Completed (8bdf817 + required CI)
 // AO-1D2 Dashboard Onboarding Auth Extraction Completed (9b4da54 + required CI)
@@ -422,6 +423,25 @@ export const MIGRATION_CANDIDATES: MigrationCandidate[] = [
         "AO-1E1.2 Completed. One child slice of Active AO-1 / AuthExperience workstream AO-1E1 (does not complete AO-1 or full AuthExperience isolation; no parent AO-1E1 register entry required). Implementation commit ce4384ac1bb14cc7b0a18928db5386aabc90f084 (parent fee8f3f); subject refactor(auth): extract AuthExperience OAuth initiation; 12 files. Independent verification: PASS WITH NON-BLOCKING FINDINGS (F-L1–F-I3). Outcomes: direct supabase.auth.signInWithOAuth removed from AuthExperience; oauth_sign_in_initiated analytics removed from component. startOAuthSignIn established as Google and Apple OAuth Auth authority (client @/platform/supabase/browser; providers google|apple only; options redirectTo + queryParams; if (error) throw error; void return; no window/analytics/logger/toast/nav/QC/localStorage/tables). useOAuthSignIn established as OAuth initiation orchestration authority: callback URL ${window.location.origin}/auth/callback; redirect ? { redirect_to: redirect } : undefined (no initiation-side validation, no password /auth guard); trackEvent oauth_sign_in_initiated { provider } before startOAuthSignIn; rethrows. AuthExperience retains oauthLoading/appleLoading (success leaves true; failure clears only provider flag), formDisabled omits appleLoading (Google-pending disables form+both buttons; Apple-pending may leave Google clickable), logger [auth] google|apple auth failed with { error: String(err) }, fallback Google|Apple sign in failed., provider buttons/icons/copy. No toast, app navigation, retry, or cancellation on OAuth initiation. Browser redirect: Supabase. Code exchange, session/cache seed, redirect_to validation, post-callback navigation: auth_.callback.tsx (unchanged). Password AO-1E1.1 unchanged. Residual signInWithOtp magic link, auth.resetPasswordForEmail, auth.updatePassword reset-mode deferred AO-1E1.3; platform Supabase import retained for OTP. No schema/migration/RLS/Storage/provider/CAPTCHA/generated-type change. Lexical progressive seal tests/invariants/auth-experience-oauth-presentation.invariant.test.ts; password seal residual OAuth assertion updated to ban direct signInWithOAuth. Push: successful fast-forward origin/main to ce4384a. CI on exact SHA: CI 30312856862 success (ci + invariant-tests); Security 30312856823 success (gitleaks, dependency-audit, server-only-boundary, client-bundle-secret-smoke); Pages 30312856350 success (build/deploy/report-build-status); Vercel success; Supabase Preview non-blocking external Postgres dial timeout (context deadline exceeded; no migration/schema/generated-type failure; no DB change in commit). Accepted non-blocking: F-L1 component tests mock useOAuthSignIn, F-L2 lexical invariant bypasses, F-L3 component coverage gaps (non-Error fallback, Apple success loading, falsy redirect, concurrency asymmetry), F-I1 trackEvent inside component try via awaited hook, F-I2 root auth index unchanged, F-I3 AO-1E1.3 and callback outside scope. AUTH EXPERIENCE OAUTH INITIATION WORK COMPLETE; further OAuth initiation slice not required. Deferred: AO-1E1.3 magic link and password recovery, auth_.callback, EstimateBuilder, DealChat, FloorplanViewer, BulkPhoto residual QC, dual estimate keys. AO-1 remains Active; AO-1E1.1 remains Completed; AO-1B1/B2/B3.1/B3.2/C1/C2/D1/D2 remain Completed; C5 remains Completed.",
     },
   },
+  {
+    id: "AO-1E1.3",
+    title: "AuthExperience Magic Link and Password Recovery Extraction",
+    status: "In Progress",
+    blastRadius: "T1",
+    problem:
+      "AuthExperience owned residual direct platform Supabase Auth magic-link OTP (signInWithOtp), password-reset email via src/lib/auth.resetPasswordForEmail, and reset-mode password update via src/lib/auth.updatePassword, including redirect construction and presentation side effects mixed with Auth commands.",
+    currentOwner:
+      "Magic-link Auth: sendMagicLinkEmail. Password-reset request Auth: requestPasswordResetEmail. Password update Auth: updateAuthUserPassword. Email-access orchestration (callback URL, type=recovery redirect): useAuthEmailAccess. Presentation validation/loading/logger/toast/navigation: AuthExperience. Callback completion: auth_.callback.tsx.",
+    targetOwner:
+      "Feature-owned email-access Auth primitives and presentation hook; AuthExperience retains UI, validation, loading, toast, logger, and navigation; callback remains separate",
+    dependencies: ["AO-1", "AO-1E1.1", "AO-1E1.2"],
+    dependents: [],
+    evidence: {
+      productionImporters: 0,
+      notes:
+        "AO-1E1.3 In Progress — implemented locally, pending independent verification. Outcomes (local): direct supabase.auth.signInWithOtp removed from AuthExperience; auth.resetPasswordForEmail and auth.updatePassword removed from AuthExperience; platform Supabase browser import removed; @/lib/auth import removed from AuthExperience. sendMagicLinkEmail established (signInWithOtp; email + emailRedirectTo; throw returned errors; void). requestPasswordResetEmail established (resetPasswordForEmail; email + redirectTo; throw returned errors). updateAuthUserPassword established (updateUser({ password }); throw returned errors). useAuthEmailAccess established: magic callback URL via URL + optional redirect_to; recovery redirect `${origin}/auth/callback?type=recovery`; updatePassword pass-through; rethrows. AuthExperience retains email empty-gates, magicLinkLoading/forgotPasswordLoading finally reset, submitting for reset branch, toast copy, logger strings, reset navigate to sign-in with redirect search, formDisabled (still omits appleLoading), password AO-1E1.1 and OAuth AO-1E1.2 hooks. Accepted micro-deltas: primitives throw Auth errors unchanged (not lib/auth new Error wrap); no helper-layer Sentry/breadcrumbs on AuthExperience path. Callback auth_.callback.tsx unchanged. src/lib/auth.ts unchanged (helpers remain for other legacy consumers). Lexical progressive seal tests/invariants/auth-experience-email-access-presentation.invariant.test.ts; password and OAuth residual OTP assertions updated. Does not complete AO-1; callback migration deferred. AO-1 remains Active; AO-1E1.1/E1.2 remain Completed.",
+    },
+  },
 ];
 
 /** Architecture objectives achieved incrementally (not single migrations). */
@@ -431,7 +451,7 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
     title: "Presentation Layer Owns No Infrastructure",
     status: "Active",
     description:
-      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle Completed at d407cc6; AO-1C1 PhotoAnalysisViewer write extraction Completed at 0802bcc; AO-1C2 PhotoAnalysisViewer Apply-to-Estimate cache extraction Completed at fe28f25; AO-1D1 Admin Metrics Read Extraction Completed at d3cab3f; AO-1D2 Dashboard Onboarding Auth Extraction Completed at 9b4da54; AO-1E1.1 AuthExperience Password Credential Extraction Completed at 8bdf817; AO-1E1.2 AuthExperience OAuth Extraction Completed at ce4384a). Not completed by a single child slice; remaining P2 surfaces include AuthExperience OTP/recovery residuals (AO-1E1.3), auth_.callback Auth/QueryClient ownership, FloorplanViewer multi-table mutations and estimate sync, DealChat residual mutation/QueryClient ownership, EstimateBuilder save mutation/QueryClient ownership, BulkPhotoUpload residual QueryClient invalidation, dual estimate query-key cleanup, and other presentation-infrastructure debt.",
+      "Presentation and routes must not own Supabase clients, channels, or persistence. Supersedes former single-migration framing of C8. Progressed via focused child slices (C3 channel lifecycle Completed; AO-1B1 marketplace favorites Completed at 322156a; AO-1B2 quote-request creation Completed at fcc13b6; AO-1B3.1 marketplace message send Completed at fa12ccc; AO-1B3.2 MessagingInbox Realtime lifecycle Completed at d407cc6; AO-1C1 PhotoAnalysisViewer write extraction Completed at 0802bcc; AO-1C2 PhotoAnalysisViewer Apply-to-Estimate cache extraction Completed at fe28f25; AO-1D1 Admin Metrics Read Extraction Completed at d3cab3f; AO-1D2 Dashboard Onboarding Auth Extraction Completed at 9b4da54; AO-1E1.1 AuthExperience Password Credential Extraction Completed at 8bdf817; AO-1E1.2 AuthExperience OAuth Extraction Completed at ce4384a; AO-1E1.3 AuthExperience Magic Link and Password Recovery Extraction In Progress locally). Not completed by a single child slice; remaining P2 surfaces include auth_.callback Auth/QueryClient ownership, FloorplanViewer multi-table mutations and estimate sync, DealChat residual mutation/QueryClient ownership, EstimateBuilder save mutation/QueryClient ownership, BulkPhotoUpload residual QueryClient invalidation, dual estimate query-key cleanup, and other presentation-infrastructure debt.",
     relatedCandidates: [
       "C3",
       "C8",
@@ -445,6 +465,7 @@ export const ARCHITECTURE_OBJECTIVES: ArchitectureObjective[] = [
       "AO-1D2",
       "AO-1E1.1",
       "AO-1E1.2",
+      "AO-1E1.3",
     ],
   },
 ];

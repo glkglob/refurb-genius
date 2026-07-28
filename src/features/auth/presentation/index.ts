@@ -10,3 +10,4 @@ export {
   type SignUpWithPasswordOutcome,
 } from "./hooks/useAuthPasswordCredentials";
 export { useOAuthSignIn, type UseOAuthSignInResult } from "./hooks/useOAuthSignIn";
+export { useAuthEmailAccess, type UseAuthEmailAccessResult } from "./hooks/useAuthEmailAccess";
