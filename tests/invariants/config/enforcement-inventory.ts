@@ -269,6 +269,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-floorplan-viewer-persistence-presentation",
+    kind: "invariant",
+    source: "tests/invariants/floorplan-viewer-persistence-presentation.invariant.test.ts",
+    description:
+      "AO-1H1 In Progress: FloorplanViewer direct auth.getUser prohibited; direct platform Supabase and floorplan table writes prohibited; direct useMutation prohibited; direct uploadFloorplanModel/deleteFloorplanStorage orchestration prohibited; direct floorplanKeys invalidation ownership prohibited; component must call useFloorplanViewerMutations from @/features/floorplan. Table-write authority: floorplanWrite (floorplan_models/annotations/measurements; throw Supabase errors unchanged; no Auth/Storage/QC/toast). Mutation + Auth + Storage orchestration + floorplan invalidations + toasts + isUploading: useFloorplanViewerMutations. Storage helpers remain @/lib/floorplan. Estimate tag sync (syncTagsToEstimate), estimate QueryClient get/set/invalidate, estimateQueryOptions read, floorplan read query factories, editor UI, scene, exports remain in FloorplanViewer (AO-1H2 deferred). Strength: progressive lexical seal (comment-stripped source scan; alias/dynamic-import bypasses remain possible). Does not claim AO-1 complete, all QueryClient ownership removed from FloorplanViewer, estimate sync extracted, dual estimate keys unified, or AST/semantic enforcement.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { Upload, Trash2, Download, Eye, Tag, Ruler, RefreshCw, Plus, X } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Upload, Trash2, Download, Eye, Tag, Ruler, RefreshCw, X } from "lucide-react";
 import { Button } from "@repo/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
 import {
@@ -16,30 +16,17 @@ import {
 import { Input } from "@repo/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@repo/ui";
 import { toast } from "sonner";
-import { supabase } from "@/platform/supabase/browser";
-import { auth } from "@/lib/auth";
-import { logger } from "@/lib/logger";
 import { estimateQueryOptions } from "@/lib/queries/projects";
 import {
   floorplansByProjectQueryOptions,
   floorplanAnnotationsQueryOptions,
   floorplanMeasurementsQueryOptions,
-  floorplanKeys,
 } from "@/lib/queries/floorplans";
-import {
-  uploadFloorplanModel,
-  deleteFloorplanStorage,
-  pointToArray,
-  exportScreenshot,
-  exportAnnotationsJson,
-} from "@/lib/floorplan";
+import { exportScreenshot, exportAnnotationsJson } from "@/lib/floorplan";
+import { useFloorplanViewerMutations } from "@/features/floorplan";
+import type { FloorplanModelRow } from "@/features/floorplan";
 import { FloorplanScene } from "./FloorplanScene";
-import type { Tables } from "@repo/supabase";
 import type { PersistedRoomEstimate } from "@/features/estimate";
-
-type FloorplanModelRow = Tables<"floorplan_models">;
-type FloorplanAnnotationRow = Tables<"floorplan_annotations">;
-type FloorplanMeasurementRow = Tables<"floorplan_measurements">;
 
 export interface FloorplanViewerProps {
   projectId: string;
@@ -52,6 +39,7 @@ interface PendingTag {
 }
 
 export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
+  // Estimate-sync path still owns QueryClient (AO-1H2 deferred).
   const queryClient = useQueryClient();
 
   // Data fetching - non-blocking for the tab
@@ -93,186 +81,40 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
   const [pendingTag, setPendingTag] = useState<PendingTag | null>(null);
   const [tagLabel, setTagLabel] = useState("");
   const [linkedRoomId, setLinkedRoomId] = useState<string>("");
-  const [isUploading, setIsUploading] = useState(false);
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
 
-  // Mutations
-  const createModelMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const user = auth.getUser();
-      if (!user) throw new Error("You must be signed in to upload models.");
-
-      setIsUploading(true);
-      const { path } = await uploadFloorplanModel(projectId, file, user.id);
-
-      const { data: inserted, error } = await supabase
-        .from("floorplan_models")
-        .insert({
-          project_id: projectId,
-          uploaded_by: user.id,
-          name: file.name.replace(/\.[^/.]+$/, ""),
-          storage_path: path,
-          file_type: file.name.split(".").pop()?.toLowerCase() ?? "glb",
-          metadata: { originalName: file.name, size: file.size },
-        })
-        .select()
-        .single();
-
-      if (error) {
-        // Attempt cleanup
-        await deleteFloorplanStorage(path).catch(() => {});
-        throw error;
-      }
-      return inserted as FloorplanModelRow;
-    },
-    onSuccess: (newModel) => {
-      queryClient.invalidateQueries({ queryKey: floorplanKeys.byProject(projectId) });
+  // Persistence mutations (Auth, table writes, Storage, floorplan invalidations, toasts)
+  const {
+    createModel,
+    deleteModel,
+    saveAnnotation,
+    saveMeasurement,
+    deleteAnnotation,
+    deleteMeasurement,
+    refreshModels,
+    isUploading,
+    isCreateModelPending,
+  } = useFloorplanViewerMutations(projectId, {
+    selectedModelId,
+    estimateRooms: estimateRooms.map((r) => ({ id: r.id, name: r.name })),
+    onModelCreated: (newModel) => {
       setSelectedModelId(newModel.id);
-      toast.success("Model uploaded", { description: newModel.name });
     },
-    onError: (err: Error) => {
-      logger.error("[floorplan] model create failed", { projectId, error: err.message });
-      toast.error("Upload failed", { description: err.message });
-    },
-    onSettled: () => setIsUploading(false),
-  });
-
-  const deleteModelMutation = useMutation({
-    mutationFn: async (model: FloorplanModelRow) => {
-      if (model.storage_path) {
-        await deleteFloorplanStorage(model.storage_path);
-      }
-      const { error } = await supabase.from("floorplan_models").delete().eq("id", model.id);
-      if (error) throw error;
-    },
-    onSuccess: (_, model) => {
-      queryClient.invalidateQueries({ queryKey: floorplanKeys.byProject(projectId) });
+    onModelDeleted: (model) => {
       if (selectedModelId === model.id) {
         const remaining = models.filter((m) => m.id !== model.id);
         setSelectedModelId(remaining[0]?.id ?? null);
       }
-      toast.success("Model deleted");
     },
-    onError: (err: Error) => {
-      toast.error("Delete failed", { description: err.message });
-    },
-  });
-
-  const saveAnnotationMutation = useMutation({
-    mutationFn: async (payload: {
-      position: { x: number; y: number; z: number };
-      label: string;
-      linkedRoomId?: string;
-    }) => {
-      if (!selectedModelId) throw new Error("No model selected");
-
-      const user = auth.getUser();
-      if (!user) throw new Error("You must be signed in");
-
-      const THREE = await import("three");
-      const posVec = new THREE.Vector3(payload.position.x, payload.position.y, payload.position.z);
-
-      const { error } = await supabase.from("floorplan_annotations").insert({
-        model_id: selectedModelId,
-        project_id: projectId,
-        created_by: user.id,
-        label: payload.label,
-        position: pointToArray(posVec) as unknown as import("@repo/supabase/database.types").Json,
-        room_id: payload.linkedRoomId ?? null,
-        notes: payload.linkedRoomId
-          ? (estimateRooms.find((r) => r.id === payload.linkedRoomId)?.name ?? null)
-          : null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: floorplanKeys.annotationsByModel(selectedModelId!),
-      });
-      toast.success("Room tagged");
+    onAnnotationSaved: () => {
       setPendingTag(null);
       setTagLabel("");
       setLinkedRoomId("");
       setMode("view");
     },
-    onError: (err: Error) => {
-      toast.error("Failed to save tag", { description: err.message });
-    },
-  });
-
-  const saveMeasurementMutation = useMutation({
-    mutationFn: async (payload: {
-      p1: { x: number; y: number; z: number };
-      p2: { x: number; y: number; z: number };
-    }) => {
-      if (!selectedModelId) throw new Error("No model selected");
-
-      const THREE = await import("three");
-      const v1 = new THREE.Vector3(payload.p1.x, payload.p1.y, payload.p1.z);
-      const v2 = new THREE.Vector3(payload.p2.x, payload.p2.y, payload.p2.z);
-      const dist = v1.distanceTo(v2);
-
-      // NOTE: measurements table stores scalar value + unit. Points are only kept for the live session.
-      // Persisted measurements appear in the list with their value.
-      const user = auth.getUser();
-      if (!user) throw new Error("You must be signed in");
-
-      const { error } = await supabase.from("floorplan_measurements").insert({
-        model_id: selectedModelId,
-        project_id: projectId,
-        created_by: user.id,
-        measurement_type: "distance",
-        value: Math.round(dist * 1000) / 1000,
-        unit: "m",
-        points: [
-          [payload.p1.x, payload.p1.y, payload.p1.z],
-          [payload.p2.x, payload.p2.y, payload.p2.z],
-        ] as unknown as import("@repo/supabase/database.types").Json,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: floorplanKeys.measurementsByModel(selectedModelId!),
-      });
-      toast.success("Measurement saved");
+    onMeasurementSaved: () => {
       setMode("view");
     },
-    onError: (err: Error) => {
-      toast.error("Failed to save measurement", { description: err.message });
-    },
-  });
-
-  const deleteAnnotationMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("floorplan_annotations").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      if (selectedModelId) {
-        queryClient.invalidateQueries({
-          queryKey: floorplanKeys.annotationsByModel(selectedModelId),
-        });
-      }
-      toast.success("Annotation removed");
-    },
-    onError: (err: Error) => toast.error("Delete failed", { description: err.message }),
-  });
-
-  const deleteMeasurementMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("floorplan_measurements").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      if (selectedModelId) {
-        queryClient.invalidateQueries({
-          queryKey: floorplanKeys.measurementsByModel(selectedModelId),
-        });
-      }
-      toast.success("Measurement removed");
-    },
-    onError: (err: Error) => toast.error("Delete failed", { description: err.message }),
   });
 
   // Handlers
@@ -285,9 +127,9 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
         toast.error("Unsupported file", { description: "Please upload a .glb or .gltf file." });
         return;
       }
-      createModelMutation.mutate(file);
+      createModel(file);
     },
-    [createModelMutation],
+    [createModel],
   );
 
   const handleDrop = useCallback(
@@ -310,7 +152,7 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
 
   const handleDeleteModel = (model: FloorplanModelRow) => {
     if (!confirm(`Delete model "${model.name}" and all its annotations?`)) return;
-    deleteModelMutation.mutate(model);
+    deleteModel(model);
   };
 
   // Called by the 3D scene when user clicks in tag mode
@@ -332,11 +174,11 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
       setMeasurePoints(next);
 
       if (next.length === 2) {
-        saveMeasurementMutation.mutate({ p1: next[0], p2: next[1] });
+        saveMeasurement({ p1: next[0], p2: next[1] });
         setMeasurePoints([]);
       }
     },
-    [measurePoints, saveMeasurementMutation],
+    [measurePoints, saveMeasurement],
   );
 
   const handleSavePendingTag = () => {
@@ -344,7 +186,7 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
       toast.error("Label required");
       return;
     }
-    saveAnnotationMutation.mutate({
+    saveAnnotation({
       position: pendingTag.position,
       label: tagLabel.trim(),
       linkedRoomId: linkedRoomId || undefined,
@@ -380,6 +222,7 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
 
   // Cross-feature sync: 3D Floorplan annotations -> Estimate rooms (hardening for integration)
   // Collects unique tag labels and appends as rooms to the estimate query data (optimistic + invalidate)
+  // AO-1H1 intentionally leaves this in FloorplanViewer (estimate cache ownership → AO-1H2).
   const syncTagsToEstimate = () => {
     if (!annotations.length) return;
     const labels = Array.from(
@@ -445,14 +288,7 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              queryClient.invalidateQueries({ queryKey: floorplanKeys.byProject(projectId) });
-              toast.info("Refreshed");
-            }}
-          >
+          <Button variant="outline" size="sm" onClick={refreshModels}>
             <RefreshCw className="mr-2 h-4 w-4" /> Refresh
           </Button>
           <Button
@@ -497,7 +333,7 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
                   accept=".glb,.gltf"
                   className="hidden"
                   onChange={(e) => handleFileSelect(e.target.files)}
-                  disabled={isUploading || createModelMutation.isPending}
+                  disabled={isUploading || isCreateModelPending}
                 />
                 <p className="text-sm text-muted-foreground">
                   Drop .glb or .gltf here or click to browse
@@ -506,7 +342,7 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
                   Models are private to your project
                 </p>
               </div>
-              {(isUploading || createModelMutation.isPending) && (
+              {(isUploading || isCreateModelPending) && (
                 <p className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
                   <RefreshCw className="h-3 w-3 animate-spin" /> Uploading...
                 </p>
@@ -667,7 +503,7 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => deleteAnnotationMutation.mutate(ann.id)}
+                            onClick={() => deleteAnnotation(ann.id)}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -703,7 +539,7 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => deleteMeasurementMutation.mutate(m.id)}
+                            onClick={() => deleteMeasurement(m.id)}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
