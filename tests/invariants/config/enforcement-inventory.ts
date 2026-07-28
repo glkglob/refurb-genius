@@ -299,6 +299,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-deal-chat-mutation-queryclient-presentation",
+    kind: "invariant",
+    source: "tests/invariants/deal-chat-mutation-queryclient-presentation.invariant.test.ts",
+    description:
+      "AO-1J1 In Progress: DealChat direct useMutation prohibited; direct useQueryClient prohibited; direct cancelQueries/getQueryData/setQueryData/invalidateQueries prohibited; raw deal-threads/deal-messages key literals prohibited; deep presentation-hook imports prohibited; component must call useSendDealChatMessage, useCreateDealThread, useInvalidateDealMessages from @/core/dealCopilot/presentation and retain useDealMessagesChannel. Canonical send authority: useSendDealChatMessage (await cancel; snapshot; opt-${Date.now()} user append; success strip opt-* + append user+assistant; rollback prev; deal_message_sent; no send invalidation). Canonical create authority: useCreateDealThread (createThreadServerFn; void threads invalidate; onCreated; deal_thread_created). Realtime message invalidation: useInvalidateDealMessages (void fire-and-forget). Key authority: dealChatKeys. Channel lifecycle: useDealMessagesChannel (C3 unchanged). DealChat retains: thread/message useQuery reads, draft, voice, selection, scroll, rendering, pending/error UI. Strength: progressive lexical seal (comment-stripped source scan; alias/dynamic-import bypasses remain possible). Does not claim AO-1 complete, read-query migration, AI/streaming redesign, dedupe redesign, retry/cancel-generation UX, draft restore on error, AST/semantic enforcement, or C3 reopened.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

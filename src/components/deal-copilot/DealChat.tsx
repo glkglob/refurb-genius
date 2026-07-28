@@ -1,27 +1,22 @@
 import { useState, useEffect, useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Send, Loader2, Plus, MessageSquare, Mic, MicOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { useDealMessagesChannel } from "@/core/dealCopilot/realtime/useDealMessagesChannel";
-import { trackEvent } from "@/lib/analytics";
 import {
-  createThreadServerFn,
+  dealChatKeys,
+  useCreateDealThread,
+  useInvalidateDealMessages,
+  useSendDealChatMessage,
+} from "@/core/dealCopilot/presentation";
+import { useDealMessagesChannel } from "@/core/dealCopilot/realtime/useDealMessagesChannel";
+import {
   listThreadsServerFn,
   listMessagesServerFn,
-  sendMessageServerFn,
-  type DealThreadRow,
   type DealMessageRow,
 } from "@/serverFns/dealChat";
-
-// ─── Query keys ───────────────────────────────────────────────────────────────
-
-const dealChatKeys = {
-  threads: (oppId: string) => ["deal-threads", oppId] as const,
-  messages: (threadId: string) => ["deal-messages", threadId] as const,
-};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -40,7 +35,6 @@ export function DealChat({ opportunityId }: { opportunityId: string }) {
     onend: (() => void) | null;
   };
 
-  const queryClient = useQueryClient();
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
   const [isListening, setIsListening] = useState(false);
@@ -72,67 +66,22 @@ export function DealChat({ opportunityId }: { opportunityId: string }) {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Realtime subscription for new messages (owned under core/dealCopilot/realtime)
-  useDealMessagesChannel(selectedThreadId, () => {
-    if (!selectedThreadId) return;
-    queryClient.invalidateQueries({
-      queryKey: dealChatKeys.messages(selectedThreadId),
-    });
-  });
+  // Realtime subscription for new messages (C3 channel lifecycle unchanged)
+  const invalidateDealMessages = useInvalidateDealMessages(selectedThreadId);
+  useDealMessagesChannel(selectedThreadId, invalidateDealMessages);
 
-  // Create thread
-  const createThreadMutation = useMutation({
-    mutationFn: () =>
-      createThreadServerFn({
-        data: { opportunityId, title: `Thread ${threads.length + 1}` },
-      }),
-    onSuccess: (thread) => {
-      queryClient.invalidateQueries({ queryKey: dealChatKeys.threads(opportunityId) });
+  // Create thread — mutation + threads invalidation owned by presentation hook
+  const createThreadMutation = useCreateDealThread(opportunityId, {
+    onCreated: (thread) => {
       setSelectedThreadId(thread.id);
-      trackEvent("deal_thread_created");
     },
   });
 
-  // Send message
-  const sendMutation = useMutation({
-    mutationFn: (content: string) =>
-      sendMessageServerFn({
-        data: { threadId: selectedThreadId!, content, opportunityId },
-      }),
-    onMutate: async (content) => {
-      // Optimistic user message
-      const key = dealChatKeys.messages(selectedThreadId!);
-      await queryClient.cancelQueries({ queryKey: key });
-      const prev = queryClient.getQueryData<DealMessageRow[]>(key) ?? [];
-      const optimistic: DealMessageRow = {
-        id: `opt-${Date.now()}`,
-        thread_id: selectedThreadId!,
-        role: "user",
-        content,
-        structured_output: null,
-        metadata: {},
-        created_at: new Date().toISOString(),
-      };
-      queryClient.setQueryData<DealMessageRow[]>(key, [...prev, optimistic]);
-      setDraft("");
-      return { prev };
-    },
-    onSuccess: ({ userMessage, assistantMessage }) => {
-      queryClient.setQueryData<DealMessageRow[]>(
-        dealChatKeys.messages(selectedThreadId!),
-        (old = []) => {
-          // Replace optimistic message with real, then add assistant reply
-          const withoutOptimistic = old.filter((m) => !m.id.startsWith("opt-"));
-          return [...withoutOptimistic, userMessage, assistantMessage];
-        },
-      );
-      trackEvent("deal_message_sent");
-    },
-    onError: (_err, _content, context) => {
-      if (context?.prev) {
-        queryClient.setQueryData(dealChatKeys.messages(selectedThreadId!), context.prev);
-      }
-    },
+  // Send message — optimistic lifecycle owned by presentation hook
+  const sendMutation = useSendDealChatMessage({
+    opportunityId,
+    threadId: selectedThreadId,
+    onOptimisticClearDraft: () => setDraft(""),
   });
 
   // Voice input
@@ -233,7 +182,11 @@ export function DealChat({ opportunityId }: { opportunityId: string }) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => createThreadMutation.mutate()}
+              onClick={() =>
+                createThreadMutation.mutate({
+                  title: `Thread ${threads.length + 1}`,
+                })
+              }
               disabled={createThreadMutation.isPending}
             >
               <Plus className="h-3.5 w-3.5" />
