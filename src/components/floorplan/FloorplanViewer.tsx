@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Upload, Trash2, Download, Eye, Tag, Ruler, RefreshCw, X } from "lucide-react";
 import { Button } from "@repo/ui";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
@@ -23,7 +23,7 @@ import {
   floorplanMeasurementsQueryOptions,
 } from "@/lib/queries/floorplans";
 import { exportScreenshot, exportAnnotationsJson } from "@/lib/floorplan";
-import { useFloorplanViewerMutations } from "@/features/floorplan";
+import { useFloorplanViewerMutations, useSyncFloorplanTagsToEstimate } from "@/features/floorplan";
 import type { FloorplanModelRow } from "@/features/floorplan";
 import { FloorplanScene } from "./FloorplanScene";
 import type { PersistedRoomEstimate } from "@/features/estimate";
@@ -39,9 +39,6 @@ interface PendingTag {
 }
 
 export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
-  // Estimate-sync path still owns QueryClient (AO-1H2 deferred).
-  const queryClient = useQueryClient();
-
   // Data fetching - non-blocking for the tab
   const {
     data: models = [],
@@ -116,6 +113,9 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
       setMode("view");
     },
   });
+
+  // Product-estimate tag sync (AO-1H2) — cache-only; estimate read query remains local
+  const { syncTagsToEstimate } = useSyncFloorplanTagsToEstimate(projectId);
 
   // Handlers
   const handleFileSelect = useCallback(
@@ -218,42 +218,6 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
       `floorplan-data-${selectedModel.name}.json`,
     );
     toast.success("Annotation data exported");
-  };
-
-  // Cross-feature sync: 3D Floorplan annotations -> Estimate rooms (hardening for integration)
-  // Collects unique tag labels and appends as rooms to the estimate query data (optimistic + invalidate)
-  // AO-1H1 intentionally leaves this in FloorplanViewer (estimate cache ownership → AO-1H2).
-  const syncTagsToEstimate = () => {
-    if (!annotations.length) return;
-    const labels = Array.from(
-      new Set(
-        annotations
-          .map((a) => a.label)
-          .filter((l: unknown): l is string => typeof l === "string" && !!l),
-      ),
-    );
-    if (!labels.length) return;
-
-    const estimateKey = estimateQueryOptions(projectId).queryKey;
-    const current = queryClient.getQueryData<{ rooms?: Array<{ name: string }> }>(estimateKey);
-    const existingNames = new Set((current?.rooms || []).map((r) => r.name));
-    const newRooms = labels
-      .filter((l) => !existingNames.has(l))
-      .map((label) => ({ id: `fp-${Date.now()}-${label}`, name: label, items: [] }));
-
-    if (!newRooms.length) {
-      toast.info("All tags already in Estimate");
-      return;
-    }
-
-    const mergedRooms = [...(current?.rooms || []), ...newRooms];
-    queryClient.setQueryData(
-      estimateKey,
-      // mergedRooms are optimistic placeholders; full shape will be populated on invalidation
-      (current ? { ...current, rooms: mergedRooms } : { rooms: mergedRooms }) as never,
-    );
-    queryClient.invalidateQueries({ queryKey: estimateKey });
-    toast.success(`Synced ${newRooms.length} room tags from 3D to Estimate Builder`);
   };
 
   const handleResetMode = () => {
@@ -474,7 +438,7 @@ export function FloorplanViewer({ projectId }: FloorplanViewerProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={syncTagsToEstimate}
+                        onClick={() => syncTagsToEstimate(annotations)}
                         className="h-6 px-2 text-xs"
                       >
                         Sync to Estimate

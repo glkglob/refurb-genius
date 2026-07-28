@@ -118,22 +118,19 @@ test("floorplan viewer persistence — component bans floorplanKeys invalidation
   );
 });
 
-test("floorplan viewer persistence — estimate sync and reads remain allowed", () => {
+test("floorplan viewer persistence — estimate read and floorplan reads remain allowed", () => {
   const text = read(COMPONENT);
 
-  assert.match(text, /syncTagsToEstimate/, `${COMPONENT} retains estimate tag sync until AO-1H2`);
-  assert.match(text, /useQueryClient/, `${COMPONENT} may keep useQueryClient for estimate sync`);
-  assert.match(text, /getQueryData/, `${COMPONENT} may getQueryData for estimate sync`);
-  assert.match(text, /setQueryData/, `${COMPONENT} may setQueryData for estimate sync`);
+  // Estimate tag-sync cache mutation extracted under AO-1H2 (useSyncFloorplanTagsToEstimate).
   assert.match(
     text,
-    /invalidateQueries/,
-    `${COMPONENT} may invalidateQueries for estimate sync only`,
+    /useSyncFloorplanTagsToEstimate|syncTagsToEstimate/,
+    `${COMPONENT} retains estimate tag sync via canonical hook or call site`,
   );
   assert.match(
     text,
     /estimateQueryOptions/,
-    `${COMPONENT} may use estimateQueryOptions for reads/sync`,
+    `${COMPONENT} may use estimateQueryOptions for estimate reads`,
   );
   assert.match(
     text,

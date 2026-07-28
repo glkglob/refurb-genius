@@ -1,7 +1,7 @@
 /**
- * Floorplan feature public API (AO-1H1).
+ * Floorplan feature public API (AO-1H1 / AO-1H2).
  *
- * Components import the presentation mutation hook from here.
+ * Components import presentation hooks and pure mappers from here.
  * Table-write primitives are available via infrastructure re-export for tests.
  */
 export {
@@ -11,7 +11,16 @@ export {
   type SaveAnnotationVariables,
   type SaveMeasurementVariables,
   type FloorplanEstimateRoom,
+  useSyncFloorplanTagsToEstimate,
+  type UseSyncFloorplanTagsToEstimateResult,
 } from "./presentation";
+
+export {
+  mapFloorplanAnnotationsToEstimateRooms,
+  extractFloorplanAnnotationLabels,
+  type FloorplanEstimatePlaceholderRoom,
+  type MapFloorplanAnnotationsToEstimateRoomsResult,
+} from "./application";
 
 export {
   createFloorplanModelRecord,
