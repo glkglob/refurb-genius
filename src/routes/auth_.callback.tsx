@@ -1,9 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/platform/supabase/browser";
-import { fromSupabaseUser } from "@/lib/auth";
-import { AUTH_USER_QUERY_KEY } from "@/hooks/useAuth";
+import { useAuthCallbackCompletion } from "@/features/auth";
 import { Loader2, AlertCircle } from "lucide-react";
 import { z } from "zod";
 
@@ -22,55 +19,25 @@ export const Route = createFileRoute("/auth_/callback")({
 });
 
 function AuthCallback() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const { complete } = useAuthCallbackCompletion();
   const { code, type, error: urlError, error_description, redirect_to } = Route.useSearch();
   const [error, setError] = useState<string | null>(null);
-  const destination = redirect_to && redirect_to.startsWith("/") ? redirect_to : "/dashboard";
 
   useEffect(() => {
-    if (urlError) {
-      setError(error_description ?? urlError);
-      return;
-    }
-
-    if (!code) {
-      // No PKCE code — check if a session already exists (e.g. fragment-based flow)
-      supabase.auth.getSession().then(({ data }) => {
-        if (data.session) {
-          // Seed the auth query cache before navigating so RequireAuth's
-          // post-mount check on /dashboard doesn't see the stale
-          // "signed out" cache entry and bounce back to /auth. See the
-          // matching comment in src/routes/auth.tsx for full context.
-          queryClient.setQueryData(AUTH_USER_QUERY_KEY, fromSupabaseUser(data.session.user));
-          void navigate({ to: destination, replace: true });
-        } else {
-          setError("No authentication code received. Please try signing in again.");
-        }
-      });
-      return;
-    }
-
-    supabase.auth
-      .exchangeCodeForSession(code)
-      .then(({ data, error: exchangeError }) => {
-        if (exchangeError) {
-          setError(exchangeError.message);
-          return;
-        }
-        if (type === "recovery") {
-          void navigate({ to: "/auth", search: { mode: "reset" }, replace: true });
-        } else {
-          // Seed the auth query cache before navigating — see comment above
-          // and the matching fix in src/routes/auth.tsx.
-          queryClient.setQueryData(AUTH_USER_QUERY_KEY, fromSupabaseUser(data.user));
-          void navigate({ to: destination, replace: true });
-        }
-      })
-      .catch((e: unknown) => {
-        setError(e instanceof Error ? e.message : "Auth callback failed.");
-      });
-  }, [code, destination, error_description, navigate, queryClient, redirect_to, type, urlError]);
+    // Rejected complete (e.g. no-code getSession network failure) intentionally
+    // has no .catch — parity with the pre-extraction getSession branch.
+    void complete({
+      code,
+      type,
+      urlError,
+      errorDescription: error_description,
+      redirectTo: redirect_to,
+    }).then((result) => {
+      if (!result.ok) {
+        setError(result.error);
+      }
+    });
+  }, [code, complete, error_description, redirect_to, type, urlError]);
 
   if (error) {
     return (

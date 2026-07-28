@@ -23,3 +23,9 @@ export {
   type RequestPasswordResetEmailInput,
 } from "./requestPasswordResetEmail";
 export { updateAuthUserPassword, type UpdateAuthUserPasswordInput } from "./updateAuthUserPassword";
+export {
+  exchangeAuthCode,
+  type ExchangeAuthCodeInput,
+  type ExchangeAuthCodeResult,
+} from "./exchangeAuthCode";
+export { getBrowserAuthSession, type BrowserAuthSessionResult } from "./getBrowserAuthSession";

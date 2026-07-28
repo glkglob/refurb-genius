@@ -152,7 +152,6 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/routes/_authed/trades_.new.tsx|@/core/trades",
   "src/routes/_authed/trades_.new.tsx|@/lib/analytics",
   "src/routes/_authed/trades_.profile.tsx|@/core/trades",
-  "src/routes/auth_.callback.tsx|@/lib/auth",
   "src/routes/gallery.$slug.tsx|@/lib/queries/gallery",
   "src/routes/gallery.tsx|@/lib/queries/gallery",
   "src/routes/trades.tsx|@/core/reports",
