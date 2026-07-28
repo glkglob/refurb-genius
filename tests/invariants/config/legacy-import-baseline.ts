@@ -19,7 +19,6 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/components/BulkPhotoUpload.test.tsx|@/lib/queries/projects",
   "src/components/BulkPhotoUpload.tsx|@/lib/photos-types",
   "src/components/BulkPhotoUpload.tsx|@/lib/photos-write",
-  "src/components/BulkPhotoUpload.tsx|@/lib/queries/projects",
   "src/components/DashboardSection.tsx|@/lib/utils",
   "src/components/EstimateBuilder.tsx|@/core/constants",
   "src/components/EstimateBuilder.tsx|@/core/pricing",

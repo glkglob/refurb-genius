@@ -19,6 +19,7 @@ export {
 } from "./photo-analysis.provider";
 export { useRoomAnalyses, useRunPhotoAnalysis, photoAnalysisKeys } from "./hooks/usePhotoAnalysis";
 export { usePhotos, useUploadPhotos, useRemovePhoto } from "./hooks/usePhotos";
+export { useInvalidateProjectPhotos } from "./hooks/useInvalidateProjectPhotos";
 export {
   useUpdatePhotoAnalysisResult,
   type UpdatePhotoAnalysisResultMutationInput,

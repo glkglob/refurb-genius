@@ -289,6 +289,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-bulk-photo-upload-queryclient-presentation",
+    kind: "invariant",
+    source: "tests/invariants/bulk-photo-upload-queryclient-presentation.invariant.test.ts",
+    description:
+      "AO-1I1 In Progress: BulkPhotoUpload direct QueryClient prohibited; direct project-photo invalidateQueries prohibited; direct getQueryData/setQueryData/cancelQueries/removeQueries/resetQueries prohibited; direct projectKeys.photosByProject ownership prohibited; raw [projects, projectId, photos] literals prohibited; deep hook imports prohibited; component must call useInvalidateProjectPhotos( from @/features/ai-upload. Canonical invalidation authority: useInvalidateProjectPhotos (projectKeys.photosByProject / photosQueryOptions key; void fire-and-forget; no useMutation/pending; no set/get/cancel). Full-success invalidation: once after completed item patches, before success toast. Partial-success invalidation: once when successes.length > 0 after item patches, before error toast. Total-failure invalidation: none. Upload primitive: uploadProjectPhotos unchanged (C5). BulkPhotoUpload retains: selection, validation, upload trigger, batch orchestration, concurrency 3, progress UI, success/failure item patches, toasts, processing guard, rendering. Storage/database ownership unchanged. Strength: progressive lexical seal (comment-stripped source scan; alias/dynamic-import bypasses remain possible). Does not claim all BulkPhotoUpload orchestration extracted, all photo architecture complete, query factories migrated, upload concurrency redesigned, retry/cancellation, optimistic photo rows, AST/semantic enforcement, or AO-1 Completed.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

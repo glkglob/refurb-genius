@@ -174,6 +174,16 @@ describe("BulkPhotoUpload canonical authority", () => {
     expect(stripped).not.toMatch(/setTimeout/);
     expect(stripped).not.toMatch(/\banalyzing\b/);
   });
+
+  it("source module does not own QueryClient or photo-list key invalidation", () => {
+    const src = readFileSync(join(process.cwd(), "src/components/BulkPhotoUpload.tsx"), "utf8");
+    const stripped = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    expect(stripped).toMatch(/useInvalidateProjectPhotos\s*\(/);
+    expect(stripped).not.toMatch(/useQueryClient/);
+    expect(stripped).not.toMatch(/invalidateQueries/);
+    expect(stripped).not.toMatch(/projectKeys/);
+    expect(stripped).not.toMatch(/@\/lib\/queries\/projects/);
+  });
 });
 
 describe("BulkPhotoUpload file selection", () => {

@@ -1,14 +1,13 @@
 "use client";
 
 /**
- * Bulk project-photo uploader (C5-3B3B1).
+ * Bulk project-photo uploader (C5-3B3B1 / AO-1I1).
  *
  * Write authority: uploadProjectPhotos (canonical photos-write).
- * List cache: projectKeys.photosByProject via React Query invalidation.
+ * List cache invalidation: useInvalidateProjectPhotos (projectKeys.photosByProject).
  * UI item ids are React-state identity only — not Storage or database IDs.
  */
 import { useState, useCallback, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Upload, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@repo/ui";
 import { toast } from "sonner";
@@ -20,8 +19,7 @@ import {
   type PhotoUploadItemState,
   type PhotoWriteStage,
 } from "@/lib/photos-write";
-import { projectKeys } from "@/lib/queries/projects";
-import { isImageFile } from "@/features/ai-upload";
+import { isImageFile, useInvalidateProjectPhotos } from "@/features/ai-upload";
 import type { ProjectPhoto } from "@/lib/photos-types";
 
 type UploadStatus = "queued" | "uploading" | "uploaded" | "completed" | "failed";
@@ -98,7 +96,7 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const processingRef = useRef(false);
-  const queryClient = useQueryClient();
+  const invalidateProjectPhotos = useInvalidateProjectPhotos(projectId);
 
   const updateItem = useCallback((uiId: string, updates: Partial<UploadItem>) => {
     setItems((prev) =>
@@ -153,12 +151,6 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
     },
     [updateItem],
   );
-
-  const invalidateProjectPhotos = useCallback(() => {
-    void queryClient.invalidateQueries({
-      queryKey: projectKeys.photosByProject(projectId),
-    });
-  }, [projectId, queryClient]);
 
   const applyFullSuccess = useCallback(
     (batchSnapshot: UploadItem[], photos: ProjectPhoto[]) => {
