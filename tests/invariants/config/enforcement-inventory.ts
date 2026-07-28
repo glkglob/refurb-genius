@@ -259,6 +259,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-estimate-builder-save-presentation",
+    kind: "invariant",
+    source: "tests/invariants/estimate-builder-save-presentation.invariant.test.ts",
+    description:
+      "AO-1G1 In Progress: EstimateBuilder direct useMutation prohibited; direct useQueryClient prohibited; direct saveAIEstimate prohibited; direct getQueryData/setQueryData/cancelQueries/invalidateQueries prohibited; direct estimateQueryOptions/projectKeys ownership prohibited; component must call useSaveEstimateBuilder and buildEstimateBuilderSaveInput. Save-input mapping authority: buildEstimateBuilderSaveInput (pure; exact title/region/notes/vat_rate/item zeros/is_ai_suggested false). Manual-save mutation + product estimate cache authority: useSaveEstimateBuilder (saveAIEstimate; estimateQueryOptions / projectKeys.estimateByProject optimistic write+rollback; financialsByProject invalidation; draft localStorage clear; toasts Estimate saved / Save failed; onSaved; one-shot getSeededEstimate; no room-estimate key). Persistence authority: saveAIEstimate (unchanged insert-only). Product estimate query-key authority: estimateQueryOptions / projectKeys.estimateByProject. Editor calculations, room/item CRUD, drag-and-drop, PDF export toast/logger: EstimateBuilder. AIEstimateBuilder / useSaveAIEstimate / room-estimate key unchanged (dual-key debt deferred). Strength: progressive lexical seal (comment-stripped source scan; alias/dynamic-import bypasses remain possible). Does not claim AO-1 complete, dual estimate query keys unified, AIEstimateBuilder migrated, repository AI flags corrected, draft write restored, contingency column persisted, or AST/semantic enforcement.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

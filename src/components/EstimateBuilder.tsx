@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
 import { Plus, Trash2, GripVertical, Save, Download, Edit2, X } from "lucide-react";
 import {
   Button,
@@ -23,20 +22,13 @@ import {
   SelectTrigger,
   SelectValue,
   Textarea,
-  Badge,
 } from "@repo/ui";
 import { toast } from "sonner";
 import { formatGBP } from "@/core/pricing";
 import { ESTIMATE_CATEGORIES } from "@/core/constants";
-import {
-  saveAIEstimate,
-  getLatestRoomEstimate,
-  type SaveAIEstimateInput,
-  type PersistedRoomEstimate,
-} from "@/features/estimate";
+import { buildEstimateBuilderSaveInput, useSaveEstimateBuilder } from "@/features/estimate";
 import { logger } from "@/lib/logger";
 import type { ProjectWithProgress } from "@/lib/mappers";
-import { estimateQueryOptions, projectKeys } from "@/lib/queries/projects";
 
 type BuilderItem = {
   id: string;
@@ -71,13 +63,9 @@ const DEFAULT_ITEM: Omit<BuilderItem, "id"> = {
 };
 
 export function EstimateBuilder({ projectId, project, onSaved }: EstimateBuilderProps) {
-  const queryClient = useQueryClient();
+  const { save, isPending, getSeededEstimate } = useSaveEstimateBuilder(projectId, { onSaved });
 
-  // Hydrate from centralized query (populated by route loader)
-  const savedEstimate = queryClient.getQueryData<PersistedRoomEstimate | null>(
-    estimateQueryOptions(projectId).queryKey,
-  );
-
+  // Hydrate: draft localStorage → one-shot product estimate cache seed → default Kitchen
   const [rooms, setRooms] = useState<BuilderRoom[]>(() => {
     try {
       const draft = localStorage.getItem(`estimate-draft:${projectId}`);
@@ -89,19 +77,20 @@ export function EstimateBuilder({ projectId, project, onSaved }: EstimateBuilder
       // ignore localStorage parse errors
     }
 
+    const savedEstimate = getSeededEstimate();
     if (savedEstimate?.rooms?.length) {
       return savedEstimate.rooms.map((r, idx: number) => ({
         id: crypto.randomUUID(),
         name: r.name || `Room ${idx + 1}`,
-        area_sqm: r.area_sqm,
+        area_sqm: r.area_sqm ?? undefined,
         items: (r.items || []).map((it) => ({
           id: crypto.randomUUID(),
-          name: it.name,
+          name: it.name ?? "",
           category: it.category || "Kitchen",
           quantity: Number(it.quantity) || 1,
           unit: it.unit || "item",
           unit_cost: Number((it as Record<string, unknown>).base_unit_cost ?? it.unit_cost) || 0,
-          notes: it.notes,
+          notes: it.notes ?? undefined,
         })),
       }));
     }
@@ -324,66 +313,24 @@ export function EstimateBuilder({ projectId, project, onSaved }: EstimateBuilder
     );
   };
 
-  // --- Persistence (optimistic via TanStack mutation) ---
-  const saveMutation = useMutation({
-    mutationFn: (input: SaveAIEstimateInput) => saveAIEstimate(input),
-    onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: estimateQueryOptions(projectId).queryKey });
-      const previous = queryClient.getQueryData(estimateQueryOptions(projectId).queryKey);
-      queryClient.setQueryData(estimateQueryOptions(projectId).queryKey, {
-        estimate: { mid_total: calculations.total },
-        rooms: rooms.map((r) => ({
-          name: r.name,
-          area_sqm: r.area_sqm,
-          items: r.items.map((i) => ({ ...i, base_unit_cost: i.unit_cost })),
-        })),
-      } as unknown as PersistedRoomEstimate | null);
-      return { previous };
-    },
-    onError: (_e, _v, ctx) => {
-      if (ctx?.previous)
-        queryClient.setQueryData(estimateQueryOptions(projectId).queryKey, ctx.previous);
-      toast.error("Save failed");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: projectKeys.estimateByProject(projectId) });
-      queryClient.invalidateQueries({ queryKey: projectKeys.financialsByProject(projectId) });
-      localStorage.removeItem(`estimate-draft:${projectId}`);
-      toast.success("Estimate saved");
-      onSaved?.();
-    },
-  });
-
+  // --- Persistence via useSaveEstimateBuilder (AO-1G1) ---
   const handleSave = () => {
-    const input: SaveAIEstimateInput = {
+    const input = buildEstimateBuilderSaveInput({
       projectId,
-      title: `${project.name || "Property"} Refurbishment Estimate`,
+      projectName: project.name,
       region: project.region,
-      rooms: rooms.map((room) => ({
-        name: room.name,
-        area_sqm: room.area_sqm,
-        items: room.items.map((item) => ({
-          name: item.name,
-          category: item.category,
-          quantity: item.quantity,
-          unit: item.unit,
-          base_unit_cost: item.unit_cost,
-          unit_cost: item.unit_cost,
-          total_cost: item.quantity * item.unit_cost,
-          notes: item.notes,
-          labour: 0,
-          materials: 0,
-          weeks: 0,
-          is_ai_suggested: false,
-        })),
-      })),
+      rooms,
       subtotal: calculations.subtotal,
-      vat_rate: 20,
-      vat_amount: calculations.vat,
+      vat: calculations.vat,
       total: calculations.total,
-      notes: "Manual estimate built with drag & drop builder",
-    };
-    saveMutation.mutate(input);
+    });
+    save({
+      input,
+      optimistic: {
+        total: calculations.total,
+        rooms,
+      },
+    });
   };
 
   // --- PDF Export (production ready using jsPDF + autotable) ---
@@ -483,12 +430,8 @@ export function EstimateBuilder({ projectId, project, onSaved }: EstimateBuilder
           <Button onClick={addRoom} variant="outline" size="sm">
             <Plus className="mr-2 h-4 w-4" /> Add Room
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saveMutation.isPending || rooms.length === 0}
-            size="sm"
-          >
-            {saveMutation.isPending ? (
+          <Button onClick={handleSave} disabled={isPending || rooms.length === 0} size="sm">
+            {isPending ? (
               "Saving…"
             ) : (
               <>

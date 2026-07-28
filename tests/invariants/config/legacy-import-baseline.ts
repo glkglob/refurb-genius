@@ -25,7 +25,6 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/components/EstimateBuilder.tsx|@/core/pricing",
   "src/components/EstimateBuilder.tsx|@/lib/logger",
   "src/components/EstimateBuilder.tsx|@/lib/mappers",
-  "src/components/EstimateBuilder.tsx|@/lib/queries/projects",
   "src/components/EstimateTable.tsx|@/core/pricing",
   "src/components/MetricCard.tsx|@/lib/utils",
   "src/components/MobileTopBar.tsx|@/lib/auth",
