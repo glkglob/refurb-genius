@@ -25,7 +25,7 @@ import {
 } from "@/core/pricing";
 import type { AIGeneratedRoom } from "@/features/estimate";
 import type { ScopeRoom } from "@/features/ai-design";
-import { useGenerateEstimate, useSaveAIEstimate } from "@/features/estimate";
+import { useGenerateEstimate, useAIEstimateBuilderSave } from "@/features/estimate";
 import type { UKRegion } from "@/core/projects";
 import { UK_REGIONS } from "@/core/constants";
 import {
@@ -158,7 +158,10 @@ export function AIEstimateBuilder({
   const [lastNormalized, setLastNormalized] = useState<NormalizedEstimateResult | null>(null);
 
   const generate = useGenerateEstimate();
-  const save = useSaveAIEstimate();
+  const { saveEstimate, isPending: isSavePending } = useAIEstimateBuilderSave({
+    projectId,
+    onSaved,
+  });
   const multiplier = getRegionalMultiplier(region);
 
   // Calculate all items with regional adjustment
@@ -302,41 +305,35 @@ export function AIEstimateBuilder({
     );
   };
 
-  // ────────────── Save ──────────────
+  // ────────────── Save (AO-1L1: orchestration in useAIEstimateBuilderSave) ──────────────
 
   const handleSave = useCallback(() => {
-    if (rooms.length === 0) {
-      toast.error("Generate or add rooms first");
-      return;
-    }
-
-    save.mutate(
-      {
-        projectId,
-        title: `AI Estimate — ${propertyType}, ${bedrooms} bed`,
-        region,
-        rooms: rooms.map((room) => ({
-          name: room.name,
-          area_sqm: room.area_sqm,
-          items: room.items.map((item) => calculateLineItem(item, multiplier)),
+    saveEstimate({
+      propertyType,
+      bedrooms,
+      region,
+      rooms: rooms.map((room) => ({
+        name: room.name,
+        area_sqm: room.area_sqm,
+        items: room.items.map((item) => ({
+          name: item.name,
+          category: item.category,
+          quantity: item.quantity,
+          unit: item.unit,
+          base_unit_cost: item.base_unit_cost,
+          notes: item.notes,
+          is_ai_suggested: item.is_ai_suggested,
         })),
+      })),
+      notes,
+      multiplier,
+      totals: {
         subtotal: totals.subtotal,
-        vat_rate: 20,
         vat_amount: totals.vat_amount,
         total: totals.total,
-        notes: notes || undefined,
       },
-      {
-        onSuccess: (result) => {
-          toast.success("Estimate saved");
-          onSaved?.(result.estimate.id);
-        },
-        onError: (err) => {
-          toast.error(err.message || "Failed to save estimate");
-        },
-      },
-    );
-  }, [rooms, save, projectId, propertyType, bedrooms, region, multiplier, totals, notes, onSaved]);
+    });
+  }, [saveEstimate, propertyType, bedrooms, region, rooms, notes, multiplier, totals]);
 
   // ────────────── Room CRUD ──────────────
 
@@ -721,8 +718,8 @@ export function AIEstimateBuilder({
               />
             </div>
             <div className="flex justify-end">
-              <Button size="lg" onClick={handleSave} disabled={save.isPending}>
-                {save.isPending ? (
+              <Button size="lg" onClick={handleSave} disabled={isSavePending}>
+                {isSavePending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Saving…

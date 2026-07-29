@@ -319,6 +319,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-ai-estimate-builder-save-presentation",
+    kind: "invariant",
+    source: "tests/invariants/ai-estimate-builder-save-presentation.invariant.test.ts",
+    description:
+      "AO-1L1 In Progress: AIEstimateBuilder save orchestration: useAIEstimateBuilderSave from @/features/estimate. Pure payload authority: buildAIEstimateBuilderSaveInput. Persistence mutation + estimate/financials invalidation: useSaveAIEstimate only (AO-1K1 retained). Component bans: useMutation, useQueryClient, useSaveAIEstimate, saveAIEstimate, invalidateQueries/setQueryData/getQueryData/cancelQueries, vat_rate:20 payload construction, AI Estimate title template, deep hook imports. Orchestration hook bans: useMutation, useQueryClient, invalidateQueries, projectKeys, room-estimate, saveAIEstimate repository import. Generation: useGenerateEstimate remains component-owned. Pricing preview: component-owned. Enforcement: progressive lexical seal (comment-stripped source scan; alias/dynamic-import/wrapper/computed-string bypasses remain possible). Does not claim generation extracted, pricing redesigned, repository rewritten, optimistic AI save, AST enforcement, or AO-1 Completed.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",
