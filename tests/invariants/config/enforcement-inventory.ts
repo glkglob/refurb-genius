@@ -383,7 +383,17 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     kind: "invariant",
     source: "tests/invariants/shell-auth-signout-ownership.invariant.test.ts",
     description:
-      "AO-1S1 Completed at d3bde9e9: Shell sign-out consumers: Sidebar and MobileTopBar. Canonical public API: @/features/auth (useSignOut + UseSignOutResult). Presentation authority: useSignOut. Private infrastructure authority: signOutSession → frozen src/lib/auth.ts auth.signOut (no options; void; error rethrow). Navigation owner: shell components. Destination: /. Ordering: await signOut then navigate. Cache owner: AuthProvider identity-boundary lifecycle (listener-driven cancel/remove non-auth queries; set auth-user data to null). Direct shell @/lib/auth: prohibited. Direct shell auth.signOut: prohibited. Direct shell Supabase signOut: prohibited. QueryClient operations in shell/hook/infrastructure: prohibited. Pending/error mutation lifecycle: none. Product analytics: none. Explicit sign-out scope: none. Server sign-out: none. Public signOutSession export: prohibited. useAuth.signOut and settings delete path: outside AO-1S1. AuthProvider and auth-query lifecycle: unchanged. Frozen auth wrapper: unchanged. AO-1S1 Completed at d3bde9e9. AO-1 remains Active. Enforcement: progressive lexical seal (comment-stripped source scan; alias/dynamic-import/wrapper/computed-string bypasses remain possible). Does not claim useAuth.signOut removed, settings delete-account migrated, AuthProvider redesigned, route guards redesigned, server sign-out introduced, cookie redesign, all authentication ownership completed, dependency debt resolved, AST enforcement, or AO-1 Completed.",
+      "AO-1S1 Completed at d3bde9e9: Shell sign-out consumers: Sidebar and MobileTopBar. Canonical public API: @/features/auth (useSignOut + UseSignOutResult). Presentation authority: useSignOut. Private infrastructure authority: signOutSession → frozen src/lib/auth.ts auth.signOut (no options; void; error rethrow). Navigation owner: shell components. Destination: /. Ordering: await signOut then navigate. Cache owner: AuthProvider identity-boundary lifecycle (listener-driven cancel/remove non-auth queries; set auth-user data to null). Direct shell @/lib/auth: prohibited. Direct shell auth.signOut: prohibited. Direct shell Supabase signOut: prohibited. QueryClient operations in shell/hook/infrastructure: prohibited. Pending/error mutation lifecycle: none. Product analytics: none. Explicit sign-out scope: none. Server sign-out: none. Public signOutSession export: prohibited. useAuth.signOut and settings delete path: outside AO-1S1 (governed transitional; optional future auth cleanup). AuthProvider and auth-query lifecycle: unchanged. Frozen auth wrapper: unchanged. AO-1S1 Completed at d3bde9e9. AO-1 Completed (formal close-out; final child AO-1S1; governance 544f0813). Enforcement: progressive lexical seal (comment-stripped source scan; alias/dynamic-import/wrapper/computed-string bypasses remain possible). Does not claim useAuth.signOut removed, settings delete-account migrated, AuthProvider redesigned, route guards redesigned, server sign-out introduced, cookie redesign, all authentication ownership completed, dependency debt resolved, or AST enforcement.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
+    id: "ao-1-programme",
+    kind: "documentation",
+    source: "tests/invariants/config/migration-register.ts",
+    description:
+      "AO-1 Completed. Formal audit AO-1ZA READY FOR AO-1 CLOSURE; formal closure AO-1ZB. Bounded objective: presentation and routes must not directly own Supabase clients, realtime channels, or targeted persistence/mutation infrastructure. Final child AO-1S1 implementation d3bde9e9; final child governance 544f0813. Registered unresolved AO-1 children: 0. Unmanaged route residuals: 0. Unmanaged presentation residuals: 0. Unmanaged AO-1 residuals: 0. C3 Completed; C8 Reclassified into AO-1; AO-1B1–AO-1S1 Completed; AO-1M1 residual audit discharged via AO-1M2–AO-1M6 and AO-1S1. Enforcement retained after closure (active): no-legacy-imports; legacy-layer-freeze; public-api-boundary; presentation ownership seals; route ownership boundaries; auth query lifecycle; shell sign-out ownership; server-only boundary; client secret boundary. Accepted transitional: useAuth.signOut settings path; frozen lib/hooks/services allowlists; progressive lexical limits; feature-to-lib scanner gap. Non-claims: P0 launch hardening; dependency remediation (50 baseline findings); package hygiene; universal architecture convergence; complete auth migration; deletion of frozen layers. Governance Supabase Preview on 544f0813: external Postgres dial timeout before DB validation — non-blocking (not successful).",
     enforcementLevel: "enforced",
     owner: "platform architecture",
     status: "active",
@@ -393,7 +403,8 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
 
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",
-    description: "Living migration candidate register + architecture objectives",
+    description:
+      "Living migration candidate register + architecture objectives. AO-1 architecture objective Completed after formal close-out (AO-1ZA/AO-1ZB).",
     enforcementLevel: "enforced",
     owner: "platform architecture",
     status: "active",
