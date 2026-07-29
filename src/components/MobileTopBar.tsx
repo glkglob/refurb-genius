@@ -1,12 +1,13 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Building2, LogOut, Plus, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { auth } from "@/lib/auth";
+import { useSignOut } from "@/features/auth";
 
 export function MobileTopBar() {
   const navigate = useNavigate();
+  const { signOut } = useSignOut();
   const handleLogout = async () => {
-    await auth.signOut();
+    await signOut();
     navigate({ to: "/" });
   };
 

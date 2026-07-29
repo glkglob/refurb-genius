@@ -9,8 +9,8 @@ import {
   Briefcase,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { auth } from "@/lib/auth";
 import { useAuth } from "@/hooks/useAuth";
+import { useSignOut } from "@/features/auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const items = [
@@ -45,9 +45,10 @@ export function Sidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { signOut } = useSignOut();
 
   const handleLogout = async () => {
-    await auth.signOut();
+    await signOut();
     navigate({ to: "/" });
   };
 

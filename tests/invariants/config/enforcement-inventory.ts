@@ -379,6 +379,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-shell-auth-signout-ownership",
+    kind: "invariant",
+    source: "tests/invariants/shell-auth-signout-ownership.invariant.test.ts",
+    description:
+      "AO-1S1 In Progress: Shell sign-out consumers: Sidebar and MobileTopBar. Feature public API: @/features/auth (useSignOut + UseSignOutResult). Presentation hook: useSignOut. Private infrastructure: signOutSession → frozen auth.signOut (no options). Shell retains await signOut then navigate({ to: '/' }). Direct shell @/lib/auth and auth.signOut: prohibited. Direct shell supabase.auth.signOut: prohibited. Direct shell QueryClient ops: prohibited. Hook navigation/toast/analytics/useMutation/QueryClient: prohibited. Public signOutSession export: prohibited. useAuth.signOut and settings delete path: outside AO-1S1. AuthProvider cache isolation: unchanged. AO-1 remains Active. Enforcement: progressive lexical seal (comment-stripped source scan; alias/dynamic-import/wrapper/computed-string bypasses remain possible). Does not claim useAuth.signOut migration, settings delete migration, session provider redesign, route-guard redesign, dependency debt resolved, AST enforcement, or AO-1 Completed.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
 
     kind: "documentation",

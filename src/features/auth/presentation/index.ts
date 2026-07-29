@@ -17,3 +17,4 @@ export {
   type CompleteAuthCallbackPresentationInput,
   type AuthCallbackCompletionPresentationResult,
 } from "./hooks/useAuthCallbackCompletion";
+export { useSignOut, type UseSignOutResult } from "./hooks/useSignOut";
