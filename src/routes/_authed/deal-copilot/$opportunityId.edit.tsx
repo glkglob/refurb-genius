@@ -6,7 +6,8 @@ import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { type DealOpportunityStatus } from "@/core/dealCopilot";
-import { useOpportunity, useUpdateOpportunity } from "@/hooks/useOpportunities";
+import { useUpdateOpportunity } from "@/features/deal-copilot";
+import { useOpportunity } from "@/hooks/useOpportunities";
 
 export const Route = createFileRoute("/_authed/deal-copilot/$opportunityId/edit")({
   head: () => ({

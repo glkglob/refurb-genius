@@ -173,51 +173,6 @@ export const opportunityStore = {
     notify();
     return saved;
   },
-  async update(
-    id: string,
-    updates: Partial<Omit<DealOpportunity, "id" | "createdAt" | "updatedAt">>,
-  ): Promise<DealOpportunity> {
-    type DealOppUpdate = {
-      title?: string;
-      listing_url?: string | null;
-      postcode?: string | null;
-      property_type?: string | null;
-      bedrooms?: number | null;
-      purchase_price?: number | null;
-      estimated_gdv?: number | null;
-      expected_monthly_rent?: number | null;
-      refurb_budget?: number | null;
-      target_exit_strategy?: string | null;
-      status?: string;
-      updated_at?: string;
-    };
-    const patch: DealOppUpdate = { updated_at: new Date().toISOString() };
-    if (updates.title !== undefined) patch.title = updates.title;
-    if (updates.listingUrl !== undefined) patch.listing_url = updates.listingUrl;
-    if (updates.postcode !== undefined) patch.postcode = updates.postcode;
-    if (updates.propertyType !== undefined) patch.property_type = updates.propertyType;
-    if (updates.bedrooms !== undefined) patch.bedrooms = updates.bedrooms;
-    if (updates.purchasePrice !== undefined) patch.purchase_price = updates.purchasePrice;
-    if (updates.estimatedGdv !== undefined) patch.estimated_gdv = updates.estimatedGdv;
-    if (updates.expectedMonthlyRent !== undefined)
-      patch.expected_monthly_rent = updates.expectedMonthlyRent;
-    if (updates.refurbBudget !== undefined) patch.refurb_budget = updates.refurbBudget;
-    if (updates.targetExitStrategy !== undefined)
-      patch.target_exit_strategy = updates.targetExitStrategy;
-    if (updates.status !== undefined) patch.status = updates.status;
-
-    const { data, error } = await supabase
-      .from("deal_opportunities")
-      .update(patch)
-      .eq("id", id)
-      .select()
-      .single();
-    if (error) throw new Error(error.message);
-    const updated = rowToOpportunity(data);
-    cache = cache.map((o) => (o.id === id ? updated : o));
-    notify();
-    return updated;
-  },
   async delete(id: string): Promise<void> {
     // Use serverFn for hard-refresh safety + consistent auth (mirrors save path).
     await deleteDealOpportunityServerFn({ data: { id } });
@@ -246,25 +201,6 @@ export function getDealOpportunityById(id: string): DealOpportunity | null {
 
 export async function saveDealOpportunity(opportunity: DealOpportunity): Promise<DealOpportunity> {
   return opportunityStore.save(opportunity);
-}
-
-export async function updateDealOpportunity(
-  id: string,
-  updates: Partial<Omit<DealOpportunity, "id" | "createdAt" | "updatedAt">>,
-): Promise<DealOpportunity | null> {
-  try {
-    return await opportunityStore.update(id, updates);
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      (error.message.includes("JSON object requested, multiple (or no) rows returned") ||
-        error.message.includes("The result contains 0 rows"))
-    ) {
-      return null;
-    }
-    logger.error("[deal-opportunities] update failed", { id, error: String(error) });
-    throw error;
-  }
 }
 
 export async function deleteDealOpportunity(id: string): Promise<void> {

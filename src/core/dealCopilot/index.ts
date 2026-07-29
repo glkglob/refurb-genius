@@ -24,7 +24,6 @@ export {
   listDealOpportunities,
   opportunityStore,
   saveDealOpportunity,
-  updateDealOpportunity,
 } from "./opportunityStore";
 
 export type { OpportunityStoreSnapshot } from "./opportunityStore";

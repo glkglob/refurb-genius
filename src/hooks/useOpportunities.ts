@@ -3,7 +3,7 @@ import { useAuth } from "./useAuth";
 import { supabase } from "@/platform/supabase/browser";
 import type { DealOpportunity, DealOpportunityStatus, DealExitStrategy } from "@repo/types";
 import type { PropertyType } from "@/core/projects/domain";
-import type { Tables, TablesUpdate } from "@repo/supabase";
+import type { Tables } from "@repo/supabase";
 
 // Use the protected serverFn for writes (consistent with projects save and auth migration).
 import { saveDealOpportunityServerFn } from "@/serverFns/dealCopilot";
@@ -65,46 +65,6 @@ export function useSaveOpportunity() {
      */
     mutationFn: (opportunity: DealOpportunity) =>
       saveDealOpportunityServerFn({ data: opportunity }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["opportunities"] });
-    },
-  });
-}
-
-export function useUpdateOpportunity() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      id,
-      updates,
-    }: {
-      id: string;
-      updates: Partial<Omit<DealOpportunity, "id" | "createdAt" | "updatedAt">>;
-    }) => {
-      const patch: TablesUpdate<"deal_opportunities"> = { updated_at: new Date().toISOString() };
-      if (updates.title !== undefined) patch.title = updates.title;
-      if (updates.listingUrl !== undefined) patch.listing_url = updates.listingUrl;
-      if (updates.postcode !== undefined) patch.postcode = updates.postcode;
-      if (updates.propertyType !== undefined) patch.property_type = updates.propertyType;
-      if (updates.bedrooms !== undefined) patch.bedrooms = updates.bedrooms;
-      if (updates.purchasePrice !== undefined) patch.purchase_price = updates.purchasePrice;
-      if (updates.estimatedGdv !== undefined) patch.estimated_gdv = updates.estimatedGdv;
-      if (updates.expectedMonthlyRent !== undefined)
-        patch.expected_monthly_rent = updates.expectedMonthlyRent;
-      if (updates.refurbBudget !== undefined) patch.refurb_budget = updates.refurbBudget;
-      if (updates.targetExitStrategy !== undefined)
-        patch.target_exit_strategy = updates.targetExitStrategy;
-      if (updates.status !== undefined) patch.status = updates.status;
-
-      const { data, error } = await supabase
-        .from("deal_opportunities")
-        .update(patch)
-        .eq("id", id)
-        .select()
-        .single();
-      if (error) throw new Error(error.message);
-      return rowToOpportunity(data);
-    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["opportunities"] });
     },

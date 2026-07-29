@@ -359,6 +359,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-deal-opportunity-update-presentation",
+    kind: "invariant",
+    source: "tests/invariants/deal-opportunity-update-presentation.invariant.test.ts",
+    description:
+      'AO-1M5 In Progress: Deal-opportunity update consumer: edit opportunity route (deal-copilot/$opportunityId.edit). Public API: @/features/deal-copilot. Mutation lifecycle: useUpdateOpportunity. Persistence: dealOpportunityRepository.updateOpportunity (browser Supabase deal_opportunities UPDATE eq id; select().single(); unconditional updated_at; partial domain-to-database map). Canonical cache key: literal ["opportunities"] success-only invalidateQueries (not exact; no failure invalidation; no optimistic/onMutate/cancelQueries/setQueryData). Route bans: useUpdateOpportunity from @/hooks/useOpportunities, useMutation, useQueryClient, setQueryData, cancelQueries, from(deal_opportunities), platform supabase, dealOpportunityRepository, analyzeDealServerFn. Hook bans: platform supabase, from(deal_opportunities), .update(, auth.getUser, setQueryData, cancelQueries, onMutate, toast, logger, navigation. Hook requirements: useMutation, useQueryClient, invalidateQueries, repository updateOpportunity. Repository requirements: deal_opportunities, update, eq id, select, single, updated_at + field maps; bans user_id filter, upsert, insert, auth, RQ, toast, logger. Transitional useUpdateOpportunity removed from useOpportunities.ts (file retained for list/detail/save/delete). Dead opportunityStore.update and updateDealOpportunity export removed. DealAnalysisCard and analyzeDealServerFn reserved for AO-1M6. AO-1 remains Active. Enforcement: progressive lexical seal (comment-stripped source scan; alias/dynamic-import/wrapper/computed-string bypasses remain possible). Does not claim opportunity save/delete extraction, list/detail read migration, opportunityKeys factory, server-side update, store retirement, DealAnalysisCard migration, schema/RLS redesign, dependency debt resolved, AST enforcement, or AO-1 Completed.',
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
 
     kind: "documentation",
