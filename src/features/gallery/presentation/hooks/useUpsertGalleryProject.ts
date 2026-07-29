@@ -1,8 +1,22 @@
+/**
+ * Presentation-safe gallery upsert mutation (AO-1M3).
+ *
+ * Owns:
+ * - auth.getUser gate
+ * - useMutation lifecycle
+ * - optimistic cache + rollback against galleryKeys.byProject
+ * - settled invalidation (canonical by-project key only)
+ * - mutation logging
+ *
+ * Persistence: galleryRepository.upsertGalleryProject (infrastructure).
+ * Toasts remain component-owned (PublishToGallery mutate callbacks).
+ * Cover upload and gallery reads remain outside this hook.
+ */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/platform/supabase/browser";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { galleryKeys, type PublicGalleryProjectRow } from "@/lib/queries/gallery";
+import { galleryRepository } from "../../infrastructure/galleryRepository";
 
 export interface UpsertGalleryProjectInput {
   is_public?: boolean;
@@ -32,26 +46,11 @@ export function useUpsertGalleryProject(projectId: string) {
     mutationFn: async (input: UpsertGalleryProjectInput) => {
       const user = auth.getUser();
       if (!user) throw new Error("You must be signed in");
-      const { data, error } = await supabase
-        .from("public_gallery_projects")
-        .upsert(
-          {
-            project_id: projectId,
-            created_by: user.id,
-            slug: projectId,
-            ...input,
-            title: input.title ?? "Untitled Project",
-          },
-          { onConflict: "project_id" },
-        )
-        .select("*")
-        .single();
-
-      if (error) {
-        logger.error("[gallery] upsert failed", { projectId, error: error.message });
-        throw new Error(error.message);
-      }
-      return data as PublicGalleryProjectRow;
+      return galleryRepository.upsertGalleryProject({
+        projectId,
+        userId: user.id,
+        ...input,
+      });
     },
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey });

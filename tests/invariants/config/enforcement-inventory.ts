@@ -339,6 +339,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-gallery-publish-mutation-presentation",
+    kind: "invariant",
+    source: "tests/invariants/gallery-publish-mutation-presentation.invariant.test.ts",
+    description:
+      "AO-1M3 In Progress: PublishToGallery mutation orchestration: useUpsertGalleryProject from @/features/gallery. Persistence: galleryRepository.upsertGalleryProject (browser Supabase public_gallery_projects upsert onConflict project_id). Cache: galleryKeys.byProject → [projects, projectId, gallery]; cancelQueries + optimistic setQueryData + onError restore previous + onSettled invalidateQueries non-exact. Component bans: @/hooks/useGallery, useMutation, useQueryClient, setQueryData/invalidateQueries for mutation, public_gallery_projects upsert, platform supabase mutation. Component retains form, cover upload (uploadGalleryCoverImage), gallery/leads reads, mutate callback toasts. Hook bans: direct from(public_gallery_projects), platform supabase, storage.from. Hook requirements: auth.getUser, galleryKeys.byProject, galleryRepository.upsertGalleryProject. Transitional src/hooks/useGallery.ts deleted. Cover upload and public gallery reads unchanged. AO-1 remains Active. Enforcement: progressive lexical seal (comment-stripped source scan; alias/dynamic-import/wrapper/computed-string bypasses remain possible). Does not claim cover-upload extraction, gallery read migration, server-side publish, schema/RLS redesign, public-share security complete, dependency debt resolved, AST enforcement, or AO-1 Completed.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
 
     kind: "documentation",

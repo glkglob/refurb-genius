@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Eye, Users, Image as ImageIcon, Loader2, ExternalLink } from "lucide-react";
 import { logger } from "@/lib/logger";
 import { useAuth } from "@/hooks/useAuth";
-import { useUpsertGalleryProject } from "@/hooks/useGallery";
+import { useUpsertGalleryProject } from "@/features/gallery";
 import { galleryByProjectQueryOptions, investorLeadsQueryOptions } from "@/lib/queries/gallery";
 import { uploadGalleryCoverImage } from "@/lib/gallery";
 

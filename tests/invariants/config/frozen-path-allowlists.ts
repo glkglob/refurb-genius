@@ -69,7 +69,6 @@ export const LIB_ALLOWLIST_SET = new Set<string>(LIB_ALLOWLIST);
 export const HOOKS_ALLOWLIST = [
   "src/hooks/use-mobile.tsx",
   "src/hooks/useAuth.ts",
-  "src/hooks/useGallery.ts",
   "src/hooks/useOpportunities.ts",
   "src/hooks/useProjects.ts",
   "src/hooks/useRole.ts",
