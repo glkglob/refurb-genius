@@ -16,6 +16,8 @@ import test from "node:test";
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const CANONICAL_FACTORY = "src/lib/queries/projects.ts";
 const USE_PROJECTS_HOOK = "src/hooks/useProjects.ts";
+/** AO-1M4: stage dual-cache mutation lives under features/projects presentation. */
+const USE_SET_PROJECT_STAGE_HOOK = "src/features/projects/presentation/hooks/useSetProjectStage.ts";
 const REQUIRED_REPLACEMENT = "projectKeys.all (from @/lib/queries/projects)";
 const REQUIRED_DETAIL_REPLACEMENT =
   "projectQueryOptions(id) / projectKeys.byId (canonical detail; not list-derived find)";
@@ -192,11 +194,8 @@ test("projects query keys — useProjects list operations use projectKeys.all", 
     /invalidateQueries\(\{\s*queryKey:\s*projectKeys\.all\s*,\s*exact:\s*true\s*\}\)/,
     "create must invalidate projectKeys.all with exact: true",
   );
-  assert.match(
-    text,
-    /cancelQueries\(\{\s*queryKey:\s*projectKeys\.all\s*,\s*exact:\s*true\s*\}\)/,
-    "stage must cancel projectKeys.all with exact: true",
-  );
+  // Stage cancelQueries for projectKeys.all lives under useSetProjectStage (AO-1M4);
+  // C4c-3 stage dual-cache test covers exact cancel on the presentation hook.
   // List get/set + list query options live in the factory module
   const factoryPath = join(ROOT, CANONICAL_FACTORY);
   const factoryText = readFileSync(factoryPath, "utf8");
@@ -538,7 +537,8 @@ export function useProject(id: string) {
 // ─── C4c-3: list/detail mutation synchronization ────────────────────────────
 
 test("projects query keys — C4c-3 stage dual-cache sync uses exact list and detail keys", () => {
-  const hookPath = join(ROOT, USE_PROJECTS_HOOK);
+  const hookPath = join(ROOT, USE_SET_PROJECT_STAGE_HOOK);
+  assert.ok(existsSync(hookPath), `missing ${USE_SET_PROJECT_STAGE_HOOK}`);
   const text = readFileSync(hookPath, "utf8");
 
   // Stage mutation must reference both authorities
@@ -571,6 +571,14 @@ test("projects query keys — C4c-3 stage dual-cache sync uses exact list and de
       !/cancelQueries\(\{\s*queryKey:\s*projectKeys\.all\s*,\s*exact:\s*true\s*\}\)/.test(text),
     false,
     "stage must not cancel projectKeys.all without exact: true",
+  );
+
+  // Transitional useProjects must no longer own stage mutation authority
+  const transitional = readFileSync(join(ROOT, USE_PROJECTS_HOOK), "utf8");
+  assert.doesNotMatch(
+    transitional,
+    /function useSetProjectStage/,
+    "useSetProjectStage must not remain defined in transitional useProjects.ts",
   );
 });
 

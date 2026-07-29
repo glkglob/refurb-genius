@@ -349,6 +349,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-project-stage-mutation-presentation",
+    kind: "invariant",
+    source: "tests/invariants/project-stage-mutation-presentation.invariant.test.ts",
+    description:
+      "AO-1M4 In Progress: Project workflow routes (upload/analysis/estimate/report) stage mutation orchestration: useSetProjectStage from @/features/projects. Persistence: projectStageRepository.setProjectStageDone (browser Supabase projects UPDATE eq id; single *_done column). Cache: projectKeys.all + projectKeys.byId(id) exact cancelQueries; applyProjectStageOptimistic + restoreProjectStageCaches; no invalidateQueries/onSuccess/onSettled. Route bans: useSetProjectStage from @/hooks/useProjects, useMutation, setQueryData, cancelQueries, from(projects), platform supabase, projectStageRepository. Hook bans: platform supabase, from(projects), .update(, invalidateQueries, toast, logger, auth.getUser. Hook requirements: useMutation, useQueryClient, projectKeys, applyProjectStageOptimistic, restoreProjectStageCaches, setProjectStageDone. Transitional useSetProjectStage removed from useProjects.ts (file retained for reads/create). C4c-3 dual-cache helpers remain in src/lib/queries/projects.ts. Project reads and create unchanged. AO-1 remains Active. Enforcement: progressive lexical seal (comment-stripped source scan; alias/dynamic-import/wrapper/computed-string bypasses remain possible). Does not claim project create extraction, list/detail read migration, stage state machine, schema/RLS redesign, all AO-1 residuals complete, dependency debt resolved, AST enforcement, or AO-1 Completed.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
 
     kind: "documentation",

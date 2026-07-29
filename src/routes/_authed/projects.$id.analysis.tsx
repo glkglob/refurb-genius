@@ -22,7 +22,8 @@ import {
   REDESIGN_CONCEPTS,
 } from "@/features/ai-design";
 import { DISCLAIMER } from "@/core/reports";
-import { useProject, useSetProjectStage } from "@/hooks/useProjects";
+import { useProject } from "@/hooks/useProjects";
+import { useSetProjectStage } from "@/features/projects";
 import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/_authed/projects/$id/analysis")({

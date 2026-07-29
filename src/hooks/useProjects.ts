@@ -1,14 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
-import { supabase } from "@/platform/supabase/browser";
-import type { ProjectStage, NewProjectInput } from "@/core/projects/domain";
+import type { NewProjectInput } from "@/core/projects/domain";
 import {
   projectKeys,
   projectsListQueryOptions,
   projectQueryOptions,
-  projectStagePatch,
-  applyProjectStageOptimistic,
-  restoreProjectStageCaches,
   seedProjectDetailCache,
 } from "@/lib/queries/projects";
 
@@ -74,59 +70,6 @@ export function useCreateProject() {
     onSuccess: (project) => {
       seedProjectDetailCache(queryClient, project);
       queryClient.invalidateQueries({ queryKey: projectKeys.all, exact: true });
-    },
-  });
-}
-
-/**
- * Stage progress mutation (C4c-3).
- *
- * Dual-cache optimistic sync: projectKeys.all + projectKeys.byId(id) when detail
- * is already a cached Project. Cancels only exact list/detail keys (not nested).
- * Overlapping stage mutations may still race on rollback (accepted; same class as
- * pre-C4c-3 list-only optimism).
- */
-export function useSetProjectStage() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({
-      id,
-      stage,
-      value,
-    }: {
-      id: string;
-      stage: ProjectStage;
-      value: boolean;
-    }) => {
-      const column =
-        stage === "photos"
-          ? { photos_done: value }
-          : stage === "analysis"
-            ? { analysis_done: value }
-            : stage === "estimate"
-              ? { estimate_done: value }
-              : { report_done: value };
-      const { error } = await supabase.from("projects").update(column).eq("id", id);
-      if (error) throw new Error(error.message);
-    },
-    onMutate: async ({ id, stage, value }) => {
-      await Promise.all([
-        queryClient.cancelQueries({ queryKey: projectKeys.all, exact: true }),
-        queryClient.cancelQueries({ queryKey: projectKeys.byId(id), exact: true }),
-      ]);
-      const snapshot = applyProjectStageOptimistic(
-        queryClient,
-        id,
-        projectStagePatch(stage, value),
-      );
-      return { ...snapshot, id };
-    },
-    onError: (_err, _vars, context) => {
-      if (!context) return;
-      restoreProjectStageCaches(queryClient, context.id, {
-        previousList: context.previousList,
-        previousDetail: context.previousDetail,
-      });
     },
   });
 }

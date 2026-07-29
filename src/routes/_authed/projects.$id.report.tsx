@@ -31,7 +31,8 @@ import {
   usePhotos,
   type RoomAnalysis,
 } from "@/features/ai-upload";
-import { useProject, useSetProjectStage } from "@/hooks/useProjects";
+import { useProject } from "@/hooks/useProjects";
+import { useSetProjectStage } from "@/features/projects";
 import { formatGBP } from "@/core/pricing";
 import { buildReport } from "@/core/reports";
 import {
