@@ -369,6 +369,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-deal-analysis-card-mutation-presentation",
+    kind: "invariant",
+    source: "tests/invariants/deal-analysis-card-mutation-presentation.invariant.test.ts",
+    description:
+      "AO-1M6 In Progress: Deal analysis consumer: DealAnalysisCard. Feature public API: @/features/deal-copilot (useAnalyzeDealOpportunity + AnalyzeDealOpportunityVariables; retains useUpdateOpportunity). Mutation lifecycle: useAnalyzeDealOpportunity. Server transport: analyzeDealServerFn (unchanged path). Server authority: requireUser, rate limit deal-analysis, server Supabase deal_opportunities SELECT eq id single, RLS, dynamic runDealAnalysis. Analysis service: runDealAnalysis adapter (gpt-4o / dev mock). Persistence: none. QueryClient lifecycle: none. Analysis state: React Query mutation data/error/pending. Trigger: explicit button click only. Success analytics: trackEvent(deal_analyzed) once on success, no payload. Direct component useMutation: prohibited. Direct component server-function access: prohibited. Direct component analytics for deal_analyzed: prohibited. Direct hook browser Supabase: prohibited. Direct hook QueryClient operations: prohibited. DealIntakeForm deterministic analyzeDeal: outside AO-1M6. AO-1 remains Active. Enforcement: progressive lexical seal (comment-stripped source scan; alias/dynamic-import/wrapper/computed-string bypasses remain possible). Does not claim AI redesign, provider/prompt/model change, analysis persistence, server function migration, deterministic intake migration, opportunity reads, shell auth cleanup, dependency debt resolved, AST enforcement, or AO-1 Completed.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
 
     kind: "documentation",

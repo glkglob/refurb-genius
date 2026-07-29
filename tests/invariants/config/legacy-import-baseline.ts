@@ -36,7 +36,6 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/components/Sidebar.tsx|@/lib/utils",
   "src/components/StatusBadge.tsx|@/lib/utils",
   "src/components/deal-copilot/DealAnalysisCard.tsx|@/core/dealCopilot/dealAnalysis",
-  "src/components/deal-copilot/DealAnalysisCard.tsx|@/lib/analytics",
   "src/components/deal-copilot/DealChat.tsx|@/core/dealCopilot/presentation",
   "src/components/deal-copilot/DealChat.tsx|@/core/dealCopilot/realtime/useDealMessagesChannel",
   "src/components/deal-copilot/DealCopilotFeedback.tsx|@/lib/logger",

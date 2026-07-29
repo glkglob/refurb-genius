@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { Sparkles, Loader2, AlertCircle, Copy, Check, ListChecks } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { analyzeDealServerFn } from "@/serverFns/dealAnalysis";
 import type { DealAnalysis, DealRiskSeverity } from "@/core/dealCopilot/dealAnalysis";
-import { trackEvent } from "@/lib/analytics";
+import { useAnalyzeDealOpportunity } from "@/features/deal-copilot";
 
 const SEVERITY_STYLES: Record<DealRiskSeverity, string> = {
   high: "border-destructive/40 bg-destructive/10 text-destructive",
@@ -49,10 +47,7 @@ function analysisToText(a: DealAnalysis): string {
 export function DealAnalysisCard({ opportunityId }: { opportunityId: string }) {
   const [copied, setCopied] = useState(false);
 
-  const mutation = useMutation({
-    mutationFn: () => analyzeDealServerFn({ data: { opportunityId } }),
-    onSuccess: () => trackEvent("deal_analyzed"),
-  });
+  const mutation = useAnalyzeDealOpportunity();
 
   const analysis = mutation.data;
 
@@ -88,7 +83,11 @@ export function DealAnalysisCard({ opportunityId }: { opportunityId: string }) {
                 {copied ? "Copied" : "Copy to report"}
               </Button>
             ) : null}
-            <Button size="sm" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+            <Button
+              size="sm"
+              onClick={() => mutation.mutate({ opportunityId })}
+              disabled={mutation.isPending}
+            >
               {mutation.isPending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
