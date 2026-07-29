@@ -309,6 +309,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-estimate-query-key-authority",
+    kind: "invariant",
+    source: "tests/invariants/estimate-query-key-authority.invariant.test.ts",
+    description:
+      "AO-1K1 In Progress: Canonical estimate query-key authority: projectKeys.estimateByProject / estimateQueryOptions. Canonical tuple: [projects, projectId, estimate]. Raw room-estimate production key: prohibited in estimate presentation hooks (useEstimate.ts). useRoomEstimate: canonical estimateQueryOptions. AI estimate save invalidation: canonical estimate key (projectKeys.estimateByProject). AI estimate financials invalidation: projectKeys.financialsByProject. Manual estimate save: existing product estimate and financials behaviour unchanged. SSR and route prefetch: existing canonical product key unchanged. Project isolation: preserved. AIEstimateBuilder save ownership: unchanged and deferred. Raw product tuple recreation and local estimateKeys factories banned in useEstimate.ts. Enforcement: progressive lexical seal (comment-stripped source scan; alias/dynamic-import/wrapper/computed-string/split-literal bypasses remain possible). Does not claim all estimate architecture complete, estimate query ownership moved into feature, getLatestProjectEstimate unified, AIEstimateBuilder save ownership extracted, pricing redesigned, schema changed, AST enforcement, or AO-1 Completed.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

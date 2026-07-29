@@ -1,13 +1,16 @@
 /**
  * Estimate slice — TanStack Query hooks.
  * Moved from `src/hooks/useAIEstimate.ts` (now a shim).
+ *
+ * AO-1K1: product estimate cache authority is projectKeys.estimateByProject /
+ * estimateQueryOptions (["projects", projectId, "estimate"]).
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { estimateQueryOptions, projectKeys } from "@/lib/queries/projects";
 import { generateEstimateServerFn } from "../serverFns";
 import type { GenerateEstimateInput, AIGeneratedRoom } from "../../domain";
 import {
   saveAIEstimate,
-  getLatestRoomEstimate,
   type SaveAIEstimateInput,
   type PersistedRoomEstimate,
 } from "../../infrastructure/repositories/estimate.repository";
@@ -24,7 +27,8 @@ export function useGenerateEstimate() {
 
 /**
  * Mutation: persist the finalised AI estimate (rooms + items) to Supabase.
- * Invalidates the room-estimate query on success so the UI picks up the saved state.
+ * On success invalidates the product estimate key and project financials
+ * (fire-and-forget, success-only) so product readers and ROI stay coherent.
  */
 export function useSaveAIEstimate() {
   const queryClient = useQueryClient();
@@ -32,8 +36,11 @@ export function useSaveAIEstimate() {
   return useMutation<PersistedRoomEstimate, Error, SaveAIEstimateInput>({
     mutationFn: saveAIEstimate,
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ["room-estimate", variables.projectId],
+      void queryClient.invalidateQueries({
+        queryKey: projectKeys.estimateByProject(variables.projectId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: projectKeys.financialsByProject(variables.projectId),
       });
     },
   });
@@ -41,12 +48,11 @@ export function useSaveAIEstimate() {
 
 /**
  * Query: load the latest AI-generated (room-based) estimate for a project.
+ * Uses the canonical product estimate query options.
  */
 export function useRoomEstimate(projectId: string | undefined) {
-  return useQuery<PersistedRoomEstimate | null>({
-    queryKey: ["room-estimate", projectId],
-    queryFn: () => (projectId ? getLatestRoomEstimate(projectId) : null),
+  return useQuery({
+    ...estimateQueryOptions(projectId ?? ""),
     enabled: !!projectId,
-    staleTime: 60_000,
   });
 }
