@@ -329,7 +329,18 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-pitch-deck-generator-persistence-presentation",
+    kind: "invariant",
+    source: "tests/invariants/pitch-deck-generator-persistence-presentation.invariant.test.ts",
+    description:
+      "AO-1M2 In Progress: PitchDeckGenerator orchestration: useGenerateAndSavePitchDeck from @/features/export. PDF authority: legacyPdfExporter (existing PDF generator). Persistence: supabaseExportRepository (export infrastructure port). History invalidation: pitchDecksByProjectQueryOptions ([projects, projectId, pitchDecks]) after successful save only, awaited, non-exact. Component bans: useQueryClient, useMutation, fetchQuery, invalidateQueries, auth.getUser, @/lib/auth, @/lib/pitchDeck, pitch-deck/projects query imports, platform supabase, storage.from, pitch_deck_exports. Hook bans: @/lib/pitchDeck import, platform supabase, storage.from, pitch_deck_exports table, room-estimate. Hook requirements: legacyPdfExporter, supabaseExportRepository, pitchDecksByProjectQueryOptions, auth gate, success/error toasts. Component retains button/progress UI. PDF layout/content unchanged. Estimate read remains estimateQueryOptions (AO-1K1). Enforcement: progressive lexical seal (comment-stripped source scan; alias/dynamic-import/wrapper/computed-string bypasses remain possible). Does not claim server-side pitch-deck upload, PDF redesign, all export paths migrated, gallery/stage/opportunity residuals extracted, dependency debt resolved, AST enforcement, or AO-1 Completed.",
+    enforcementLevel: "enforced",
+    owner: "platform architecture",
+    status: "active",
+  },
+  {
     id: "migration-register",
+
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",
     description: "Living migration candidate register + architecture objectives",
