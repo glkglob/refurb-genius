@@ -389,6 +389,16 @@ export const ENFORCEMENT_INVENTORY: EnforcementItem[] = [
     status: "active",
   },
   {
+    id: "inv-financial-path-normalizer",
+    kind: "invariant",
+    source: "tests/invariants/financial-path-normalizer.invariant.test.ts",
+    description:
+      "P0-1 In Progress: Financials query (src/lib/queries/projects.ts financialsQueryOptions) must use calculateFinancialPath from @repo/services; must not call runRoiEngine directly; must not Math.round(roi.roi); estimate key remains [projects, projectId, estimate]; room-estimate key remains prohibited; mid_total remains Financials refurb authority when supplied. Canonical normalizer: packages/services/src/financial. Calculation authority: runRoiEngine (once, inside calculateFinancialPath). Progressive lexical seal; alias/dynamic-import/wrapper bypasses remain possible. Does not ban runRoiEngine for other consumers. Does not claim cross-product holding-cost unification, timeline derivation redesign, AI normalizer redesign, package publish, dependency remediation, or P0-1 Completed.",
+    enforcementLevel: "enforced",
+    owner: "financial path / platform services",
+    status: "active",
+  },
+  {
     id: "ao-1-programme",
     kind: "documentation",
     source: "tests/invariants/config/migration-register.ts",

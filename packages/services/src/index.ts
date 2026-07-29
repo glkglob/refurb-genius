@@ -9,3 +9,5 @@ export * from "./trade-rates/index.ts";
 export * from "./development-appraisal/index.ts";
 export * from "./enhanced-estimate/index.ts";
 export * from "./new-build/index.ts";
+/** P0-1 Financial Path Normalizer — explicit Financials-path input policy. */
+export * from "./financial/index.ts";

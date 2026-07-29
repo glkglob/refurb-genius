@@ -156,6 +156,11 @@ export const photosQueryOptions = (projectId: string) =>
  * Query options for derived financials.
  * Fetches project + latest estimate and computes ROI/profit etc.
  * No extra table; keeps data independent per tab.
+ *
+ * P0-1: ROI inputs + Financials DTO via @repo/services calculateFinancialPath
+ * (canonical normalizer + runRoiEngine once). mid_total remains refurb authority.
+ * Defaults (Average / London / 0 holding / 0 rental / timeline 8) live in the
+ * Financials-path policy inside packages/services — not ad hoc in this query.
  */
 export const financialsQueryOptions = (projectId: string) =>
   queryOptions<Financials | null>({
@@ -173,44 +178,29 @@ export const financialsQueryOptions = (projectId: string) =>
       const { purchase_price, estimated_gdv, region } = projectRes.data;
 
       // Fetch latest estimate (prefer room-based for detailed budget)
-      let refurbBudget = 0;
+      let midTotal: number | undefined;
       try {
         const est = await getLatestRoomEstimate(projectId);
         if (est?.estimate?.mid_total) {
-          refurbBudget = Number(est.estimate.mid_total);
+          midTotal = Number(est.estimate.mid_total);
         }
       } catch {
         // fallback to simple estimate if room one missing
         const simple = await getLatestProjectEstimate(projectId);
-        if (simple?.estimate?.mid_total) refurbBudget = Number(simple.estimate.mid_total);
+        if (simple?.estimate?.mid_total) midTotal = Number(simple.estimate.mid_total);
       }
 
-      // Canonical investor metrics via deterministic ROI engine (same as Deal Copilot).
-      // Dynamic import keeps this query module free of hard package cycles at load time.
-      const { runRoiEngine } = await import("@repo/services");
-      const roi = runRoiEngine({
-        purchase_price: Number(purchase_price) || 0,
-        refurb_budget: refurbBudget,
-        estimated_gdv: Number(estimated_gdv) || 0,
-        rental_income: 0,
-        holding_costs: 0,
-        region: (region as import("@/core/projects/domain").UKRegion) || "London",
-        property_condition: "Average",
+      // Canonical Financials path: normalize + runRoiEngine once (dynamic import
+      // keeps this query module free of hard package cycles at load time).
+      const { calculateFinancialPath } = await import("@repo/services");
+      const { financials } = calculateFinancialPath({
+        purchase_price,
+        estimated_gdv,
+        region,
+        mid_total: midTotal,
       });
 
-      return {
-        purchasePrice: Number(purchase_price) || 0,
-        estimatedGdv: Number(estimated_gdv) || 0,
-        refurbBudget,
-        totalProjectCost: roi.total_project_cost,
-        estimatedProfit: roi.estimated_profit,
-        roiPercent: Math.round(roi.roi),
-        grossYield: roi.gross_yield,
-        investmentScore: roi.investment_score,
-        riskLevel: roi.risk_level.toLowerCase(),
-        // Timeline remains estimate-derived when available; engine has no weeks field.
-        timelineWeeks: 8,
-      };
+      return financials;
     },
     enabled: !!projectId,
     staleTime: 60 * 1000,
