@@ -1,13 +1,15 @@
 # L3 Save-Seam and Authority-Input Integration Plan
 
 ```text
-Status: Proposed integration plan (hardened — Ticket 4C2A1)
+Status: Proposed integration plan (hardened — Ticket 4C2A1 / 4C2A2R)
 Parent contract: l3-estimate-authority-contract.md
 Implementation status: Not started
 Scope: Ticket 4C2 save-seam and authority-input integration
 Base SHA at planning: 922ee4ce08a491eabdffff460293c66eb5eeabdc
-Hardening amendment: Ticket 4C2A1 (documentation only)
-Ticket: 4C2A / 4C2A1 — no production implementation
+Hardening amendments:
+  Ticket 4C2A1 — runtime decoder, private RPC, markers, idempotency, gates
+  Ticket 4C2A2R — scalar bounds, atomic ownership, provenance, sequencing
+Ticket: 4C2A / 4C2A1 / 4C2A2R — no production implementation
 ```
 
 This document maps **current behaviour**, **security/trust gaps**, **approved
@@ -40,9 +42,12 @@ for full draft/canonical separation, rate provenance retention, write-protected
 authority markers, and trusted library resolution. Narrow no-schema experiments
 would still leave financial readers and RLS bypass risks unsolved.
 
-**Hardening (4C2A1):** runtime allowlisted decoder; browser cannot escalate
-markers; private RPC; durable idempotency; one immutable catalogue revision per
-initial authority estimate; safe category-path transition before reader cutover.
+**Hardening (4C2A1 + 4C2A2R):** runtime allowlisted decoder with scalar/enum
+bounds and request-size limits; browser cannot escalate markers; private RPC
+with atomic owner recheck; durable idempotency; per-item library provenance;
+canonical `estimate_done` only (never `estimated_gdv`); builder/cache separation
+before reader cutover; one immutable catalogue revision per initial authority
+estimate.
 
 ---
 
@@ -167,15 +172,17 @@ financial authority when the browser may bypass that call and write directly.
 
 ```text
 Authenticated serverFn:
+  - enforce request-size limit
   - receive unknown JSON
-  - runtime-decode allowlisted command (reject forbidden/unknown fields)
+  - runtime-decode allowlisted command (reject forbidden/unknown fields;
+    validate scalars, enums, lengths, collection bounds)
   - authenticate current user; derive userId from session only
-  - verify project ownership
+  - verify project ownership; derive expectedOwnerId (never from browser)
   - compose trusted catalogue resolver internally
   - call repriceMeasuredBoq / runMeasuredBoqEngine
   - reject draft outcomes for canonical persistence
   - derive payload hash + enforce durable idempotency
-  - invoke private atomic persistence RPC with engine output only
+  - invoke private atomic persistence RPC with engine output + expectedOwnerId
   - return persisted estimate or structured issues
 ```
 
@@ -224,10 +231,21 @@ identical catalogRevision.
 | --- | --- |
 | Mixed revisions in one command | **Reject** before pricing/persistence with `MIXED_CATALOG_REVISIONS` |
 | Header `catalog_revision` | Must equal that common revision |
+| Item `catalog_revision` | Must equal the header common revision |
+| Item library provenance | Durable `rate_source`, `rate_key`, `catalog_revision`, resolved rates (Ticket 4C2C) |
 | Resolver | Resolve all entries against an **immutable snapshot** for that revision |
 | Deploy | New rate data → **new** catalog revision (no in-place mutation of published revisions) |
-| Existing estimates | Remain reproducible against **saved** revision |
-| Future mixed-revision estimates | Require line-level durable revision, revision-set model, or separate migration — **not** authorised in initial 4C2 |
+| Existing estimates | Reproducible **only** when immutable catalogue snapshot **and** per-line `rateKey`/`catalogRevision` provenance are retained |
+| Future mixed-revision estimates | Require line-level mixed-revision model or separate migration — **not** authorised in initial 4C2 |
+
+```text
+A canonical measured-BOQ estimate is reproducible only when the immutable
+catalogue snapshot and every saved line’s stable rateKey/catalogRevision
+provenance are retained.
+
+Header revision alone is insufficient to identify which catalogue rate produced
+each line.
+```
 
 ---
 
@@ -435,15 +453,15 @@ projectKeys.canonicalEstimateByProject(projectId)
 
 ### Reader-cutover gate (mandatory order)
 
-Canonical readers **must not** switch to marker-only queries until at least one
-live trusted writer can create marked canonical rows.
+Canonical readers **must not** switch to marker-only queries until:
 
 ```text
-1. deploy marker / RLS / private RPC / durable idempotency foundation
-2. deploy trusted quick-category server writer
-3. verify marked category-engine rows
-4. only then switch ROI / report / canonical readers to marker filtering
-5. add measured-BOQ canonical writer after catalogue foundation
+1. marker / RLS / private RPC / durable idempotency foundation (4C2B)
+2. trusted quick-category server writer live and verified (4C2B)
+3. catalogue + per-item library provenance foundation (4C2C)
+4. draft/canonical data-access and cache separation (4C2D)
+5. manual and AI builders stop writing caller totals into the canonical cache (4C2E)
+6. only then switch ROI / report / progress to marker-filtered canonical readers (4C2F)
 ```
 
 Do **not** heuristically backfill legacy rows. Transition policy:
@@ -452,10 +470,11 @@ Do **not** heuristically backfill legacy rows. Transition policy:
 existing users retain editable history
 legacy rows do not silently become canonical (pricing_authority = none)
 a fresh server-side category recomputation can establish a canonical row
+reader cutover cannot occur while legacy builders still mutate the canonical cache key
 ```
 
 This prevents reader cutover from removing live category authority without
-replacement.
+replacement, and prevents untrusted cache contamination of financial readers.
 
 ---
 
@@ -480,12 +499,15 @@ function decodeSaveAuthorityMeasuredBoqCommand(
 ): SaveAuthorityMeasuredBoqCommand;
 ```
 
-Must use an **explicit allowlist** and validate every nested field **before**
-authentication completion is insufficient alone — decode first, then
-authenticate, ownership, catalogue, engine, persistence.
+The decoder must validate the full nested payload **before** authentication,
+ownership checks, catalogue resolution, pricing or persistence. Authentication
+alone does not make caller input trusted.
 
-**Reject** rather than strip-and-continue for forbidden or unknown properties
-at every nesting level (observable rejection, not silent pass-through).
+Must use an **explicit allowlist** and validate every nested field (shape **and**
+values). **Reject** rather than strip-and-continue for forbidden or unknown
+properties at every nesting level (observable rejection, not silent
+pass-through). Do **not** truncate strings or collections. Do **not** strip
+excess array entries.
 
 #### Allowed top-level fields
 
@@ -537,7 +559,7 @@ Those sources may appear only on the **separate draft command**.
 subtotal, contingency, vat, vatAmount, vatRate
 lowTotal, midTotal, highTotal, total, totalCost
 roomSubtotal, lineTotal
-unitRate, baseUnitRate, resolvedUnitRate
+unitRate, baseUnitRate, resolvedUnitRate, candidateUnitRate, netUnitRate
 regionalMultiplier
 currency amount supplied for library rates
 authority, pricingAuthority, engineSource, policyVersion
@@ -548,14 +570,120 @@ acceptedByUserId supplied as authority identity
 any unknown property at any nesting level
 ```
 
+The library command contains rate **identity** only (`rateKey`,
+`catalogRevision`). Caller-supplied numeric rate fields are forbidden. Trusted
+catalogue `baseUnitRate` remains **outside** the decoded request and is
+validated by the engine as a finite number greater than zero.
+
+#### Scalar, enum and resource-bound validation
+
+The decoder must validate both shape and values.
+
+```text
+projectId:
+  string; trimmed; non-empty; bounded length; unique-id style
+
+idempotencyKey:
+  string; trimmed; non-empty; bounded length
+
+region:
+  exact member of UKRegion
+
+rooms:
+  array; not empty; bounded room count
+
+room.id:
+  string; trimmed; non-empty; bounded length; unique within request
+
+room.name:
+  string; trimmed; non-empty; bounded length
+
+room.areaSqm:
+  optional number; when supplied: finite and greater than zero
+  (engine semantic — no invented maximum unless shared policy approved)
+
+room.items:
+  array; not empty; bounded item count per room; bounded total items
+
+item.id:
+  string; trimmed; non-empty; bounded length; unique across request
+
+item.name:
+  string; trimmed; non-empty; bounded length
+
+item.category:
+  optional string; trimmed when supplied; bounded length
+
+item.quantity:
+  number; finite; greater than zero
+  (engine semantic — no invented maximum unless shared policy approved)
+
+item.unit:
+  string; trimmed; non-empty; bounded length
+
+item.costType:
+  exact enum: labour | materials | combined
+  (combined remains blocked at persistence until schema decision)
+
+item.notes:
+  optional string; bounded length
+
+rate:
+  plain object; source exactly "library" for initial canonical command
+
+rate.rateKey:
+  string; trimmed; non-empty; bounded length
+
+rate.catalogRevision:
+  string; trimmed; non-empty; bounded length
+```
+
+#### Resource limits (provisional implementation constants)
+
+The command boundary must enforce limits **before** catalogue lookup, payload
+hashing, engine traversal, and database work.
+
+No established authority-command body limits were found in the repository for
+this path. Ticket 4C2B must define the following in **one shared
+decoder-policy module** (names provisional):
+
+```text
+MAX_AUTHORITY_REQUEST_BYTES:     256 KiB decoded JSON
+MAX_ROOMS:                       100
+MAX_ITEMS_PER_ROOM:              200
+MAX_TOTAL_ITEMS:                 2,000
+MAX_IDENTIFIER_LENGTH:           128 characters
+MAX_IDEMPOTENCY_KEY_LENGTH:      128 characters
+MAX_NAME_LENGTH:                 200 characters
+MAX_CATEGORY_LENGTH:             100 characters
+MAX_UNIT_LENGTH:                 64 characters
+MAX_NOTES_LENGTH:                2,000 characters
+MAX_RATE_KEY_LENGTH:             160 characters
+MAX_CATALOG_REVISION_LENGTH:     64 characters
+```
+
+These are **application/abuse limits**, not financial formula limits. They:
+
+```text
+must be defined in one shared decoder-policy module
+must have boundary and just-over-boundary tests
+must not be silently increased by presentation code
+```
+
 #### Structured failure semantics (names provisional)
 
 ```text
 INVALID_AUTHORITY_COMMAND
+INVALID_AUTHORITY_FIELD_TYPE
+INVALID_AUTHORITY_FIELD_VALUE
 FORBIDDEN_AUTHORITY_FIELD
 UNSUPPORTED_AUTHORITY_RATE_SOURCE
 MIXED_CATALOG_REVISIONS
 IDEMPOTENCY_CONFLICT
+AUTHORITY_REQUEST_TOO_LARGE
+TOO_MANY_ROOMS
+TOO_MANY_ITEMS
+FIELD_TOO_LONG
 ```
 
 Only the **validated** result may proceed to authenticate → ownership →
@@ -588,34 +716,42 @@ type SaveAuthorityMeasuredBoqDependencies = {
 ### 10.5 Execution order
 
 ```text
-decode unknown → SaveAuthorityMeasuredBoqCommand | structured error
-→ authenticate (session userId only)
-→ verify project ownership
-→ enforce single catalogRevision across all library lines
-→ resolve catalogue internally (immutable snapshot for that revision)
-→ run repriceMeasuredBoq / runMeasuredBoqEngine
-→ if draft → return issues; do not write canonical
-→ if authority-priced → derive payload hash; idempotency check
-→ private RPC persists engine rows + marker + idempotency record atomically
-→ return persisted estimate
+enforce raw/decoded request-size limit
+decode unknown JSON
+reject unknown or forbidden fields
+validate scalar types, enums, lengths and collection limits
+→ SaveAuthorityMeasuredBoqCommand | structured error
+authenticate (session userId only)
+derive expectedOwnerId from server session (never from browser command)
+verify current project ownership
+enforce single catalogRevision across all library lines
+resolve catalogue internally (immutable snapshot for that revision)
+run repriceMeasuredBoq / runMeasuredBoqEngine
+if draft → return issues; do not write canonical
+if authority-priced → derive payload hash; idempotency check
+private RPC: lock project, recheck owner, persist estimate + provenance +
+  marker + idempotency + estimate_done atomically
+return persisted estimate
 ```
 
 ### 10.6 Draft command (separate)
 
 May include `ai-assisted` / `fallback` / `unclassified` rates. Writes only
-`pricing_authority = none`. Never drives ROI/report.
+`pricing_authority = none`. Never drives ROI/report. **Must not** set
+`projects.estimate_done = true`. **Must not** invoke the canonical project-
+completion update.
 
 ### 10.7 Category authority command (parallel; formula unchanged)
 
 ```text
 accept category-engine inputs (region, condition, finish, categories, size) — not totals
 authenticate
-verify project ownership
+derive expectedOwnerId; verify project ownership
 run runPricingEngine on the server (do not change formula)
 persist only server-produced engine totals
 write pricing_authority = category-engine
 write category pricing_policy_version
-same private RPC + durable idempotency boundary
+same private RPC + durable idempotency + atomic estimate_done boundary
 ```
 
 Quick-category **browser** payload **cannot** mark a canonical estimate.
@@ -634,14 +770,84 @@ Quick-category **browser** payload **cannot** mark a canonical estimate.
 | subtotal, contingency, VAT, low/mid/high | matching columns | **Engine only** |
 | policyVersion | `pricing_policy_version` | Required when authority ≠ none |
 | authority | `pricing_authority = measured-boq-engine` | Server/RPC only |
-| catalog revision | `catalog_revision` | Common immutable revision |
+| catalog revision | `catalog_revision` | Common immutable revision (header) |
 | ai_generated / status | Compatibility only | **Not** authority markers |
 
-### 11.2 Rooms / items
+### 11.2 Rooms / items and library provenance
 
 Map engine room subtotals and resolved unit rates/line totals from **engine
-output only**. No durable rate_source/rateKey columns in initial 4C2 (Ticket 4D).
-Do not force `is_ai_suggested = true` for library authority lines.
+output only**. Do not force `is_ai_suggested = true` for library authority lines.
+
+Before a measured-BOQ row may be saved with
+`pricing_authority = measured-boq-engine`, each canonical **library** line must
+durably retain (exact column names finalised in Ticket 4C2C; **semantics
+required**):
+
+```text
+rate_source = library
+rate_key
+catalog_revision
+resolved_base_unit_rate
+regional_multiplier
+resolved_unit_rate
+```
+
+Consistency constraints:
+
+```text
+item catalog_revision = estimate header catalog_revision
+rate_source = library for initial measured-BOQ authority
+rate_key non-empty
+catalog_revision non-empty
+resolved rate fields finite and positive
+```
+
+All item provenance is written from the **trusted server/engine result**, never
+copied from untrusted client money.
+
+Ticket **4D** remains for broader provenance (user quotes, evidence documents,
+mixed sources, mixed revisions, legacy repair). Minimum library `rateKey`
+provenance is **not** deferred past initial canonical measured-BOQ persistence.
+
+### 11.3 Project stage fields
+
+A successful **canonical** save transaction sets:
+
+```text
+projects.estimate_done = true
+```
+
+Rules:
+
+```text
+authority-priced category or measured-BOQ save:
+  projects.estimate_done = true (atomically with estimate + marker + idempotency)
+
+draft save:
+  must not set projects.estimate_done = true
+
+failed canonical save:
+  must not leave projects.estimate_done = true from this transaction
+
+identical idempotent replay:
+  returns the existing result without creating a second estimate and preserves
+  the committed project completion state
+```
+
+```text
+projects.estimated_gdv is a valuation input, not a refurbishment-pricing output.
+
+Neither runPricingEngine nor MeasuredBoqPricingResult supplies an authoritative
+GDV value.
+
+Canonical estimate saves must leave projects.estimated_gdv unchanged.
+
+GDV mutation requires a separate valuation-authority command and contract.
+```
+
+Do **not** invent mappings such as `estimated_gdv = midTotal` / `highTotal` /
+project cost. Do not conflate refurbishment budget with post-refurbishment
+property value.
 
 ---
 
@@ -657,16 +863,21 @@ idempotency store.
 #### Server function
 
 ```text
-decode untrusted command
-authenticate user; derive userId from server session
-verify project ownership
+enforce request-size limit; decode untrusted command (allowlist + scalars)
+authenticate user; derive userId / expectedOwnerId from server session
+verify current project ownership
 compose trusted catalogue resolver
 resolve and validate every rate
 run repriceMeasuredBoq
 derive payload hash
-invoke atomic persistence RPC
+invoke atomic persistence RPC with expectedOwnerId (server-derived only)
 return persisted canonical estimate
 ```
+
+`expectedOwnerId` is server-derived and **must never** be accepted from the
+browser command. The initial server-side ownership check remains required but is
+**not sufficient alone** (TOCTOU: ownership may change before the service-role
+RPC runs).
 
 #### Persistence RPC
 
@@ -681,19 +892,64 @@ GRANT EXECUTE only to the controlled server/service database role
 server-only credential never exposed to the browser
 SECURITY DEFINER with search_path explicitly fixed
 all table references schema-qualified
-caller-supplied user_id ignored
-project ownership verified before service-role persistence
+caller-supplied user_id rejected
 ```
 
-**Alternative:** RPC independently re-verifies authentication, ownership,
-authority, catalogue, and totals before write (heavier; still not browser-open
-without those checks).
+Within the **same transaction** as the canonical write, the RPC must recheck
+ownership under a row lock:
+
+```sql
+SELECT user_id
+FROM public.projects
+WHERE id = expected_project_id
+FOR UPDATE;
+```
+
+Compare the locked owner with server-derived `expectedOwnerId`. Abort when:
+
+```text
+project does not exist
+owner does not equal expectedOwnerId
+ownership changed after initial server check
+project row cannot be locked
+```
+
+Estimate rows, project-stage update and idempotency record **must not** commit
+on ownership failure. Equivalent write-predicate locking is acceptable only if
+it provides the same atomic guarantee.
+
+#### Atomic transaction membership
+
+The private RPC transaction **atomically** contains:
+
+```text
+project ownership lock/recheck
+idempotency lookup/reservation
+estimate header insert
+estimate room inserts
+estimate item inserts
+per-item catalogue provenance
+authority marker and policy version
+projects.estimate_done update
+idempotency completion/result link
+```
+
+Any failure rolls back every member.
+
+**Not** included in this transaction:
+
+```text
+projects.estimated_gdv
+```
+
+Draft persistence remains **separate** and must never invoke the canonical
+project-completion update.
 
 A browser must not invoke the RPC directly with forged engine totals.
 
 Negative probes: direct RPC by **anon**, **authenticated owner**, and
 **authenticated non-owner** must **fail** unless routed through the authorised
-server command.
+server command. See §18 for ownership-race and completion probes.
 
 ---
 
@@ -739,7 +995,8 @@ Replay semantics:
 | same key while identical op pending | Await existing / reject as already pending |
 | different key | New save intent |
 
-Idempotency record and canonical estimate writes **commit atomically**.
+Idempotency record, ownership lock, provenance, estimate rows, and
+`estimate_done` **commit atomically** (see §12.2).
 
 Client `isPending` is a UX guard only — **not** integrity.
 
@@ -750,13 +1007,55 @@ Client `isPending` is a UX guard only — **not** integrity.
 ```text
 Never optimistically place caller-calculated totals into the canonical estimate
 cache.
+
+Canonical cache writes accept only the persisted response returned by the
+trusted server authority command.
 ```
 
 | Save type | Cache behaviour |
 | --- | --- |
-| Draft | Draft key only |
-| Authority | Wait for server result; set canonical key |
+| Draft | Draft key only; provisional presentation totals allowed on draft key |
+| Authority | Wait for server result; set canonical key from **persisted** response only |
 | Rollback | Independent draft vs canonical restore |
+
+**Forbidden** on the canonical key (including optimistic writes):
+
+```text
+optimistic caller subtotal
+optimistic caller VAT
+optimistic caller low/mid/high
+optimistic caller line totals
+optimistic authority marker
+optimistic policy/catalogue revision
+```
+
+Draft cache may hold provisional presentation totals but **must not** feed:
+
+```text
+ROI
+reports
+project stage
+canonical estimate view
+Deal Copilot financial authority
+```
+
+During canonical save:
+
+```text
+do not optimistically write money
+retain current draft
+wait for server result
+set canonical key from persisted server response
+invalidate canonical readers as required
+```
+
+On failure:
+
+```text
+canonical cache unchanged
+draft remains recoverable
+estimate_done unchanged
+```
 
 ---
 
@@ -774,15 +1073,17 @@ migration** over implicit predicates.
 
 ## 16. Proposed implementation sequence
 
-### Ticket 4C2B — Authority persistence foundation and category-path hardening
+### Ticket 4C2B — Authority persistence and category-writer foundation
 
 ```text
 authority-marker migration
-RLS marker escalation prevention
+RLS marker protection
 private atomic RPC
-durable idempotency store + uniqueness
-authenticated authority server command foundation (decoder)
-server-side quick-category repricing and save
+atomic owner recheck (FOR UPDATE + expectedOwnerId)
+durable idempotency
+server-side category writer
+canonical estimate_done update (not estimated_gdv)
+authenticated authority server command foundation (decoder + bounds)
 no measured-BOQ builder integration
 ```
 
@@ -790,17 +1091,23 @@ no measured-BOQ builder integration
 | --- |
 | browser cannot create authority rows |
 | direct browser RPC call fails (anon/owner/non-owner) |
+| ownership race before RPC rejects without partial writes |
 | server category save creates valid marked `category-engine` rows |
+| category save sets `estimate_done` atomically |
 | exact replay is idempotent; conflicting replay fails |
 
-### Ticket 4C2C — Versioned measured-BOQ catalogue foundation
+### Ticket 4C2C — Catalogue and minimum provenance foundation
 
 ```text
 immutable production catalogue
 stable rate keys
 one revision per initial estimate
-server-only resolver composition
-catalogue validation and coverage tests
+server-only resolver
+per-item library provenance schema (rate_source, rate_key, catalog_revision,
+  resolved rates)
+header/item revision constraints
+resolver and persistence mapping
+reproduction test from saved provenance
 no builder integration
 ```
 
@@ -810,40 +1117,74 @@ no builder integration
 | unknown keys fail |
 | mixed revisions fail |
 | server resolver cannot be injected |
+| line without rateKey cannot persist as measured-boq-engine |
+| saved provenance reproduces resolver lookup |
 
-### Ticket 4C2D — Draft/canonical readers and cache cutover
+### Ticket 4C2D — Draft/canonical data-access and cache foundation
 
 ```text
-separate draft and canonical readers
+separate repository methods
+separate draft and canonical queries
 separate cache keys
-financials and reports use canonical rows only
+draft cache accepts provisional client presentation
+canonical cache accepts trusted server results only
+no ROI/report reader cutover yet
 legacy rows remain non-canonical
-reader switch only after trusted category writer is live
 ```
+
+| Exit gate |
+| --- |
+| draft writes cannot mutate canonical cache |
+| authority writes update canonical cache only from persisted server response |
+| existing builders still function during transition |
 
 ### Ticket 4C2E — Manual and AI builder adapters
 
 ```text
-manual free-typed lines remain unclassified drafts
-AI lines remain ai-assisted drafts
-exact catalogue selection can create library references
-caller totals never enter canonical command
+manual free-typed rates map to unclassified drafts
+AI rates map to ai-assisted drafts
+fallback rates remain drafts
+exact catalogue selection maps to library references
+all builder saves use draft key unless canonical server command succeeds
+no caller totals enter canonical command
 draft work remains recoverable
+legacy canonical-cache mutation removed
 ```
 
-### Ticket 4C2F — Independent verification and merge
+| Exit gate |
+| --- |
+| manual and AI builders no longer place caller totals in canonical cache |
+| draft save and reload works |
+| authority save uses persisted server result |
+
+### Ticket 4C2F — Canonical reader and product cutover
+
+Only after 4C2D and 4C2E pass:
 
 ```text
-authority bypass probes
-RLS probes
-RPC permission probes
+ROI uses canonical estimate only
+reports use canonical estimate only
+project progress uses canonical completion only
+newer draft cannot replace canonical result
+fallback ordering is measured-BOQ authority → category authority → none
+Enhanced/New Build remain excluded
+```
+
+### Ticket 4C2G — Independent verification and merge
+
+```text
+decoder abuse probes (bounds, types, oversized payloads)
+ownership race probes
+RLS/RPC permission probes
 idempotency concurrency probes
+catalogue reproduction probes
+cache contamination probes
 reader fallback tests
 authenticated preview smoke
 exact-SHA merge and main verification
 ```
 
-**Do not begin any implementation ticket during 4C2A / 4C2A1.**
+**Do not begin any implementation ticket during 4C2A / 4C2A1 / 4C2A2R.**
 
 ---
 
@@ -893,12 +1234,35 @@ nested resolvedUnitRate rejected
 caller resolver rejected
 caller authority marker rejected
 caller policy version rejected
-caller userId ignored/rejected
+caller userId rejected before authentication
 unknown nested property rejected
-caller subtotal / VAT / high/mid/low ignored (never reach persistence)
+caller subtotal / VAT / high/mid/low rejected observably before authentication,
+  pricing or persistence
+forbidden top-level and nested money properties return FORBIDDEN_AUTHORITY_FIELD
+null command rejected
+array instead of object rejected
+non-string projectId rejected
+empty projectId rejected
+oversized projectId rejected
+empty idempotencyKey rejected
+oversized request rejected
+too many rooms rejected
+too many items per room rejected
+too many total items rejected
+non-array rooms/items rejected
+empty rooms rejected
+empty room items rejected
+invalid region rejected
+NaN/Infinity area rejected
+zero/negative area rejected
+NaN/Infinity quantity rejected
+zero/negative quantity rejected
+invalid costType rejected
+oversized notes rejected
+caller numeric library rate rejected
 ```
 
-### Marker / RLS / RPC
+### Marker / RLS / RPC / ownership
 
 ```text
 authenticated browser insert with pricing_authority=category-engine denied
@@ -908,14 +1272,33 @@ direct authenticated RPC invocation denied
 direct anonymous RPC invocation denied
 direct owner RPC with forged totals denied
 user from another project cannot save
+ownership changes after server check but before RPC → save rejected
+locked owner mismatch → rejected
+project missing/deleted before RPC → rejected
+non-owner expectedOwnerId → save rejected
+ownership failure → no estimate, marker, idempotency or estimate_done writes
 ```
 
-### Category transition
+### Project completion
+
+```text
+canonical category save sets estimate_done atomically
+canonical measured-BOQ save sets estimate_done atomically
+draft save does not set estimate_done
+failed canonical transaction does not set estimate_done
+estimate rows fail → estimate_done unchanged
+project update fails → no canonical estimate commits
+identical replay → one estimate and one committed project-stage result
+estimated_gdv remains unchanged on all estimate saves
+```
+
+### Category / sequence transition
 
 ```text
 quick-category browser payload cannot mark a canonical estimate
 trusted server category command can create a marked canonical estimate
 canonical readers are not switched before trusted category writer exists
+reader cutover cannot occur while legacy builder writes canonical key
 legacy category/room rows are not heuristically backfilled
 ```
 
@@ -930,13 +1313,27 @@ same key with altered quantity / rateKey / catalogRevision fails
 same key used for another project is independent
 ```
 
-### Catalogue
+### Catalogue / provenance
 
 ```text
 mixed catalogue revisions rejected
 unknown catalogue revision rejected
 unknown rateKey cannot save canonically
 immutable revision cannot be overwritten
+canonical library line without rateKey cannot persist
+item revision mismatch with header cannot persist
+saved line provenance reproduces resolver lookup
+header-only revision without item rateKey is insufficient
+```
+
+### Cache sequencing
+
+```text
+draft builder save touches draft key only
+authority save waits for server response
+caller totals never enter canonical cache
+newer draft does not replace canonical financials
+reader cutover cannot occur while legacy builder writes canonical key
 ```
 
 ### Draft vs canonical product behaviour
@@ -955,13 +1352,16 @@ failed room/item persistence leaves no partial canonical estimate
 
 ## 19. Deferred work
 
-- Ticket 4D durable line-level provenance columns
+- Ticket 4D broader provenance (user quotes, evidence documents, mixed sources,
+  mixed revisions, legacy provenance repair) — **minimum library rateKey
+  provenance is Ticket 4C2C, not deferred**
 - User-quote authority path
 - Fuzzy catalogue matching (**never**)
 - Enhanced / New Build as canonical
 - Overloading `status = approved` as pricing authority
 - Mixed catalogue revisions in one estimate
 - Implicit predicates on legacy rows
+- Separate valuation-authority command for `estimated_gdv`
 
 ---
 
@@ -992,6 +1392,7 @@ docs/architecture/l3-estimate-authority-contract.md
 
 Parent contract states room saves persist client totals and that
 `is_ai_suggested` is unreliable. This plan **confirms** those facts and elevates
-**cumulative** gates: catalogue, write-protected markers, private RPC, runtime
-decoder, durable idempotency, and safe category-path cutover before measured-BOQ
-product wiring.
+**cumulative** gates: catalogue with per-item provenance, write-protected
+markers, private RPC with atomic owner recheck, runtime decoder with bounds,
+durable idempotency, builder/cache separation, and safe category-path cutover
+before measured-BOQ product wiring.
