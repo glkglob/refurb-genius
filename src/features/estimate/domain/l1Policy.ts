@@ -11,10 +11,9 @@
 import {
   REFERENCE_SIZE_SQM,
   postcodeToUkRegion,
-  type EstimateCategory,
-  type FinishLevel,
   type PricingEngineInputs,
-} from "./index";
+} from "@repo/services";
+import type { EstimateCategory, FinishLevel } from "@repo/core/utilities/pricingData";
 import type { ConditionLevel, UKRegion } from "@repo/types";
 
 /** Bump when maps or default values change so diagnostics stay auditable. */
@@ -83,10 +82,7 @@ export function resolveL1Inputs(user: L1UserInput): L1ResolvedInputs {
 
   const trimmedPostcode = user.postcode.trim();
   const region = postcodeToUkRegion(trimmedPostcode || "");
-  // postcodeToUkRegion falls back to London when the area is unrecognised.
   const area = extractPostcodeArea(trimmedPostcode);
-  const regionMapped = area.length > 0 && region !== "London" ? true : area.length > 0;
-  // Treat empty/unrecognised postcode as unmapped so assumptions stay honest.
   const effectivelyMapped = Boolean(trimmedPostcode) && area.length > 0;
   if (!effectivelyMapped) {
     appliedDefaults.push(
