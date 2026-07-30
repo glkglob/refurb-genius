@@ -134,6 +134,63 @@ describe("useOAuthSignIn — Apple", () => {
   });
 });
 
+describe("useOAuthSignIn — GitHub", () => {
+  it("tracks analytics before primitive with exact GitHub provider and redirect_to", async () => {
+    const order: string[] = [];
+    trackEvent.mockImplementation(() => {
+      order.push("analytics");
+    });
+    startOAuthSignIn.mockImplementation(async () => {
+      order.push("auth");
+    });
+
+    const { result } = renderHook(() => useOAuthSignIn());
+
+    await act(async () => {
+      await result.current.startGitHubOAuth("/projects");
+    });
+
+    expect(order).toEqual(["analytics", "auth"]);
+    expect(trackEvent).toHaveBeenCalledWith("oauth_sign_in_initiated", {
+      provider: "github",
+    });
+    expect(startOAuthSignIn).toHaveBeenCalledWith({
+      provider: "github",
+      redirectTo: "https://app.example/auth/callback",
+      queryParams: {
+        redirect_to: "/projects",
+      },
+    });
+  });
+
+  it("omits queryParams when redirect is undefined", async () => {
+    const { result } = renderHook(() => useOAuthSignIn());
+
+    await act(async () => {
+      await result.current.startGitHubOAuth(undefined);
+    });
+
+    expect(startOAuthSignIn).toHaveBeenCalledWith({
+      provider: "github",
+      redirectTo: "https://app.example/auth/callback",
+      queryParams: undefined,
+    });
+  });
+
+  it("propagates primitive errors unchanged", async () => {
+    startOAuthSignIn.mockRejectedValue(new Error("GitHub authorization failed"));
+    const { result } = renderHook(() => useOAuthSignIn());
+
+    await expect(
+      act(async () => {
+        await result.current.startGitHubOAuth("/projects");
+      }),
+    ).rejects.toThrow("GitHub authorization failed");
+
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("useOAuthSignIn — source boundary", () => {
   it("does not log, toast, navigate, or set loading", () => {
     const src = readFileSync(SRC, "utf8")
@@ -143,9 +200,10 @@ describe("useOAuthSignIn — source boundary", () => {
     expect(src).toMatch(/trackEvent/);
     expect(src).toMatch(/auth\/callback/);
     expect(src).toMatch(/redirect_to/);
+    expect(src).toMatch(/startGitHubOAuth/);
     expect(src).not.toMatch(/\blogger\b|\btoast\b/);
     expect(src).not.toMatch(/useNavigate|navigate\s*\(/);
-    expect(src).not.toMatch(/setOauthLoading|setAppleLoading|useState/);
+    expect(src).not.toMatch(/setOauthLoading|setAppleLoading|setGitHubLoading|useState/);
     expect(src).not.toMatch(/@\/platform\/supabase/);
   });
 });

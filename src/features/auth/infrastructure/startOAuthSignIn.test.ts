@@ -67,6 +67,23 @@ describe("startOAuthSignIn", () => {
     });
   });
 
+  it("calls signInWithOAuth once for GitHub with exact options", async () => {
+    await startOAuthSignIn({
+      provider: "github",
+      redirectTo: "https://app.example/auth/callback",
+      queryParams: { redirect_to: "/projects" },
+    });
+
+    expect(signInWithOAuth).toHaveBeenCalledTimes(1);
+    expect(signInWithOAuth).toHaveBeenCalledWith({
+      provider: "github",
+      options: {
+        redirectTo: "https://app.example/auth/callback",
+        queryParams: { redirect_to: "/projects" },
+      },
+    });
+  });
+
   it("passes undefined queryParams when omitted", async () => {
     await startOAuthSignIn({
       provider: "google",

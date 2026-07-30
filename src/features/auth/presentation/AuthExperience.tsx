@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { AlertCircle, Check, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  Eye,
+  EyeOff,
+  Github,
+  Loader2,
+  Lock,
+  Mail,
+  ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -117,7 +127,7 @@ function GoogleIcon() {
 export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   const navigate = useNavigate();
   const { signInWithPassword, signUpWithPassword } = useAuthPasswordCredentials();
-  const { startGoogleOAuth, startAppleOAuth } = useOAuthSignIn();
+  const { startGoogleOAuth, startAppleOAuth, startGitHubOAuth } = useOAuthSignIn();
   const { sendMagicLink, requestPasswordReset, updatePassword } = useAuthEmailAccess();
 
   const [mode, setMode] = useState<AuthMode>(initialMode);
@@ -138,6 +148,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   const [submitting, setSubmitting] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [githubLoading, setGitHubLoading] = useState(false);
   const [magicLinkLoading, setMagicLinkLoading] = useState(false);
   const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false);
 
@@ -178,7 +189,12 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   const isLocked = remainingSeconds > 0;
 
   const formDisabled =
-    submitting || oauthLoading || appleLoading || magicLinkLoading || forgotPasswordLoading;
+    submitting ||
+    oauthLoading ||
+    appleLoading ||
+    githubLoading ||
+    magicLinkLoading ||
+    forgotPasswordLoading;
 
   const pageEyebrow = useMemo(() => {
     if (isSignIn) return "Sign in";
@@ -329,6 +345,23 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
       logger.error("[auth] apple auth failed", { error: String(err) });
       setError(err instanceof Error ? err.message : "Apple sign in failed.");
       setAppleLoading(false);
+    }
+  }
+
+  async function handleGitHubAuth() {
+    setError("");
+    setGitHubLoading(true);
+
+    try {
+      await startGitHubOAuth(redirect);
+    } catch (err) {
+      logger.error("[auth] GitHub OAuth failed", {
+        error: String(err),
+      });
+
+      setError(err instanceof Error ? err.message : "Could not continue with GitHub.");
+
+      setGitHubLoading(false);
     }
   }
 
@@ -762,7 +795,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                         Uses the email address above. Check your inbox for a secure sign-in link.
                       </p>
 
-                      <div className="grid gap-2 sm:grid-cols-1">
+                      <div className="grid gap-2 sm:grid-cols-2">
                         <Button
                           type="button"
                           variant="outline"
@@ -802,6 +835,28 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                             </>
                           )}
                         </Button>
+
+                        <div className="sm:col-span-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={outlineButtonClassName}
+                            onClick={handleGitHubAuth}
+                            disabled={formDisabled || (isSignIn && isLocked)}
+                          >
+                            {githubLoading ? (
+                              <>
+                                <Loader2 {...decorativeIconProps("h-4 w-4 animate-spin")} />
+                                Connecting to GitHub...
+                              </>
+                            ) : (
+                              <>
+                                <Github {...decorativeIconProps("h-4 w-4")} />
+                                Continue with GitHub
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>

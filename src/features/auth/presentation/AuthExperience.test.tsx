@@ -11,6 +11,7 @@ const signInWithPassword = vi.fn();
 const signUpWithPassword = vi.fn();
 const startGoogleOAuth = vi.fn();
 const startAppleOAuth = vi.fn();
+const startGitHubOAuth = vi.fn();
 const sendMagicLink = vi.fn();
 const requestPasswordReset = vi.fn();
 const updatePassword = vi.fn();
@@ -29,6 +30,7 @@ vi.mock("./hooks/useOAuthSignIn", () => ({
   useOAuthSignIn: () => ({
     startGoogleOAuth: (...args: unknown[]) => startGoogleOAuth(...args),
     startAppleOAuth: (...args: unknown[]) => startAppleOAuth(...args),
+    startGitHubOAuth: (...args: unknown[]) => startGitHubOAuth(...args),
   }),
 }));
 
@@ -77,6 +79,7 @@ beforeEach(() => {
   signUpWithPassword.mockReset();
   startGoogleOAuth.mockReset();
   startAppleOAuth.mockReset();
+  startGitHubOAuth.mockReset();
   sendMagicLink.mockReset();
   requestPasswordReset.mockReset();
   updatePassword.mockReset();
@@ -87,6 +90,7 @@ beforeEach(() => {
   signUpWithPassword.mockResolvedValue("session");
   startGoogleOAuth.mockResolvedValue(undefined);
   startAppleOAuth.mockResolvedValue(undefined);
+  startGitHubOAuth.mockResolvedValue(undefined);
   sendMagicLink.mockResolvedValue(undefined);
   requestPasswordReset.mockResolvedValue(undefined);
   updatePassword.mockResolvedValue(undefined);
@@ -271,6 +275,114 @@ describe("AuthExperience — OAuth presentation (AO-1E1.2)", () => {
     expect(loggerError).toHaveBeenCalledWith("[auth] apple auth failed", {
       error: "Error: Apple denied",
     });
+  });
+
+  it("renders Continue with GitHub in sign-in and signup modes", () => {
+    const { unmount } = render(
+      createElement(AuthExperience, { initialMode: "signin", redirect: "/projects" }),
+    );
+    expect(screen.getByRole("button", { name: /continue with github/i })).toBeTruthy();
+    unmount();
+
+    render(createElement(AuthExperience, { initialMode: "signup", redirect: "/projects" }));
+    expect(screen.getByRole("button", { name: /continue with github/i })).toBeTruthy();
+  });
+
+  it("omits Continue with GitHub in reset mode", () => {
+    render(createElement(AuthExperience, { initialMode: "reset" }));
+    expect(screen.queryByRole("button", { name: /continue with github/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /continue with google/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /continue with apple/i })).toBeNull();
+  });
+
+  it("calls startGitHubOAuth with redirect and leaves loading on success", async () => {
+    let resolveOAuth!: () => void;
+    startGitHubOAuth.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveOAuth = resolve;
+        }),
+    );
+
+    render(createElement(AuthExperience, { initialMode: "signin", redirect: "/projects" }));
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: /continue with github/i,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(startGitHubOAuth).toHaveBeenCalledWith("/projects");
+    });
+    expect(screen.getByText(/connecting to github/i)).toBeTruthy();
+
+    resolveOAuth();
+    await waitFor(() => {
+      expect(startGitHubOAuth).toHaveBeenCalledTimes(1);
+    });
+    // Success leaves githubLoading true (no failure path) — spinner remains until unmount/redirect.
+    expect(screen.getByText(/connecting to github/i)).toBeTruthy();
+    expect(loggerError).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("GitHub pending disables competing auth actions and blocks double submit", async () => {
+    let resolveOAuth!: () => void;
+    startGitHubOAuth.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveOAuth = resolve;
+        }),
+    );
+
+    render(createElement(AuthExperience, { initialMode: "signin", redirect: "/projects" }));
+    const github = screen.getByRole("button", { name: /continue with github/i });
+    fireEvent.click(github);
+
+    await waitFor(() => {
+      expect(startGitHubOAuth).toHaveBeenCalledWith("/projects");
+    });
+    expect(screen.getByText(/connecting to github/i)).toBeTruthy();
+
+    const google = screen.getByRole("button", { name: /continue with google/i });
+    const apple = screen.getByRole("button", { name: /continue with apple/i });
+    const magic = screen.getByRole("button", { name: /continue with magic link/i });
+    const submit = document.querySelector('form button[type="submit"]') as HTMLButtonElement;
+    const emailInput = document.getElementById("email") as HTMLInputElement;
+    const passwordInput = document.getElementById("password") as HTMLInputElement;
+
+    expect((github as HTMLButtonElement).disabled).toBe(true);
+    expect((google as HTMLButtonElement).disabled).toBe(true);
+    expect((apple as HTMLButtonElement).disabled).toBe(true);
+    expect((magic as HTMLButtonElement).disabled).toBe(true);
+    expect(submit.disabled).toBe(true);
+    expect(emailInput.disabled).toBe(true);
+    expect(passwordInput.disabled).toBe(true);
+
+    fireEvent.click(github);
+    expect(startGitHubOAuth).toHaveBeenCalledTimes(1);
+
+    resolveOAuth();
+  });
+
+  it("clears GitHub loading and shows error copy on failure", async () => {
+    startGitHubOAuth.mockRejectedValue(new Error("GitHub authorization failed"));
+    render(createElement(AuthExperience, { initialMode: "signin", redirect: "/projects" }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with github/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("GitHub authorization failed")).toBeTruthy();
+    });
+    expect(loggerError).toHaveBeenCalledWith("[auth] GitHub OAuth failed", {
+      error: "Error: GitHub authorization failed",
+    });
+    expect(screen.getByRole("button", { name: /continue with github/i })).toBeTruthy();
+    expect(screen.queryByText(/connecting to github/i)).toBeNull();
+    expect(
+      (screen.getByRole("button", { name: /continue with github/i }) as HTMLButtonElement).disabled,
+    ).toBe(false);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(startGitHubOAuth).toHaveBeenCalledTimes(1);
   });
 });
 

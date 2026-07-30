@@ -12,6 +12,7 @@ import { startOAuthSignIn } from "../../infrastructure/startOAuthSignIn";
 export interface UseOAuthSignInResult {
   startGoogleOAuth: (redirect?: string) => Promise<void>;
   startAppleOAuth: (redirect?: string) => Promise<void>;
+  startGitHubOAuth: (redirect?: string) => Promise<void>;
 }
 
 function buildOAuthInitiationOptions(redirect?: string) {
@@ -41,8 +42,23 @@ export function useOAuthSignIn(): UseOAuthSignInResult {
     });
   }, []);
 
+  const startGitHubOAuth = useCallback(async (redirect?: string): Promise<void> => {
+    const { redirectTo, queryParams } = buildOAuthInitiationOptions(redirect);
+
+    trackEvent("oauth_sign_in_initiated", {
+      provider: "github",
+    });
+
+    await startOAuthSignIn({
+      provider: "github",
+      redirectTo,
+      queryParams,
+    });
+  }, []);
+
   return {
     startGoogleOAuth,
     startAppleOAuth,
+    startGitHubOAuth,
   };
 }
