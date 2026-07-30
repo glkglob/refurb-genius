@@ -207,11 +207,12 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
       return;
     }
 
-    if (isSignUp) {
-      if (!agreeTerms) {
-        setError("Please accept the Terms and Privacy Policy to continue.");
-        return;
-      }
+    if (isSignUp && !agreeTerms) {
+      setError("Please accept the Terms and Privacy Policy to continue.");
+      return;
+    }
+
+    if (isSignUp || isReset) {
       if (password.length < 6) {
         setError("Password must be at least 6 characters.");
         return;

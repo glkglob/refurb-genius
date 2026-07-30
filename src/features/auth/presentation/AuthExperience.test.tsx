@@ -340,6 +340,9 @@ describe("AuthExperience — email access presentation (AO-1E1.3)", () => {
     const passwordInput = document.getElementById("password") as HTMLInputElement;
     expect(passwordInput).toBeTruthy();
     fireEvent.change(passwordInput, { target: { value: "new-secret-12" } });
+    const confirmPasswordInput = document.getElementById("confirm-password") as HTMLInputElement;
+    expect(confirmPasswordInput).toBeTruthy();
+    fireEvent.change(confirmPasswordInput, { target: { value: "new-secret-12" } });
     submitAuthForm();
 
     await waitFor(() => {
