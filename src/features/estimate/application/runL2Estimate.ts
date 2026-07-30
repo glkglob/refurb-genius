@@ -11,6 +11,7 @@ import {
   runPricingEngine,
   type EstimateSource,
   type L2UserInput,
+  type L2UserProvided,
   type PricingEngineResult,
 } from "../domain";
 
@@ -23,13 +24,7 @@ export type L2EstimateResult = {
   policyVersion: string;
   assumptions: string[];
   keyDrivers: Array<{ label: string; value: string }>;
-  userProvided: {
-    finish: boolean;
-    size: boolean;
-    categories: boolean;
-    regionMapped: boolean;
-    postcodeConfidenceEligible: boolean;
-  };
+  userProvided: L2UserProvided;
 };
 
 /**

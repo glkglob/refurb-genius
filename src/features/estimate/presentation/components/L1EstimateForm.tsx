@@ -105,6 +105,10 @@ export function L1EstimateForm({ className, onEstimated }: L1EstimateFormProps) 
   }
 
   function handleDetailsToggle() {
+    if (detailsOpen) {
+      // Closing L2 returns to L1 submission mode and hides price-driving fields.
+      invalidateResult();
+    }
     setDetailsOpen((open) => !open);
   }
 

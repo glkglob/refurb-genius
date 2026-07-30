@@ -15,7 +15,7 @@ describe("runPricingEngine assumptions — size provenance", () => {
     expect(result.assumptions.some((a) => a.includes("Property size not provided"))).toBe(false);
     expect(
       result.assumptions.some(
-        (a) => a === `Property size: ${REFERENCE_SIZE_SQM}m² (reference ${REFERENCE_SIZE_SQM}m²)`,
+        (a) => a === `Property size: ${REFERENCE_SIZE_SQM} m² (reference ${REFERENCE_SIZE_SQM} m²)`,
       ),
     ).toBe(true);
   });
@@ -25,7 +25,7 @@ describe("runPricingEngine assumptions — size provenance", () => {
     expect(result.assumptions.some((a) => a.includes("Property size not provided"))).toBe(false);
     expect(
       result.assumptions.some(
-        (a) => a === `Property size: 120m² (reference ${REFERENCE_SIZE_SQM}m²)`,
+        (a) => a === `Property size: 120 m² (reference ${REFERENCE_SIZE_SQM} m²)`,
       ),
     ).toBe(true);
   });

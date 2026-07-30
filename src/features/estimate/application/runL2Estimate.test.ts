@@ -76,7 +76,7 @@ describe("runL2Estimate", () => {
     expect(result.assumptions.some((a) => a.includes("Property size provided"))).toBe(false);
     expect(result.userProvided.size).toBe(true);
     expect(result.keyDrivers.find((d) => d.label === "Size")?.value).toBe("90 m²");
-    expect(result.assumptions.some((a) => a.includes("Property size: 90m²"))).toBe(true);
+    expect(result.assumptions.some((a) => a.includes("Property size: 90 m²"))).toBe(true);
   });
 
   it("authoritative totals match runPricingEngine on the same resolved inputs", () => {

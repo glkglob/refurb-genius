@@ -228,4 +228,31 @@ describe("L1EstimateForm progressive journey", () => {
     expect(poor).toHaveAttribute("aria-pressed", "true");
     expect(dated).toHaveAttribute("aria-pressed", "false");
   });
+
+  it("retains a valid L1 result when opening more detail", () => {
+    render(<L1EstimateForm />);
+    fillL1();
+    submit();
+    expect(screen.getByText(/estimated cost/i)).toBeInTheDocument();
+    expect(screen.getByText(/confidence:\s*low/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /add more detail/i }));
+    expect(screen.getByText(/estimated cost/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/floor area/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Premium" })).toBeInTheDocument();
+  });
+
+  it("clears an L2 result when closing more detail", () => {
+    render(<L1EstimateForm />);
+    fillL1();
+    openDetails();
+    fireEvent.click(screen.getByRole("button", { name: "Premium" }));
+    fireEvent.change(screen.getByLabelText(/floor area/i), { target: { value: "120" } });
+    submit();
+    expect(screen.getByText(/estimated cost/i)).toBeInTheDocument();
+    expect(screen.getByText(/confidence:\s*medium/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /hide extra detail/i }));
+    expect(screen.queryByText(/estimated cost/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/floor area/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /get estimate/i })).toBeInTheDocument();
+  });
 });

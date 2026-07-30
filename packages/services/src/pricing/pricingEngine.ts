@@ -175,7 +175,7 @@ function buildAssumptions(inputs: PricingEngineInputs, sizeMult: number): string
   // for call-site compatibility and is not used for wording.
   void sizeMult;
   assumptions.push(
-    `Property size: ${inputs.property_size_sqm}m² (reference ${REFERENCE_SIZE_SQM}m²)`,
+    `Property size: ${inputs.property_size_sqm} m² (reference ${REFERENCE_SIZE_SQM} m²)`,
   );
   return assumptions;
 }

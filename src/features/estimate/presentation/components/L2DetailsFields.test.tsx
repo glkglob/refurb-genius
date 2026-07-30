@@ -97,4 +97,13 @@ describe("L2DetailsFields", () => {
     fireEvent.change(screen.getByLabelText(/floor area/i), { target: { value: "120" } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ propertySize: "120" }));
   });
+
+  it("sets aria-controls only while category refinement is enabled", () => {
+    render(<Harness intent="full-refurb" />);
+    const toggle = screen.getByLabelText(/refine work categories/i);
+    expect(toggle).not.toHaveAttribute("aria-controls");
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-controls", "l2-category-group");
+    expect(document.getElementById("l2-category-group")).not.toBeNull();
+  });
 });

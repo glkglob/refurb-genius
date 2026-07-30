@@ -135,7 +135,7 @@ export function L2DetailsFields({
             checked={value.categoryRefinementEnabled}
             disabled={intent == null}
             onCheckedChange={(checked) => setCategoryRefinementEnabled(checked)}
-            aria-controls="l2-category-group"
+            aria-controls={value.categoryRefinementEnabled ? "l2-category-group" : undefined}
           />
           <div className="space-y-1">
             <Label htmlFor="l2-refine-categories" className="font-medium">
