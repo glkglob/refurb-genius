@@ -22,3 +22,11 @@ export {
   type UseAIEstimateBuilderSaveResult,
 } from "./hooks/useAIEstimateBuilderSave";
 export type { GenerateEstimateInput, AIGeneratedRoom, AIGeneratedItem } from "../domain";
+
+/** L1 progressive estimate UI */
+export {
+  CostSummary,
+  type CostSummaryProps,
+  type CostSummaryConfidence,
+} from "./components/CostSummary";
+export { L1EstimateForm, type L1EstimateFormProps } from "./components/L1EstimateForm";
