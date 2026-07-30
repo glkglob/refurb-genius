@@ -39,3 +39,18 @@ export type {
   AILineItemInput,
   CalculatedLineItem,
 } from "@repo/services";
+
+/** Canonical estimate source classifications. */
+export { ESTIMATE_SOURCES, type EstimateSource } from "./estimateSource";
+
+/** L1 progressive estimate policy (versioned defaults + chip maps). */
+export {
+  L1_POLICY_VERSION,
+  L1_CONDITION_OPTIONS,
+  L1_INTENT_OPTIONS,
+  resolveL1Inputs,
+  type L1ConditionChip,
+  type L1IntentChip,
+  type L1UserInput,
+  type L1ResolvedInputs,
+} from "./l1Policy";
