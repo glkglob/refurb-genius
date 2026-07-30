@@ -280,7 +280,7 @@ describe("AuthExperience — email access presentation (AO-1E1.3)", () => {
     fireEvent.change(document.getElementById("email") as HTMLInputElement, {
       target: { value: "user@example.com" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /email me a magic link/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with magic link/i }));
 
     await waitFor(() => {
       expect(sendMagicLink).toHaveBeenCalledWith("user@example.com", "/projects");
@@ -289,12 +289,12 @@ describe("AuthExperience — email access presentation (AO-1E1.3)", () => {
       expect(toastSuccess).toHaveBeenCalledWith("Magic link sent. Check your inbox.");
     });
     expect(navigate).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: /email me a magic link/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /continue with magic link/i })).toBeTruthy();
   });
 
   it("validates empty email for magic link without calling the hook", async () => {
     render(createElement(AuthExperience, { initialMode: "signin" }));
-    fireEvent.click(screen.getByRole("button", { name: /email me a magic link/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with magic link/i }));
 
     await waitFor(() => {
       expect(screen.getByText("Enter your email first to receive a magic link.")).toBeTruthy();
@@ -308,7 +308,7 @@ describe("AuthExperience — email access presentation (AO-1E1.3)", () => {
     fireEvent.change(document.getElementById("email") as HTMLInputElement, {
       target: { value: "user@example.com" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /email me a magic link/i }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with magic link/i }));
 
     await waitFor(() => {
       expect(screen.getByText("otp blocked")).toBeTruthy();
@@ -337,7 +337,9 @@ describe("AuthExperience — email access presentation (AO-1E1.3)", () => {
 
   it("updates password in reset mode and navigates to sign-in", async () => {
     render(createElement(AuthExperience, { initialMode: "reset", redirect: "/projects" }));
-    fillEmailPassword("user@example.com", "new-secret-12");
+    const passwordInput = document.getElementById("password") as HTMLInputElement;
+    expect(passwordInput).toBeTruthy();
+    fireEvent.change(passwordInput, { target: { value: "new-secret-12" } });
     submitAuthForm();
 
     await waitFor(() => {
@@ -353,6 +355,88 @@ describe("AuthExperience — email access presentation (AO-1E1.3)", () => {
       search: { mode: "signin", redirect: "/projects" },
       replace: true,
     });
+  });
+});
+
+describe("AuthExperience — redesign presentation contracts", () => {
+  it("signin mode does not render signup-only profile fields or terms", () => {
+    render(createElement(AuthExperience, { initialMode: "signin" }));
+    expect(document.getElementById("name")).toBeNull();
+    expect(document.getElementById("company")).toBeNull();
+    expect(document.getElementById("terms-consent")).toBeNull();
+    expect(screen.queryByText(/optional profile details/i)).toBeNull();
+  });
+
+  it("signup mode renders optional profile section and terms links", () => {
+    render(createElement(AuthExperience, { initialMode: "signup" }));
+    expect(screen.getByText(/optional profile details/i)).toBeTruthy();
+    expect(document.getElementById("name")).toBeTruthy();
+    expect(document.getElementById("company")).toBeTruthy();
+    const terms = screen.getByRole("link", { name: /^terms$/i });
+    const privacy = screen.getByRole("link", { name: /privacy policy/i });
+    expect(terms.getAttribute("href")).toBe("/terms");
+    expect(privacy.getAttribute("href")).toBe("/privacy");
+  });
+
+  it("reset mode omits OAuth alternatives and email field", () => {
+    render(createElement(AuthExperience, { initialMode: "reset" }));
+    expect(document.getElementById("email")).toBeNull();
+    expect(screen.queryByRole("button", { name: /continue with google/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /continue with apple/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /continue with magic link/i })).toBeNull();
+    expect(screen.getByRole("button", { name: /update password/i })).toBeTruthy();
+  });
+
+  it("header mode action switches sign-in/signup", async () => {
+    render(createElement(AuthExperience, { initialMode: "signin", redirect: "/projects" }));
+    fireEvent.click(screen.getByRole("button", { name: /^sign up$/i }));
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith({
+        to: "/auth",
+        search: { mode: "signup", redirect: "/projects" },
+        replace: true,
+      });
+    });
+  });
+
+  it("segmented control reflects active mode", () => {
+    render(createElement(AuthExperience, { initialMode: "signup" }));
+    const tablist = screen.getByRole("tablist", { name: /authentication mode/i });
+    expect(tablist).toBeTruthy();
+    const signupTab = screen.getByRole("tab", { name: /^sign up$/i });
+    const signinTab = screen.getByRole("tab", { name: /^sign in$/i });
+    expect(signupTab.getAttribute("aria-selected")).toBe("true");
+    expect(signinTab.getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("verification state uses redesigned shell and product overview", async () => {
+    signUpWithPassword.mockResolvedValue("awaiting_verification");
+    render(createElement(AuthExperience, { initialMode: "signup" }));
+    fillEmailPassword("verify@ex.com", "secret12");
+    fireEvent.change(screen.getByLabelText(/confirm password/i), {
+      target: { value: "secret12" },
+    });
+    fireEvent.click(screen.getByRole("checkbox"));
+    submitAuthForm();
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: /check your email/i })).toBeTruthy();
+    });
+    expect(screen.getByRole("region", { name: /product overview/i })).toBeTruthy();
+    expect(screen.getByRole("main")).toBeTruthy();
+    expect(document.getElementById("main-content")).toBeTruthy();
+  });
+
+  it("form has one unambiguous submit action", () => {
+    render(createElement(AuthExperience, { initialMode: "signin" }));
+    const submits = document.querySelectorAll('form button[type="submit"]');
+    expect(submits.length).toBe(1);
+  });
+
+  it("exposes product overview landmark and security note", () => {
+    render(createElement(AuthExperience, { initialMode: "signin" }));
+    expect(screen.getByRole("region", { name: /product overview/i })).toBeTruthy();
+    expect(screen.getByText(/secure • protected by supabase/i)).toBeTruthy();
   });
 });
 
