@@ -1,128 +1,253 @@
-# AGENTS.md — Refurb Genius Development Guide
+# AGENTS.md — Refurb Genius Standards
 
-> Single source of truth for AI coding agents and contributors. Read fully before making changes.
-
----
-
-## Project Overview
-
-Refurb Genius is a property refurbishment estimation platform for UK property investors. Users photograph rooms, AI analyses the photos (materials, condition, dimensions), and the system generates scope-of-work documents and cost estimates. The app also includes a Deal Copilot for evaluating property investment opportunities and a Trades marketplace connecting investors with tradespeople.
-
-**Maturity:** Late Alpha / Early Beta. Core features work end-to-end; test coverage and UI package migration are the main gaps.
-
-**Current AI:** Pure TS serverFns + OpenAI (gpt-4o) only. Railway/Python backend fully decommissioned (see docs/architecture/ai-platform.md).
+> Canonical contributor and agent standards.
+> Read fully before changing code.
+> For contributor behaviour and implementation rules, this file wins over older guidance.
+> ADRs remain authoritative for architecture decisions, and the migration register plus
+> repository evidence remain authoritative for programme status.
 
 ---
 
-## Tech Stack
+## 0. Mission
 
-| Layer          | Technology                                               |
-| -------------- | -------------------------------------------------------- |
-| Framework      | TanStack Start (React 19 meta-framework)                 |
-| Build          | Vite 7 + Nitro (SSR/server preset)                       |
-| Language       | TypeScript 5.8 (strict mode, ES2022 target)              |
-| Styling        | Tailwind CSS v4 + Radix UI primitives                    |
-| UI Components  | shadcn/ui pattern, migrating to `@repo/ui` package       |
-| State          | TanStack Router (URL state) + React hooks                |
-| Backend        | Supabase (Postgres, Auth, Storage, Edge Functions)       |
-| AI             | OpenAI Vision (gpt-4o) via `createServerFn`              |
-| Deployment     | Vercel (`vite.vercel.config.ts` + Nitro `vercel` preset) |
-| Error Tracking | Sentry (`@sentry/react` + `@sentry/vite-plugin`)         |
-| Monorepo       | pnpm workspaces + Turborepo                              |
-| CI             | GitHub Actions (typecheck + lint + build + invariants)   |
-| Validation     | Zod (runtime schema validation on all external data)     |
+Refurb Genius is the UK-first platform for:
+
+**Postcode / photo → trustworthy local refurb cost → deal decision.**
+
+It is the public spine of a larger intelligent platform.  
+Deal Copilot is the first agent surface (inside this app).  
+Refurb IQ is the future commercial layer — built on the same engines, not a parallel stack.
+
+**North star:** Trusted UK numbers in under 10 minutes (L1 aim under 2 minutes). Not feature count.
+
+**Maturity:** Late Alpha / Early Beta. Core loops work. Primary gaps: progressive L1 UX, source-badge consistency, remaining multi-root debt (especially Deal Copilot), browser end-to-end coverage and consistent `test:ui` CI enforcement.
+
+**AI runtime:** Pure TypeScript `createServerFn` + OpenAI only. Railway/Python is gone. Do not reintroduce it.
 
 ---
 
-## Repository Structure
+## 1. Non-negotiable rules
+
+| # | Rule |
+|---|------|
+| 1 | Money comes only from `@repo/services` — pricing → ROI → deal score. Never invent unit costs, totals, or profit in UI, prompts, or agents. |
+| 2 | AI is advisory. Scope, condition, recommendations — yes. Authoritative £ — no. AI output must pass the normalizer → engines before display or persistence as authoritative. |
+| 3 | Secrets stay server-only. No `VITE_` for OpenAI, service role, or payment secrets. |
+| 4 | New product work lives in `src/features/<slice>/` with a public `index.ts` API. |
+| 5 | Do not move the root TanStack `src/` shell or extract auth/bootstrap into packages unless an explicit ADR says so. |
+| 6 | Applications never import each other. Packages own reusable capabilities. Features stay app-local until a second real consumer exists. |
+| 7 | Empty layers and “just in case” packages are forbidden. |
+| 8 | Do not rewrite to Next.js. This is TanStack Start. |
+| 9 | Do not create no-op commits to “trigger” CI/Supabase unless a human explicitly authorises a controlled ops procedure. |
+| 10 | Prefer small, reversible PRs. One concern per PR. |
+
+---
+
+## 2. Financial authority
+
+| Concern | Owner |
+|---------|-------|
+| Authoritative refurb `mid_total` | `@repo/services` pricing (`runPricingEngine`) |
+| Authoritative ROI | `@repo/services` ROI (`runRoiEngine`) using pricing `mid_total` as budget |
+| Deal score | `@repo/services` deal-analysis (after pricing + ROI) |
+| Enhanced / new-build estimates | `@repo/services` estimating modules — advisory unless product policy promotes them |
+| AI money-like output | Must pass normalizer → engines before display or persistence as authoritative |
+
+**Required pipeline:**
 
 ```
-refurb-genius/
-├── src/
-│   ├── features/                 # ★ Vertical slices (canonical home for new product work)
-│   │   ├── estimate|ai-upload|ai-design|roi|feasibility|…
-│   │   └── each: domain/ application/ infrastructure/ presentation/ index.ts
-│   ├── platform/                 # Vendor SDK seams (browser vs server entrypoints)
-│   ├── routes/                   # Thin TanStack file routes (delegate to slices)
-│   ├── components/               # App shell + UI composition (shims → @repo/ui)
-│   ├── core/ · lib/ · hooks/ · services/ · serverFns/  # Transitional (frozen)
-│   ├── integrations/supabase/    # Generated types — DO NOT hand-edit
-│   ├── server.ts · router.tsx · styles.css
-│   └── routeTree.gen.ts          # Auto-generated — DO NOT edit
-├── packages/                     # @repo/* shared kernel (types, core, services, ui, supabase)
-├── supabase/                     # Migrations + Edge Functions
-├── tests/invariants/             # Architecture gates (feature-slice, freeze, security, …)
-├── docs/architecture/            # FEATURE_SLICE.md is source of truth for request flow
-└── …
+Photos / form → AI (scope, items, qty, condition) [advisory]
+            → normalizeAIEstimate [map + clamp]
+            → runPricingEngine / line authority [authority £]
+            → runRoiEngine / scoreDealOpportunity [investment]
+            → UI with source badge + assumptions
+```
+
+**Canonical source classifications:**
+
+- `engine` — deterministic pricing-service output
+- `ai-assisted` — AI-derived scope or quantities combined with engine-backed calculation
+- `fallback` — deterministic degraded-mode output
+- `mock` — development/test-only output; never silently presented as live AI
+
+Use a shared typed contract. Do not introduce component-specific source strings.
+
+**Transitional normalizer behaviour:** The current AI estimate normalizer blends
+engine-backed category rates with AI-suggested rates for mapped items. This is
+existing transitional behaviour, not the target financial-authority contract.
+
+Until migrated to the canonical `@repo/services` pricing path:
+
+- blended totals must be labelled `AI-assisted`;
+- they must remain visibly distinct from engine-authoritative totals;
+- they must be listed in assumptions;
+- they must not silently become the authoritative `mid_total`;
+- they must not feed ROI or deal scoring as authoritative inputs.
+
+Target state: mapped items use engine-owned rates; AI supplies scope, quantities,
+condition and descriptive context. Any retained pricing blend requires an explicit
+product-policy decision and invariant coverage.
+
+**Forbidden:**
+
+- Presenting raw or blended AI £ as engine-authoritative
+- Feeding raw or blended AI £ into authoritative ROI or deal scoring
+- Showing advisory AI £ without an explicit source badge and assumptions
+- Recomputing `mid_total` / ROI / score in components, routes, or prompts
+- Forking pricing tables (single source of truth remains in `@repo/core`)
+
+---
+
+## 3. Progressive estimates (L1–L3)
+
+Same engines at every level. Only inputs and confidence change.
+
+| Level | User effort | Inputs | Output | Confidence |
+|-------|-------------|--------|--------|------------|
+| L1 — Instant | 30–60 s | Postcode, condition chips, intent chips | Mid + wide range + drivers + assumptions | Low |
+| L2 — Solid | 2–5 min | + size / beds, finish, category toggles | Narrower range + category breakdown | Medium |
+| L3 — Detailed | Photos + light confirm | AI scope + qty → normalizer | Room line items + risk notes + ROI-ready mid | High |
+
+L1 must use a versioned default-input policy for any required engine input not
+provided by the user, including property size, finish level and selected
+categories. Defaults must live outside presentation code and must be shown in
+the estimate assumptions. Hidden UI constants are forbidden.
+
+**CostSummary target:** Introduce one reusable estimate-summary presentation
+component containing mid, range, confidence, source, assumptions, key drivers
+and—where supported by the engine—labour/materials split.
+
+Its initial owner should be `src/features/estimate/presentation`, exported through
+the estimate feature public API. Promote it to `@repo/ui` only after a second real
+consumer exists.
+
+Every estimate the user sees must show:
+
+- Mid £
+- Low–high band
+- Confidence
+- Source badge (using the canonical classifications above)
+- Explicit assumptions / warnings
+
+---
+
+## 4. Platform shape (ownership)
+
+```
+Refurb Genius (this app — public spine)
+  ├── features/*          product workflows (estimate, deal-copilot, …)
+  ├── platform/*          vendor seams (browser vs server)
+  └── routes/*            thin routes only
+
+packages/@repo/*
+  ├── types               contracts, DTOs (zero runtime deps)
+  ├── core                constants, utils, mock data, pricingData
+  ├── services            deterministic engines (pricing, ROI, deals, …)
+  ├── ui                  design-system primitives
+  └── supabase            client factories (browser / server)
 ```
 
 **Request flow (required for new work):**
 
 ```
 Route → feature presentation → application → domain
-    → infrastructure adapter → platform / @repo/*
+     → infrastructure adapter → platform / @repo/*
 ```
 
-**Platform principle:** Applications own product workflows (`src/features/*`). Shared packages own reusable capabilities (`packages/*` / `@repo/*`). Do **not** extract app features into packages “just in case.” Future apps compose packages; they never import this app’s features.
-
-Docs: `platform-architecture-plan.md` · `package-registry.md` · `package-promotion.md` · `capability-boundaries.md` · `platform-glossary.md` (under `docs/architecture/`).
-
-Do **not** put new domain logic in `src/lib/`, `src/hooks/`, or `src/services/` unless it is genuinely cross-cutting (and on the freeze allowlist). Details: `docs/architecture/FEATURE_SLICE.md`, `src/features/README.md`.
+Docs of record: `docs/architecture/FEATURE_SLICE.md`, `docs/architecture/platform-architecture-plan.md`.
 
 ---
 
-## Workspace Packages
+## 5. Tech stack
 
-Eight packages under `packages/`, following a strict one-way dependency flow:
+| Layer | Technology |
+|-------|------------|
+| Framework | TanStack Start (React 19) |
+| Build | Vite 7 + Nitro (vercel preset) |
+| Language | TypeScript 5.8 strict, ES2022 |
+| Style | Tailwind CSS v4 + Radix / shadcn pattern |
+| UI package | `@repo/ui` (migration in progress) |
+| State | TanStack Router (URL) + hooks |
+| Backend | Supabase (Postgres, Auth, Storage, Edge Functions) |
+| AI | OpenAI Vision (gpt-4o) via `createServerFn` |
+| Deploy | Vercel (`pnpm build:vercel`) |
+| Monorepo | pnpm workspaces + Turborepo |
+| Validation | Zod on all external inputs |
+| Errors | Sentry + structured logger |
 
-```
-Application Shell (root src/)
-    ▲
-    │
-@repo/services      Business logic engines
-    ▲
-    │
-@repo/core           Constants, utilities, mock data
-    ▲
-    │
-@repo/types          Domain types, DTOs (no runtime deps)
-```
-
-| Package                   | What it owns                                 |
-| ------------------------- | -------------------------------------------- |
-| `@repo/types`             | Domain types, DTOs, contracts. Zero deps.    |
-| `@repo/core`              | Constants, formatting, mock data, utilities  |
-| `@repo/services`          | Pure business logic (pricing, ROI, deals)    |
-| `@repo/ui`                | Shared UI components (17 migrated of 46)     |
-| `@repo/supabase`          | Supabase client factories (browser + server) |
-| `@repo/integrations`      | Reserved — not yet used                      |
-| `@repo/eslint-config`     | Shared ESLint configuration                  |
-| `@repo/typescript-config` | Shared tsconfig base files                   |
-
-**Dependency rule:** Lower packages cannot import from higher ones. `@repo/types` imports nothing. `@repo/core` imports only `@repo/types`. `@repo/services` imports `@repo/core` + `@repo/types`. The root app imports all. See `docs/architecture/dependency-rules.md` for the full matrix.
+Package manager: `pnpm@9.15.9` (packageManager field). Install with `--frozen-lockfile` in CI/Vercel.
 
 ---
 
-## Key Conventions
+## 6. Repository map
 
-### Imports & Path Aliases
+```
+refurb-genius/
+├── src/
+│   ├── features/           ★ canonical home for product work
+│   │   └── <slice>/
+│   │       domain/ | application/ | infrastructure/ | presentation/
+│   │       index.ts          # public API only
+│   ├── platform/           vendor seams (OpenAI, etc.) — not domain logic
+│   ├── routes/             thin file routes → features
+│   ├── components/         app shell + shims → @repo/ui
+│   ├── core/ lib/ hooks/ services/ serverFns/   # transitional / frozen
+│   ├── integrations/supabase/   # generated types ONLY — do not hand-edit
+│   ├── server.ts · router.tsx · styles.css
+│   └── routeTree.gen.ts    # generated — never edit
+├── packages/               @repo/* kernel
+├── supabase/               migrations + Edge Functions
+├── tests/invariants/       architecture + financial gates
+└── docs/architecture/      deeper ADRs and flow docs
+```
 
-The `tsconfig.json` defines these path aliases:
+**Frozen / transitional:** Do not put new domain logic in `src/lib/`, `src/hooks/`, or `src/services/` unless it is cross-cutting and on the freeze allowlist. Prefer extracting or extending a feature slice.
+
+---
+
+## 7. Feature slices
+
+Layout (create only folders that contain real code):
+
+```
+src/features/<slice>/
+  domain/           pure types, rules (no IO, no React)
+  application/      use-cases / orchestration
+  infrastructure/   adapters (DB, AI, storage)
+  presentation/     UI, feature hooks
+  index.ts          public API for this app only
+```
+
+**Highest-leverage structural work still open:** Deal Copilot single-root
+convergence, remaining UI-package migration, and evidence-backed freeze
+ratchets.
+
+Projects ownership (C4) and Photos / Storage ownership (C5) are completed.
+Do not reopen them without new repository evidence and a separately authorised
+migration candidate.
+
+**Deal Copilot target:** single feature root `src/features/deal-copilot`. Presentation owns UI; application owns orchestration; infrastructure owns repositories and AI adapters (text only); serverFns stay thin (auth + Zod + call use-cases). No direct Supabase from presentation. Agent behaviour must call `@repo/services` for numbers.
+
+**Refurb IQ:** Do not scaffold empty product folders. When authorised, contracts go in `@repo/types` from Genius estimate outputs; consume public estimate APIs; shared report engine for contractor-grade export.
+
+---
+
+## 8. Coding conventions
+
+### Imports & path aliases
 
 ```
 @/*              → ./src/*
 @repo/types      → packages/types/src
 @repo/core       → packages/core/src
-@repo/ui         → packages/ui/src               (barrel export)
-@repo/ui/*       → packages/ui/src/components/*   (direct component import)
 @repo/services   → packages/services/src
+@repo/ui         → packages/ui/src
+@repo/ui/*       → packages/ui/src/components/*
 @repo/supabase   → packages/supabase/src
 @repo/supabase/* → packages/supabase/src/*
 ```
 
-### Server Functions
-
-Use `createServerFn` from `@tanstack/react-start` for all server-side logic. Always validate input with `.inputValidator()` and Zod:
+### Server functions
 
 ```ts
 import { createServerFn } from "@tanstack/react-start";
@@ -133,237 +258,204 @@ const inputSchema = z.object({ id: z.string().min(1) });
 export const myServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data }) => {
-    await requireServerAuth(); // Always verify auth first
-    // Server-only code here
+    await requireServerAuth();
+    // …
   });
 ```
 
-**Do NOT use `"use server"` directives.** TanStack Start uses `createServerFn` instead.
+- No `"use server"` directives.
+- Always Zod-validate external input.
+- Always auth-check protected handlers.
 
-### Server Auth Pattern
+### Server auth
 
 ```ts
 async function requireServerAuth(): Promise<void> {
   const { getCookies } = await import("@tanstack/react-start/server");
   const { createServerSupabase } = await import("@repo/supabase/server");
   const supabase = createServerSupabase(getCookies());
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) throw new Error("Unauthorized");
 }
 ```
 
-### Logging
+Never use `createBrowserSupabase` in server functions.
 
-Use the structured logger from `@/lib/logger`, never raw `console.log`:
+### Logging & errors
 
-```ts
-import { logger } from "@/lib/logger";
-logger.info("Processing analysis", { projectId, roomId });
-logger.error("Analysis failed", { error: err.message });
-```
+- Use `logger` from `@/lib/logger` — never `console.log`.
+- Sentry for errors; logger for diagnostics.
+- AI paths: graceful fallback with explicit source classification — never silent mock-as-AI.
+- Surface failures to the user (toast / banner).
 
-Sentry captures errors separately (`@/lib/sentry`). The logger provides non-error diagnostics.
+### Types
 
-### Error Handling
-
-- Wrap server functions in try/catch with Sentry breadcrumbs
-- AI pipeline uses graceful fallbacks: if OpenAI fails, return a fallback analysis with `source: "fallback"` (never crash the request)
-- Use Zod for runtime validation of all external data
+- Strict mode. No `any`. Prefer `unknown` + guards.
+- Do not hand-edit generated Supabase types or `routeTree.gen.ts`.
 
 ---
 
-## UI System Rules
+## 9. UI system
 
-### Migration State
-
-The UI is migrating from local `src/components/ui/` to `packages/ui/src/components/`. Currently **17 of 46** components are migrated to `@repo/ui`.
-
-### Import Rules
-
-1. **App components** import from `@repo/ui` (or `@repo/ui/<component>` for components involved in circular deps through the barrel — currently tooltip, dialog, and any component imported by sidebar):
-
-   ```ts
-   import { Button, Card } from "@repo/ui";
-   import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@repo/ui/tooltip";
-   import { Dialog, DialogContent, DialogTrigger } from "@repo/ui/dialog";
-   import { Input } from "@repo/ui/input"; // used by sidebar
-   import { Separator } from "@repo/ui/separator"; // used by sidebar
-   import { Skeleton } from "@repo/ui/skeleton"; // used by sidebar
-   ```
-
-2. **Shim files** in `src/components/ui/` re-export from `@repo/ui` for backward compatibility:
-
-   ```ts
-   export { Button } from "@repo/ui";
-   ```
-
-3. **When migrating a component**: move it to `packages/ui/src/components/`, export it from `packages/ui/src/index.ts`, then replace the shim with a re-export. Never delete shim files — replace their contents.
-
-4. **Tailwind v4 source directive**: `src/styles.css` includes `@source "../packages/ui/src/**/*"` so Tailwind scans the shared package.
-
-### Component Pattern
-
-All UI components follow the shadcn/ui + Radix pattern:
-
-- Radix primitives for accessibility and behavior
-- `class-variance-authority` (cva) for variant styling
-- `cn()` utility (from `@repo/ui/lib/utils`) for class merging (clsx + tailwind-merge)
+- Migrate toward `@repo/ui`. Shims in `src/components/ui/` re-export; do not delete shim files — replace contents with re-exports.
+- Prefer `@repo/ui` imports. For circular barrel cases use subpaths (e.g. `@repo/ui/tooltip`, `@repo/ui/dialog`).
+- Pattern: Radix + cva + `cn()`.
+- Do not import Radix primitives directly in app feature code when a `@repo/ui` wrapper exists.
+- Tailwind v4 must scan `packages/ui` (`@source` in `src/styles.css`).
 
 ---
 
-## Supabase & Data Rules
+## 10. Supabase & data
 
-### Client Factories
+| Context | Import |
+|---------|--------|
+| Browser | `createBrowserSupabase` from `@repo/supabase/browser` |
+| Server | `createServerSupabase` from `@repo/supabase/server` |
+| Token | `createTokenSupabase` from `@repo/supabase/server` |
 
-`@repo/supabase` provides subpath exports for different contexts:
+Rules:
 
-| Context      | Import                                                |
-| ------------ | ----------------------------------------------------- |
-| Browser/hook | `createBrowserSupabase` from `@repo/supabase/browser` |
-| Server fn    | `createServerSupabase` from `@repo/supabase/server`   |
-| Token-based  | `createTokenSupabase` from `@repo/supabase/server`    |
-| Env helpers  | `resolveSupabaseEnv` from `@repo/supabase/env`        |
-
-Or import everything from the root: `from "@repo/supabase"`.
-
-### Critical Rules
-
-1. **NEVER** import from `@/integrations/supabase/*` in app code. That directory contains auto-generated types only. Use `@repo/supabase` or hooks.
-
-2. **Server auth** — always use `createServerSupabase` + `getCookies()` in server functions, **never** `createBrowserSupabase`:
-
-   ```ts
-   const { getCookies } = await import("@tanstack/react-start/server");
-   const { createServerSupabase } = await import("@repo/supabase/server");
-   const supabase = createServerSupabase(getCookies());
-   ```
-
-3. **RLS is enforced** on all tables. Every query runs through row-level security policies. Never bypass RLS or use the service role key in client code.
-
-4. **Edge Functions** live in `supabase/functions/` and run on Deno. They are separate from TanStack `createServerFn` server functions.
-
-5. **Migrations must be idempotent.** All `CREATE POLICY` (and recent `CREATE TABLE` / `CREATE INDEX` / `ADD COLUMN`) statements use `IF NOT EXISTS` guards or the `DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_policies ...) THEN CREATE POLICY ...` pattern. This prevents "already exists" errors during `supabase db push`, `supabase db reset`, re-deploys, or when replaying on existing DBs. Never add bare `create policy "..."` in new migrations.
+1. Never import app clients from `@/integrations/supabase/*` (types only).
+2. RLS on all tables — never bypass; never put service role in client.
+3. Migrations idempotent: `IF NOT EXISTS` / guarded `CREATE POLICY`. No bare `create policy` in new migrations.
+4. Edge Functions (`supabase/functions/`) are Deno and separate from `createServerFn`.
+5. New feature data access: repositories in feature infrastructure, not ad-hoc SQL in UI.
 
 ---
 
-## Development Commands
+## 11. Commands
 
 ```bash
-pnpm install              # Install dependencies
-pnpm dev                  # Start dev server
-pnpm typecheck            # Type-check (tsc --noEmit)
-pnpm lint                 # Lint (ESLint + Prettier)
-pnpm format               # Auto-format (Prettier)
-pnpm build:vercel         # Production build for Vercel
-pnpm test:invariants      # Run invariant tests
-pnpm admin:bootstrap      # Bootstrap admin user
+pnpm install                 # deps
+pnpm dev                     # dev server
+pnpm typecheck               # tsc --noEmit
+pnpm lint                    # ESLint + Prettier checks
+pnpm format                  # format
+pnpm build:vercel            # production build (use this, not pnpm build)
+pnpm test:invariants         # architecture + financial gates
+pnpm test:ui                 # UI/Vitest — present as script; not yet enforced in principal CI
 ```
 
-### Pre-commit Checklist
-
-Before every commit, run:
+Pre-commit / pre-push minimum:
 
 ```bash
 pnpm typecheck && pnpm lint && pnpm test:invariants
 ```
 
-CI runs these same checks. A PR will not merge if any fail.
+**CI baseline:** frozen lockfile, typecheck, lint, build:vercel and invariants.  
+**Target:** add `test:ui` and critical Playwright smoke paths as enforced gates when their runtime and stability are proven.
 
-**Important:** Use `pnpm build:vercel` (not `pnpm build`) for deployment builds. The Vercel config uses `vite.vercel.config.ts` which adds Nitro with the `vercel` preset. Vercel install is locked with `--frozen-lockfile` (see vercel.json) and package.json has `"packageManager": "pnpm@9.15.9"` + cleaned pnpm-workspace.yaml + .npmrc for stable lockfile (no more pnpmfileChecksum mismatches).
-
----
-
-## Testing & Verification
-
-### Invariant Tests
-
-Invariant tests in `tests/invariants/` validate architectural rules. Run with: `pnpm test:invariants`.
-
-These use Node's built-in test runner via `tsx`.
-
-### CI Pipeline
-
-GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR:
-
-1. **ci** — `pnpm install --frozen-lockfile` → `typecheck` → `lint` → `build:vercel`
-2. **invariant-tests** — `pnpm install --frozen-lockfile` → `pnpm test:invariants`
-
-- Exact pnpm 9.15.9 (via `packageManager` field + action-setup + .npmrc guidance)
-- Node 22 (CI)
-- Vercel uses `installCommand: "pnpm install --frozen-lockfile"` (vercel.json)
+Deploy builds: `pnpm build:vercel` only.
 
 ---
 
-## Git & PR Workflow
+## 12. Testing & gates
 
-- **Branch naming:** `<type>/<short-description>` (e.g., `feat/deal-copilot`, `fix/auth-redirect`, `chore/ui-migration`)
-- **Commit messages:** Short imperative summary explaining the "why"
-- **PR body:** Use `## Summary` + `## Test plan` format
-- **Keep commits focused:** Do not bundle features with refactors, or mix archive/docs cleanup with UI migration or feature work
-- **Never force-push to main**
-- **Always run `pnpm typecheck && pnpm lint`** before pushing
-- **Prefer small, safe changes** — easier to review and revert
+- Invariants (`tests/invariants/`): pricing authority, ROI/deal scoring, routes, freezes, package boundaries, auth env — must stay green.
+- Expand invariants when adding money paths or architecture rules.
+- Prefer Playwright smoke for: photo → estimate → ROI → PDF (and L1 path once it exists).
+- New code: presentation must not import Supabase clients directly.
 
 ---
 
-## Agent Safety Rules
+## 13. Git & PR
 
-1. **Never modify generated files** — `src/integrations/supabase/types.ts` and `src/routeTree.gen.ts` are auto-generated. Edit migrations (for Supabase) or routes (for the route tree) and regenerate.
-
-2. **Never use `any`** — Use `unknown` with type guards or proper generics. The codebase has strict mode enabled.
-
-3. **Never use `console.log`** — Use `logger` from `@/lib/logger`.
-
-4. **Never import Supabase client directly** in components. Use hooks or the service layer. Never expose the service role key in frontend code.
-
-5. **Never commit `.env` files** or hardcode secrets.
-
-6. **Preserve the shim layer** — Don't delete `src/components/ui/` files during migration. Replace their contents with re-exports from `@repo/ui`.
-
-7. **Test before committing** — Run `pnpm typecheck && pnpm lint && pnpm test:invariants`.
-
-8. **Don't create new packages** without discussing architecture first.
-
-9. **Don't change route paths** — All URLs are production-indexed and linked from Sentry, Vercel Analytics, and user emails. A path rename requires a redirect. See `docs/architecture/routes.md`.
-
-10. **Don't add `define` blocks for `VITE_*` vars** in Vite configs — Vite auto-injects them. A manual `define` block overrides injection and can inline `"undefined"` at build time.
+- Branches: `feat/…`, `fix/…`, `chore/…`, `docs/…`
+- Commits: short imperative why
+- PR body: `## Summary` + `## Test plan`
+- No force-push to main
+- Do not mix feature + large cleanup in one PR
+- Route path changes require redirects — URLs are live
 
 ---
 
-## Common Mistakes to Avoid
+## 14. Agent safety checklist
 
-| Mistake                                         | Correct Approach                                                                                        |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `import { supabase } from "@/integrations/..."` | Use `@repo/supabase` or hooks                                                                           |
-| `createBrowserSupabase` in a server function    | `createServerSupabase(getCookies())`                                                                    |
-| `console.log("debug")`                          | `logger.debug("message", { context })`                                                                  |
-| `from "@repo/ui"` for Tooltip or Dialog         | `from "@repo/ui/tooltip"` / `from "@repo/ui/dialog"`                                                    |
-| Importing directly from Radix in app code       | Import from `@repo/ui` which wraps Radix                                                                |
-| Deleting a UI shim file                         | Replace contents with `export { X } from "@repo/ui"`                                                    |
-| Using `key={index}` in dynamic lists            | Use a stable unique identifier                                                                          |
-| Skipping Zod on server function input           | Always use `.inputValidator()` with Zod `.parse()`                                                      |
-| Adding `"use server"` directive                 | TanStack Start uses `createServerFn`, not directives                                                    |
-| Running `pnpm build` for deployment             | Use `pnpm build:vercel` (uses `vite.vercel.config.ts`)                                                  |
-| Mixing feature + cleanup in one commit          | Split into separate focused commits                                                                     |
-| Editing `src/routeTree.gen.ts`                  | Auto-generated by TanStack Router — never edit                                                          |
-| Adding bare `create policy` in migrations       | Always wrap in DO $$ IF NOT EXISTS (pg_policies) or use IF NOT EXISTS for tables/indexes/columns        |
-| Relying on .pnpmfile.cjs or unpinned pnpm       | Use "pnpm.onlyBuiltDependencies" + "packageManager" in package.json; keep .npmrc + clean workspace.yaml |
+Before every change set:
+
+- Read this file and the relevant feature public API
+- Money path still goes through `@repo/services` (or is correctly labelled transitional)
+- No new domain logic in frozen lib / hooks / services
+- No generated files edited
+- No secrets / `.env` committed
+- Server fns: Zod + auth
+- UI shims preserved as re-exports
+- `pnpm typecheck && pnpm lint && pnpm test:invariants` green
+- No new package without explicit architecture decision
+- No stack rewrite, no Railway, no empty IQ scaffolding
 
 ---
 
-## Next Recommended Improvements
+## 15. Common mistakes
 
-These are the most impactful items to work on next, in priority order:
+| Wrong | Right |
+|-------|-------|
+| `import { supabase } from "@/integrations/..."` | `@repo/supabase` or feature repo |
+| `createBrowserSupabase` in server fn | `createServerSupabase(getCookies())` |
+| `console.log` | `logger.*` |
+| Presenting raw or blended AI £ as engine-authoritative | Normalizer → engine → display + source badge; blended totals labelled `ai-assisted` |
+| New logic in `src/lib` | `src/features/<slice>/…` |
+| Delete UI shim | Re-export from `@repo/ui` |
+| `"use server"` | `createServerFn` |
+| `pnpm build` for deploy | `pnpm build:vercel` |
+| Bare `create policy` | Idempotent guarded policy |
+| Feature import from another future app | Packages only |
+| Empty packages/foo “for later” | Forbidden |
 
-1. **Complete UI migration** — 29 of 46 components still need migrating from `src/components/ui/` to `@repo/ui`. High-value targets: `sidebar.tsx`, `sheet.tsx`, `dropdown-menu.tsx`, `command.tsx`.
+---
 
-2. **Add component tests** — No component-level tests exist yet. Add Vitest + React Testing Library for critical flows (auth, photo upload, estimate generation).
+## 16. Product priorities (agents: prefer this order)
 
-3. **Consolidate remaining `@/integrations/supabase` imports** — `src/lib/auth.ts` and `src/services/supabase/index.ts` still import from the deprecated path. Route through `@repo/supabase` instead.
+1. Trust / launch: financial consolidation, normalizer coverage + badges, RLS, L1 progressive estimate, CI tests
+2. Architecture debt: UI migration, Deal Copilot single root, freeze ratchets
+3. Activation: <10 min to first estimate, confidence bands, scenarios, share/PDF quality
+4. Agent: Deal Copilot pipeline + background score after estimate (same engines)
+5. Monetization: payment + Pro gates on expensive AI
+6. Marketplace / IQ: only after core loop is solid; IQ consumes contracts — no parallel product
 
-4. **Add error boundary** — The root layout (`__root.tsx`) has no React error boundary. Add one wrapping the `<Outlet />` to prevent white-screen crashes.
+**Decision filter when stuck:**
 
-5. **Expand invariant tests** — Cover the UI migration state (e.g., assert that all migrated shims are pure re-exports) and package boundary rules.
+1. Does it improve trusted numbers in <10 min? → Do it  
+2. Does it protect financial authority or security? → Do it  
+3. Does it reduce multi-root debt so the next feature is faster? → Do it  
+4. Does it only expand surface area (marketplace, IQ UI, new AI toys)? → Defer
+
+---
+
+## 17. Explicit non-goals
+
+- Next.js rewrite
+- Reintroducing Railway/Python AI
+- Big-bang move of root `src/` into `apps/` without ADR + green CI
+- Publishing packages “just in case”
+- Empty Refurb IQ scaffolding
+- Separate Deal Copilot deployable before single-root feature is done
+- AI that invents money
+- Marketplace growth before RFQ-from-estimate works
+- Reopening completed C4 Projects or C5 Photos migrations without new evidence and authorisation
+
+---
+
+## 18. Related docs
+
+| Doc | Use |
+|-----|-----|
+| `docs/architecture/FEATURE_SLICE.md` | Request flow & slice rules |
+| `docs/architecture/platform-architecture-plan.md` | Multi-app target & package promotion |
+| `docs/architecture/dependency-rules.md` | Import matrix |
+| `docs/architecture/routes.md` | URL stability |
+| `docs/architecture/ai-platform.md` | AI boundaries |
+| `docs/qa-checklist.md` | Launch demo path |
+| `docs/operations/beta-operations-playbook.md` | Incidents |
+
+---
+
+## 19. Replacement policy
+
+- AGENTS.md is canonical for agent and contributor standards.
+- Keep CLAUDE.md only as a short pointer to AGENTS.md.
+- Update this file when architecture or non-negotiables change — not for ephemeral task lists.
+
+---
+
+*Last aligned with platform plan, financial authority model, UK-first market-leading execution priorities, and repository evidence (C4/C5 completed; CostSummary planned; normalizer transitional).*
