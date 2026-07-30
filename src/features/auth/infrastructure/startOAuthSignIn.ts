@@ -1,13 +1,13 @@
 /**
  * OAuth initiation Auth primitive (AO-1E1.2).
  *
- * Exact supabase.auth.signInWithOAuth wrapper for Google and Apple.
+ * Exact supabase.auth.signInWithOAuth wrapper for Google, Apple, and GitHub.
  * Returned Auth errors are thrown unchanged. Presentation-free (no React,
  * window, analytics, logger, toast, navigation, or QueryClient).
  */
 import { supabase } from "@/platform/supabase/browser";
 
-export type AuthOAuthProvider = "google" | "apple";
+export type AuthOAuthProvider = "google" | "apple" | "github";
 
 export interface StartOAuthSignInInput {
   provider: AuthOAuthProvider;
