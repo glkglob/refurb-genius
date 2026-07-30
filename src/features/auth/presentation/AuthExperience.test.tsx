@@ -2,7 +2,7 @@
  * AO-1E1.1 / AO-1E1.2 / AO-1E1.3 — AuthExperience presentation contracts.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { createElement } from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -359,6 +359,36 @@ describe("AuthExperience — email access presentation (AO-1E1.3)", () => {
       replace: true,
     });
   });
+
+  it("rejects mismatched reset passwords before calling updatePassword", async () => {
+    render(createElement(AuthExperience, { initialMode: "reset" }));
+    fireEvent.change(document.getElementById("password") as HTMLInputElement, {
+      target: { value: "new-secret-12" },
+    });
+    fireEvent.change(document.getElementById("confirm-password") as HTMLInputElement, {
+      target: { value: "different-secret" },
+    });
+    submitAuthForm();
+
+    expect(await screen.findByText("Passwords do not match.")).toBeTruthy();
+    expect(updatePassword).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("rejects short reset passwords before calling updatePassword", async () => {
+    render(createElement(AuthExperience, { initialMode: "reset" }));
+    fireEvent.change(document.getElementById("password") as HTMLInputElement, {
+      target: { value: "short" },
+    });
+    fireEvent.change(document.getElementById("confirm-password") as HTMLInputElement, {
+      target: { value: "short" },
+    });
+    submitAuthForm();
+
+    expect(await screen.findByText("Password must be at least 6 characters.")).toBeTruthy();
+    expect(updatePassword).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
 });
 
 describe("AuthExperience — redesign presentation contracts", () => {
@@ -379,6 +409,37 @@ describe("AuthExperience — redesign presentation contracts", () => {
     const privacy = screen.getByRole("link", { name: /privacy policy/i });
     expect(terms.getAttribute("href")).toBe("/terms");
     expect(privacy.getAttribute("href")).toBe("/privacy");
+    expect(terms.getAttribute("target")).toBe("_blank");
+    expect(privacy.getAttribute("rel")).toMatch(/noopener/);
+  });
+
+  it("terms label toggles checkbox; legal links do not", () => {
+    render(createElement(AuthExperience, { initialMode: "signup" }));
+    const checkbox = document.getElementById("terms-consent") as HTMLInputElement;
+    expect(checkbox.checked).toBe(false);
+
+    fireEvent.click(screen.getByText(/i agree to the/i));
+    expect(checkbox.checked).toBe(true);
+
+    const terms = screen.getByRole("link", { name: /^terms$/i });
+    const privacy = screen.getByRole("link", { name: /privacy policy/i });
+    fireEvent.click(terms, { preventDefault: () => undefined });
+    terms.addEventListener("click", (e) => e.preventDefault());
+    privacy.addEventListener("click", (e) => e.preventDefault());
+    fireEvent.click(terms);
+    expect(checkbox.checked).toBe(true);
+    fireEvent.click(privacy);
+    expect(checkbox.checked).toBe(true);
+  });
+
+  it("native checkbox checked property tracks user interaction", () => {
+    render(createElement(AuthExperience, { initialMode: "signup" }));
+    const checkbox = document.getElementById("terms-consent") as HTMLInputElement;
+    expect(checkbox.checked).toBe(false);
+    fireEvent.click(checkbox);
+    expect(checkbox.checked).toBe(true);
+    fireEvent.click(checkbox);
+    expect(checkbox.checked).toBe(false);
   });
 
   it("reset mode omits OAuth alternatives and email field", () => {
@@ -392,7 +453,9 @@ describe("AuthExperience — redesign presentation contracts", () => {
 
   it("header mode action switches sign-in/signup", async () => {
     render(createElement(AuthExperience, { initialMode: "signin", redirect: "/projects" }));
-    fireEvent.click(screen.getByRole("button", { name: /^sign up$/i }));
+    const pageHeader = screen.getByRole("banner");
+    const headerSignUp = within(pageHeader).getByRole("button", { name: /^sign up$/i });
+    fireEvent.click(headerSignUp);
     await waitFor(() => {
       expect(navigate).toHaveBeenCalledWith({
         to: "/auth",
@@ -402,14 +465,54 @@ describe("AuthExperience — redesign presentation contracts", () => {
     });
   });
 
-  it("segmented control reflects active mode", () => {
-    render(createElement(AuthExperience, { initialMode: "signup" }));
-    const tablist = screen.getByRole("tablist", { name: /authentication mode/i });
-    expect(tablist).toBeTruthy();
-    const signupTab = screen.getByRole("tab", { name: /^sign up$/i });
-    const signinTab = screen.getByRole("tab", { name: /^sign in$/i });
-    expect(signupTab.getAttribute("aria-selected")).toBe("true");
-    expect(signinTab.getAttribute("aria-selected")).toBe("false");
+  it("mode toggle uses group and aria-pressed; preserves navigation args", async () => {
+    render(createElement(AuthExperience, { initialMode: "signup", redirect: "/projects" }));
+    const modeGroup = screen.getByRole("group", { name: /authentication mode/i });
+    const signInButton = within(modeGroup).getByRole("button", { name: /^sign in$/i });
+    const signUpButton = within(modeGroup).getByRole("button", { name: /^sign up$/i });
+    expect(signUpButton.getAttribute("aria-pressed")).toBe("true");
+    expect(signInButton.getAttribute("aria-pressed")).toBe("false");
+
+    fireEvent.click(signInButton);
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith({
+        to: "/auth",
+        search: { mode: "signin", redirect: "/projects" },
+        replace: true,
+      });
+    });
+  });
+
+  it("Apple pending disables competing auth actions", async () => {
+    let resolveOAuth!: () => void;
+    startAppleOAuth.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveOAuth = resolve;
+        }),
+    );
+
+    render(createElement(AuthExperience, { initialMode: "signin", redirect: "/projects" }));
+    const apple = screen.getByRole("button", { name: /continue with apple/i });
+    fireEvent.click(apple);
+
+    await waitFor(() => {
+      expect(startAppleOAuth).toHaveBeenCalledWith("/projects");
+    });
+    expect(screen.getByText(/connecting to apple/i)).toBeTruthy();
+
+    const google = screen.getByRole("button", { name: /continue with google/i });
+    const magic = screen.getByRole("button", { name: /continue with magic link/i });
+    const submit = document.querySelector('form button[type="submit"]') as HTMLButtonElement;
+    expect((apple as HTMLButtonElement).disabled).toBe(true);
+    expect((google as HTMLButtonElement).disabled).toBe(true);
+    expect((magic as HTMLButtonElement).disabled).toBe(true);
+    expect(submit.disabled).toBe(true);
+
+    fireEvent.click(apple);
+    expect(startAppleOAuth).toHaveBeenCalledTimes(1);
+
+    resolveOAuth();
   });
 
   it("verification state uses redesigned shell and product overview", async () => {

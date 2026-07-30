@@ -4,8 +4,8 @@ import { AlertCircle, Check, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } fro
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Label } from "@repo/ui/label";
+import { Separator } from "@repo/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
@@ -24,11 +24,13 @@ type AuthExperienceProps = {
 };
 
 /** Decorative Lucide icon props — never focusable under aria-hidden. */
-const decorativeIconProps = {
-  "aria-hidden": true as const,
-  focusable: false as const,
-  className: "pointer-events-none",
-};
+function decorativeIconProps(className?: string) {
+  return {
+    "aria-hidden": true as const,
+    focusable: false as const,
+    className: cn("pointer-events-none", className),
+  };
+}
 
 const fieldClassName = cn(
   "h-14 min-h-[52px] rounded-2xl border-[#d8d1c7] bg-white px-4 text-[#111827]",
@@ -46,6 +48,27 @@ const outlineButtonClassName = cn(
   "h-12 min-h-11 w-full rounded-2xl border-[#d8d1c7] bg-white text-[#111827]",
   "hover:bg-[#f7f5f2] focus-visible:ring-2 focus-visible:ring-[#0f766e]/25",
 );
+
+const legalLinkClassName =
+  "font-medium text-[#0f766e] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40 rounded-sm";
+
+const AUTH_VALUE_CARDS = [
+  {
+    label: "Output",
+    title: "Feasibility studies",
+    body: "Structured scopes and cost ranges for investor decisions.",
+  },
+  {
+    label: "Workflow",
+    title: "Scenario comparison",
+    body: "Compare assumptions without losing your working context.",
+  },
+  {
+    label: "Audience",
+    title: "UK property investors",
+    body: "Built for refurbishment and development decision-making.",
+  },
+] as const;
 
 function AppleIcon() {
   return (
@@ -154,7 +177,8 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   const isReset = mode === "reset";
   const isLocked = remainingSeconds > 0;
 
-  const formDisabled = submitting || oauthLoading || magicLinkLoading || forgotPasswordLoading;
+  const formDisabled =
+    submitting || oauthLoading || appleLoading || magicLinkLoading || forgotPasswordLoading;
 
   const pageEyebrow = useMemo(() => {
     if (isSignIn) return "Sign in";
@@ -393,13 +417,12 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                   {!isReset && (
                     <div
                       className="mt-4 rounded-2xl border border-[#d8d1c7] bg-[#f7f5f2] p-1"
-                      role="tablist"
+                      role="group"
                       aria-label="Authentication mode"
                     >
                       <div className="grid grid-cols-2 gap-1">
                         <Button
                           type="button"
-                          role="tab"
                           variant="ghost"
                           className={cn(
                             "h-11 w-full rounded-xl text-sm font-medium",
@@ -408,13 +431,12 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                               : "text-[#5f5a54] hover:bg-white/60 hover:text-[#111827]",
                           )}
                           onClick={() => switchMode("signin")}
-                          aria-selected={isSignIn}
+                          aria-pressed={isSignIn}
                         >
                           Sign in
                         </Button>
                         <Button
                           type="button"
-                          role="tab"
                           variant="ghost"
                           className={cn(
                             "h-11 w-full rounded-xl text-sm font-medium",
@@ -423,7 +445,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                               : "text-[#5f5a54] hover:bg-white/60 hover:text-[#111827]",
                           )}
                           onClick={() => switchMode("signup")}
-                          aria-selected={isSignUp}
+                          aria-pressed={isSignUp}
                         >
                           Sign up
                         </Button>
@@ -439,10 +461,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                     role="alert"
                     aria-live="assertive"
                   >
-                    <AlertCircle
-                      {...decorativeIconProps}
-                      className="pointer-events-none h-4 w-4 text-red-700"
-                    />
+                    <AlertCircle {...decorativeIconProps("h-4 w-4 text-red-700")} />
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
@@ -453,10 +472,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                     role="status"
                     aria-live="polite"
                   >
-                    <Lock
-                      {...decorativeIconProps}
-                      className="pointer-events-none h-4 w-4 text-amber-700"
-                    />
+                    <Lock {...decorativeIconProps("h-4 w-4 text-amber-700")} />
                     <AlertDescription>
                       Temporarily locked. Try again in {remainingSeconds}s.
                     </AlertDescription>
@@ -530,9 +546,9 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                         disabled={formDisabled}
                       >
                         {showPassword ? (
-                          <EyeOff {...decorativeIconProps} />
+                          <EyeOff {...decorativeIconProps("h-4 w-4")} />
                         ) : (
-                          <Eye {...decorativeIconProps} />
+                          <Eye {...decorativeIconProps("h-4 w-4")} />
                         )}
                       </Button>
                     </div>
@@ -574,9 +590,9 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                           disabled={formDisabled}
                         >
                           {showConfirmPassword ? (
-                            <EyeOff {...decorativeIconProps} />
+                            <EyeOff {...decorativeIconProps("h-4 w-4")} />
                           ) : (
-                            <Eye {...decorativeIconProps} />
+                            <Eye {...decorativeIconProps("h-4 w-4")} />
                           )}
                         </Button>
                       </div>
@@ -640,36 +656,38 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                         onChange={(event) => setAgreeTerms(event.target.checked)}
                         disabled={formDisabled}
                         className={cn(
-                          "mt-0.5 h-5 w-5 shrink-0 cursor-pointer appearance-none rounded-md border-2 border-[#d8d1c7] bg-white",
-                          "checked:border-[#0f766e] checked:bg-[#0f766e]",
+                          "mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-md border border-[#d8d1c7]",
+                          "accent-[#0f766e]",
                           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40 focus-visible:ring-offset-2",
                           "disabled:cursor-not-allowed disabled:opacity-50",
                         )}
                       />
-                      <Label
-                        htmlFor="terms-consent"
-                        className="cursor-pointer text-sm leading-relaxed text-[#5f5a54]"
-                      >
-                        I agree to the{" "}
+                      <div className="text-sm leading-relaxed text-[#5f5a54]">
+                        <Label
+                          htmlFor="terms-consent"
+                          className="cursor-pointer text-sm leading-relaxed text-[#5f5a54]"
+                        >
+                          I agree to the
+                        </Label>{" "}
                         <a
-                          className="font-medium text-[#0f766e] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40 rounded-sm"
                           href="/terms"
                           target="_blank"
                           rel="noopener noreferrer"
+                          className={legalLinkClassName}
                         >
                           Terms
                         </a>{" "}
                         and{" "}
                         <a
-                          className="font-medium text-[#0f766e] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40 rounded-sm"
                           href="/privacy"
                           target="_blank"
                           rel="noopener noreferrer"
+                          className={legalLinkClassName}
                         >
                           Privacy Policy
                         </a>
                         .
-                      </Label>
+                      </div>
                     </div>
                   )}
 
@@ -681,10 +699,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                   >
                     {submitting ? (
                       <>
-                        <Loader2
-                          {...decorativeIconProps}
-                          className="pointer-events-none h-4 w-4 animate-spin"
-                        />
+                        <Loader2 {...decorativeIconProps("h-4 w-4 animate-spin")} />
                         {isSignIn
                           ? "Signing in..."
                           : isSignUp
@@ -703,10 +718,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
                 {!isReset && (
                   <p className="mt-4 flex items-center justify-center gap-2 text-xs text-[#5f5a54]">
-                    <Check
-                      {...decorativeIconProps}
-                      className="pointer-events-none h-3.5 w-3.5 text-[#0f766e]"
-                    />
+                    <Check {...decorativeIconProps("h-3.5 w-3.5 text-[#0f766e]")} />
                     <span>Secure • Protected by Supabase</span>
                   </p>
                 )}
@@ -736,18 +748,12 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                       >
                         {magicLinkLoading ? (
                           <>
-                            <Loader2
-                              {...decorativeIconProps}
-                              className="pointer-events-none h-4 w-4 animate-spin"
-                            />
+                            <Loader2 {...decorativeIconProps("h-4 w-4 animate-spin")} />
                             Sending magic link...
                           </>
                         ) : (
                           <>
-                            <Mail
-                              {...decorativeIconProps}
-                              className="pointer-events-none h-4 w-4"
-                            />
+                            <Mail {...decorativeIconProps("h-4 w-4")} />
                             Continue with magic link
                           </>
                         )}
@@ -766,10 +772,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                         >
                           {oauthLoading ? (
                             <>
-                              <Loader2
-                                {...decorativeIconProps}
-                                className="pointer-events-none h-4 w-4 animate-spin"
-                              />
+                              <Loader2 {...decorativeIconProps("h-4 w-4 animate-spin")} />
                               Connecting to Google...
                             </>
                           ) : (
@@ -789,10 +792,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                         >
                           {appleLoading ? (
                             <>
-                              <Loader2
-                                {...decorativeIconProps}
-                                className="pointer-events-none h-4 w-4 animate-spin"
-                              />
+                              <Loader2 {...decorativeIconProps("h-4 w-4 animate-spin")} />
                               Connecting to Apple...
                             </>
                           ) : (
@@ -833,7 +833,7 @@ function VerificationPanel({ email, onBack }: { email: string; onBack: () => voi
   return (
     <div className="space-y-6 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#ece7df]">
-        <Mail {...decorativeIconProps} className="pointer-events-none h-6 w-6 text-[#0f766e]" />
+        <Mail {...decorativeIconProps("h-6 w-6 text-[#0f766e]")} />
       </div>
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight text-[#111827]">Check your email</h1>
@@ -907,11 +907,7 @@ function AuthProductPanel({
       )}
       aria-label="Product overview"
     >
-      <div
-        className={cn(
-          "rounded-[32px] border border-[#d8d1c7] bg-[#ece7df] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-8 lg:p-10",
-        )}
-      >
+      <div className="rounded-[32px] border border-[#d8d1c7] bg-[#ece7df] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-8 lg:p-10">
         <span className="inline-flex rounded-full bg-[#0f766e]/10 px-3 py-1 text-xs font-semibold text-[#0f766e] ring-1 ring-[#0f766e]/20">
           AI-powered UK property analysis
         </span>
@@ -931,23 +927,7 @@ function AuthProductPanel({
           )}
           data-testid="desktop-value-panel"
         >
-          {[
-            {
-              label: "Output",
-              title: "Feasibility studies",
-              body: "Structured scopes and cost ranges for investor decisions.",
-            },
-            {
-              label: "Workflow",
-              title: "Scenario comparison",
-              body: "Compare assumptions without losing your working context.",
-            },
-            {
-              label: "Audience",
-              title: "UK property investors",
-              body: "Built for refurbishment and development decision-making.",
-            },
-          ].map((card) => (
+          {AUTH_VALUE_CARDS.map((card) => (
             <div
               key={card.title}
               className="rounded-2xl border border-[#d8d1c7] bg-white/80 p-4 shadow-sm"
@@ -1004,32 +984,20 @@ function AuthProductPanel({
           <p className="text-sm font-semibold text-[#111827]">A more structured workspace</p>
           <ul className="mt-3 space-y-2 text-sm text-[#5f5a54]">
             <li className="flex gap-2">
-              <Check
-                {...decorativeIconProps}
-                className="pointer-events-none mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]"
-              />
+              <Check {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]")} />
               Organise refurbishment assumptions in one place
             </li>
             <li className="flex gap-2">
-              <Check
-                {...decorativeIconProps}
-                className="pointer-events-none mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]"
-              />
+              <Check {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]")} />
               Compare cost scenarios without losing context
             </li>
             <li className="flex gap-2">
-              <Check
-                {...decorativeIconProps}
-                className="pointer-events-none mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]"
-              />
+              <Check {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]")} />
               Keep feasibility information together for decisions
             </li>
           </ul>
           <div className="mt-4 flex items-start gap-2 rounded-xl bg-[#f7f5f2] p-3">
-            <ShieldCheck
-              {...decorativeIconProps}
-              className="pointer-events-none mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]"
-            />
+            <ShieldCheck {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]")} />
             <div>
               <p className="text-sm font-medium text-[#111827]">Secure sign-in</p>
               <p className="mt-0.5 text-xs leading-relaxed text-[#5f5a54]">
