@@ -11,3 +11,5 @@ export * from "./enhanced-estimate/index.ts";
 export * from "./new-build/index.ts";
 /** P0-1 Financial Path Normalizer — explicit Financials-path input policy. */
 export * from "./financial/index.ts";
+/** L3 measured-BOQ deterministic money path (room/line authority). */
+export * from "./measured-boq/index.ts";
