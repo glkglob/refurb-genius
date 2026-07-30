@@ -170,15 +170,13 @@ function buildAssumptions(inputs: PricingEngineInputs, sizeMult: number): string
       "No refurbishment categories selected — estimate based on regional averages only",
     );
   }
-  if (sizeMult === 1) {
-    assumptions.push(
-      `Property size not provided — using reference size of ${REFERENCE_SIZE_SQM}m²`,
-    );
-  } else {
-    assumptions.push(
-      `Property size: ${inputs.property_size_sqm}m² (reference ${REFERENCE_SIZE_SQM}m²)`,
-    );
-  }
+  // Value-neutral size wording. Provenance (assumed vs provided) is owned by
+  // progressive estimate policies (L1/L2), not the engine. sizeMult is retained
+  // for call-site compatibility and is not used for wording.
+  void sizeMult;
+  assumptions.push(
+    `Property size: ${inputs.property_size_sqm}m² (reference ${REFERENCE_SIZE_SQM}m²)`,
+  );
   return assumptions;
 }
 

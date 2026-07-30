@@ -43,14 +43,37 @@ export type {
 /** Canonical estimate source classifications. */
 export { ESTIMATE_SOURCES, type EstimateSource } from "./estimateSource";
 
-/** L1 progressive estimate policy (versioned defaults + chip maps). */
+/** Shared progressive chip helpers (L1 + L2). */
 export {
-  L1_POLICY_VERSION,
   L1_CONDITION_OPTIONS,
   L1_INTENT_OPTIONS,
-  resolveL1Inputs,
+  conditionFromChip,
+  categoriesFromIntent,
+  normalizeCategories,
+  hasUsableOutwardPostcode,
+  isPostcodeConfidenceEligible,
   type L1ConditionChip,
   type L1IntentChip,
+} from "./progressiveChips";
+
+/** L1 progressive estimate policy (versioned defaults). */
+export {
+  L1_POLICY_VERSION,
+  resolveL1Inputs,
   type L1UserInput,
   type L1ResolvedInputs,
 } from "./l1Policy";
+
+/** L2 progressive estimate policy (finish/size/categories + confidence). */
+export {
+  L2_POLICY_VERSION,
+  L2_MIN_SIZE_SQM,
+  L2_MAX_SIZE_SQM,
+  L2_FINISH_OPTIONS,
+  L2PolicyError,
+  resolveL2Inputs,
+  resolveL2DisplayConfidence,
+  type L2UserInput,
+  type L2ResolvedInputs,
+  type L2UserProvided,
+} from "./l2Policy";

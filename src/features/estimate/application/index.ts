@@ -24,3 +24,6 @@ export {
 
 /** L1 progressive estimate — pure engine path, non-persisting. */
 export { runL1Estimate, type L1EstimateResult } from "./runL1Estimate";
+
+/** L2 progressive estimate — finish/size/categories refinement, non-persisting. */
+export { runL2Estimate, type L2EstimateResult } from "./runL2Estimate";
