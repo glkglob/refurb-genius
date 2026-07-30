@@ -234,6 +234,20 @@ Route → L1EstimateForm → runL1Estimate | runL2Estimate
 - L3 (Estimate Builder / AI rooms) is a **separate** workflow and use-case surface — not a wrapper around L1/L2.
 - `runEnhancedEstimate` is **not** authoritative for progressive L1/L2 totals.
 
+**L3 authority (project-bound):**
+
+For the full project-bound L3 authority model, see
+[l3-estimate-authority-contract.md](./l3-estimate-authority-contract.md).
+
+| L3 concern | Contract summary |
+| --- | --- |
+| Quick category mode | Authoritative via `runPricingEngine` |
+| Room / measured BOQ | Planned deterministic engine under `@repo/services` (not presentation) |
+| AI / manual presentation totals | Draft-only until deterministic repricing |
+| Enhanced / New Build | Adjacent indicative calculators — not canonical L3 |
+| Product confidence | L3 initially `low` \| `medium`; `high` blocked |
+| L1/L2 promotion | Explicit, deferred; never upgrades confidence |
+
 ---
 
 ## Layer rules (inside a slice)
