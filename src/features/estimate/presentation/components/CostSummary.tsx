@@ -7,10 +7,9 @@
  * Initial owner: features/estimate/presentation.
  * Promote to @repo/ui only after a second real consumer exists.
  */
-import { Badge, Card } from "@repo/ui";
-import { cn } from "@repo/ui/lib/utils";
+import { Badge, Card, cn } from "@repo/ui";
+import type { EstimateSource } from "../../domain";
 
-export type CostSummarySource = "engine" | "ai-assisted" | "fallback" | "mock";
 export type CostSummaryConfidence = "low" | "medium" | "high";
 
 export type CostSummaryProps = {
@@ -22,7 +21,7 @@ export type CostSummaryProps = {
   contingency?: number;
   vat?: number;
   confidence: CostSummaryConfidence;
-  source: CostSummarySource;
+  source: EstimateSource;
   drivers?: Array<{ label: string; value: string }>;
   assumptions?: string[];
   warnings?: string[];
@@ -31,7 +30,7 @@ export type CostSummaryProps = {
   title?: string;
 };
 
-const SOURCE_LABEL: Record<CostSummarySource, string> = {
+const SOURCE_LABEL: Record<EstimateSource, string> = {
   engine: "Engine rates",
   "ai-assisted": "AI-assisted · rates from pricing engine",
   fallback: "Fallback estimate",
@@ -85,9 +84,7 @@ export function CostSummary({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={CONFIDENCE_VARIANT[confidence]}>
-          Confidence: {confidence}
-        </Badge>
+        <Badge variant={CONFIDENCE_VARIANT[confidence]}>Confidence: {confidence}</Badge>
         <Badge variant="outline">{SOURCE_LABEL[source]}</Badge>
       </div>
 
@@ -126,8 +123,7 @@ export function CostSummary({
           <ul className="grid gap-1 text-sm text-muted-foreground sm:grid-cols-2">
             {drivers.map((d) => (
               <li key={d.label}>
-                <span className="font-medium text-foreground">{d.label}:</span>{" "}
-                {d.value}
+                <span className="font-medium text-foreground">{d.label}:</span> {d.value}
               </li>
             ))}
           </ul>

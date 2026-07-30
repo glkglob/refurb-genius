@@ -6,16 +6,13 @@
  * it never recomputes money.
  */
 import {
+  L1_POLICY_VERSION,
+  resolveL1Inputs,
   runPricingEngine,
+  type EstimateSource,
+  type L1UserInput,
   type PricingEngineResult,
 } from "../domain";
-import {
-  resolveL1Inputs,
-  type L1UserInput,
-  L1_POLICY_VERSION,
-} from "../domain/l1Policy";
-
-export type EstimateSource = "engine" | "ai-assisted" | "fallback" | "mock";
 
 export type L1EstimateResult = {
   pricing: PricingEngineResult;
@@ -42,10 +39,7 @@ export function runL1Estimate(user: L1UserInput): L1EstimateResult {
   const resolved = resolveL1Inputs(user);
   const pricing = runPricingEngine(resolved.engineInputs);
 
-  const assumptions = [
-    ...resolved.appliedDefaults,
-    ...pricing.assumptions,
-  ];
+  const assumptions = [...resolved.appliedDefaults, ...pricing.assumptions];
 
   const keyDrivers: Array<{ label: string; value: string }> = [
     { label: "Region", value: resolved.region },

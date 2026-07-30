@@ -10,11 +10,10 @@
  */
 import {
   REFERENCE_SIZE_SQM,
-  postcodeToUkRegion,
+  resolvePostcodeRegion,
   type PricingEngineInputs,
 } from "@repo/services";
-import type { EstimateCategory, FinishLevel } from "@repo/core/utilities/pricingData";
-import type { ConditionLevel, UKRegion } from "@repo/types";
+import type { ConditionLevel, EstimateCategory, FinishLevel, UKRegion } from "@repo/types";
 
 /** Bump when maps or default values change so diagnostics stay auditable. */
 export const L1_POLICY_VERSION = "2026-07-30.1";
@@ -46,14 +45,7 @@ const CONDITION_CHIP_MAP: Record<L1ConditionChip, ConditionLevel> = {
 const INTENT_CATEGORY_MAP: Record<L1IntentChip, EstimateCategory[]> = {
   cosmetic: ["Painting", "Flooring"],
   "kitchen-bath": ["Kitchen", "Bathroom"],
-  "full-refurb": [
-    "Kitchen",
-    "Bathroom",
-    "Flooring",
-    "Painting",
-    "Electrical",
-    "Plumbing",
-  ],
+  "full-refurb": ["Kitchen", "Bathroom", "Flooring", "Painting", "Electrical", "Plumbing"],
   "not-sure": ["Kitchen", "Bathroom", "Flooring", "Painting"],
 };
 
@@ -80,13 +72,13 @@ export const L1_INTENT_OPTIONS: Array<{ value: L1IntentChip; label: string }> = 
 export function resolveL1Inputs(user: L1UserInput): L1ResolvedInputs {
   const appliedDefaults: string[] = [];
 
-  const trimmedPostcode = user.postcode.trim();
-  const region = postcodeToUkRegion(trimmedPostcode || "");
-  const area = extractPostcodeArea(trimmedPostcode);
-  const effectivelyMapped = Boolean(trimmedPostcode) && area.length > 0;
-  if (!effectivelyMapped) {
+  const postcodeResolution = resolvePostcodeRegion(user.postcode);
+  const region = postcodeResolution.region;
+  const regionMapped = postcodeResolution.matched;
+
+  if (!regionMapped) {
     appliedDefaults.push(
-      `Region defaulted to ${region} (postcode area not mapped or missing)`,
+      "Region defaulted to London because the postcode area was missing or unrecognised",
     );
   }
 
@@ -96,9 +88,7 @@ export function resolveL1Inputs(user: L1UserInput): L1ResolvedInputs {
   const property_size_sqm = REFERENCE_SIZE_SQM;
 
   appliedDefaults.push(`Finish assumed: ${finish_quality}`);
-  appliedDefaults.push(
-    `Property size assumed: ${REFERENCE_SIZE_SQM} m² (reference size)`,
-  );
+  appliedDefaults.push(`Property size assumed: ${REFERENCE_SIZE_SQM} m² (reference size)`);
   appliedDefaults.push(
     `Categories from intent "${user.intent}": ${selected_categories.join(", ")}`,
   );
@@ -115,13 +105,7 @@ export function resolveL1Inputs(user: L1UserInput): L1ResolvedInputs {
     engineInputs,
     appliedDefaults,
     region,
-    regionMapped: effectivelyMapped,
+    regionMapped,
     policyVersion: L1_POLICY_VERSION,
   };
-}
-
-function extractPostcodeArea(postcode: string): string {
-  const normalized = postcode.trim().toUpperCase().replace(/\s+/g, "");
-  const match = normalized.match(/^[A-Z]{1,2}/);
-  return match ? match[0] : "";
 }

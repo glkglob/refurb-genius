@@ -5,17 +5,16 @@
  * Presentation never computes money; it only calls the application use-case
  * and renders CostSummary with the result.
  */
-import { useState } from "react";
-import { Button, Input, Label, Badge } from "@repo/ui";
-import { cn } from "@repo/ui/lib/utils";
+import { useState, type FormEvent } from "react";
+import { Button, Input, Label, cn } from "@repo/ui";
 import {
   L1_CONDITION_OPTIONS,
   L1_INTENT_OPTIONS,
   type L1ConditionChip,
   type L1IntentChip,
   type L1UserInput,
-} from "../../domain/l1Policy";
-import { runL1Estimate, type L1EstimateResult } from "../../application/runL1Estimate";
+} from "../../domain";
+import { runL1Estimate, type L1EstimateResult } from "../../application";
 import { CostSummary } from "./CostSummary";
 
 export type L1EstimateFormProps = {
@@ -31,10 +30,9 @@ export function L1EstimateForm({ className, onEstimated }: L1EstimateFormProps) 
   const [result, setResult] = useState<L1EstimateResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit =
-    postcode.trim().length >= 2 && condition != null && intent != null;
+  const canSubmit = postcode.trim().length >= 2 && condition != null && intent != null;
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
 
@@ -61,7 +59,7 @@ export function L1EstimateForm({ className, onEstimated }: L1EstimateFormProps) 
 
   return (
     <div className={cn("space-y-6", className)}>
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <div className="space-y-2">
           <Label htmlFor="l1-postcode">Postcode</Label>
           <Input
@@ -72,53 +70,55 @@ export function L1EstimateForm({ className, onEstimated }: L1EstimateFormProps) 
             value={postcode}
             onChange={(e) => setPostcode(e.target.value)}
             className="max-w-xs"
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? "l1-estimate-error" : undefined}
           />
         </div>
 
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">Condition</legend>
           <div className="flex flex-wrap gap-2">
-            {L1_CONDITION_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setCondition(opt.value)}
-                className="focus-visible:outline-none"
-              >
-                <Badge
-                  variant={condition === opt.value ? "default" : "outline"}
-                  className="cursor-pointer px-3 py-1 text-sm"
+            {L1_CONDITION_OPTIONS.map((opt) => {
+              const selected = condition === opt.value;
+              return (
+                <Button
+                  key={opt.value}
+                  type="button"
+                  size="sm"
+                  variant={selected ? "default" : "outline"}
+                  aria-pressed={selected}
+                  onClick={() => setCondition(opt.value)}
                 >
                   {opt.label}
-                </Badge>
-              </button>
-            ))}
+                </Button>
+              );
+            })}
           </div>
         </fieldset>
 
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium">What are you doing?</legend>
           <div className="flex flex-wrap gap-2">
-            {L1_INTENT_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setIntent(opt.value)}
-                className="focus-visible:outline-none"
-              >
-                <Badge
-                  variant={intent === opt.value ? "default" : "outline"}
-                  className="cursor-pointer px-3 py-1 text-sm"
+            {L1_INTENT_OPTIONS.map((opt) => {
+              const selected = intent === opt.value;
+              return (
+                <Button
+                  key={opt.value}
+                  type="button"
+                  size="sm"
+                  variant={selected ? "default" : "outline"}
+                  aria-pressed={selected}
+                  onClick={() => setIntent(opt.value)}
                 >
                   {opt.label}
-                </Badge>
-              </button>
-            ))}
+                </Button>
+              );
+            })}
           </div>
         </fieldset>
 
         {error && (
-          <p className="text-sm text-destructive" role="alert">
+          <p id="l1-estimate-error" className="text-sm text-destructive" role="alert">
             {error}
           </p>
         )}

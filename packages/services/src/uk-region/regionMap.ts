@@ -49,22 +49,68 @@ export const UK_TO_REGION_SLUG: Record<UKRegion, RegionSlug> = {
   "Northern Ireland": "northern_ireland",
 };
 
+/** Resolution of a postcode area to a UK region, including match honesty. */
+export type PostcodeRegionResolution = {
+  area: string;
+  region: UKRegion;
+  /** True only when the postcode area is present in the canonical area sets. */
+  matched: boolean;
+};
+
+/**
+ * Resolve a UK postcode (district or full) to a region with an explicit match flag.
+ * Unknown, empty or malformed areas fall back to London with matched=false.
+ */
+export function resolvePostcodeRegion(postcode: string): PostcodeRegionResolution {
+  const area = extractPostcodeArea(postcode);
+
+  if (LONDON.has(area)) {
+    return { area, region: "London", matched: true };
+  }
+  if (SOUTH_EAST.has(area)) {
+    return { area, region: "South East England", matched: true };
+  }
+  if (SOUTH_WEST.has(area)) {
+    return { area, region: "South West England", matched: true };
+  }
+  if (EAST_OF_ENGLAND.has(area)) {
+    return { area, region: "East of England", matched: true };
+  }
+  if (EAST_MIDLANDS.has(area)) {
+    return { area, region: "East Midlands", matched: true };
+  }
+  if (WEST_MIDLANDS.has(area)) {
+    return { area, region: "West Midlands", matched: true };
+  }
+  if (NORTH_WEST.has(area)) {
+    return { area, region: "North West England", matched: true };
+  }
+  if (NORTH_EAST.has(area)) {
+    return { area, region: "North East England", matched: true };
+  }
+  if (YORKSHIRE.has(area)) {
+    return { area, region: "Yorkshire and the Humber", matched: true };
+  }
+  if (SCOTLAND.has(area)) {
+    return { area, region: "Scotland", matched: true };
+  }
+  if (WALES.has(area)) {
+    return { area, region: "Wales", matched: true };
+  }
+  if (NORTHERN_IRELAND.has(area)) {
+    return { area, region: "Northern Ireland", matched: true };
+  }
+
+  return {
+    area,
+    region: "London",
+    matched: false,
+  };
+}
+
 /** Infer UK region from a UK postcode (district or full). Defaults to London. */
 export function postcodeToUkRegion(postcode: string): UKRegion {
-  const area = extractPostcodeArea(postcode);
-  if (LONDON.has(area)) return "London";
-  if (SOUTH_EAST.has(area)) return "South East England";
-  if (SOUTH_WEST.has(area)) return "South West England";
-  if (EAST_OF_ENGLAND.has(area)) return "East of England";
-  if (EAST_MIDLANDS.has(area)) return "East Midlands";
-  if (WEST_MIDLANDS.has(area)) return "West Midlands";
-  if (NORTH_WEST.has(area)) return "North West England";
-  if (NORTH_EAST.has(area)) return "North East England";
-  if (YORKSHIRE.has(area)) return "Yorkshire and the Humber";
-  if (SCOTLAND.has(area)) return "Scotland";
-  if (WALES.has(area)) return "Wales";
-  if (NORTHERN_IRELAND.has(area)) return "Northern Ireland";
-  return "London";
+  return resolvePostcodeRegion(postcode).region;
 }
 
 function extractPostcodeArea(postcode: string): string {
