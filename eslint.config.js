@@ -19,7 +19,16 @@ export default tseslint.config(
       "react-refresh": reactRefresh,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
+      // Preserve pre-migration React Hooks policy (rules-of-hooks / exhaustive-deps
+      // only). Do not enable the expanded React Compiler recommended set from
+      // eslint-plugin-react-hooks@7 in this security migration.
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
+      // ESLint 10 adds these to eslint:recommended; keep them off to preserve the
+      // ESLint 9 recommended baseline for this security-focused migration.
+      "no-unassigned-vars": "off",
+      "no-useless-assignment": "off",
+      "preserve-caught-error": "off",
       "no-restricted-imports": [
         "error",
         {
