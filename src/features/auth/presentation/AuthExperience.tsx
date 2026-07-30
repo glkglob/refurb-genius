@@ -1,22 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
-import {
-  AlertCircle,
-  Eye,
-  EyeOff,
-  Home,
-  Loader2,
-  Lock,
-  Mail,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { AlertCircle, Check, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Label } from "@repo/ui/label";
+import { Separator } from "@repo/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
@@ -34,6 +23,53 @@ type AuthExperienceProps = {
   redirect?: string;
 };
 
+/** Decorative Lucide icon props — never focusable under aria-hidden. */
+function decorativeIconProps(className?: string) {
+  return {
+    "aria-hidden": true as const,
+    focusable: false as const,
+    className: cn("pointer-events-none", className),
+  };
+}
+
+const fieldClassName = cn(
+  "h-14 min-h-[52px] rounded-2xl border-[#d8d1c7] bg-white px-4 text-[#111827]",
+  "placeholder:text-[#5f5a54]/70",
+  "focus-visible:border-[#0f766e] focus-visible:ring-2 focus-visible:ring-[#0f766e]/30",
+);
+
+const primaryButtonClassName = cn(
+  "h-14 min-h-11 w-full rounded-2xl bg-[#0f766e] text-base font-semibold text-white",
+  "hover:bg-[#115e59] focus-visible:ring-2 focus-visible:ring-[#0f766e]/40 focus-visible:ring-offset-2",
+  "disabled:opacity-60",
+);
+
+const outlineButtonClassName = cn(
+  "h-12 min-h-11 w-full rounded-2xl border-[#d8d1c7] bg-white text-[#111827]",
+  "hover:bg-[#f7f5f2] focus-visible:ring-2 focus-visible:ring-[#0f766e]/25",
+);
+
+const legalLinkClassName =
+  "font-medium text-[#0f766e] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40 rounded-sm";
+
+const AUTH_VALUE_CARDS = [
+  {
+    label: "Output",
+    title: "Feasibility studies",
+    body: "Structured scopes and cost ranges for investor decisions.",
+  },
+  {
+    label: "Workflow",
+    title: "Scenario comparison",
+    body: "Compare assumptions without losing your working context.",
+  },
+  {
+    label: "Audience",
+    title: "UK property investors",
+    body: "Built for refurbishment and development decision-making.",
+  },
+] as const;
+
 function AppleIcon() {
   return (
     <svg
@@ -50,12 +86,33 @@ function AppleIcon() {
   );
 }
 
-/** Decorative Lucide icon props — never focusable under aria-hidden. */
-const decorativeIconProps = {
-  "aria-hidden": true as const,
-  focusable: false as const,
-  className: "pointer-events-none",
-};
+function GoogleIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 24 24"
+      className="pointer-events-none h-4 w-4 shrink-0"
+    >
+      <path
+        fill="#EA4335"
+        d="M12 10.2v3.9h5.5c-.2 1.3-.9 2.4-2 3.1l3.1 2.4c1.8-1.7 2.9-4.1 2.9-7 0-.7-.1-1.4-.2-2H12z"
+      />
+      <path
+        fill="#34A853"
+        d="M6.6 14.3l-.9.7-2.5 1.9C4.8 19.9 8.2 22 12 22c2.4 0 4.5-.8 6-2.3l-3.1-2.4c-.8.6-1.9 1-2.9 1-2.3 0-4.2-1.5-4.9-3.6z"
+      />
+      <path
+        fill="#4A90E2"
+        d="M3.2 6.9C2.4 8.2 2 9.6 2 11c0 1.4.4 2.8 1.2 4.1l3.4-2.6c-.2-.6-.3-1.2-.3-1.9 0-.6.1-1.3.3-1.9z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M12 4.8c1.3 0 2.4.4 3.3 1.2l2.4-2.4C16.5 2.1 14.4 1.2 12 1.2 8.2 1.2 4.8 3.3 3.2 6.9l3.7 2.8C7.8 6.3 9.7 4.8 12 4.8z"
+      />
+    </svg>
+  );
+}
 
 export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   const navigate = useNavigate();
@@ -120,19 +177,26 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
   const isReset = mode === "reset";
   const isLocked = remainingSeconds > 0;
 
-  const formDisabled = submitting || oauthLoading || magicLinkLoading || forgotPasswordLoading;
+  const formDisabled =
+    submitting || oauthLoading || appleLoading || magicLinkLoading || forgotPasswordLoading;
+
+  const pageEyebrow = useMemo(() => {
+    if (isSignIn) return "Sign in";
+    if (isSignUp) return "Sign up";
+    return "Account recovery";
+  }, [isSignIn, isSignUp]);
 
   const pageHeading = useMemo(() => {
-    if (isSignIn) return "Welcome back";
-    if (isSignUp) return "Create your Refurb Genius account";
-    return "Reset your password";
+    if (isSignIn) return "Welcome back to your investor workspace";
+    if (isSignUp) return "Create your investor workspace";
+    return "Set a new password";
   }, [isSignIn, isSignUp]);
 
   const pageSubheading = useMemo(() => {
-    if (isSignIn) return "Sign in to continue analysing UK property refurb opportunities.";
-    if (isSignUp)
-      return "Set up secure access, then start photo-led scopes, estimates, and ROI feasibility work.";
-    return "Choose a new password to regain access to your account.";
+    if (isSignIn)
+      return "Continue analysing refurbishment costs, scenarios, and property opportunities.";
+    if (isSignUp) return "Start building investor-grade feasibility studies in minutes.";
+    return "Choose a secure new password to regain access to your workspace.";
   }, [isSignIn, isSignUp]);
 
   function destinationAfterAuth() {
@@ -157,7 +221,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
       return;
     }
 
-    if (!email) {
+    if (!isReset && !email) {
       setError("Email address is required.");
       return;
     }
@@ -167,11 +231,12 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
       return;
     }
 
-    if (isSignUp) {
-      if (!agreeTerms) {
-        setError("Please accept the Terms and Privacy Policy to continue.");
-        return;
-      }
+    if (isSignUp && !agreeTerms) {
+      setError("Please accept the Terms and Privacy Policy to continue.");
+      return;
+    }
+
+    if (isSignUp || isReset) {
       if (password.length < 6) {
         setError("Password must be at least 6 characters.");
         return;
@@ -313,584 +378,635 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
     void navigate({ to: "/auth", search: { mode: nextMode, redirect }, replace: true });
   }
 
-  if (awaitingVerification) {
-    return (
-      <AuthPageShell>
-        <Card className="border-border/60 bg-card/85 backdrop-blur-sm">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-accent/15">
-              <Mail {...decorativeIconProps} className="pointer-events-none h-6 w-6 text-accent" />
-            </div>
-            <CardTitle>Check your email</CardTitle>
-            <CardDescription>
-              We sent a verification link to{" "}
-              <span className="font-medium text-foreground">{email}</span>. Open it, then sign in.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button className="w-full" variant="secondary" onClick={() => switchMode("signin")}>
-              Back to sign in
-            </Button>
-          </CardContent>
-        </Card>
-      </AuthPageShell>
-    );
-  }
+  const headerActionLabel = isSignUp || isReset ? "Sign in" : "Sign up";
+  const headerActionMode: "signin" | "signup" = isSignUp || isReset ? "signin" : "signup";
 
   return (
-    <AuthPageShell>
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-border/60 bg-card/80 shadow-2xl shadow-black/45 backdrop-blur-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
-        {/* Product value panel — desktop only; content reflects shipped product capabilities */}
-        <aside
-          className="relative hidden border-r border-border/60 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8 lg:flex lg:flex-col"
-          aria-label="Product overview"
+    <AuthPageShell
+      headerActionLabel={headerActionLabel}
+      onHeaderAction={() => switchMode(headerActionMode)}
+    >
+      <div className="mx-auto grid w-full max-w-7xl gap-8 px-6 pb-14 pt-2 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12 lg:px-10 lg:pb-16">
+        <AuthProductPanel className="order-2 lg:order-1" compactOnMobile />
+
+        <section
+          className="order-1 flex flex-col justify-center lg:order-2"
+          aria-label="Authentication"
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(45,212,191,0.14),transparent_40%),radial-gradient(circle_at_80%_70%,rgba(59,130,246,0.14),transparent_35%)]" />
-          <div className="relative flex h-full flex-col">
-            <div className="mb-8 flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/20 ring-1 ring-accent/40">
-                <Home
-                  {...decorativeIconProps}
-                  className="pointer-events-none h-5 w-5 text-accent"
-                />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">Refurb Genius</p>
-                <p className="text-xs text-muted-foreground">UK property refurbishment analysis</p>
-              </div>
-            </div>
+          <div
+            className={cn(
+              "w-full rounded-[32px] border border-[#d8d1c7] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.10),0_10px_30px_rgba(17,24,39,0.08)]",
+              "sm:p-8 lg:p-10",
+            )}
+          >
+            {awaitingVerification ? (
+              <VerificationPanel email={email} onBack={() => switchMode("signin")} />
+            ) : (
+              <>
+                <div className="mb-6 space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0f766e]">
+                    {pageEyebrow}
+                  </p>
+                  <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight text-[#111827] sm:text-[2rem]">
+                    {pageHeading}
+                  </h1>
+                  <p className="text-sm leading-relaxed text-[#5f5a54] sm:text-[0.95rem]">
+                    {pageSubheading}
+                  </p>
 
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-              Feasibility, estimates, and ROI in one workspace
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Built for UK investors and developers who need structured refurb scopes, cost
-              estimates, and shareable feasibility outputs from property photos.
-            </p>
-
-            <ul className="mt-8 space-y-3">
-              {[
-                "Photo analysis and room-level condition scoring",
-                "Deterministic refurb estimates and ROI scenarios",
-                "Feasibility exports for lenders and JV partners",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2 text-sm text-foreground/90">
-                  <Sparkles
-                    {...decorativeIconProps}
-                    className="pointer-events-none mt-0.5 h-4 w-4 shrink-0 text-accent"
-                  />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="mt-auto space-y-3 pt-10">
-              <div className="rounded-xl border border-border/60 bg-background/40 p-4">
-                <div className="flex items-start gap-2">
-                  <ShieldCheck
-                    {...decorativeIconProps}
-                    className="pointer-events-none mt-0.5 h-4 w-4 shrink-0 text-accent"
-                  />
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      Secured with Supabase Auth
-                    </p>
-                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Email/password, magic links, and social sign-in are handled by Supabase with
-                      encrypted sessions. Your account stays under your control.
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border border-border/60 bg-background/40 p-3">
-                  <p className="text-xs text-muted-foreground">Built for</p>
-                  <p className="mt-1 text-sm font-medium">UK property investors</p>
-                </div>
-                <div className="rounded-lg border border-border/60 bg-background/40 p-3">
-                  <p className="text-xs text-muted-foreground">Workspace</p>
-                  <p className="mt-1 text-sm font-medium">Projects, studies & trades</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </aside>
-
-        <div className="min-w-0 p-5 sm:p-8">
-          <div className="mb-6 flex items-center gap-2 lg:hidden">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/20">
-              <Home {...decorativeIconProps} className="pointer-events-none h-4 w-4 text-accent" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold leading-none">Refurb Genius</p>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                UK property refurbishment analysis
-              </p>
-            </div>
-          </div>
-
-          {!isReset && (
-            <div
-              className="mb-5 rounded-xl border border-border/60 bg-background/50 p-1"
-              role="tablist"
-              aria-label="Authentication mode"
-            >
-              <div className="grid grid-cols-2 gap-1">
-                <Button
-                  type="button"
-                  role="tab"
-                  variant={isSignIn ? "default" : "ghost"}
-                  className="h-10 w-full"
-                  onClick={() => switchMode("signin")}
-                  aria-selected={isSignIn}
-                >
-                  Sign in
-                </Button>
-                <Button
-                  type="button"
-                  role="tab"
-                  variant={isSignUp ? "default" : "ghost"}
-                  className="h-10 w-full"
-                  onClick={() => switchMode("signup")}
-                  aria-selected={isSignUp}
-                >
-                  Sign up
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <header className="mb-5">
-            <h1 className="text-2xl font-semibold tracking-tight">{pageHeading}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{pageSubheading}</p>
-          </header>
-
-          {isSignUp && (
-            <div className="mb-5 rounded-lg border border-border/50 bg-background/35 px-3 py-2.5 lg:hidden">
-              <p className="text-xs leading-relaxed text-muted-foreground">
-                Photo-led scopes, refurb estimates, and ROI feasibility — secured with Supabase
-                Auth.
-              </p>
-            </div>
-          )}
-
-          {error && (
-            <Alert variant="destructive" className="mb-4" role="alert" aria-live="assertive">
-              <AlertCircle {...decorativeIconProps} className="pointer-events-none h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {isLocked && isSignIn && !error && (
-            <Alert
-              className="mb-4 border-amber-500/40 bg-amber-500/10 text-amber-200"
-              role="status"
-              aria-live="polite"
-            >
-              <Lock {...decorativeIconProps} className="pointer-events-none h-4 w-4" />
-              <AlertDescription>
-                Temporarily locked. Try again in {remainingSeconds}s.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          <form className="space-y-4" onSubmit={handleSubmit} noValidate>
-            {/* 1. Email */}
-            <div className="space-y-1.5">
-              <Label htmlFor="email">Email address</Label>
-              <Input
-                id="email"
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="you@company.co.uk"
-                required
-                disabled={formDisabled}
-                aria-describedby={isSignUp ? "email-hint" : undefined}
-              />
-              {isSignUp && (
-                <p id="email-hint" className="text-xs text-muted-foreground">
-                  We&apos;ll use this for sign-in and account recovery.
-                </p>
-              )}
-            </div>
-
-            {/* 2. Password */}
-            <div className="space-y-1.5">
-              <Label htmlFor="password">{isReset ? "New password" : "Password"}</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  autoComplete={isSignIn ? "current-password" : "new-password"}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder={isSignIn ? "Enter your password" : "At least 6 characters"}
-                  required
-                  disabled={formDisabled || (isSignIn && isLocked)}
-                  aria-describedby={isSignUp ? "password-hint" : undefined}
-                  className="pr-11"
-                />
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="absolute right-1 top-1 h-8 w-8"
-                  onClick={() => setShowPassword((current) => !current)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  disabled={formDisabled}
-                >
-                  {showPassword ? (
-                    <EyeOff {...decorativeIconProps} />
-                  ) : (
-                    <Eye {...decorativeIconProps} />
+                  {!isReset && (
+                    <div
+                      className="mt-4 rounded-2xl border border-[#d8d1c7] bg-[#f7f5f2] p-1"
+                      role="group"
+                      aria-label="Authentication mode"
+                    >
+                      <div className="grid grid-cols-2 gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className={cn(
+                            "h-11 w-full rounded-xl text-sm font-medium",
+                            isSignIn
+                              ? "bg-white text-[#111827] shadow-sm hover:bg-white"
+                              : "text-[#5f5a54] hover:bg-white/60 hover:text-[#111827]",
+                          )}
+                          onClick={() => switchMode("signin")}
+                          aria-pressed={isSignIn}
+                        >
+                          Sign in
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className={cn(
+                            "h-11 w-full rounded-xl text-sm font-medium",
+                            isSignUp
+                              ? "bg-white text-[#111827] shadow-sm hover:bg-white"
+                              : "text-[#5f5a54] hover:bg-white/60 hover:text-[#111827]",
+                          )}
+                          onClick={() => switchMode("signup")}
+                          aria-pressed={isSignUp}
+                        >
+                          Sign up
+                        </Button>
+                      </div>
+                    </div>
                   )}
-                </Button>
-              </div>
-              {isSignUp && (
-                <p id="password-hint" className="text-xs text-muted-foreground">
-                  Minimum 6 characters. You can change this later from your account.
-                </p>
-              )}
-            </div>
+                </div>
 
-            {/* 3. Confirm password */}
-            {(isSignUp || isReset) && (
-              <div className="space-y-1.5">
-                <Label htmlFor="confirm-password">Confirm password</Label>
-                <div className="relative">
-                  <Input
-                    id="confirm-password"
-                    type={showConfirmPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    value={confirmPassword}
-                    onChange={(event) => setConfirmPassword(event.target.value)}
-                    placeholder="Re-enter password"
-                    required
-                    disabled={formDisabled}
-                    className="pr-11"
-                  />
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="ghost"
-                    className="absolute right-1 top-1 h-8 w-8"
-                    onClick={() => setShowConfirmPassword((current) => !current)}
-                    aria-label={
-                      showConfirmPassword
-                        ? "Hide confirmation password"
-                        : "Show confirmation password"
-                    }
-                    disabled={formDisabled}
+                {error && (
+                  <Alert
+                    variant="destructive"
+                    className="mb-5 border-red-200 bg-red-50 text-red-900"
+                    role="alert"
+                    aria-live="assertive"
                   >
-                    {showConfirmPassword ? (
-                      <EyeOff {...decorativeIconProps} />
+                    <AlertCircle {...decorativeIconProps("h-4 w-4 text-red-700")} />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+
+                {isLocked && isSignIn && !error && (
+                  <Alert
+                    className="mb-5 border-amber-200 bg-amber-50 text-amber-950"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    <Lock {...decorativeIconProps("h-4 w-4 text-amber-700")} />
+                    <AlertDescription>
+                      Temporarily locked. Try again in {remainingSeconds}s.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+                  {!isReset && (
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-[#111827]">
+                        Email address
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        inputMode="email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                        placeholder="you@company.co.uk"
+                        required
+                        disabled={formDisabled}
+                        aria-describedby={isSignUp ? "email-hint" : undefined}
+                        className={fieldClassName}
+                      />
+                      {isSignUp && (
+                        <p id="email-hint" className="text-xs text-[#5f5a54]">
+                          We&apos;ll use this for sign-in and account recovery.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <Label htmlFor="password" className="text-[#111827]">
+                        {isReset ? "New password" : "Password"}
+                      </Label>
+                      {isSignIn && (
+                        <Button
+                          type="button"
+                          variant="link"
+                          className="h-auto p-0 text-sm font-medium text-[#0f766e] hover:text-[#115e59]"
+                          onClick={handleForgotPassword}
+                          disabled={formDisabled}
+                        >
+                          {forgotPasswordLoading ? "Sending reset email..." : "Forgot password?"}
+                        </Button>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        autoComplete={isSignIn ? "current-password" : "new-password"}
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        placeholder={isSignIn ? "Enter your password" : "At least 6 characters"}
+                        required
+                        disabled={formDisabled || (isSignIn && isLocked)}
+                        aria-describedby={isSignUp ? "password-hint" : undefined}
+                        className={cn(fieldClassName, "pr-12")}
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="absolute right-1.5 top-1.5 h-11 w-11 rounded-xl text-[#5f5a54] hover:bg-[#f7f5f2] hover:text-[#111827]"
+                        onClick={() => setShowPassword((current) => !current)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        disabled={formDisabled}
+                      >
+                        {showPassword ? (
+                          <EyeOff {...decorativeIconProps("h-4 w-4")} />
+                        ) : (
+                          <Eye {...decorativeIconProps("h-4 w-4")} />
+                        )}
+                      </Button>
+                    </div>
+                    {isSignUp && (
+                      <p id="password-hint" className="text-xs text-[#5f5a54]">
+                        Minimum 6 characters. You can change this later from your account.
+                      </p>
+                    )}
+                  </div>
+
+                  {(isSignUp || isReset) && (
+                    <div className="space-y-2">
+                      <Label htmlFor="confirm-password" className="text-[#111827]">
+                        Confirm password
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="confirm-password"
+                          type={showConfirmPassword ? "text" : "password"}
+                          autoComplete="new-password"
+                          value={confirmPassword}
+                          onChange={(event) => setConfirmPassword(event.target.value)}
+                          placeholder="Re-enter password"
+                          required
+                          disabled={formDisabled}
+                          className={cn(fieldClassName, "pr-12")}
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="absolute right-1.5 top-1.5 h-11 w-11 rounded-xl text-[#5f5a54] hover:bg-[#f7f5f2] hover:text-[#111827]"
+                          onClick={() => setShowConfirmPassword((current) => !current)}
+                          aria-label={
+                            showConfirmPassword
+                              ? "Hide confirmation password"
+                              : "Show confirmation password"
+                          }
+                          disabled={formDisabled}
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff {...decorativeIconProps("h-4 w-4")} />
+                          ) : (
+                            <Eye {...decorativeIconProps("h-4 w-4")} />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {isSignUp && (
+                    <fieldset className="space-y-3 rounded-2xl border border-[#d8d1c7] bg-[#f7f5f2] p-4 sm:p-5">
+                      <legend className="flex items-center gap-2 px-1 text-sm font-medium text-[#111827]">
+                        Optional profile details
+                        <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-[#5f5a54] ring-1 ring-[#d8d1c7]">
+                          Optional
+                        </span>
+                      </legend>
+                      <p className="text-xs text-[#5f5a54]">
+                        Helps personalise your workspace. You can skip and add later.
+                      </p>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="name" className="text-[#111827]">
+                            Full name
+                          </Label>
+                          <Input
+                            id="name"
+                            value={name}
+                            onChange={(event) => setName(event.target.value)}
+                            placeholder="Alex Morgan"
+                            autoComplete="name"
+                            disabled={formDisabled}
+                            className={fieldClassName}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="company" className="text-[#111827]">
+                            Company
+                          </Label>
+                          <Input
+                            id="company"
+                            value={company}
+                            onChange={(event) => setCompany(event.target.value)}
+                            placeholder="Northbridge Property Ltd"
+                            autoComplete="organization"
+                            disabled={formDisabled}
+                            className={fieldClassName}
+                          />
+                        </div>
+                      </div>
+                    </fieldset>
+                  )}
+
+                  {isSignUp && (
+                    <div className="flex items-start gap-3 rounded-2xl border border-[#d8d1c7] bg-white p-4">
+                      {/*
+                        Native checkbox (not Radix): Radix injects a bubble <input aria-hidden
+                        tabIndex={-1}> which fails axe "aria-hidden-focus".
+                      */}
+                      <input
+                        id="terms-consent"
+                        type="checkbox"
+                        checked={agreeTerms}
+                        onChange={(event) => setAgreeTerms(event.target.checked)}
+                        disabled={formDisabled}
+                        className={cn(
+                          "mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-md border border-[#d8d1c7]",
+                          "accent-[#0f766e]",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40 focus-visible:ring-offset-2",
+                          "disabled:cursor-not-allowed disabled:opacity-50",
+                        )}
+                      />
+                      <div className="text-sm leading-relaxed text-[#5f5a54]">
+                        <Label
+                          htmlFor="terms-consent"
+                          className="cursor-pointer text-sm leading-relaxed text-[#5f5a54]"
+                        >
+                          I agree to the
+                        </Label>{" "}
+                        <a
+                          href="/terms"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={legalLinkClassName}
+                        >
+                          Terms
+                        </a>{" "}
+                        and{" "}
+                        <a
+                          href="/privacy"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={legalLinkClassName}
+                        >
+                          Privacy Policy
+                        </a>
+                        .
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    type="submit"
+                    size="lg"
+                    className={primaryButtonClassName}
+                    disabled={formDisabled || (isSignIn && isLocked)}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 {...decorativeIconProps("h-4 w-4 animate-spin")} />
+                        {isSignIn
+                          ? "Signing in..."
+                          : isSignUp
+                            ? "Creating account..."
+                            : "Updating password..."}
+                      </>
+                    ) : isSignIn ? (
+                      "Sign in"
+                    ) : isSignUp ? (
+                      "Create account"
                     ) : (
-                      <Eye {...decorativeIconProps} />
+                      "Update password"
                     )}
                   </Button>
-                </div>
-              </div>
-            )}
+                </form>
 
-            {/* 4–5. Optional profile details after credentials */}
-            {isSignUp && (
-              <fieldset className="space-y-3 rounded-xl border border-border/60 bg-background/30 p-3 sm:p-4">
-                <legend className="px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Profile details
-                </legend>
-                <p className="text-xs text-muted-foreground">
-                  Optional — helps personalise your workspace. You can skip and add later.
-                </p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-1.5 sm:col-span-1">
-                    <Label htmlFor="name">Full name</Label>
-                    <Input
-                      id="name"
-                      value={name}
-                      onChange={(event) => setName(event.target.value)}
-                      placeholder="Alex Morgan"
-                      autoComplete="name"
-                      disabled={formDisabled}
-                    />
+                {!isReset && (
+                  <p className="mt-4 flex items-center justify-center gap-2 text-xs text-[#5f5a54]">
+                    <Check {...decorativeIconProps("h-3.5 w-3.5 text-[#0f766e]")} />
+                    <span>Secure • Protected by Supabase</span>
+                  </p>
+                )}
+
+                {!isReset && (
+                  <div className="mt-6 space-y-4">
+                    <div
+                      className="flex items-center gap-3"
+                      role="separator"
+                      aria-label="Or continue with social account"
+                    >
+                      <Separator className="flex-1 bg-[#d8d1c7]" />
+                      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#5f5a54]">
+                        Or continue with
+                      </span>
+                      <Separator className="flex-1 bg-[#d8d1c7]" />
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className={outlineButtonClassName}
+                        onClick={handleMagicLink}
+                        disabled={formDisabled}
+                        aria-describedby="magic-link-hint"
+                      >
+                        {magicLinkLoading ? (
+                          <>
+                            <Loader2 {...decorativeIconProps("h-4 w-4 animate-spin")} />
+                            Sending magic link...
+                          </>
+                        ) : (
+                          <>
+                            <Mail {...decorativeIconProps("h-4 w-4")} />
+                            Continue with magic link
+                          </>
+                        )}
+                      </Button>
+                      <p id="magic-link-hint" className="text-xs text-[#5f5a54]">
+                        Uses the email address above. Check your inbox for a secure sign-in link.
+                      </p>
+
+                      <div className="grid gap-2 sm:grid-cols-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={outlineButtonClassName}
+                          onClick={handleGoogleAuth}
+                          disabled={formDisabled || (isSignIn && isLocked)}
+                        >
+                          {oauthLoading ? (
+                            <>
+                              <Loader2 {...decorativeIconProps("h-4 w-4 animate-spin")} />
+                              Connecting to Google...
+                            </>
+                          ) : (
+                            <>
+                              <GoogleIcon />
+                              Continue with Google
+                            </>
+                          )}
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={outlineButtonClassName}
+                          onClick={handleAppleAuth}
+                          disabled={formDisabled || (isSignIn && isLocked)}
+                        >
+                          {appleLoading ? (
+                            <>
+                              <Loader2 {...decorativeIconProps("h-4 w-4 animate-spin")} />
+                              Connecting to Apple...
+                            </>
+                          ) : (
+                            <>
+                              <AppleIcon />
+                              Continue with Apple
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-1.5 sm:col-span-1">
-                    <Label htmlFor="company">
-                      Company <span className="font-normal text-muted-foreground">(optional)</span>
-                    </Label>
-                    <Input
-                      id="company"
-                      value={company}
-                      onChange={(event) => setCompany(event.target.value)}
-                      placeholder="Northbridge Property Ltd"
-                      autoComplete="organization"
-                      disabled={formDisabled}
-                    />
-                  </div>
-                </div>
-              </fieldset>
-            )}
+                )}
 
-            {isSignUp && (
-              <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-background/40 p-3">
-                {/*
-                  Native checkbox (not Radix): Radix injects a bubble <input aria-hidden
-                  tabIndex={-1}> which fails axe "aria-hidden-focus" because native inputs
-                  remain focusable under aria-hidden.
-                */}
-                <input
-                  id="terms-consent"
-                  type="checkbox"
-                  checked={agreeTerms}
-                  onChange={(event) => setAgreeTerms(event.target.checked)}
-                  disabled={formDisabled}
-                  className={cn(
-                    "mt-0.5 h-5 w-5 shrink-0 cursor-pointer appearance-none rounded-md border-2 border-primary/60 bg-field",
-                    "checked:border-primary checked:bg-primary",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                    "disabled:cursor-not-allowed disabled:opacity-50",
-                  )}
-                />
-                <Label
-                  htmlFor="terms-consent"
-                  className="cursor-pointer text-xs leading-relaxed text-muted-foreground"
-                >
-                  I agree to the{" "}
-                  <a
-                    className="text-accent underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-                    href="/terms"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Terms
-                  </a>{" "}
-                  and{" "}
-                  <a
-                    className="text-accent underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-                    href="/privacy"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Privacy Policy
-                  </a>
-                  .
-                </Label>
-              </div>
-            )}
-
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full"
-              disabled={formDisabled || (isSignIn && isLocked)}
-            >
-              {submitting ? (
-                <>
-                  <Loader2
-                    {...decorativeIconProps}
-                    className="pointer-events-none h-4 w-4 animate-spin"
-                  />
-                  {isSignIn
-                    ? "Signing in..."
-                    : isSignUp
-                      ? "Creating account..."
-                      : "Updating password..."}
-                </>
-              ) : isSignIn ? (
-                "Sign in"
-              ) : isSignUp ? (
-                "Create account"
-              ) : (
-                "Update password"
-              )}
-            </Button>
-          </form>
-
-          {!isReset && (
-            <div className="mt-5 space-y-4">
-              {/* Passwordless / recovery — kept separate from social OAuth */}
-              <div className="rounded-xl border border-border/50 bg-background/25 p-3">
-                <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                  Passwordless access
-                </p>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  {isSignIn ? (
+                {!isReset && (
+                  <div className="mt-6 text-center text-sm text-[#5f5a54]">
+                    {isSignIn ? "New to Refurb Genius? " : "Already have an account? "}
                     <Button
                       type="button"
                       variant="link"
-                      className="h-auto justify-start p-0 text-sm text-muted-foreground"
-                      onClick={handleForgotPassword}
-                      disabled={formDisabled}
+                      className="h-auto p-0 text-sm font-semibold text-[#0f766e] hover:text-[#115e59]"
+                      onClick={() => switchMode(isSignIn ? "signup" : "signin")}
                     >
-                      {forgotPasswordLoading ? "Sending reset email..." : "Forgot password?"}
+                      {isSignIn ? "Create an account" : "Sign in"}
                     </Button>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Prefer not to set a password yet? Use a one-time email link.
-                    </p>
-                  )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 w-full sm:w-auto"
-                    onClick={handleMagicLink}
-                    disabled={formDisabled}
-                    aria-describedby="magic-link-hint"
-                  >
-                    {magicLinkLoading ? (
-                      <>
-                        <Loader2
-                          {...decorativeIconProps}
-                          className="pointer-events-none h-4 w-4 animate-spin"
-                        />
-                        Sending magic link...
-                      </>
-                    ) : (
-                      <>
-                        <Mail {...decorativeIconProps} className="pointer-events-none h-4 w-4" />
-                        Email me a magic link
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <p id="magic-link-hint" className="mt-2 text-xs text-muted-foreground">
-                  Uses the email address above. Check your inbox for a secure sign-in link.
-                </p>
-              </div>
-
-              <div
-                className="flex items-center gap-3"
-                role="separator"
-                aria-label="Or continue with social account"
-              >
-                <Separator className="flex-1" />
-                <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                  Or continue with
-                </span>
-                <Separator className="flex-1" />
-              </div>
-
-              <div className="grid gap-2">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="h-10 w-full"
-                  onClick={handleGoogleAuth}
-                  disabled={formDisabled || (isSignIn && isLocked)}
-                >
-                  {oauthLoading ? (
-                    <>
-                      <Loader2
-                        {...decorativeIconProps}
-                        className="pointer-events-none h-4 w-4 animate-spin"
-                      />
-                      Connecting to Google...
-                    </>
-                  ) : (
-                    <>
-                      <GoogleIcon />
-                      Continue with Google
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="h-10 w-full"
-                  onClick={handleAppleAuth}
-                  disabled={formDisabled || (isSignIn && isLocked)}
-                >
-                  {appleLoading ? (
-                    <>
-                      <Loader2
-                        {...decorativeIconProps}
-                        className="pointer-events-none h-4 w-4 animate-spin"
-                      />
-                      Connecting to Apple...
-                    </>
-                  ) : (
-                    <>
-                      <AppleIcon />
-                      Continue with Apple
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <div className="mt-5 text-center text-xs text-muted-foreground">
-            {isSignIn ? "Don't have an account? " : "Already have an account? "}
-            <Button
-              type="button"
-              variant="link"
-              className="h-auto p-0 text-accent"
-              onClick={() => switchMode(isSignIn ? "signup" : "signin")}
-            >
-              {isSignIn ? "Sign up" : "Sign in"}
-            </Button>
+                  </div>
+                )}
+              </>
+            )}
           </div>
-
-          <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-muted-foreground">
-            <ShieldCheck
-              {...decorativeIconProps}
-              className="pointer-events-none h-3.5 w-3.5 text-accent"
-            />
-            <span>Secure authentication powered by Supabase</span>
-          </div>
-        </div>
+        </section>
       </div>
     </AuthPageShell>
   );
 }
 
-function AuthPageShell({ children }: { children: React.ReactNode }) {
+function VerificationPanel({ email, onBack }: { email: string; onBack: () => void }) {
   return (
-    // force dark tokens so auth always matches the designed dark palette
-    <div className="dark relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_15%_10%,rgba(45,212,191,0.14),transparent_35%),radial-gradient(circle_at_85%_10%,rgba(59,130,246,0.14),transparent_35%),linear-gradient(180deg,oklch(0.12_0.04_265),oklch(0.16_0.04_264))] px-4 py-8 sm:px-6 sm:py-12 text-foreground">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(to_right,oklch(1_0_0/0.08)_1px,transparent_1px),linear-gradient(to_bottom,oklch(1_0_0/0.08)_1px,transparent_1px)] [background-size:40px_40px]"
-      />
-      <main
-        id="main-content"
-        tabIndex={-1}
-        className="relative mx-auto flex min-h-[calc(100vh-4rem)] w-full max-w-6xl items-center justify-center outline-none"
-      >
+    <div className="space-y-6 text-center">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#ece7df]">
+        <Mail {...decorativeIconProps("h-6 w-6 text-[#0f766e]")} />
+      </div>
+      <div className="space-y-2">
+        <h1 className="text-2xl font-semibold tracking-tight text-[#111827]">Check your email</h1>
+        <p className="text-sm leading-relaxed text-[#5f5a54]">
+          We sent a verification link to <span className="font-medium text-[#111827]">{email}</span>
+          . Open it, then sign in.
+        </p>
+      </div>
+      <Button type="button" className={primaryButtonClassName} onClick={onBack}>
+        Back to sign in
+      </Button>
+    </div>
+  );
+}
+
+function AuthPageShell({
+  children,
+  headerActionLabel,
+  onHeaderAction,
+}: {
+  children: React.ReactNode;
+  headerActionLabel: string;
+  onHeaderAction: () => void;
+}) {
+  return (
+    <div className="min-h-screen bg-[#f7f5f2] text-[#111827]">
+      <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-5 lg:px-10">
+        <div className="flex min-w-0 items-center gap-3">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-sm font-semibold text-white"
+            aria-hidden="true"
+          >
+            RG
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-[#111827]">Refurb Genius</p>
+            <p className="truncate text-xs text-[#5f5a54]">Property refurbishment analysis</p>
+          </div>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          className="h-11 shrink-0 rounded-2xl border-[#d8d1c7] bg-white px-4 text-sm font-medium text-[#111827] hover:bg-white"
+          onClick={onHeaderAction}
+        >
+          {headerActionLabel}
+        </Button>
+      </header>
+
+      <main id="main-content" tabIndex={-1} className="outline-none">
         {children}
       </main>
     </div>
   );
 }
 
-function GoogleIcon() {
+function AuthProductPanel({
+  className,
+  compactOnMobile,
+}: {
+  className?: string;
+  compactOnMobile?: boolean;
+}) {
   return (
-    <svg
-      aria-hidden="true"
-      focusable="false"
-      viewBox="0 0 24 24"
-      className="pointer-events-none h-4 w-4 shrink-0"
+    <aside
+      role="region"
+      className={cn(
+        "flex flex-col justify-center",
+        compactOnMobile && "max-lg:border-t max-lg:border-[#d8d1c7] max-lg:pt-8",
+        className,
+      )}
+      aria-label="Product overview"
     >
-      <path
-        fill="#EA4335"
-        d="M12 10.2v3.9h5.5c-.2 1.3-.9 2.4-2 3.1l3.1 2.4c1.8-1.7 2.9-4.1 2.9-7 0-.7-.1-1.4-.2-2H12z"
-      />
-      <path
-        fill="#34A853"
-        d="M6.6 14.3l-.9.7-2.5 1.9C4.8 19.9 8.2 22 12 22c2.4 0 4.5-.8 6-2.3l-3.1-2.4c-.8.6-1.9 1-2.9 1-2.3 0-4.2-1.5-4.9-3.6z"
-      />
-      <path
-        fill="#4A90E2"
-        d="M3.2 6.9C2.4 8.2 2 9.6 2 11c0 1.4.4 2.8 1.2 4.1l3.4-2.6c-.2-.6-.3-1.2-.3-1.9 0-.6.1-1.3.3-1.9z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M12 4.8c1.3 0 2.4.4 3.3 1.2l2.4-2.4C16.5 2.1 14.4 1.2 12 1.2 8.2 1.2 4.8 3.3 3.2 6.9l3.7 2.8C7.8 6.3 9.7 4.8 12 4.8z"
-      />
-    </svg>
+      <div className="rounded-[32px] border border-[#d8d1c7] bg-[#ece7df] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-8 lg:p-10">
+        <span className="inline-flex rounded-full bg-[#0f766e]/10 px-3 py-1 text-xs font-semibold text-[#0f766e] ring-1 ring-[#0f766e]/20">
+          AI-powered UK property analysis
+        </span>
+
+        <h2 className="mt-5 text-[2rem] font-semibold leading-[1.1] tracking-tight text-[#111827] sm:text-[2.25rem] lg:text-[3.5rem] lg:leading-[1.05]">
+          Build investor-grade refurbishment feasibility faster.
+        </h2>
+        <p className="mt-4 max-w-xl text-sm leading-relaxed text-[#5f5a54] sm:text-base">
+          Estimate refurb costs, compare scenarios, and structure UK deal decisions with a calmer,
+          more reliable workflow.
+        </p>
+
+        <div
+          className={cn(
+            "mt-8 grid gap-3",
+            compactOnMobile ? "max-lg:hidden sm:grid-cols-3 lg:grid" : "sm:grid-cols-3",
+          )}
+          data-testid="desktop-value-panel"
+        >
+          {AUTH_VALUE_CARDS.map((card) => (
+            <div
+              key={card.title}
+              className="rounded-2xl border border-[#d8d1c7] bg-white/80 p-4 shadow-sm"
+            >
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0f766e]">
+                {card.label}
+              </p>
+              <p className="mt-2 text-sm font-semibold text-[#111827]">{card.title}</p>
+              <p className="mt-1 text-xs leading-relaxed text-[#5f5a54]">{card.body}</p>
+            </div>
+          ))}
+        </div>
+
+        <div
+          className={cn(
+            "mt-5 rounded-2xl border border-stone-800 bg-[#0c0a09] p-5 text-stone-100",
+            compactOnMobile && "max-lg:hidden",
+          )}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">
+              Sample output
+            </p>
+            <span className="rounded-full bg-stone-800 px-2 py-0.5 text-[10px] font-medium text-stone-300 ring-1 ring-stone-700">
+              Illustrative
+            </span>
+          </div>
+          <p className="mt-2 text-base font-semibold text-white">Refurb appraisal snapshot</p>
+          <p className="mt-1 text-xs text-stone-400">
+            Example figures for layout only — not a live estimate.
+          </p>
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
+            <div>
+              <dt className="text-stone-400">Budget range</dt>
+              <dd className="mt-0.5 font-medium text-white">£28k–£41k</dd>
+            </div>
+            <div>
+              <dt className="text-stone-400">Risk flags</dt>
+              <dd className="mt-0.5 font-medium text-white">3</dd>
+            </div>
+            <div>
+              <dt className="text-stone-400">Decision view</dt>
+              <dd className="mt-0.5 font-medium text-white">Clearer</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div
+          className={cn(
+            "mt-5 rounded-2xl border border-[#d8d1c7] bg-white/90 p-5",
+            compactOnMobile && "max-lg:mt-5",
+          )}
+        >
+          <p className="text-sm font-semibold text-[#111827]">A more structured workspace</p>
+          <ul className="mt-3 space-y-2 text-sm text-[#5f5a54]">
+            <li className="flex gap-2">
+              <Check {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]")} />
+              Organise refurbishment assumptions in one place
+            </li>
+            <li className="flex gap-2">
+              <Check {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]")} />
+              Compare cost scenarios without losing context
+            </li>
+            <li className="flex gap-2">
+              <Check {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]")} />
+              Keep feasibility information together for decisions
+            </li>
+          </ul>
+          <div className="mt-4 flex items-start gap-2 rounded-xl bg-[#f7f5f2] p-3">
+            <ShieldCheck {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]")} />
+            <div>
+              <p className="text-sm font-medium text-[#111827]">Secure sign-in</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-[#5f5a54]">
+                Protected authentication with Supabase.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
   );
 }
