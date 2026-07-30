@@ -17,8 +17,9 @@ export default defineConfig({
     include: [
       "src/**/*.{test,spec}.{ts,tsx}",
       "packages/ui/src/**/*.{test,spec}.{ts,tsx}",
-      // L1 postcode resolver (Vitest). Other packages/services tests may use node:test.
+      // Progressive estimate services (Vitest). Other packages/services tests may use node:test.
       "packages/services/src/uk-region/**/*.{test,spec}.{ts,tsx}",
+      "packages/services/src/pricing/pricingEngine.test.ts",
     ],
     exclude: ["tests/invariants/**/*.test.{ts,tsx}"],
     coverage: {

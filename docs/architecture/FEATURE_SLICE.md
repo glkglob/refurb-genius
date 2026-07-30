@@ -210,6 +210,30 @@ Features **own orchestration and product rules**, not a second financial engine.
 Missing slice **projects** remains transitional under lib/hooks/serverFns —
 see [domain-ownership-audit.md](./domain-ownership-audit.md).
 
+### Estimate progressive levels
+
+| Level | Surface | Inputs/evidence | Persistence | Display confidence |
+| --- | --- | --- | --- | --- |
+| L1 | `/estimate/instant` | postcode, condition, intent; finish/size/categories defaulted | none | low |
+| L2 | same progressive route | optional finish, floor area and category refinement | none | low or medium; never high |
+| L3 | project Estimate Builder | project/room-level scope, AI rooms and saved estimate workflow | project-bound | richer evidence; separate workflow |
+
+**Money path (L1/L2):**
+
+```text
+Route → L1EstimateForm → runL1Estimate | runL2Estimate
+  → resolveL1Inputs | resolveL2Inputs → runPricingEngine → CostSummary
+```
+
+- `runPricingEngine` (`@repo/services`) is the **only** L1/L2 money authority.
+- Result `source` is `engine`. Presentation does not compute money.
+- L1 and L2 are **non-persisting** progressive estimates.
+- Unknown postcodes keep an explicit London fallback assumption (honest, not silent).
+- L2 product confidence is `low` or `medium` only; `high` is reserved for richer L3 evidence.
+- Progressive disclosure: details closed → L1; details open → L2; same `/estimate/instant` route.
+- L3 (Estimate Builder / AI rooms) is a **separate** workflow and use-case surface — not a wrapper around L1/L2.
+- `runEnhancedEstimate` is **not** authoritative for progressive L1/L2 totals.
+
 ---
 
 ## Layer rules (inside a slice)

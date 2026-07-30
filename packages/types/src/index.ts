@@ -22,6 +22,7 @@ export type {
   EstimateCategory,
   FinishLevel,
 } from "./estimate";
+export { ESTIMATE_CATEGORIES, FINISH_LEVELS } from "./estimate";
 export type { InvestmentMetrics, RiskLevel } from "./metrics";
 export type { Report } from "./report";
 export type { ReportMetadata } from "./report";
