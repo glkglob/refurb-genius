@@ -3,15 +3,19 @@
  *
  * Pure: no IO, React, hooks, or persistence.
  * Money calculation is entirely delegated to runMeasuredBoqEngine.
+ * Library rates are resolved only via the caller-supplied trusted dependency.
  */
 import {
   runMeasuredBoqEngine,
+  type MeasuredBoqEngineDependencies,
   type MeasuredBoqEngineInput,
   type MeasuredBoqIssue,
   type MeasuredBoqPricingResult,
 } from "@repo/services";
 
 import type { EstimateSource } from "../domain";
+
+export type RepriceMeasuredBoqDependencies = MeasuredBoqEngineDependencies;
 
 export type RepriceMeasuredBoqResult =
   | {
@@ -30,9 +34,13 @@ export type RepriceMeasuredBoqResult =
 /**
  * Reprice a measured BOQ input through the deterministic engine.
  * Does not accept caller totals. Does not persist.
+ * Passes the trusted library dependency through unchanged.
  */
-export function repriceMeasuredBoq(input: MeasuredBoqEngineInput): RepriceMeasuredBoqResult {
-  const outcome = runMeasuredBoqEngine(input);
+export function repriceMeasuredBoq(
+  input: MeasuredBoqEngineInput,
+  dependencies: RepriceMeasuredBoqDependencies,
+): RepriceMeasuredBoqResult {
+  const outcome = runMeasuredBoqEngine(input, dependencies);
 
   if (outcome.status === "authority-priced") {
     return {

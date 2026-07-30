@@ -4,6 +4,9 @@
  * Separate from category-based runPricingEngine. Does not convert BOQ lines
  * into broad refurbishment categories. Presentation must not recompute these
  * totals for authority-priced results.
+ *
+ * Library amounts come only from a trusted catalogue dependency — never from
+ * the BOQ line payload.
  */
 import type { UKRegion } from "@repo/types";
 
@@ -28,6 +31,33 @@ export function roundMeasuredBoqMoney(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+// ── Trusted library catalogue dependency ───────────────────────────────────
+
+export type MeasuredBoqLibraryCatalogEntry = {
+  rateKey: string;
+  catalogRevision: string;
+  baseUnitRate: number;
+  currency: "GBP";
+  vatBasis: "exclusive";
+};
+
+export type MeasuredBoqLibraryRateReference = {
+  rateKey: string;
+  catalogRevision: string;
+};
+
+/**
+ * Trusted resolver for library rates. Amounts are never taken from the BOQ
+ * line payload — only from this dependency.
+ */
+export type MeasuredBoqLibraryRateResolver = (
+  reference: MeasuredBoqLibraryRateReference,
+) => MeasuredBoqLibraryCatalogEntry | null;
+
+export type MeasuredBoqEngineDependencies = {
+  resolveLibraryRate: MeasuredBoqLibraryRateResolver;
+};
+
 // ── Rate sources ───────────────────────────────────────────────────────────
 
 export type MeasuredBoqRateSource =
@@ -37,13 +67,11 @@ export type MeasuredBoqRateSource =
   | "fallback"
   | "unclassified";
 
+/** Caller-facing library reference — identity only; no money fields. */
 export type MeasuredBoqLibraryRate = {
   source: "library";
   rateKey: string;
   catalogRevision: string;
-  baseUnitRate: number;
-  currency: "GBP";
-  vatBasis: "exclusive";
 };
 
 export type MeasuredBoqUserQuoteRate = {
@@ -76,6 +104,8 @@ export type MeasuredBoqRateInput =
 
 export type MeasuredBoqCostType = "labour" | "materials" | "combined";
 
+const VALID_COST_TYPES = new Set<MeasuredBoqCostType>(["labour", "materials", "combined"]);
+
 export type MeasuredBoqLineInput = {
   id: string;
   name: string;
@@ -94,6 +124,10 @@ export type MeasuredBoqRoomInput = {
   items: MeasuredBoqLineInput[];
 };
 
+/**
+ * Engine input — BOQ structure only.
+ * Must not carry a library resolver, catalogue, or money totals.
+ */
 export type MeasuredBoqEngineInput = {
   region: UKRegion;
   rooms: MeasuredBoqRoomInput[];
@@ -104,10 +138,16 @@ export type MeasuredBoqEngineInput = {
 export type MeasuredBoqIssueCode =
   | "NO_ROOMS"
   | "EMPTY_ROOM"
+  | "MISSING_ROOM_ID"
   | "DUPLICATE_ROOM_ID"
+  | "MISSING_ROOM_NAME"
+  | "MISSING_LINE_ID"
   | "DUPLICATE_LINE_ID"
+  | "INVALID_ITEM_NAME"
+  | "INVALID_ITEM_UNIT"
   | "INVALID_ROOM_AREA"
   | "INVALID_QUANTITY"
+  | "INVALID_COST_TYPE"
   | "INVALID_RATE"
   | "MISSING_LIBRARY_REFERENCE"
   | "MISSING_QUOTE_EVIDENCE"
@@ -143,11 +183,49 @@ export type MeasuredBoqRateResolution =
   | EligibleMeasuredBoqRateResolution
   | IneligibleMeasuredBoqRateResolution;
 
-function isValidIsoDate(value: string): boolean {
-  if (typeof value !== "string" || value.trim() === "") return false;
-  // Accept date (YYYY-MM-DD) or full ISO date-time.
-  const t = Date.parse(value);
-  return Number.isFinite(t);
+/** Strict calendar date: YYYY-MM-DD only, real calendar components. */
+export function isValidIsoDateOnly(value: string): boolean {
+  if (typeof value !== "string") return false;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!m) return false;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  const dt = new Date(Date.UTC(year, month - 1, day));
+  return dt.getUTCFullYear() === year && dt.getUTCMonth() === month - 1 && dt.getUTCDate() === day;
+}
+
+/**
+ * Strict ISO date-time with seconds and explicit timezone (Z or ±HH:MM).
+ * Rejects date-only and local times without offset.
+ */
+export function isValidIsoDateTime(value: string): boolean {
+  if (typeof value !== "string") return false;
+  const m =
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/.exec(
+      value,
+    );
+  if (!m) return false;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  const hour = Number(m[4]);
+  const minute = Number(m[5]);
+  const second = Number(m[6]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  if (hour > 23 || minute > 59 || second > 59) return false;
+  // Calendar validity of the date portion
+  if (!isValidIsoDateOnly(`${m[1]}-${m[2]}-${m[3]}`)) return false;
+  if (m[7] !== "Z") {
+    const off = /^([+-])(\d{2}):(\d{2})$/.exec(m[7]!);
+    if (!off) return false;
+    const oh = Number(off[2]);
+    const om = Number(off[3]);
+    if (oh > 23 || om > 59) return false;
+  }
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed);
 }
 
 function isPositiveFinite(n: number): boolean {
@@ -160,12 +238,14 @@ function issue(code: MeasuredBoqIssueCode, path: string, message: string): Measu
 
 /**
  * Resolve a single rate to an eligible authority rate or structured issues.
- * Authority is derived here — callers cannot pass an authoritative flag.
+ * Authority is derived here — callers cannot pass an authoritative flag or
+ * library money amounts.
  */
 export function resolveMeasuredBoqRate(
   rate: MeasuredBoqRateInput,
   region: UKRegion,
   path: string,
+  dependencies: MeasuredBoqEngineDependencies,
 ): MeasuredBoqRateResolution {
   if (rate.source === "ai-assisted") {
     return {
@@ -211,30 +291,69 @@ export function resolveMeasuredBoqRate(
         ),
       );
     }
-    if (rate.currency !== "GBP") {
-      issues.push(issue("INVALID_RATE", path, "Library rate currency must be GBP"));
+    if (issues.length > 0) {
+      return { eligible: false, source: "library", issues };
     }
-    if (rate.vatBasis !== "exclusive") {
-      issues.push(issue("INVALID_RATE", path, "Library rate must be VAT-exclusive"));
+
+    const entry = dependencies.resolveLibraryRate({
+      rateKey: rate.rateKey,
+      catalogRevision: rate.catalogRevision,
+    });
+
+    if (!entry) {
+      return {
+        eligible: false,
+        source: "library",
+        issues: [
+          issue(
+            "MISSING_LIBRARY_REFERENCE",
+            path,
+            `No trusted library rate for ${rate.rateKey}@${rate.catalogRevision}`,
+          ),
+        ],
+      };
     }
-    if (!isPositiveFinite(rate.baseUnitRate)) {
+
+    // Entry must exactly match the requested identity (non-empty is not enough).
+    if (entry.rateKey !== rate.rateKey || entry.catalogRevision !== rate.catalogRevision) {
+      return {
+        eligible: false,
+        source: "library",
+        issues: [
+          issue(
+            "MISSING_LIBRARY_REFERENCE",
+            path,
+            "Catalogue entry identity does not match requested library reference",
+          ),
+        ],
+      };
+    }
+
+    if (!isPositiveFinite(entry.baseUnitRate)) {
       issues.push(
         issue(
           "INVALID_RATE",
           path,
-          "Library baseUnitRate must be a finite number greater than zero",
+          "Catalogue baseUnitRate must be a finite number greater than zero",
         ),
       );
+    }
+    if (entry.currency !== "GBP") {
+      issues.push(issue("INVALID_RATE", path, "Catalogue currency must be GBP"));
+    }
+    if (entry.vatBasis !== "exclusive") {
+      issues.push(issue("INVALID_RATE", path, "Catalogue rate must be VAT-exclusive"));
     }
     if (issues.length > 0) {
       return { eligible: false, source: "library", issues };
     }
+
     const regionalMultiplier = getRegionalMultiplier(region);
-    const resolvedUnitRate = roundMeasuredBoqMoney(rate.baseUnitRate * regionalMultiplier);
+    const resolvedUnitRate = roundMeasuredBoqMoney(entry.baseUnitRate * regionalMultiplier);
     return {
       eligible: true,
       source: "library",
-      baseUnitRate: rate.baseUnitRate,
+      baseUnitRate: entry.baseUnitRate,
       regionalMultiplier,
       resolvedUnitRate,
       reference: `${rate.rateKey}@${rate.catalogRevision}`,
@@ -267,24 +386,60 @@ export function resolveMeasuredBoqRate(
       ),
     );
   }
+
+  const quoteBase = `${path}.quote`;
   if (!q || typeof q.supplierName !== "string" || q.supplierName.trim() === "") {
-    issues.push(issue("MISSING_QUOTE_EVIDENCE", path, "User quote requires supplierName"));
+    issues.push(
+      issue(
+        "MISSING_QUOTE_EVIDENCE",
+        `${quoteBase}.supplierName`,
+        "User quote requires supplierName",
+      ),
+    );
   }
   if (!q || typeof q.quoteReference !== "string" || q.quoteReference.trim() === "") {
-    issues.push(issue("MISSING_QUOTE_EVIDENCE", path, "User quote requires quoteReference"));
+    issues.push(
+      issue(
+        "MISSING_QUOTE_EVIDENCE",
+        `${quoteBase}.quoteReference`,
+        "User quote requires quoteReference",
+      ),
+    );
   }
   if (!q || typeof q.evidenceRef !== "string" || q.evidenceRef.trim() === "") {
-    issues.push(issue("MISSING_QUOTE_EVIDENCE", path, "User quote requires evidenceRef"));
+    issues.push(
+      issue(
+        "MISSING_QUOTE_EVIDENCE",
+        `${quoteBase}.evidenceRef`,
+        "User quote requires evidenceRef",
+      ),
+    );
   }
   if (!q || typeof q.acceptedByUserId !== "string" || q.acceptedByUserId.trim() === "") {
-    issues.push(issue("MISSING_QUOTE_EVIDENCE", path, "User quote requires acceptedByUserId"));
-  }
-  if (!q || !isValidIsoDate(q.issuedAt)) {
-    issues.push(issue("INVALID_QUOTE_DATE", path, "User quote issuedAt must be a valid ISO date"));
-  }
-  if (!q || !isValidIsoDate(q.acceptedAt)) {
     issues.push(
-      issue("INVALID_QUOTE_DATE", path, "User quote acceptedAt must be a valid ISO date-time"),
+      issue(
+        "MISSING_QUOTE_EVIDENCE",
+        `${quoteBase}.acceptedByUserId`,
+        "User quote requires acceptedByUserId",
+      ),
+    );
+  }
+  if (!q || !isValidIsoDateOnly(q.issuedAt)) {
+    issues.push(
+      issue(
+        "INVALID_QUOTE_DATE",
+        `${quoteBase}.issuedAt`,
+        "User quote issuedAt must be a valid ISO date (YYYY-MM-DD)",
+      ),
+    );
+  }
+  if (!q || !isValidIsoDateTime(q.acceptedAt)) {
+    issues.push(
+      issue(
+        "INVALID_QUOTE_DATE",
+        `${quoteBase}.acceptedAt`,
+        "User quote acceptedAt must be a valid ISO date-time with timezone",
+      ),
     );
   }
   if (issues.length > 0) {
@@ -361,7 +516,10 @@ export type MeasuredBoqEngineOutcome =
  * Structural + rate eligibility assessment. Collects every issue in one pass
  * in deterministic room/item traversal order.
  */
-export function assessMeasuredBoqAuthority(input: MeasuredBoqEngineInput): {
+export function assessMeasuredBoqAuthority(
+  input: MeasuredBoqEngineInput,
+  dependencies: MeasuredBoqEngineDependencies,
+): {
   eligible: boolean;
   issues: MeasuredBoqIssue[];
 } {
@@ -381,7 +539,7 @@ export function assessMeasuredBoqAuthority(input: MeasuredBoqEngineInput): {
     const roomPath = `rooms[${ri}]`;
 
     if (typeof room.id !== "string" || room.id.trim() === "") {
-      issues.push(issue("DUPLICATE_ROOM_ID", `${roomPath}.id`, "Room id must be non-empty"));
+      issues.push(issue("MISSING_ROOM_ID", `${roomPath}.id`, "Room id must be non-empty"));
     } else if (seenRoomIds.has(room.id)) {
       issues.push(issue("DUPLICATE_ROOM_ID", `${roomPath}.id`, `Duplicate room id: ${room.id}`));
     } else {
@@ -389,7 +547,7 @@ export function assessMeasuredBoqAuthority(input: MeasuredBoqEngineInput): {
     }
 
     if (typeof room.name !== "string" || room.name.trim() === "") {
-      issues.push(issue("EMPTY_ROOM", `${roomPath}.name`, "Room name must be non-empty"));
+      issues.push(issue("MISSING_ROOM_NAME", `${roomPath}.name`, "Room name must be non-empty"));
     }
 
     if (room.areaSqm !== undefined && room.areaSqm !== null) {
@@ -415,7 +573,7 @@ export function assessMeasuredBoqAuthority(input: MeasuredBoqEngineInput): {
       const itemPath = `${roomPath}.items[${ii}]`;
 
       if (typeof item.id !== "string" || item.id.trim() === "") {
-        issues.push(issue("DUPLICATE_LINE_ID", `${itemPath}.id`, "Line id must be non-empty"));
+        issues.push(issue("MISSING_LINE_ID", `${itemPath}.id`, "Line id must be non-empty"));
       } else if (seenLineIds.has(item.id)) {
         issues.push(issue("DUPLICATE_LINE_ID", `${itemPath}.id`, `Duplicate line id: ${item.id}`));
       } else {
@@ -423,11 +581,11 @@ export function assessMeasuredBoqAuthority(input: MeasuredBoqEngineInput): {
       }
 
       if (typeof item.name !== "string" || item.name.trim() === "") {
-        issues.push(issue("INVALID_QUANTITY", `${itemPath}.name`, "Item name must be non-empty"));
+        issues.push(issue("INVALID_ITEM_NAME", `${itemPath}.name`, "Item name must be non-empty"));
       }
 
       if (typeof item.unit !== "string" || item.unit.trim() === "") {
-        issues.push(issue("INVALID_QUANTITY", `${itemPath}.unit`, "Item unit must be non-empty"));
+        issues.push(issue("INVALID_ITEM_UNIT", `${itemPath}.unit`, "Item unit must be non-empty"));
       }
 
       if (!isPositiveFinite(item.quantity)) {
@@ -440,7 +598,27 @@ export function assessMeasuredBoqAuthority(input: MeasuredBoqEngineInput): {
         );
       }
 
-      const rateResolution = resolveMeasuredBoqRate(item.rate, input.region, `${itemPath}.rate`);
+      if (item.costType !== undefined) {
+        if (
+          typeof item.costType !== "string" ||
+          !VALID_COST_TYPES.has(item.costType as MeasuredBoqCostType)
+        ) {
+          issues.push(
+            issue(
+              "INVALID_COST_TYPE",
+              `${itemPath}.costType`,
+              "costType must be labour, materials, or combined when supplied",
+            ),
+          );
+        }
+      }
+
+      const rateResolution = resolveMeasuredBoqRate(
+        item.rate,
+        input.region,
+        `${itemPath}.rate`,
+        dependencies,
+      );
       if (!rateResolution.eligible) {
         issues.push(...rateResolution.issues);
       }
@@ -483,9 +661,14 @@ function buildWarnings(lines: MeasuredBoqLineResult[]): string[] {
  *
  * Expected validation and ineligible rates return status "draft" with no
  * monetary outputs. Does not throw for normal draft input.
+ *
+ * Library amounts are obtained only from `dependencies.resolveLibraryRate`.
  */
-export function runMeasuredBoqEngine(input: MeasuredBoqEngineInput): MeasuredBoqEngineOutcome {
-  const assessment = assessMeasuredBoqAuthority(input);
+export function runMeasuredBoqEngine(
+  input: MeasuredBoqEngineInput,
+  dependencies: MeasuredBoqEngineDependencies,
+): MeasuredBoqEngineOutcome {
+  const assessment = assessMeasuredBoqAuthority(input, dependencies);
   if (!assessment.eligible) {
     return { status: "draft", pricing: null, issues: assessment.issues };
   }
@@ -500,8 +683,7 @@ export function runMeasuredBoqEngine(input: MeasuredBoqEngineInput): MeasuredBoq
   for (const room of input.rooms) {
     const items: MeasuredBoqLineResult[] = [];
     for (const item of room.items) {
-      const resolved = resolveMeasuredBoqRate(item.rate, input.region, "rate");
-      // Assessment already ensured eligible; this is a type guard.
+      const resolved = resolveMeasuredBoqRate(item.rate, input.region, "rate", dependencies);
       if (!resolved.eligible) {
         return {
           status: "draft",

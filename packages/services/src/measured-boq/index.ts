@@ -8,9 +8,15 @@ export {
   resolveMeasuredBoqRate,
   assessMeasuredBoqAuthority,
   runMeasuredBoqEngine,
+  isValidIsoDateOnly,
+  isValidIsoDateTime,
 } from "./measuredBoqEngine";
 
 export type {
+  MeasuredBoqLibraryCatalogEntry,
+  MeasuredBoqLibraryRateReference,
+  MeasuredBoqLibraryRateResolver,
+  MeasuredBoqEngineDependencies,
   MeasuredBoqRateSource,
   MeasuredBoqLibraryRate,
   MeasuredBoqUserQuoteRate,

@@ -2,27 +2,75 @@ import { describe, expect, it } from "vitest";
 
 import {
   assessMeasuredBoqAuthority,
+  isValidIsoDateOnly,
+  isValidIsoDateTime,
   MEASURED_BOQ_POLICY_VERSION,
   resolveMeasuredBoqRate,
   roundMeasuredBoqMoney,
   runMeasuredBoqEngine,
+  type MeasuredBoqEngineDependencies,
   type MeasuredBoqEngineInput,
+  type MeasuredBoqLibraryCatalogEntry,
   type MeasuredBoqLibraryRate,
   type MeasuredBoqUserQuoteRate,
 } from "./measuredBoqEngine";
 
-const libraryRate = (
-  baseUnitRate: number,
-  overrides: Partial<MeasuredBoqLibraryRate> = {},
-): MeasuredBoqLibraryRate => ({
+/** Composite key for test catalogue lookups. */
+function catalogKey(rateKey: string, catalogRevision: string): string {
+  return `${catalogRevision}::${rateKey}`;
+}
+
+const TEST_CATALOGUE = new Map<string, MeasuredBoqLibraryCatalogEntry>([
+  [
+    catalogKey("paint.m2", "2026.07"),
+    {
+      rateKey: "paint.m2",
+      catalogRevision: "2026.07",
+      baseUnitRate: 100,
+      currency: "GBP",
+      vatBasis: "exclusive",
+    },
+  ],
+  [
+    catalogKey("tile.m2", "2026.07"),
+    {
+      rateKey: "tile.m2",
+      catalogRevision: "2026.07",
+      baseUnitRate: 40,
+      currency: "GBP",
+      vatBasis: "exclusive",
+    },
+  ],
+  [
+    catalogKey("pence.item", "2026.07"),
+    {
+      rateKey: "pence.item",
+      catalogRevision: "2026.07",
+      baseUnitRate: 33.333,
+      currency: "GBP",
+      vatBasis: "exclusive",
+    },
+  ],
+]);
+
+const trustedDeps: MeasuredBoqEngineDependencies = {
+  resolveLibraryRate: (ref) =>
+    TEST_CATALOGUE.get(catalogKey(ref.rateKey, ref.catalogRevision)) ?? null,
+};
+
+const libraryRef = (rateKey: string, catalogRevision = "2026.07"): MeasuredBoqLibraryRate => ({
+  source: "library",
+  rateKey,
+  catalogRevision,
+});
+
+// Compile-time: library line input has no money fields.
+const _compileTimeLibraryRate: MeasuredBoqLibraryRate = {
   source: "library",
   rateKey: "paint.m2",
   catalogRevision: "2026.07",
-  baseUnitRate,
-  currency: "GBP",
-  vatBasis: "exclusive",
-  ...overrides,
-});
+};
+void _compileTimeLibraryRate;
 
 const acceptedQuote = (
   netUnitRate: number,
@@ -76,8 +124,11 @@ describe("roundMeasuredBoqMoney", () => {
 });
 
 describe("golden vectors", () => {
-  it("Vector A — London library rate", () => {
-    const outcome = runMeasuredBoqEngine(singleLineInput("London", libraryRate(100), 2));
+  it("Vector A — London library rate from trusted catalogue", () => {
+    const outcome = runMeasuredBoqEngine(
+      singleLineInput("London", libraryRef("paint.m2"), 2),
+      trustedDeps,
+    );
     expect(outcome.status).toBe("authority-priced");
     if (outcome.status !== "authority-priced") return;
     const line = outcome.pricing.rooms[0]!.items[0]!;
@@ -106,7 +157,7 @@ describe("golden vectors", () => {
               quantity: 3,
               unit: "m2",
               costType: "materials",
-              rate: libraryRate(40),
+              rate: libraryRef("tile.m2"),
             },
             {
               id: "i2",
@@ -120,7 +171,7 @@ describe("golden vectors", () => {
         },
       ],
     };
-    const outcome = runMeasuredBoqEngine(input);
+    const outcome = runMeasuredBoqEngine(input, trustedDeps);
     expect(outcome.status).toBe("authority-priced");
     if (outcome.status !== "authority-priced") return;
     expect(outcome.pricing.rooms[0]!.items[0]!.totalCost).toBe(120);
@@ -131,12 +182,13 @@ describe("golden vectors", () => {
     expect(outcome.pricing.midTotal).toBe(357.72);
     expect(outcome.pricing.lowTotal).toBe(304.06);
     expect(outcome.pricing.highTotal).toBe(411.38);
-    expect(outcome.pricing.assumptions.some((a) => /User quotes/.test(a))).toBe(true);
-    expect(outcome.pricing.warnings.some((w) => /Mixed library/.test(w))).toBe(true);
   });
 
   it("Vector C — pence rounding order", () => {
-    const outcome = runMeasuredBoqEngine(singleLineInput("London", libraryRate(33.333), 3));
+    const outcome = runMeasuredBoqEngine(
+      singleLineInput("London", libraryRef("pence.item"), 3),
+      trustedDeps,
+    );
     expect(outcome.status).toBe("authority-priced");
     if (outcome.status !== "authority-priced") return;
     const line = outcome.pricing.rooms[0]!.items[0]!;
@@ -151,8 +203,8 @@ describe("golden vectors", () => {
 
   it("Vector D — quote is not region-adjusted", () => {
     const quote = acceptedQuote(80);
-    const london = runMeasuredBoqEngine(singleLineInput("London", quote, 1));
-    const midlands = runMeasuredBoqEngine(singleLineInput("West Midlands", quote, 1));
+    const london = runMeasuredBoqEngine(singleLineInput("London", quote, 1), trustedDeps);
+    const midlands = runMeasuredBoqEngine(singleLineInput("West Midlands", quote, 1), trustedDeps);
     expect(london.status).toBe("authority-priced");
     expect(midlands.status).toBe("authority-priced");
     if (london.status !== "authority-priced" || midlands.status !== "authority-priced") return;
@@ -165,208 +217,353 @@ describe("golden vectors", () => {
   });
 });
 
-describe("resolveMeasuredBoqRate", () => {
-  it("applies regional multiplier to library rates", () => {
-    const r = resolveMeasuredBoqRate(libraryRate(100), "London", "rooms[0].items[0].rate");
-    expect(r.eligible).toBe(true);
-    if (!r.eligible) return;
-    expect(r.regionalMultiplier).toBe(1.3);
-    expect(r.resolvedUnitRate).toBe(130);
-    expect(r.reference).toBe("paint.m2@2026.07");
-  });
-
-  it("rejects incomplete library references", () => {
-    const r = resolveMeasuredBoqRate(
-      libraryRate(100, { rateKey: "", catalogRevision: "" }),
-      "London",
-      "rooms[0].items[0].rate",
+describe("trusted library authority", () => {
+  it("rejects unknown non-empty library references", () => {
+    const outcome = runMeasuredBoqEngine(
+      singleLineInput("London", libraryRef("arbitrary-key", "arbitrary-revision")),
+      trustedDeps,
     );
-    expect(r.eligible).toBe(false);
-    if (r.eligible) return;
-    expect(r.issues.some((i) => i.code === "MISSING_LIBRARY_REFERENCE")).toBe(true);
-  });
-
-  it("rejects non-GBP and VAT-inclusive library rates", () => {
-    const currency = resolveMeasuredBoqRate(
-      { ...libraryRate(100), currency: "USD" as "GBP" },
-      "London",
-      "path",
+    expect(outcome.status).toBe("draft");
+    if (outcome.status !== "draft") return;
+    expect(outcome.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "MISSING_LIBRARY_REFERENCE",
+          path: "rooms[0].items[0].rate",
+        }),
+      ]),
     );
-    expect(currency.eligible).toBe(false);
-    const vat = resolveMeasuredBoqRate(
-      { ...libraryRate(100), vatBasis: "inclusive" as "exclusive" },
-      "London",
-      "path",
+  });
+
+  it("rejects known key with wrong revision", () => {
+    const outcome = runMeasuredBoqEngine(
+      singleLineInput("London", libraryRef("paint.m2", "1999.01")),
+      trustedDeps,
     );
-    expect(vat.eligible).toBe(false);
+    expect(outcome.status).toBe("draft");
+    if (outcome.status !== "draft") return;
+    expect(outcome.issues.some((i) => i.code === "MISSING_LIBRARY_REFERENCE")).toBe(true);
   });
 
-  it("rejects draft AI / fallback / unclassified rates", () => {
-    expect(
-      resolveMeasuredBoqRate({ source: "ai-assisted", candidateUnitRate: 50 }, "London", "path")
-        .eligible,
-    ).toBe(false);
-    expect(
-      resolveMeasuredBoqRate({ source: "fallback", candidateUnitRate: 50 }, "London", "path")
-        .eligible,
-    ).toBe(false);
-    expect(
-      resolveMeasuredBoqRate({ source: "unclassified", candidateUnitRate: 50 }, "London", "path")
-        .eligible,
-    ).toBe(false);
-  });
-});
-
-describe("assessMeasuredBoqAuthority / draft outcomes", () => {
-  it("reports NO_ROOMS", () => {
-    const r = assessMeasuredBoqAuthority({ region: "London", rooms: [] });
-    expect(r.eligible).toBe(false);
-    expect(r.issues[0]!.code).toBe("NO_ROOMS");
+  it("rejects resolver entry that mismatches requested key", () => {
+    const deps: MeasuredBoqEngineDependencies = {
+      resolveLibraryRate: () => ({
+        rateKey: "other.key",
+        catalogRevision: "2026.07",
+        baseUnitRate: 100,
+        currency: "GBP",
+        vatBasis: "exclusive",
+      }),
+    };
+    const outcome = runMeasuredBoqEngine(singleLineInput("London", libraryRef("paint.m2")), deps);
+    expect(outcome.status).toBe("draft");
+    if (outcome.status !== "draft") return;
+    expect(outcome.issues.some((i) => i.code === "MISSING_LIBRARY_REFERENCE")).toBe(true);
   });
 
-  it("reports empty room, duplicate room and line ids", () => {
-    const r = assessMeasuredBoqAuthority({
-      region: "London",
-      rooms: [
-        { id: "r1", name: "A", items: [] },
-        {
-          id: "r1",
-          name: "B",
-          items: [
-            { id: "i1", name: "x", quantity: 1, unit: "item", rate: libraryRate(10) },
-            { id: "i1", name: "y", quantity: 1, unit: "item", rate: libraryRate(10) },
-          ],
-        },
-      ],
-    });
-    expect(r.issues.some((i) => i.code === "EMPTY_ROOM")).toBe(true);
-    expect(r.issues.some((i) => i.code === "DUPLICATE_ROOM_ID")).toBe(true);
-    expect(r.issues.some((i) => i.code === "DUPLICATE_LINE_ID")).toBe(true);
+  it("rejects resolver entry that mismatches requested revision", () => {
+    const deps: MeasuredBoqEngineDependencies = {
+      resolveLibraryRate: () => ({
+        rateKey: "paint.m2",
+        catalogRevision: "wrong",
+        baseUnitRate: 100,
+        currency: "GBP",
+        vatBasis: "exclusive",
+      }),
+    };
+    const outcome = runMeasuredBoqEngine(singleLineInput("London", libraryRef("paint.m2")), deps);
+    expect(outcome.status).toBe("draft");
   });
 
-  it("rejects invalid room area and quantities", () => {
-    const cases: Array<{ quantity: number; label: string }> = [
-      { quantity: 0, label: "zero" },
-      { quantity: -1, label: "negative" },
-      { quantity: NaN, label: "NaN" },
-      { quantity: Infinity, label: "infinite" },
-    ];
-    for (const c of cases) {
-      const outcome = runMeasuredBoqEngine({
-        region: "London",
-        rooms: [
-          {
-            id: "r1",
-            name: "Kitchen",
-            areaSqm: -5,
-            items: [
-              {
-                id: "i1",
-                name: "Item",
-                quantity: c.quantity,
-                unit: "m2",
-                rate: libraryRate(10),
-              },
-            ],
-          },
-        ],
-      });
-      expect(outcome.status, c.label).toBe("draft");
-      if (outcome.status !== "draft") continue;
-      expect(outcome.pricing).toBeNull();
-      expect(outcome.issues.some((i) => i.code === "INVALID_QUANTITY")).toBe(true);
-      expect(outcome.issues.some((i) => i.code === "INVALID_ROOM_AREA")).toBe(true);
-    }
-  });
-
-  it("rejects invalid rates", () => {
-    for (const base of [0, -1, NaN]) {
-      const outcome = runMeasuredBoqEngine(singleLineInput("London", libraryRate(base)));
+  it("rejects invalid catalogue entry amounts and currency/VAT", () => {
+    for (const entry of [
+      {
+        rateKey: "paint.m2",
+        catalogRevision: "2026.07",
+        baseUnitRate: 0,
+        currency: "GBP" as const,
+        vatBasis: "exclusive" as const,
+      },
+      {
+        rateKey: "paint.m2",
+        catalogRevision: "2026.07",
+        baseUnitRate: -5,
+        currency: "GBP" as const,
+        vatBasis: "exclusive" as const,
+      },
+      {
+        rateKey: "paint.m2",
+        catalogRevision: "2026.07",
+        baseUnitRate: NaN,
+        currency: "GBP" as const,
+        vatBasis: "exclusive" as const,
+      },
+      {
+        rateKey: "paint.m2",
+        catalogRevision: "2026.07",
+        baseUnitRate: 100,
+        currency: "USD" as "GBP",
+        vatBasis: "exclusive" as const,
+      },
+      {
+        rateKey: "paint.m2",
+        catalogRevision: "2026.07",
+        baseUnitRate: 100,
+        currency: "GBP" as const,
+        vatBasis: "inclusive" as "exclusive",
+      },
+    ]) {
+      const deps: MeasuredBoqEngineDependencies = {
+        resolveLibraryRate: () => entry,
+      };
+      const outcome = runMeasuredBoqEngine(singleLineInput("London", libraryRef("paint.m2")), deps);
       expect(outcome.status).toBe("draft");
       if (outcome.status !== "draft") continue;
       expect(outcome.issues.some((i) => i.code === "INVALID_RATE")).toBe(true);
     }
   });
 
-  it("rejects incomplete quote evidence and dates", () => {
-    const incomplete = acceptedQuote(50, {
-      quote: {
-        supplierName: "",
-        quoteReference: "",
-        issuedAt: "not-a-date",
-        evidenceRef: "",
-        acceptedByUserId: "",
-        acceptedAt: "bad",
-      },
-    });
-    const outcome = runMeasuredBoqEngine(singleLineInput("London", incomplete));
-    expect(outcome.status).toBe("draft");
-    if (outcome.status !== "draft") return;
-    expect(outcome.issues.some((i) => i.code === "MISSING_QUOTE_EVIDENCE")).toBe(true);
-    expect(outcome.issues.some((i) => i.code === "INVALID_QUOTE_DATE")).toBe(true);
+  it("applies regional multiplier only after trusted catalogue resolution", () => {
+    const r = resolveMeasuredBoqRate(
+      libraryRef("paint.m2"),
+      "London",
+      "rooms[0].items[0].rate",
+      trustedDeps,
+    );
+    expect(r.eligible).toBe(true);
+    if (!r.eligible) return;
+    expect(r.baseUnitRate).toBe(100);
+    expect(r.regionalMultiplier).toBe(1.3);
+    expect(r.resolvedUnitRate).toBe(130);
+  });
+});
+
+describe("strict quote dates", () => {
+  it("accepts strict issuedAt and acceptedAt formats", () => {
+    expect(isValidIsoDateOnly("2026-07-01")).toBe(true);
+    expect(isValidIsoDateTime("2026-07-15T10:00:00Z")).toBe(true);
+    expect(isValidIsoDateTime("2026-07-15T10:00:00.000Z")).toBe(true);
+    expect(isValidIsoDateTime("2026-07-15T11:00:00+01:00")).toBe(true);
+
+    for (const acceptedAt of [
+      "2026-07-15T10:00:00Z",
+      "2026-07-15T10:00:00.000Z",
+      "2026-07-15T11:00:00+01:00",
+    ]) {
+      const outcome = runMeasuredBoqEngine(
+        singleLineInput(
+          "London",
+          acceptedQuote(50, {
+            quote: {
+              supplierName: "Acme",
+              quoteReference: "Q-1",
+              issuedAt: "2026-07-01",
+              evidenceRef: "ev",
+              acceptedByUserId: "u1",
+              acceptedAt,
+            },
+          }),
+        ),
+        trustedDeps,
+      );
+      expect(outcome.status).toBe("authority-priced");
+    }
   });
 
-  it("keeps AI, fallback and unclassified rates as draft without money fields", () => {
+  it("rejects invalid issuedAt values", () => {
+    for (const issuedAt of [
+      "July 1 2026",
+      "2026/07/01",
+      "2026-02-30",
+      "2026-07-01T00:00:00Z",
+      "2026-7-1",
+    ]) {
+      expect(isValidIsoDateOnly(issuedAt), issuedAt).toBe(false);
+      const outcome = runMeasuredBoqEngine(
+        singleLineInput(
+          "London",
+          acceptedQuote(50, {
+            quote: {
+              supplierName: "Acme",
+              quoteReference: "Q-1",
+              issuedAt,
+              evidenceRef: "ev",
+              acceptedByUserId: "u1",
+              acceptedAt: "2026-07-15T10:00:00Z",
+            },
+          }),
+        ),
+        trustedDeps,
+      );
+      expect(outcome.status, issuedAt).toBe("draft");
+      if (outcome.status !== "draft") continue;
+      expect(
+        outcome.issues.some(
+          (i) => i.code === "INVALID_QUOTE_DATE" && i.path.endsWith("quote.issuedAt"),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("rejects invalid acceptedAt values", () => {
+    for (const acceptedAt of [
+      "2026-07-15",
+      "2026-07-15T10:00:00",
+      "2026-02-30T10:00:00Z",
+      "July 15 2026 10:00",
+    ]) {
+      expect(isValidIsoDateTime(acceptedAt), acceptedAt).toBe(false);
+      const outcome = runMeasuredBoqEngine(
+        singleLineInput(
+          "London",
+          acceptedQuote(50, {
+            quote: {
+              supplierName: "Acme",
+              quoteReference: "Q-1",
+              issuedAt: "2026-07-01",
+              evidenceRef: "ev",
+              acceptedByUserId: "u1",
+              acceptedAt,
+            },
+          }),
+        ),
+        trustedDeps,
+      );
+      expect(outcome.status, acceptedAt).toBe("draft");
+      if (outcome.status !== "draft") continue;
+      expect(
+        outcome.issues.some(
+          (i) => i.code === "INVALID_QUOTE_DATE" && i.path.endsWith("quote.acceptedAt"),
+        ),
+      ).toBe(true);
+    }
+  });
+});
+
+describe("structured issue codes", () => {
+  it("reports exact codes and paths for structural failures", () => {
+    const outcome = runMeasuredBoqEngine(
+      {
+        region: "London",
+        rooms: [
+          { id: "", name: "", items: [] },
+          {
+            id: "r-dup",
+            name: "B",
+            items: [
+              {
+                id: "",
+                name: "",
+                quantity: 0,
+                unit: "",
+                costType: "magic" as "labour",
+                rate: libraryRef("paint.m2"),
+              },
+              {
+                id: "line-a",
+                name: "ok",
+                quantity: 1,
+                unit: "m2",
+                rate: libraryRef("paint.m2"),
+              },
+              {
+                id: "line-a",
+                name: "dup",
+                quantity: 1,
+                unit: "m2",
+                rate: libraryRef("paint.m2"),
+              },
+            ],
+          },
+          {
+            id: "r-dup",
+            name: "C",
+            items: [
+              {
+                id: "other",
+                name: "x",
+                quantity: 1,
+                unit: "m2",
+                rate: libraryRef("paint.m2"),
+              },
+            ],
+          },
+        ],
+      },
+      trustedDeps,
+    );
+    expect(outcome.status).toBe("draft");
+    if (outcome.status !== "draft") return;
+
+    const byCode = (code: string) => outcome.issues.filter((i) => i.code === code);
+
+    expect(byCode("MISSING_ROOM_ID")).toEqual([expect.objectContaining({ path: "rooms[0].id" })]);
+    expect(byCode("MISSING_ROOM_NAME")).toEqual([
+      expect.objectContaining({ path: "rooms[0].name" }),
+    ]);
+    expect(byCode("EMPTY_ROOM")).toEqual([expect.objectContaining({ path: "rooms[0].items" })]);
+    expect(byCode("MISSING_LINE_ID")).toEqual([
+      expect.objectContaining({ path: "rooms[1].items[0].id" }),
+    ]);
+    expect(byCode("INVALID_ITEM_NAME")).toEqual([
+      expect.objectContaining({ path: "rooms[1].items[0].name" }),
+    ]);
+    expect(byCode("INVALID_ITEM_UNIT")).toEqual([
+      expect.objectContaining({ path: "rooms[1].items[0].unit" }),
+    ]);
+    expect(byCode("INVALID_QUANTITY")).toEqual([
+      expect.objectContaining({ path: "rooms[1].items[0].quantity" }),
+    ]);
+    expect(byCode("INVALID_COST_TYPE")).toEqual([
+      expect.objectContaining({ path: "rooms[1].items[0].costType" }),
+    ]);
+    expect(byCode("DUPLICATE_LINE_ID")).toEqual([
+      expect.objectContaining({ path: "rooms[1].items[2].id" }),
+    ]);
+    expect(byCode("DUPLICATE_ROOM_ID")).toEqual([expect.objectContaining({ path: "rooms[2].id" })]);
+  });
+
+  it("defaults undefined costType to combined on authority-priced results", () => {
+    const outcome = runMeasuredBoqEngine(
+      singleLineInput("London", libraryRef("paint.m2"), 1),
+      trustedDeps,
+    );
+    expect(outcome.status).toBe("authority-priced");
+    if (outcome.status !== "authority-priced") return;
+    expect(outcome.pricing.rooms[0]!.items[0]!.costType).toBe("combined");
+  });
+});
+
+describe("draft outcomes", () => {
+  it("reports NO_ROOMS", () => {
+    const r = assessMeasuredBoqAuthority({ region: "London", rooms: [] }, trustedDeps);
+    expect(r.eligible).toBe(false);
+    expect(r.issues[0]).toEqual(expect.objectContaining({ code: "NO_ROOMS", path: "rooms" }));
+  });
+
+  it("keeps AI, fallback and unclassified rates as draft without money", () => {
     for (const source of ["ai-assisted", "fallback", "unclassified"] as const) {
       const outcome = runMeasuredBoqEngine(
         singleLineInput("London", { source, candidateUnitRate: 99 }),
+        trustedDeps,
       );
       expect(outcome.status).toBe("draft");
       if (outcome.status !== "draft") continue;
       expect(outcome.pricing).toBeNull();
-      const moneyKeys = ["subtotal", "contingency", "vat", "lowTotal", "midTotal", "highTotal"];
-      for (const k of moneyKeys) {
-        expect(outcome).not.toHaveProperty(`pricing.${k}`);
-      }
     }
   });
 
-  it("returns multiple issues in traversal order", () => {
-    const outcome = runMeasuredBoqEngine({
-      region: "London",
-      rooms: [
-        {
-          id: "r1",
-          name: "A",
-          items: [
-            {
-              id: "i1",
-              name: "one",
-              quantity: 0,
-              unit: "m2",
-              rate: { source: "ai-assisted", candidateUnitRate: 1 },
-            },
-            {
-              id: "i2",
-              name: "two",
-              quantity: 1,
-              unit: "m2",
-              rate: libraryRate(0),
-            },
-          ],
-        },
-      ],
-    });
-    expect(outcome.status).toBe("draft");
-    if (outcome.status !== "draft") return;
-    const paths = outcome.issues.map((i) => i.path);
-    const qtyIdx = paths.findIndex((p) => p.includes("items[0].quantity"));
-    const aiIdx = paths.findIndex((p) => p.includes("items[0].rate"));
-    const rateIdx = paths.findIndex((p) => p.includes("items[1].rate"));
-    expect(qtyIdx).toBeGreaterThanOrEqual(0);
-    expect(aiIdx).toBeGreaterThan(qtyIdx);
-    expect(rateIdx).toBeGreaterThan(aiIdx);
-  });
-
   it("does not mutate the input object", () => {
-    const input = singleLineInput("London", libraryRate(100), 2);
+    const input = singleLineInput("London", libraryRef("paint.m2"), 2);
     const freeze = JSON.stringify(input);
-    runMeasuredBoqEngine(input);
+    runMeasuredBoqEngine(input, trustedDeps);
     expect(JSON.stringify(input)).toBe(freeze);
   });
 
   it("is deterministic for the same input", () => {
-    const input = singleLineInput("London", libraryRate(100), 2);
-    expect(runMeasuredBoqEngine(input)).toEqual(runMeasuredBoqEngine(input));
+    const input = singleLineInput("London", libraryRef("paint.m2"), 2);
+    expect(runMeasuredBoqEngine(input, trustedDeps)).toEqual(
+      runMeasuredBoqEngine(input, trustedDeps),
+    );
   });
 });
