@@ -20,6 +20,7 @@ export default defineConfig({
       // Progressive estimate services (Vitest). Other packages/services tests may use node:test.
       "packages/services/src/uk-region/**/*.{test,spec}.{ts,tsx}",
       "packages/services/src/pricing/pricingEngine.test.ts",
+      "packages/services/src/measured-boq/**/*.{test,spec}.{ts,tsx}",
     ],
     exclude: ["tests/invariants/**/*.test.{ts,tsx}"],
     coverage: {

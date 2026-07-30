@@ -27,3 +27,10 @@ export { runL1Estimate, type L1EstimateResult } from "./runL1Estimate";
 
 /** L2 progressive estimate — finish/size/categories refinement, non-persisting. */
 export { runL2Estimate, type L2EstimateResult } from "./runL2Estimate";
+
+/** L3 measured-BOQ reprice — pure engine path, non-persisting. */
+export {
+  repriceMeasuredBoq,
+  type RepriceMeasuredBoqResult,
+  type RepriceMeasuredBoqDependencies,
+} from "./repriceMeasuredBoq";
