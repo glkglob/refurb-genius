@@ -1,5 +1,5 @@
 /**
- * Thin route: L1 instant estimate.
+ * Thin route: L1/L2 instant estimate.
  *
  * All product logic lives in features/estimate.
  * This file only wires the layout and the public feature API.
@@ -26,8 +26,7 @@ function InstantEstimatePage() {
         <header className="space-y-2">
           <h1 className="text-3xl font-semibold tracking-tight">Instant refurbishment estimate</h1>
           <p className="text-muted-foreground">
-            Get an indicative UK refurbishment range using your postcode, property condition and
-            intended work.
+            Start with three quick inputs, then add finish and floor area for a tighter range.
           </p>
         </header>
 

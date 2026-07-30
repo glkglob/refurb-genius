@@ -48,10 +48,9 @@ describe("resolveL2Inputs", () => {
     expect(resolved.engineInputs.property_size_sqm).toBe(90);
     expect(resolved.userProvided.finish).toBe(true);
     expect(resolved.userProvided.size).toBe(true);
-    expect(resolved.appliedDefaults.some((d) => d.includes("Property size provided: 90 m²"))).toBe(
-      true,
-    );
     expect(resolved.appliedDefaults.some((d) => d.includes("Property size assumed"))).toBe(false);
+    expect(resolved.appliedDefaults.some((d) => d.includes("Property size provided"))).toBe(false);
+    expect(resolved.appliedDefaults.some((d) => d.includes("Finish assumed"))).toBe(false);
   });
 
   it("uses explicit category override in canonical order and clones intent defaults", () => {
@@ -61,6 +60,8 @@ describe("resolveL2Inputs", () => {
     });
     expect(resolved.engineInputs.selected_categories).toEqual(["Kitchen", "Painting"]);
     expect(resolved.userProvided.categories).toBe(true);
+    expect(resolved.appliedDefaults.some((d) => d.includes("Categories from intent"))).toBe(false);
+    expect(resolved.appliedDefaults.some((d) => d.includes("Categories selected"))).toBe(false);
     // Mutating result must not affect a later intent-derived resolve
     resolved.engineInputs.selected_categories.push("Garden");
     const again = resolveL2Inputs(base);

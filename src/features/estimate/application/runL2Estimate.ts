@@ -51,15 +51,17 @@ export function runL2Estimate(user: L2UserInput): L2EstimateResult {
     ? resolved.engineInputs.finish_quality
     : `${resolved.engineInputs.finish_quality} (assumed)`;
 
+  const categoriesJoined = resolved.engineInputs.selected_categories.join(", ");
+  const categoriesLabel = resolved.userProvided.categories
+    ? categoriesJoined
+    : `${categoriesJoined} (from intent)`;
+
   const keyDrivers: Array<{ label: string; value: string }> = [
     { label: "Region", value: resolved.region },
     { label: "Condition", value: resolved.engineInputs.property_condition },
     { label: "Finish", value: finishLabel },
     { label: "Size", value: sizeLabel },
-    {
-      label: "Categories",
-      value: resolved.engineInputs.selected_categories.join(", "),
-    },
+    { label: "Categories", value: categoriesLabel },
   ];
 
   return {

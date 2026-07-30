@@ -1,56 +1,171 @@
 /**
- * L1EstimateForm — three-field progressive estimate entry.
+ * L1EstimateForm — progressive L1 → L2 estimate entry.
  *
- * Postcode + condition chips + intent chips → runL1Estimate (pure engine path).
- * Presentation never computes money; it only calls the application use-case
+ * Closed details → runL1Estimate.
+ * Open details → runL2Estimate (finish / size / optional categories).
+ * Presentation never computes money; it only calls application use-cases
  * and renders CostSummary with the result.
  */
-import { useState, type FormEvent } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { Button, Input, Label, cn } from "@repo/ui";
+import type { EstimateCategory } from "@repo/types";
 import {
   L1_CONDITION_OPTIONS,
   L1_INTENT_OPTIONS,
+  L2_MAX_SIZE_SQM,
+  L2_MIN_SIZE_SQM,
+  categoriesFromIntent,
   type L1ConditionChip,
   type L1IntentChip,
   type L1UserInput,
 } from "../../domain";
-import { runL1Estimate, type L1EstimateResult } from "../../application";
+import {
+  runL1Estimate,
+  runL2Estimate,
+  type L1EstimateResult,
+  type L2EstimateResult,
+} from "../../application";
 import { CostSummary } from "./CostSummary";
+import { L2DetailsFields, type L2DetailsErrors, type L2DetailsValue } from "./L2DetailsFields";
+
+export type ProgressiveEstimateResult = L1EstimateResult | L2EstimateResult;
 
 export type L1EstimateFormProps = {
   className?: string;
   /** Optional callback when an estimate is produced (e.g. analytics). */
-  onEstimated?: (result: L1EstimateResult) => void;
+  onEstimated?: (result: ProgressiveEstimateResult) => void;
 };
 
+const EMPTY_DETAILS: L2DetailsValue = {
+  finish: null,
+  propertySize: "",
+  categoryRefinementEnabled: false,
+  categories: [],
+};
+
+function parseSizeInput(raw: string): { size?: number; error?: string } {
+  const trimmed = raw.trim();
+  if (trimmed === "") return {};
+  const n = Number(trimmed);
+  if (!Number.isFinite(n)) {
+    return { error: "Enter a valid property size in square metres." };
+  }
+  if (n < L2_MIN_SIZE_SQM || n > L2_MAX_SIZE_SQM) {
+    return {
+      error: `Property size must be between ${L2_MIN_SIZE_SQM} and ${L2_MAX_SIZE_SQM} m².`,
+    };
+  }
+  return { size: n };
+}
+
 export function L1EstimateForm({ className, onEstimated }: L1EstimateFormProps) {
+  const detailsPanelId = useId();
   const [postcode, setPostcode] = useState("");
   const [condition, setCondition] = useState<L1ConditionChip | null>(null);
   const [intent, setIntent] = useState<L1IntentChip | null>(null);
-  const [result, setResult] = useState<L1EstimateResult | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [details, setDetails] = useState<L2DetailsValue>(EMPTY_DETAILS);
+  const [result, setResult] = useState<ProgressiveEstimateResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<L2DetailsErrors>({});
 
   const canSubmit = postcode.trim().length >= 2 && condition != null && intent != null;
+
+  function invalidateResult() {
+    setResult(null);
+    setError(null);
+    setFieldErrors({});
+  }
+
+  function updatePostcode(value: string) {
+    invalidateResult();
+    setPostcode(value);
+  }
+
+  function updateCondition(value: L1ConditionChip) {
+    invalidateResult();
+    setCondition(value);
+  }
+
+  function updateIntent(value: L1IntentChip) {
+    invalidateResult();
+    setIntent(value);
+    setDetails((prev) => {
+      if (!prev.categoryRefinementEnabled) return prev;
+      return {
+        ...prev,
+        categories: categoriesFromIntent(value),
+      };
+    });
+  }
+
+  function updateDetails(next: L2DetailsValue) {
+    invalidateResult();
+    setDetails(next);
+  }
+
+  function handleDetailsToggle() {
+    setDetailsOpen((open) => !open);
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
 
     if (!condition || !intent) {
       setError("Select condition and what you are doing.");
       return;
     }
 
-    const input: L1UserInput = {
-      postcode: postcode.trim(),
-      condition,
-      intent,
-    };
+    const postcodeTrimmed = postcode.trim();
 
     try {
-      const next = runL1Estimate(input);
+      let next: ProgressiveEstimateResult;
+
+      if (!detailsOpen) {
+        const input: L1UserInput = {
+          postcode: postcodeTrimmed,
+          condition,
+          intent,
+        };
+        next = runL1Estimate(input);
+      } else {
+        const sizeParse = parseSizeInput(details.propertySize);
+        const nextFieldErrors: L2DetailsErrors = {};
+        if (sizeParse.error) nextFieldErrors.propertySize = sizeParse.error;
+        if (details.categoryRefinementEnabled && details.categories.length === 0) {
+          nextFieldErrors.categories =
+            "Select at least one work category, or turn off category refinement.";
+        }
+        if (Object.keys(nextFieldErrors).length > 0) {
+          setFieldErrors(nextFieldErrors);
+          return;
+        }
+
+        next = runL2Estimate({
+          postcode: postcodeTrimmed,
+          condition,
+          intent,
+          finish: details.finish ?? undefined,
+          property_size_sqm: sizeParse.size,
+          categories: details.categoryRefinementEnabled
+            ? (details.categories as EstimateCategory[])
+            : undefined,
+        });
+      }
+
       setResult(next);
-      onEstimated?.(next);
+      setError(null);
+
+      // Callback isolation: analytics must not clear a valid estimate
+      if (onEstimated) {
+        try {
+          onEstimated(next);
+        } catch {
+          // swallow — optional consumer failure must not affect form state
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not generate estimate");
       setResult(null);
@@ -68,7 +183,7 @@ export function L1EstimateForm({ className, onEstimated }: L1EstimateFormProps) 
             autoComplete="postal-code"
             placeholder="e.g. CV1 2WT"
             value={postcode}
-            onChange={(e) => setPostcode(e.target.value)}
+            onChange={(e) => updatePostcode(e.target.value)}
             className="max-w-xs"
             aria-invalid={Boolean(error)}
             aria-describedby={error ? "l1-estimate-error" : undefined}
@@ -87,7 +202,7 @@ export function L1EstimateForm({ className, onEstimated }: L1EstimateFormProps) 
                   size="sm"
                   variant={selected ? "default" : "outline"}
                   aria-pressed={selected}
-                  onClick={() => setCondition(opt.value)}
+                  onClick={() => updateCondition(opt.value)}
                 >
                   {opt.label}
                 </Button>
@@ -108,7 +223,7 @@ export function L1EstimateForm({ className, onEstimated }: L1EstimateFormProps) 
                   size="sm"
                   variant={selected ? "default" : "outline"}
                   aria-pressed={selected}
-                  onClick={() => setIntent(opt.value)}
+                  onClick={() => updateIntent(opt.value)}
                 >
                   {opt.label}
                 </Button>
@@ -117,6 +232,30 @@ export function L1EstimateForm({ className, onEstimated }: L1EstimateFormProps) 
           </div>
         </fieldset>
 
+        <div className="space-y-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            aria-expanded={detailsOpen}
+            aria-controls={detailsPanelId}
+            onClick={handleDetailsToggle}
+          >
+            {detailsOpen ? "Hide extra detail" : "Add more detail"}
+          </Button>
+
+          {detailsOpen && (
+            <div id={detailsPanelId}>
+              <L2DetailsFields
+                value={details}
+                errors={fieldErrors}
+                intent={intent}
+                onChange={updateDetails}
+              />
+            </div>
+          )}
+        </div>
+
         {error && (
           <p id="l1-estimate-error" className="text-sm text-destructive" role="alert">
             {error}
@@ -124,7 +263,7 @@ export function L1EstimateForm({ className, onEstimated }: L1EstimateFormProps) 
         )}
 
         <Button type="submit" disabled={!canSubmit}>
-          Get estimate
+          {detailsOpen ? "Update estimate" : "Get estimate"}
         </Button>
       </form>
 

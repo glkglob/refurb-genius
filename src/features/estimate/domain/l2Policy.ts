@@ -58,6 +58,11 @@ export type L2UserProvided = {
 
 export type L2ResolvedInputs = {
   engineInputs: PricingEngineInputs;
+  /**
+   * Defaults and fallbacks still applied only.
+   * Explicit user-provided values are tracked via userProvided + key drivers —
+   * they must not appear here as "provided" notes.
+   */
   appliedDefaults: string[];
   userProvided: L2UserProvided;
   region: UKRegion;
@@ -130,7 +135,7 @@ export function resolveL2Inputs(user: L2UserInput): L2ResolvedInputs {
     }
     property_size_sqm = size;
     sizeProvided = true;
-    appliedDefaults.push(`Property size provided: ${property_size_sqm} m²`);
+    // Explicit size: no appliedDefaults entry (provenance via userProvided + drivers)
   }
 
   // Categories
@@ -149,7 +154,7 @@ export function resolveL2Inputs(user: L2UserInput): L2ResolvedInputs {
       throw new L2PolicyError("Select at least one recognised work category.");
     }
     categoriesProvided = true;
-    appliedDefaults.push(`Categories selected: ${selected_categories.join(", ")}`);
+    // Explicit categories: no appliedDefaults entry
   }
 
   const sizeMult = sizeMultiplier(property_size_sqm);

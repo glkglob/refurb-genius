@@ -29,6 +29,9 @@ describe("runL2Estimate", () => {
     expect(result.userProvided.size).toBe(true);
     expect(result.keyDrivers.find((d) => d.label === "Size")?.value).toBe("120 m²");
     expect(result.keyDrivers.find((d) => d.label === "Finish")?.value).toBe("Premium");
+    expect(result.keyDrivers.find((d) => d.label === "Categories")?.value).toMatch(
+      /\(from intent\)$/,
+    );
   });
 
   it("keeps low confidence for bare SW with finish and size", () => {
@@ -69,7 +72,10 @@ describe("runL2Estimate", () => {
       property_size_sqm: 90,
     });
     expect(result.assumptions.some((a) => a.includes("Property size not provided"))).toBe(false);
-    expect(result.assumptions.some((a) => a.includes("Property size provided: 90 m²"))).toBe(true);
+    expect(result.assumptions.some((a) => a.includes("Property size assumed"))).toBe(false);
+    expect(result.assumptions.some((a) => a.includes("Property size provided"))).toBe(false);
+    expect(result.userProvided.size).toBe(true);
+    expect(result.keyDrivers.find((d) => d.label === "Size")?.value).toBe("90 m²");
     expect(result.assumptions.some((a) => a.includes("Property size: 90m²"))).toBe(true);
   });
 
