@@ -811,8 +811,10 @@ All item provenance is written from the **trusted server/engine result**, never
 copied from untrusted client money.
 
 Ticket **4D** remains for broader provenance (user quotes, evidence documents,
-mixed sources, mixed revisions, legacy repair). Minimum library `rateKey`
-provenance is **not** deferred past initial canonical measured-BOQ persistence.
+mixed sources, future multi-revision workflows, legacy repair). Initial 4C2
+measured-BOQ authority continues to reject mixed catalogue revisions.
+Minimum library `rateKey` provenance is **not** deferred past initial
+canonical measured-BOQ persistence.
 
 ### 11.3 Project stage fields
 
@@ -1373,13 +1375,17 @@ failed room/item persistence leaves no partial canonical estimate
 ## 19. Deferred work
 
 - Ticket 4D broader provenance (user quotes, evidence documents, mixed sources,
-  mixed revisions, legacy provenance repair) — **minimum library rateKey
-  provenance is Ticket 4C2C, not deferred**
+  future multi-revision workflows, legacy provenance repair) — **minimum library
+  rateKey provenance is Ticket 4C2C, not deferred**; initial 4C2 measured-BOQ
+  authority continues to reject mixed catalogue revisions with
+  `MIXED_CATALOG_REVISIONS`
 - User-quote authority path
 - Fuzzy catalogue matching (**never**)
 - Enhanced / New Build as canonical
 - Overloading `status = approved` as pricing authority
-- Mixed catalogue revisions in one estimate
+- Future multi-revision estimate workflows and their separate provenance,
+  persistence and reader contract (not authorised in initial 4C2; mixed
+  revisions remain rejected today)
 - Implicit predicates on legacy rows
 - Separate valuation-authority command for `estimated_gdv`
 

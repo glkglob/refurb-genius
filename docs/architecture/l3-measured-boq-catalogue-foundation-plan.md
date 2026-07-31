@@ -50,8 +50,8 @@ issue #90 full type-generation baseline repair
 library amounts come only from a trusted resolver
 caller supplies rate identity only
 catalogue snapshots are immutable
-initial canonical estimate uses one catalogue revision
-mixed revisions are rejected
+initial canonical measured-BOQ estimates must use exactly one catalogue revision
+commands containing more than one revision are rejected with MIXED_CATALOG_REVISIONS
 minimum library provenance is part of 4C2C
 builder integration is not part of 4C2C
 user quotes remain deferred
@@ -283,7 +283,7 @@ Until the gate clears:
 | Browser access | **None** for raw catalogue tables; resolved line money may appear in estimate **results** after trusted pricing |
 | Historical retention | All published/retired DB revisions retained; never delete published |
 | Publication | Import job / migration-style publication command after validation + checksum |
-| Rollback | Publish new revision **or** pin product to prior revision id; never mutate published rows |
+| Rollback | Publish new revision **or** pin product to a prior `catalog_revision`; never mutate published rows |
 
 **Rejected pure A:** deploy-coupled history loses old rates when code ships.  
 **Rejected pure B:** ad-hoc DB edits without VCS review/checksum.
@@ -393,7 +393,8 @@ Not allowed: "current", "latest", empty, mutable aliases
 
 | Field | Required |
 | --- | --- |
-| `revision_id` (text PK or unique natural key) | yes |
+| `id` (uuid internal PK) | yes |
+| `catalog_revision` (text unique natural key, `mboq-YYYY.MM.DD[.N]`) | yes |
 | `status` | draft \| published \| retired |
 | `schema_version` | yes |
 | `currency` | GBP |
@@ -421,8 +422,8 @@ Not allowed: "current", "latest", empty, mutable aliases
 published rows immutable (trigger + grants)
 never delete published/retired revisions or entries
 new prices require new revision
-initial canonical estimate pins exactly one revision
-mixed revisions rejected at command validation
+initial canonical estimate pins exactly one catalog_revision
+commands with more than one catalog_revision rejected with MIXED_CATALOG_REVISIONS
 ```
 
 ---
@@ -512,9 +513,9 @@ browser barrels: no catalogue exports
 
 | Concern | Decision |
 | --- | --- |
-| Lifetime | process-local cache keyed by `revision_id` + checksum |
+| Lifetime | process-local cache keyed by `catalog_revision` + checksum |
 | Invalidation | never mutate in place; new revision = new key; optional TTL refresh of metadata only |
-| Pinning | command specifies exact revision; cache miss loads that revision only |
+| Pinning | command specifies exact `catalog_revision`; cache miss loads that revision only |
 | Max size assumption | ≤ 50_000 entries / revision initially; full snapshot load OK |
 | Query count | 1–2 reads per operation (revision row + all entries) |
 
@@ -562,6 +563,20 @@ Legacy rows: all new columns NULL — remain valid.
 
 ## 14. Header / item consistency
 
+### Revision identity naming contract
+
+```text
+- TypeScript uses catalogRevision.
+- SQL uses catalog_revision.
+- measured_boq_catalog_revisions.catalog_revision is the canonical natural key.
+- measured_boq_catalog_entries.catalog_revision references that natural key.
+- estimates.catalog_revision pins the estimate header revision.
+- estimate_items.catalog_revision must equal the header revision and participates
+  with rate_key in the catalogue-entry composite foreign key.
+- UUID id columns are internal row identifiers and never replace the catalogue
+  revision identity used by the engine or persisted provenance.
+```
+
 ### Required invariants
 
 ```text
@@ -578,11 +593,11 @@ draft/none → cannot set rate_source = library with authority money claim
 
 | Layer | Role |
 | --- | --- |
-| CHECK / composite FK | Prefer: `(catalog_revision, rate_key)` FK to catalogue entries for measured authority writes |
+| CHECK / composite FK | Prefer: `estimate_items (catalog_revision, rate_key)` references `measured_boq_catalog_entries (catalog_revision, rate_key)` for measured authority writes |
 | Private RPC validation | Primary for atomic insert consistency (mirror 4C2B) |
 | Triggers | Immutability of published catalogue |
 | RLS | Browser cannot write provenance / authority rows |
-| Application | Mixed-revision reject; decoder forbids money |
+| Application | Reject mixed revisions with `MIXED_CATALOG_REVISIONS` before engine; decoder forbids money |
 
 Do not rely only on application checks for permanent integrity.
 
@@ -596,8 +611,8 @@ Do not rely only on application checks for permanent integrity.
 
 | Column | Notes |
 | --- | --- |
-| `id` uuid PK | internal |
-| `revision_id` text UNIQUE | natural key (`mboq-YYYY.MM.DD`) |
+| `id` uuid PK | internal row identifier only |
+| `catalog_revision` text NOT NULL UNIQUE | natural key (`mboq-YYYY.MM.DD[.N]`) |
 | `status` | draft/published/retired |
 | metadata columns (§10) | checksum, counts, dates, source |
 | UNIQUE / CHECK | status enum; currency GBP; vat exclusive |
@@ -606,12 +621,31 @@ Do not rely only on application checks for permanent integrity.
 
 | Column | Notes |
 | --- | --- |
-| `id` uuid PK | internal |
-| `revision_id` text FK → revisions.revision_id | natural |
-| `rate_key` text | |
-| UNIQUE (`revision_id`, `rate_key`) | |
+| `id` uuid PK | internal row identifier only |
+| `catalog_revision` text NOT NULL | FK → `measured_boq_catalog_revisions(catalog_revision)` |
+| `rate_key` text NOT NULL | |
+| UNIQUE (`catalog_revision`, `rate_key`) | natural composite identity |
 | `unit`, `cost_type`, `base_unit_rate`, currency, vat_basis | required |
 | display/governance fields | optional/required as §11 |
+
+Composite catalogue identity for estimate-item provenance:
+
+```text
+estimate_items (catalog_revision, rate_key)
+  references measured_boq_catalog_entries (catalog_revision, rate_key)
+
+estimate_items.catalog_revision must equal estimates.catalog_revision
+```
+
+Runtime casing:
+
+```text
+TypeScript: catalogRevision
+SQL:        catalog_revision
+```
+
+No runtime or persistence layer introduces a second natural identifier named
+`revision_id`.
 
 ### Privileges
 
@@ -679,7 +713,7 @@ unit semantic change under same key (import rejects; requires new key)
 7. Test import to local Supabase (draft revision)
 8. Publish command → status=published, published_at set
 9. Post-publish verification (load snapshot, sample resolve)
-10. Rollback = pin new work to previous revision_id (never mutate)
+10. Rollback = pin new work to previous catalog_revision (never mutate)
 ```
 
 **No** ad-hoc production DB edits.  
@@ -873,7 +907,9 @@ checksum verified in staging
 ```text
 user-quote authority + evidence storage
 fuzzy matching (never)
-mixed catalogue revisions in one estimate
+future multi-revision estimate workflows and their separate provenance,
+  persistence and reader contract; initial 4C2 measured-BOQ authority continues
+  to reject mixed catalogue revisions
 builder integration (4C2E)
 reader cutover (4C2F)
 measured-BOQ private persist RPC (after or late in 4C2C-B only if needed for fixtures)
@@ -881,6 +917,18 @@ alias tables
 regional multiplier unification (three tables today — separate debt)
 issue #90 full database.types reproducibility
 Deal Copilot / pitch-deck / ROI changes
+```
+
+### Current vs future revision-mix contract
+
+```text
+CURRENT INITIAL CONTRACT:
+one catalogue revision only per canonical measured-BOQ estimate
+mixed revisions rejected (MIXED_CATALOG_REVISIONS)
+
+FUTURE SEPARATE CONTRACT:
+an explicitly designed multi-revision workflow may be considered later;
+it is not authorised by deferring the current rejection rule
 ```
 
 ---
