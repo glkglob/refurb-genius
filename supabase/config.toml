@@ -4,3 +4,5 @@ project_id = "sxhzjmzfkgbogmlsbeju"
 #   supabase gen types typescript --local > packages/supabase/src/database.types.ts
 # See packages/supabase/src/database.types.ts and the re-export in packages/supabase/src/index.ts
 # The old src/integrations/supabase/types.ts is now a re-export shim.
+[db]
+major_version = 17
