@@ -13,12 +13,22 @@ import test from "node:test";
 
 const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 
-const ROUTES = [
+/** Routes that still own browser stage mutation via useSetProjectStage. */
+const STAGE_MUTATION_ROUTES = [
   "src/routes/_authed/projects.$id.upload.tsx",
   "src/routes/_authed/projects.$id.analysis.tsx",
-  "src/routes/_authed/projects.$id.estimate.tsx",
   "src/routes/_authed/projects.$id.report.tsx",
 ] as const;
+
+/**
+ * Estimate route (Ticket 4C2B):
+ * - canonical category save sets projects.estimate_done via private RPC only
+ * - draft manual/AI saves must not mark estimate complete
+ * So this route must not call useSetProjectStage for estimate.
+ */
+const ESTIMATE_ROUTE = "src/routes/_authed/projects.$id.estimate.tsx";
+
+const ROUTES = [...STAGE_MUTATION_ROUTES, ESTIMATE_ROUTE] as const;
 
 const HOOK = "src/features/projects/presentation/hooks/useSetProjectStage.ts";
 const REPO = "src/features/projects/infrastructure/projectStageRepository.ts";
@@ -71,7 +81,7 @@ test("project stage — transitional useProjects no longer defines useSetProject
   );
 });
 
-for (const route of ROUTES) {
+for (const route of STAGE_MUTATION_ROUTES) {
   test(`project stage — ${route} calls useSetProjectStage(`, () => {
     const text = read(route);
     assert.match(text, /useSetProjectStage\s*\(/, `${route} must call useSetProjectStage(`);
@@ -95,7 +105,23 @@ for (const route of ROUTES) {
       `${route} must not deep-import presentation hook`,
     );
   });
+}
 
+test("project stage — estimate route does not call useSetProjectStage (4C2B RPC owns estimate_done)", () => {
+  const text = read(ESTIMATE_ROUTE);
+  assert.doesNotMatch(
+    text,
+    /useSetProjectStage/,
+    `${ESTIMATE_ROUTE} must not use useSetProjectStage; canonical path uses private RPC`,
+  );
+  assert.doesNotMatch(
+    text,
+    /stage:\s*["']estimate["']/,
+    `${ESTIMATE_ROUTE} must not mark estimate stage from the browser`,
+  );
+});
+
+for (const route of ROUTES) {
   test(`project stage — ${route} bans residual stage mutation infrastructure`, () => {
     const text = read(route);
     // Routes may still use useQueryClient for unrelated prefetch (index does);

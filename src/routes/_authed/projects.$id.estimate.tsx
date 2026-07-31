@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/LoadingState";
 import { AIEstimateBuilder } from "@/components/AIEstimateBuilder";
@@ -45,7 +46,6 @@ import { type UKRegion } from "@/core/projects";
 import { type ConditionLevel } from "@/features/ai-upload";
 import type { ScopeRoom } from "@/features/ai-design";
 import { useProject, type ProjectWithProgress } from "@/hooks/useProjects";
-import { useSetProjectStage } from "@/features/projects";
 import {
   runPricingEngine,
   formatGBP,
@@ -54,7 +54,8 @@ import {
 } from "@/core/pricing";
 import { runRoiEngine, type RoiRiskLevel as RiskLevel } from "@/features/roi";
 import { logger } from "@/lib/logger";
-import { saveProjectEstimate } from "@/features/estimate";
+import { saveAuthorityCategoryEstimateServerFn } from "@/features/estimate";
+import { projectKeys } from "@/lib/queries/projects";
 import { trackEvent } from "@/lib/analytics";
 import {
   UK_REGIONS,
@@ -114,7 +115,7 @@ function EstimatePage() {
 
 function EstimateContent({ id, project }: { id: string; project: ProjectWithProgress }) {
   const navigate = useNavigate();
-  const setStage = useSetProjectStage();
+  const queryClient = useQueryClient();
   const { from } = Route.useSearch();
 
   // Read scope rooms from sessionStorage when navigating from scope analysis
@@ -135,6 +136,9 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
   const [condition, setCondition] = useState<ConditionLevel>("Dated");
   const [finish, setFinish] = useState<FinishLevel>("Standard");
   const [categories, setCategories] = useState<EstimateCategory[]>(DEFAULT_CATEGORIES);
+  /** Stable idempotency key for the current quick-save intent; rotate on success or material input change. */
+  const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
+  const lastIntentRef = useRef<string>("");
 
   useEffect(() => {
     trackEvent("estimate_viewed");
@@ -144,6 +148,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
     setRegion(project.region);
   }, [project.region]);
 
+  // Preview only — browser engine for display. Canonical save recomputes on the server.
   const result = useMemo(
     () =>
       runPricingEngine({
@@ -183,6 +188,22 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
     setCategories((prev) => (checked ? [...prev, cat] : prev.filter((c) => c !== cat)));
   }
 
+  function resolveIdempotencyKey(): string {
+    const intent = JSON.stringify({
+      projectId: id,
+      region,
+      property_condition: condition,
+      finish_quality: finish,
+      selected_categories: categories,
+      property_size_sqm: project.size_sqm,
+    });
+    if (intent !== lastIntentRef.current) {
+      lastIntentRef.current = intent;
+      idempotencyKeyRef.current = crypto.randomUUID();
+    }
+    return idempotencyKeyRef.current;
+  }
+
   async function handleReportClick(event: MouseEvent<HTMLAnchorElement>) {
     if (
       event.defaultPrevented ||
@@ -197,14 +218,30 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
 
     event.preventDefault();
     try {
-      if (project) {
-        await saveProjectEstimate(id, result);
-      }
+      // Canonical path: non-money inputs only. Server recomputes pricing and
+      // sets projects.estimate_done atomically via private RPC.
+      await saveAuthorityCategoryEstimateServerFn({
+        data: {
+          projectId: id,
+          inputs: {
+            region,
+            property_condition: condition,
+            finish_quality: finish,
+            selected_categories: categories,
+            property_size_sqm: project.size_sqm,
+          },
+          idempotencyKey: resolveIdempotencyKey(),
+        },
+      });
+      // Rotate key after confirmed success so a later intentional re-save is independent.
+      idempotencyKeyRef.current = crypto.randomUUID();
+      lastIntentRef.current = "";
 
-      setStage.mutate({ id, stage: "estimate", value: true });
+      await queryClient.invalidateQueries({ queryKey: projectKeys.byId(id) });
+      await queryClient.invalidateQueries({ queryKey: projectKeys.all });
       navigate({ to: "/projects/$id/report", params: { id } });
     } catch (err) {
-      logger.error("[estimates] save failed", { error: String(err) });
+      logger.error("[estimates] authority save failed", { error: String(err) });
       return;
     }
   }
@@ -269,9 +306,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
             initialRegion={project.region}
             postcode={project.postcode}
             initialScopeRooms={scopeRooms}
-            onSaved={() => {
-              setStage.mutate({ id, stage: "estimate", value: true });
-            }}
+            // Draft-only path: must not mark projects.estimate_done.
           />
         </TabsContent>
 
@@ -279,9 +314,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
           <EstimateBuilder
             projectId={id}
             project={project}
-            onSaved={() => {
-              setStage.mutate({ id, stage: "estimate", value: true });
-            }}
+            // Draft-only path: must not mark projects.estimate_done.
           />
         </TabsContent>
 

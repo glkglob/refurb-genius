@@ -1,10 +1,14 @@
 /**
  * Estimate slice — RPC surface (TanStack `createServerFn`).
  * Moved from `src/core/ai/serverFns.ts` (which now re-exports from here).
+ *
+ * Client-safe *declarations* only. Server-only modules are dynamic-imported
+ * inside handlers. Do not statically import `.server.ts` modules here.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { checkRateLimit, rateLimitKeyForUser } from "@/lib/rate-limit";
+import { decodeSaveAuthorityCategoryEstimateCommand } from "../application/authority";
 
 async function requireServerAuth(): Promise<{ id: string }> {
   // cookieName must match browser client ("pip-auth") or getUser() is always null.
@@ -36,4 +40,66 @@ export const generateEstimateServerFn = createServerFn({ method: "POST" })
     const { runSecureEstimateGeneration } =
       await import("../infrastructure/adapters/ai-estimate.adapter.server");
     return runSecureEstimateGeneration(data);
+  });
+
+/**
+ * Canonical category authority save.
+ *
+ * inputValidator runs the strict decoder *before* the handler (and therefore
+ * before authentication). Money/authority fields are rejected at this boundary.
+ */
+export const saveAuthorityCategoryEstimateServerFn = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => {
+    try {
+      return decodeSaveAuthorityCategoryEstimateCommand(input);
+    } catch (err) {
+      if (err instanceof Error) throw err;
+      throw new Error(String(err));
+    }
+  })
+  .handler(async ({ data: command }) => {
+    const { requireUser } = await import("@/serverFns/auth.server");
+    const { makeSaveAuthorityCategoryEstimate, isAuthorityError } =
+      await import("../application/authority");
+    const { assertProjectOwnedBy, persistCategoryEngineEstimate } =
+      await import("../infrastructure/repositories/categoryAuthorityEstimate.repository.server");
+
+    try {
+      const save = makeSaveAuthorityCategoryEstimate({
+        auth: {
+          requireUserId: async () => {
+            const user = await requireUser();
+            return user.id;
+          },
+        },
+        projects: {
+          assertProjectOwnedBy,
+        },
+        persistence: {
+          persistCategoryEngineEstimate,
+        },
+      });
+
+      const result = await save(command);
+      // Serializable DTO only — no Record<string, unknown>.
+      return {
+        estimateId: result.estimateId,
+        replay: result.replay,
+        midTotal: result.pricing.mid_total,
+        lowTotal: result.pricing.low_total,
+        highTotal: result.pricing.high_total,
+        labourTotal: result.pricing.labour_total,
+        materialsTotal: result.pricing.materials_total,
+        subtotal: result.pricing.subtotal,
+        contingency: result.pricing.contingency,
+        vat: result.pricing.vat,
+        timelineWeeks: result.pricing.timeline_weeks,
+        itemCount: result.items.length,
+      };
+    } catch (err) {
+      if (isAuthorityError(err)) {
+        throw new Error(`${err.code}: ${err.message}`);
+      }
+      throw err;
+    }
   });

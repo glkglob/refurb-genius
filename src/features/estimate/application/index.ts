@@ -34,3 +34,38 @@ export {
   type RepriceMeasuredBoqResult,
   type RepriceMeasuredBoqDependencies,
 } from "./repriceMeasuredBoq";
+
+/**
+ * L3 category authority command surface (pure decoder/policy/use-case factories).
+ * Server-only persistence adapters are NOT exported here — dynamic import only.
+ */
+export {
+  MAX_AUTHORITY_REQUEST_BYTES,
+  MAX_ROOMS,
+  MAX_ITEMS_PER_ROOM,
+  MAX_TOTAL_ITEMS,
+  MAX_IDENTIFIER_LENGTH,
+  MAX_IDEMPOTENCY_KEY_LENGTH,
+  MAX_NAME_LENGTH,
+  MAX_CATEGORY_LENGTH,
+  MAX_UNIT_LENGTH,
+  MAX_NOTES_LENGTH,
+  MAX_RATE_KEY_LENGTH,
+  MAX_CATALOG_REVISION_LENGTH,
+  CATEGORY_PRICING_POLICY_VERSION,
+  AuthorityError,
+  isAuthorityError,
+  decodeSaveAuthorityCategoryEstimateCommand,
+  measureAuthorityRequestBytes,
+  hashAuthorityCategoryPayload,
+  hashDecodedCategoryCommand,
+  makeSaveAuthorityCategoryEstimate,
+  type CategoryPricingPolicyVersion,
+  type AuthorityErrorCode,
+  type SaveAuthorityCategoryEstimateCommand,
+  type SaveAuthorityCategoryEstimateDeps,
+  type AuthorityCategoryPersistedEstimate,
+  type AuthorityCategoryPersistencePort,
+  type ProjectOwnershipPort,
+  type AuthenticatedSessionPort,
+} from "./authority";

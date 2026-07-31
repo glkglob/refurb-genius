@@ -80,10 +80,12 @@ export const PUBLIC_TABLES: DbTableRecord[] = [
     schema: "public",
     domainId: "estimates",
     owner: "refurb-genius",
-    purpose: "Estimate headers",
+    purpose: "Estimate headers with pricing_authority markers",
     tenantKey: "user_id",
     tenantScope: "authenticated-user",
-    rlsSummary: "all own; admin select",
+    rlsSummary:
+      "owner SELECT all own; INSERT/UPDATE/DELETE only pricing_authority=none draft; admin SELECT; canonical writes via service_role RPC only",
+    rlsEvidence: "supabase/migrations/20260730120000_estimate_authority_persistence_foundation.sql",
     enforcementStatus: "enforced",
   },
   {
@@ -92,9 +94,11 @@ export const PUBLIC_TABLES: DbTableRecord[] = [
     domainId: "estimates",
     owner: "refurb-genius",
     purpose: "Estimate line items",
-    tenantKey: "user_id",
+    tenantKey: "user_id + parent estimate ownership",
     tenantScope: "authenticated-user",
-    rlsSummary: "all own; admin select",
+    rlsSummary:
+      "owner SELECT via parent estimate; INSERT/UPDATE/DELETE only when parent pricing_authority=none; admin SELECT",
+    rlsEvidence: "supabase/migrations/20260730120000_estimate_authority_persistence_foundation.sql",
     enforcementStatus: "enforced",
   },
   {
@@ -105,7 +109,22 @@ export const PUBLIC_TABLES: DbTableRecord[] = [
     purpose: "Estimate rooms",
     tenantKey: "via estimate ownership",
     tenantScope: "authenticated-user",
-    rlsSummary: "manage on own estimates; admin select",
+    rlsSummary:
+      "owner SELECT via parent estimate; INSERT/UPDATE/DELETE only when parent pricing_authority=none; admin SELECT",
+    rlsEvidence: "supabase/migrations/20260730120000_estimate_authority_persistence_foundation.sql",
+    enforcementStatus: "enforced",
+  },
+  {
+    name: "estimate_authority_idempotency",
+    schema: "public",
+    domainId: "estimates",
+    owner: "refurb-genius",
+    purpose: "Private durable idempotency for authority-priced estimate writes",
+    tenantKey: "project_id (no browser access)",
+    tenantScope: "system",
+    rlsSummary:
+      "RLS enabled; no authenticated policies; REVOKE from PUBLIC/anon/authenticated; service_role RPC only",
+    rlsEvidence: "supabase/migrations/20260730120000_estimate_authority_persistence_foundation.sql",
     enforcementStatus: "enforced",
   },
   {

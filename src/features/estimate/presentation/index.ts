@@ -1,7 +1,7 @@
 /**
  * Estimate slice — Presentation surface.
  */
-export { generateEstimateServerFn } from "./serverFns";
+export { generateEstimateServerFn, saveAuthorityCategoryEstimateServerFn } from "./serverFns";
 export { useGenerateEstimate, useSaveAIEstimate, useRoomEstimate } from "./hooks/useEstimate";
 export {
   useApplyPhotoAnalysesToEstimate,
