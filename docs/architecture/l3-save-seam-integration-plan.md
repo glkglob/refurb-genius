@@ -1,21 +1,26 @@
 # L3 Save-Seam and Authority-Input Integration Plan
 
 ```text
-Status: Proposed integration plan (hardened — Ticket 4C2A1 / 4C2A2R)
+Status: Living integration plan (hardened — Ticket 4C2A1 / 4C2A2R)
 Parent contract: l3-estimate-authority-contract.md
-Implementation status: Not started
+Implementation status: 4C2B COMPLETED; 4C2C-A planning complete; later tickets not started
 Scope: Ticket 4C2 save-seam and authority-input integration
 Base SHA at planning: 922ee4ce08a491eabdffff460293c66eb5eeabdc
 Hardening amendments:
   Ticket 4C2A1 — runtime decoder, private RPC, markers, idempotency, gates
   Ticket 4C2A2R — scalar bounds, atomic ownership, provenance, sequencing
-Ticket: 4C2A / 4C2A1 / 4C2A2R — no production implementation
+Programme updates:
+  Ticket 4C2B — COMPLETED (category authority persistence foundation)
+  Ticket 4C2C-A — PLAN COMPLETE — see l3-measured-boq-catalogue-foundation-plan.md
+  Ticket 4C2C-B — NOT STARTED (catalogue mechanism + provenance implementation)
 ```
 
 This document maps **current behaviour**, **security/trust gaps**, **approved
-existing contracts**, **recommended target**, and **deferred work**. Nothing
-below is claimed as already implemented for authority-priced measured-BOQ
-persistence.
+existing contracts**, **recommended target**, and **deferred work**. Authority-priced
+**category** persistence is implemented (4C2B). Authority-priced **measured-BOQ**
+persistence and production catalogue data are **not** implemented; catalogue
+foundation planning lives in
+[`l3-measured-boq-catalogue-foundation-plan.md`](./l3-measured-boq-catalogue-foundation-plan.md).
 
 Parent contract: [`l3-estimate-authority-contract.md`](./l3-estimate-authority-contract.md).
 
@@ -26,13 +31,13 @@ Parent contract: [`l3-estimate-authority-contract.md`](./l3-estimate-authority-c
 | Topic | Finding |
 | --- | --- |
 | Measured-BOQ engine | **Exists** (`runMeasuredBoqEngine`, `repriceMeasuredBoq`) — pure, no persistence |
-| Production line-level catalogue | **Does not exist** (test map only in `measuredBoqEngine.test.ts`) |
-| Browser save trust | **Untrusted** — client supplies totals; RLS allows owner inserts of arbitrary money |
-| Room draft vs canonical | **Collapsed** — room saves write `status: draft` + `ai_generated: true` and still feed financials |
-| Existing `status` / `ai_generated` | **Cannot** identify authority-priced estimates |
+| Production line-level catalogue | **Does not exist** (test map only in `measuredBoqEngine.test.ts`); plan: 4C2C-A |
+| Browser draft save trust | **Untrusted for drafts** — client may still supply draft money; **canonical category** is server-only (4C2B) |
+| Room draft vs canonical | **Partially separated** — markers/RLS for category authority; room builders still draft-path until 4C2E |
+| Existing `status` / `ai_generated` | **Cannot** identify authority-priced estimates (use `pricing_authority`) |
 | Quote provenance path | **Not ready** for `MeasuredBoqUserQuoteRate` without schema/file-evidence work |
-| Quick category path | Live via browser `runPricingEngine` + `saveProjectEstimate` — **must migrate to server writer before reader cutover** |
-| Primary decision gate | **GO WITH GATES** — **all** cumulative prerequisites (see §17) |
+| Quick category path | **Server writer live (4C2B)** — `saveAuthorityCategoryEstimateServerFn` + private RPC |
+| Primary decision gate | **GO WITH GATES** — remaining cumulative prerequisites: catalogue (4C2C), draft/cache (4C2D), builders (4C2E), readers (4C2F) |
 
 ```text
 NO-SCHEMA 4C2 IS UNSAFE
@@ -806,8 +811,10 @@ All item provenance is written from the **trusted server/engine result**, never
 copied from untrusted client money.
 
 Ticket **4D** remains for broader provenance (user quotes, evidence documents,
-mixed sources, mixed revisions, legacy repair). Minimum library `rateKey`
-provenance is **not** deferred past initial canonical measured-BOQ persistence.
+mixed sources, future multi-revision workflows, legacy repair). Initial 4C2
+measured-BOQ authority continues to reject mixed catalogue revisions.
+Minimum library `rateKey` provenance is **not** deferred past initial
+canonical measured-BOQ persistence.
 
 ### 11.3 Project stage fields
 
@@ -1076,6 +1083,10 @@ migration** over implicit predicates.
 ### Ticket 4C2B — Authority persistence and category-writer foundation
 
 ```text
+STATUS: COMPLETED
+```
+
+```text
 authority-marker migration
 RLS marker protection
 private atomic RPC
@@ -1098,17 +1109,27 @@ no measured-BOQ builder integration
 
 ### Ticket 4C2C — Catalogue and minimum provenance foundation
 
+Split:
+
+- **4C2C-A** — discovery and plan (this programme step):
+  [`l3-measured-boq-catalogue-foundation-plan.md`](./l3-measured-boq-catalogue-foundation-plan.md)
+  — **PLAN COMPLETE** (docs only).
+- **4C2C-B** — implementation of catalogue mechanism + minimum provenance —
+  **NOT STARTED**. Production rate publication remains behind a **data
+  acquisition / licence gate**.
+
 ```text
-immutable production catalogue
+immutable catalogue mechanism (hybrid VCS source → immutable DB revision)
 stable rate keys
 one revision per initial estimate
-server-only resolver
+server-only resolver (async load → sync Map)
 per-item library provenance schema (rate_source, rate_key, catalog_revision,
   resolved rates)
 header/item revision constraints
 resolver and persistence mapping
 reproduction test from saved provenance
 no builder integration
+no production rates invented from fixtures
 ```
 
 | Exit gate |
@@ -1116,9 +1137,10 @@ no builder integration
 | catalogue revision immutable |
 | unknown keys fail |
 | mixed revisions fail |
-| server resolver cannot be injected |
+| server resolver cannot be browser-injected |
 | line without rateKey cannot persist as measured-boq-engine |
 | saved provenance reproduces resolver lookup |
+| production rates blocked until acquisition gate passes |
 
 ### Ticket 4C2D — Draft/canonical data-access and cache foundation
 
@@ -1353,13 +1375,17 @@ failed room/item persistence leaves no partial canonical estimate
 ## 19. Deferred work
 
 - Ticket 4D broader provenance (user quotes, evidence documents, mixed sources,
-  mixed revisions, legacy provenance repair) — **minimum library rateKey
-  provenance is Ticket 4C2C, not deferred**
+  future multi-revision workflows, legacy provenance repair) — **minimum library
+  rateKey provenance is Ticket 4C2C, not deferred**; initial 4C2 measured-BOQ
+  authority continues to reject mixed catalogue revisions with
+  `MIXED_CATALOG_REVISIONS`
 - User-quote authority path
 - Fuzzy catalogue matching (**never**)
 - Enhanced / New Build as canonical
 - Overloading `status = approved` as pricing authority
-- Mixed catalogue revisions in one estimate
+- Future multi-revision estimate workflows and their separate provenance,
+  persistence and reader contract (not authorised in initial 4C2; mixed
+  revisions remain rejected today)
 - Implicit predicates on legacy rows
 - Separate valuation-authority command for `estimated_gdv`
 
