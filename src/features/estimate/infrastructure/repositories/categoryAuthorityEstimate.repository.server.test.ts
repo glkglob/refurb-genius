@@ -31,4 +31,19 @@ describe("mapRpcError", () => {
     const err = mapRpcError({ message: "ERROR: PROJECT_OWNERSHIP_CHANGED" });
     expect(err.code).toBe("PROJECT_OWNERSHIP_CHANGED");
   });
+
+  it("maps transport failures to AUTHORITY_PERSISTENCE_UNAVAILABLE", () => {
+    expect(mapRpcError({ code: "PGRST000", message: "fetch failed" }).code).toBe(
+      "AUTHORITY_PERSISTENCE_UNAVAILABLE",
+    );
+    expect(mapRpcError({ message: "ETIMEDOUT connecting" }).code).toBe(
+      "AUTHORITY_PERSISTENCE_UNAVAILABLE",
+    );
+  });
+
+  it("maps unknown deterministic errors to AUTHORITY_PERSISTENCE_FAILED", () => {
+    expect(mapRpcError({ code: "XX000", message: "mystery" }).code).toBe(
+      "AUTHORITY_PERSISTENCE_FAILED",
+    );
+  });
 });

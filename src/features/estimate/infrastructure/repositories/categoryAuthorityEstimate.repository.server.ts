@@ -69,6 +69,20 @@ export function mapRpcError(error: SupabaseRpcError | string): AuthorityError {
       "Authority persistence rejected invalid field values.",
     );
   }
+
+  // Proven transient transport / service unavailability (PostgREST / fetch layer).
+  // PGRST301/302/etc. and common network phrases → UNAVAILABLE (retryable).
+  if (
+    code.startsWith("PGRST") ||
+    /fetch failed|network|timeout|ECONNRESET|ETIMEDOUT|503|502|504/i.test(message)
+  ) {
+    return new AuthorityError(
+      "AUTHORITY_PERSISTENCE_UNAVAILABLE",
+      "Category authority persistence is temporarily unavailable.",
+    );
+  }
+
+  // Unknown deterministic contract failure — not automatically retryable.
   return new AuthorityError(
     "AUTHORITY_PERSISTENCE_FAILED",
     "Failed to persist category authority estimate.",

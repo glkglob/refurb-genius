@@ -4,7 +4,7 @@ create extension if not exists pgtap with schema extensions;
 
 begin;
 
-select plan(41);
+select plan(42);
 
 -- ─── Self-contained fixtures (no external helpers) ───────────────────
 do $$
@@ -478,15 +478,40 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
 
+-- Fixture creates two canonical rows: idem-key-1 and idem-retry success.
 select is(
-  (select count(*)::int from public.estimates
-   where pricing_authority = 'category-engine'
-     and project_id = '33333333-3333-4333-8333-333333333333'),
-  (select count(*)::int from public.estimates
-   where pricing_authority = 'category-engine'
-     and project_id = '33333333-3333-4333-8333-333333333333'),
-  'canonical estimates remain visible for select'
+  (
+    select count(*)::int
+    from public.estimates
+    where pricing_authority = 'category-engine'
+      and project_id = '33333333-3333-4333-8333-333333333333'
+  ),
+  2,
+  'canonical estimates remain visible to owner (exact fixture count)'
 );
+
+-- Non-owner must not see owner-project canonical rows under RLS.
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-222222222222', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+
+select is(
+  (
+    select count(*)::int
+    from public.estimates
+    where pricing_authority = 'category-engine'
+      and project_id = '33333333-3333-4333-8333-333333333333'
+  ),
+  0,
+  'non-owner cannot see owner project canonical estimates'
+);
+
+-- Restore owner JWT for subsequent mutation probes.
+reset role;
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
 
 -- Update canonical returns 0 rows (RLS filters)
 update public.estimates

@@ -10,8 +10,12 @@ import { z } from "zod";
 import { checkRateLimit, rateLimitKeyForUser } from "@/lib/rate-limit";
 import {
   decodeSaveAuthorityCategoryEstimateCommand,
-  type AuthorityErrorCode,
+  executeAuthorityCategorySave,
+  makeSaveAuthorityCategoryEstimate,
+  type AuthoritySaveResponse,
 } from "../application/authority";
+
+export type { AuthoritySaveResponse, AuthoritySaveSuccessData } from "../application/authority";
 
 async function requireServerAuth(): Promise<{ id: string }> {
   // cookieName must match browser client ("pip-auth") or getUser() is always null.
@@ -45,37 +49,6 @@ export const generateEstimateServerFn = createServerFn({ method: "POST" })
     return runSecureEstimateGeneration(data);
   });
 
-export type AuthoritySaveSuccessData = {
-  estimateId: string;
-  replay: boolean;
-  midTotal: number;
-  lowTotal: number;
-  highTotal: number;
-  labourTotal: number;
-  materialsTotal: number;
-  subtotal: number;
-  contingency: number;
-  vat: number;
-  timelineWeeks: number;
-  itemCount: number;
-};
-
-export type AuthoritySaveResponse =
-  | { ok: true; data: AuthoritySaveSuccessData }
-  | {
-      ok: false;
-      error: {
-        code: AuthorityErrorCode | "RATE_LIMITED";
-        message: string;
-        retryable: boolean;
-        retryAfterSeconds?: number;
-      };
-    };
-
-function isRetryableAuthorityCode(code: AuthorityErrorCode): boolean {
-  return code === "AUTHORITY_PERSISTENCE_FAILED";
-}
-
 /**
  * Canonical category authority save.
  *
@@ -94,69 +67,23 @@ export const saveAuthorityCategoryEstimateServerFn = createServerFn({ method: "P
   })
   .handler(async ({ data: command }): Promise<AuthoritySaveResponse> => {
     const { requireUser } = await import("@/serverFns/auth.server");
-    const { makeSaveAuthorityCategoryEstimate, isAuthorityError } =
-      await import("../application/authority");
     const { assertProjectOwnedBy, persistCategoryEngineEstimate } =
       await import("../infrastructure/repositories/categoryAuthorityEstimate.repository.server");
 
-    // Authenticate once; reuse user id for rate limit + use-case auth adapter.
-    const user = await requireUser();
-    const rlKey = rateLimitKeyForUser(user.id, "authority-category-save");
-    const rl = checkRateLimit(rlKey);
-    if (!rl.allowed) {
-      return {
-        ok: false,
-        error: {
-          code: "RATE_LIMITED",
-          message: `Rate limit exceeded. Try again in ${rl.retryAfter || 60}s.`,
-          retryable: true,
-          retryAfterSeconds: rl.retryAfter || 60,
-        },
-      };
-    }
-
-    try {
-      const save = makeSaveAuthorityCategoryEstimate({
-        auth: {
-          requireUserId: async () => user.id,
-        },
-        projects: {
-          assertProjectOwnedBy,
-        },
-        persistence: {
-          persistCategoryEngineEstimate,
-        },
-      });
-
-      const result = await save(command);
-      return {
-        ok: true,
-        data: {
-          estimateId: result.estimateId,
-          replay: result.replay,
-          midTotal: result.pricing.mid_total,
-          lowTotal: result.pricing.low_total,
-          highTotal: result.pricing.high_total,
-          labourTotal: result.pricing.labour_total,
-          materialsTotal: result.pricing.materials_total,
-          subtotal: result.pricing.subtotal,
-          contingency: result.pricing.contingency,
-          vat: result.pricing.vat,
-          timelineWeeks: result.pricing.timeline_weeks,
-          itemCount: result.items.length,
-        },
-      };
-    } catch (err) {
-      if (isAuthorityError(err)) {
-        return {
-          ok: false,
-          error: {
-            code: err.code,
-            message: err.message,
-            retryable: isRetryableAuthorityCode(err.code),
-          },
-        };
-      }
-      throw err;
-    }
+    return executeAuthorityCategorySave(command, {
+      requireUser: async () => {
+        const user = await requireUser();
+        return { id: user.id };
+      },
+      checkRateLimit,
+      rateLimitKeyForUser,
+      save: async (cmd, userId) => {
+        const save = makeSaveAuthorityCategoryEstimate({
+          auth: { requireUserId: async () => userId },
+          projects: { assertProjectOwnedBy },
+          persistence: { persistCategoryEngineEstimate },
+        });
+        return save(cmd);
+      },
+    });
   });

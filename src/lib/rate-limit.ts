@@ -4,13 +4,13 @@
 
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
-const WINDOW_MS = 60_000;
-const MAX_PER_WINDOW = 10; // generous for launch; tune down if needed
+export const RATE_LIMIT_WINDOW_MS = 60_000;
+export const RATE_LIMIT_MAX_PER_WINDOW = 10; // generous for launch; tune down if needed
 
 export function checkRateLimit(
   key: string,
-  max = MAX_PER_WINDOW,
-  windowMs = WINDOW_MS,
+  max = RATE_LIMIT_MAX_PER_WINDOW,
+  windowMs = RATE_LIMIT_WINDOW_MS,
 ): { allowed: boolean; retryAfter?: number } {
   const now = Date.now();
   // Opportunistic cleanup to prevent unbounded memory growth in long-lived processes.

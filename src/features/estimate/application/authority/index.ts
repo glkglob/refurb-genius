@@ -15,7 +15,12 @@ export {
   type CategoryPricingPolicyVersion,
 } from "./authorityCommandPolicy";
 
-export { AuthorityError, isAuthorityError, type AuthorityErrorCode } from "./authorityErrors";
+export {
+  AuthorityError,
+  isAuthorityError,
+  isRetryableAuthorityCode,
+  type AuthorityErrorCode,
+} from "./authorityErrors";
 
 export {
   decodeSaveAuthorityCategoryEstimateCommand,
@@ -39,3 +44,10 @@ export {
   type ProjectOwnershipPort,
   type AuthenticatedSessionPort,
 } from "./saveAuthorityCategoryEstimate";
+
+export {
+  executeAuthorityCategorySave,
+  type ExecuteAuthorityCategorySaveDeps,
+  type AuthoritySaveResponse,
+  type AuthoritySaveSuccessData,
+} from "./executeAuthorityCategorySave";

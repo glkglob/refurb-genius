@@ -340,39 +340,123 @@ BEGIN
   WHERE project_id = v_project AND pricing_authority = 'category-engine'
   LIMIT 1;
 
+  PERFORM pg_temp.record(
+    'canonical_estimate_visible_to_owner',
+    v_canon IS NOT NULL,
+    'canonical=' || coalesce(v_canon::text, 'null')
+  );
+
   BEGIN
     UPDATE public.estimates SET mid_total = 1 WHERE id = v_canon;
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    PERFORM pg_temp.record('browser_cannot_update_canonical', v_rows = 0, 'rows=' || v_rows);
+    PERFORM pg_temp.record(
+      'browser_cannot_update_canonical',
+      v_canon IS NOT NULL AND v_rows = 0,
+      'canonical=' || coalesce(v_canon::text, 'null') || ', rows=' || v_rows
+    );
   EXCEPTION
     WHEN insufficient_privilege THEN
-      PERFORM pg_temp.record('browser_cannot_update_canonical', true, SQLSTATE || ': ' || SQLERRM);
+      PERFORM pg_temp.record(
+        'browser_cannot_update_canonical',
+        v_canon IS NOT NULL,
+        SQLSTATE || ': ' || SQLERRM
+      );
     WHEN OTHERS THEN
-      PERFORM pg_temp.record('browser_cannot_update_canonical', false, 'unexpected ' || SQLSTATE || ': ' || SQLERRM);
+      PERFORM pg_temp.record(
+        'browser_cannot_update_canonical',
+        false,
+        'unexpected ' || SQLSTATE || ': ' || SQLERRM
+      );
   END;
 
   BEGIN
     DELETE FROM public.estimates WHERE id = v_canon;
     GET DIAGNOSTICS v_rows = ROW_COUNT;
-    PERFORM pg_temp.record('browser_cannot_delete_canonical', v_rows = 0, 'rows=' || v_rows);
+    PERFORM pg_temp.record(
+      'browser_cannot_delete_canonical',
+      v_canon IS NOT NULL AND v_rows = 0,
+      'canonical=' || coalesce(v_canon::text, 'null') || ', rows=' || v_rows
+    );
   EXCEPTION
     WHEN insufficient_privilege THEN
-      PERFORM pg_temp.record('browser_cannot_delete_canonical', true, SQLSTATE || ': ' || SQLERRM);
+      PERFORM pg_temp.record(
+        'browser_cannot_delete_canonical',
+        v_canon IS NOT NULL,
+        SQLSTATE || ': ' || SQLERRM
+      );
     WHEN OTHERS THEN
-      PERFORM pg_temp.record('browser_cannot_delete_canonical', false, 'unexpected ' || SQLSTATE || ': ' || SQLERRM);
+      PERFORM pg_temp.record(
+        'browser_cannot_delete_canonical',
+        false,
+        'unexpected ' || SQLSTATE || ': ' || SQLERRM
+      );
   END;
 
   BEGIN
     INSERT INTO public.estimate_items (estimate_id, user_id, category, labour, materials, total_cost, weeks)
     VALUES (v_canon, v_owner, 'Hack', 1, 1, 2, 1);
-    PERFORM pg_temp.record('browser_cannot_insert_canonical_item', false, 'insert succeeded');
+    PERFORM pg_temp.record(
+      'browser_cannot_insert_canonical_item',
+      false,
+      'insert succeeded; canonical=' || coalesce(v_canon::text, 'null')
+    );
   EXCEPTION
     WHEN insufficient_privilege THEN
-      PERFORM pg_temp.record('browser_cannot_insert_canonical_item', true, SQLSTATE || ': ' || SQLERRM);
+      PERFORM pg_temp.record(
+        'browser_cannot_insert_canonical_item',
+        v_canon IS NOT NULL,
+        SQLSTATE || ': ' || SQLERRM
+      );
     WHEN OTHERS THEN
       PERFORM pg_temp.record(
         'browser_cannot_insert_canonical_item',
-        SQLSTATE = '42501',
+        v_canon IS NOT NULL AND SQLSTATE = '42501',
+        'unexpected ' || SQLSTATE || ': ' || SQLERRM
+      );
+  END;
+
+  BEGIN
+    UPDATE public.estimate_items SET total_cost = 0 WHERE estimate_id = v_canon;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    PERFORM pg_temp.record(
+      'browser_cannot_update_canonical_item',
+      v_canon IS NOT NULL AND v_rows = 0,
+      'canonical=' || coalesce(v_canon::text, 'null') || ', rows=' || v_rows
+    );
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      PERFORM pg_temp.record(
+        'browser_cannot_update_canonical_item',
+        v_canon IS NOT NULL,
+        SQLSTATE || ': ' || SQLERRM
+      );
+    WHEN OTHERS THEN
+      PERFORM pg_temp.record(
+        'browser_cannot_update_canonical_item',
+        false,
+        'unexpected ' || SQLSTATE || ': ' || SQLERRM
+      );
+  END;
+
+  BEGIN
+    DELETE FROM public.estimate_items WHERE estimate_id = v_canon;
+    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    PERFORM pg_temp.record(
+      'browser_cannot_delete_canonical_item',
+      v_canon IS NOT NULL AND v_rows = 0,
+      'canonical=' || coalesce(v_canon::text, 'null') || ', rows=' || v_rows
+    );
+  EXCEPTION
+    WHEN insufficient_privilege THEN
+      PERFORM pg_temp.record(
+        'browser_cannot_delete_canonical_item',
+        v_canon IS NOT NULL,
+        SQLSTATE || ': ' || SQLERRM
+      );
+    WHEN OTHERS THEN
+      PERFORM pg_temp.record(
+        'browser_cannot_delete_canonical_item',
+        false,
         'unexpected ' || SQLSTATE || ': ' || SQLERRM
       );
   END;
@@ -444,11 +528,21 @@ SELECT
   count(*) AS total
 FROM probe_results;
 
+-- Expected standalone probe count (update when adding/removing named probes).
+-- Includes canonical_estimate_visible_to_owner so zero-row RLS checks cannot
+-- pass vacuously when the fixture is missing.
 DO $$
 DECLARE
   v_failed int;
+  v_total int;
+  v_expected int := 27;
 BEGIN
-  SELECT count(*) INTO v_failed FROM probe_results WHERE NOT ok;
+  SELECT count(*) FILTER (WHERE NOT ok), count(*)
+  INTO v_failed, v_total
+  FROM probe_results;
+  IF v_total <> v_expected THEN
+    RAISE EXCEPTION 'expected % probes, got %', v_expected, v_total;
+  END IF;
   IF v_failed > 0 THEN
     RAISE EXCEPTION '% probe(s) failed', v_failed;
   END IF;

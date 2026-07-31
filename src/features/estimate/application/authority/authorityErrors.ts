@@ -12,7 +12,15 @@ export type AuthorityErrorCode =
   | "IDEMPOTENCY_CONFLICT"
   | "PROJECT_NOT_FOUND"
   | "PROJECT_OWNERSHIP_CHANGED"
-  | "AUTHORITY_PERSISTENCE_FAILED";
+  /** Deterministic contract / config / malformed-response failure — not retryable. */
+  | "AUTHORITY_PERSISTENCE_FAILED"
+  /** Transient network or service unavailability — retryable. */
+  | "AUTHORITY_PERSISTENCE_UNAVAILABLE";
+
+/** Codes that may be retried with the same idempotency key. */
+export function isRetryableAuthorityCode(code: AuthorityErrorCode | "RATE_LIMITED"): boolean {
+  return code === "AUTHORITY_PERSISTENCE_UNAVAILABLE" || code === "RATE_LIMITED";
+}
 
 export class AuthorityError extends Error {
   readonly code: AuthorityErrorCode;

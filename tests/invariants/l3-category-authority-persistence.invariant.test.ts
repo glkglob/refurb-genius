@@ -62,15 +62,40 @@ test("quick canonical save sends no totals or user ID", () => {
     }
   }
   assert.ok(end > start, "must find balanced call end");
+  // Inspect only the save-call argument, not response handling later in the route.
   const payload = text.slice(start, end);
   assert.match(payload, /selected_categories:\s*categories/);
   assert.match(payload, /property_size_sqm:\s*project\.size_sqm/);
-  assert.doesNotMatch(payload, /\buserId\b/);
-  assert.doesNotMatch(payload, /\bmid_total\b/);
-  assert.doesNotMatch(payload, /\blabour_total\b/);
-  assert.doesNotMatch(payload, /\bpricingAuthority\b/);
-  // Money totals must not be sent as save inputs (response handling may mention totals).
-  assert.doesNotMatch(payload, /inputs:\s*\{[^}]*\bsubtotal\b/);
+  const forbidden = [
+    "subtotal",
+    "contingency",
+    "vat",
+    "vatAmount",
+    "vat_amount",
+    "lowTotal",
+    "low_total",
+    "midTotal",
+    "mid_total",
+    "highTotal",
+    "high_total",
+    "labourTotal",
+    "labour_total",
+    "materialsTotal",
+    "materials_total",
+    "lineItems",
+    "userId",
+    "expectedOwnerId",
+    "pricingAuthority",
+    "pricingPolicyVersion",
+    "catalogRevision",
+  ];
+  for (const field of forbidden) {
+    assert.doesNotMatch(
+      payload,
+      new RegExp(`\\b${field}\\b`),
+      `save-call payload must not include ${field}`,
+    );
+  }
 });
 
 test("manual/AI draft callbacks do not mark estimate_done", () => {

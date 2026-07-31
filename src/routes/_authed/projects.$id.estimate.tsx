@@ -244,7 +244,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
             toast.error(`Too many save attempts. Please try again in ${retryAfterSeconds ?? 60}s.`);
             break;
           case "PROJECT_OWNERSHIP_CHANGED":
-            toast.error("Project access has changed. Reloading…");
+            toast.error("Project access has changed. Refreshing project details…");
             await queryClient.invalidateQueries({ queryKey: projectKeys.byId(id) });
             break;
           case "PROJECT_NOT_FOUND":
@@ -254,22 +254,23 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
             toast.error(
               "This save conflicted with a previous attempt. Adjust inputs and try again.",
             );
-            // Force a new intent key on next attempt.
-            idempotencyKeyRef.current = null;
-            lastIntentRef.current = "";
+            break;
+          case "AUTHORITY_PERSISTENCE_UNAVAILABLE":
+            toast.error("Could not save the estimate. Please try again.");
             break;
           case "AUTHORITY_PERSISTENCE_FAILED":
-            toast.error(
-              retryable
-                ? "Could not save the estimate. Please try again."
-                : "Could not save the estimate.",
-            );
+            toast.error("Could not save the estimate.");
             break;
           default:
             toast.error("Could not save the estimate. Please check your inputs.");
             break;
         }
-        // Retryable / ambiguous failures keep the same idempotency key.
+        // Retain the same idempotency key only for genuinely retryable failures
+        // (or ambiguous transport errors that throw into the catch path).
+        if (!retryable) {
+          idempotencyKeyRef.current = null;
+          lastIntentRef.current = "";
+        }
         return;
       }
 
