@@ -212,10 +212,17 @@ function assertSurfacesEqual(a, b, left, right) {
 function tryGenerateLocalTypes() {
   mkdirSync(TMP_DIR, { recursive: true });
   try {
+    // Prefer repository CLI; force local DB password so a remote SUPABASE_DB_PASSWORD
+    // from developer .env does not break `gen types --local` (CLI 2.111.0+).
     const out = execFileSync(
-      "supabase",
-      ["gen", "types", "typescript", "--local", "--schema", "public"],
-      { cwd: ROOT, encoding: "utf8", maxBuffer: 10 * 1024 * 1024 },
+      "pnpm",
+      ["exec", "supabase", "gen", "types", "typescript", "--local", "--schema", "public"],
+      {
+        cwd: ROOT,
+        encoding: "utf8",
+        maxBuffer: 10 * 1024 * 1024,
+        env: { ...process.env, SUPABASE_DB_PASSWORD: "postgres" },
+      },
     );
     writeFileSync(GENERATED, out, "utf8");
     return true;
