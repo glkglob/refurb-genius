@@ -58,6 +58,9 @@ lerna-debug.log*
 # Supabase local temp
 supabase/.temp/
 
+# Local typegen / verifier scratch
+.tmp/
+
 # External tools & experiments (not part of the product monorepo)
 backend/
 property-intel/

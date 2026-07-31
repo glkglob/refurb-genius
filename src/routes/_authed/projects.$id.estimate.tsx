@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/LoadingState";
 import { AIEstimateBuilder } from "@/components/AIEstimateBuilder";
@@ -45,7 +46,6 @@ import { type UKRegion } from "@/core/projects";
 import { type ConditionLevel } from "@/features/ai-upload";
 import type { ScopeRoom } from "@/features/ai-design";
 import { useProject, type ProjectWithProgress } from "@/hooks/useProjects";
-import { useSetProjectStage } from "@/features/projects";
 import {
   runPricingEngine,
   formatGBP,
@@ -53,8 +53,10 @@ import {
   type FinishLevel,
 } from "@/core/pricing";
 import { runRoiEngine, type RoiRiskLevel as RiskLevel } from "@/features/roi";
+import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { saveProjectEstimate } from "@/features/estimate";
+import { saveAuthorityCategoryEstimateServerFn } from "@/features/estimate";
+import { projectKeys } from "@/lib/queries/projects";
 import { trackEvent } from "@/lib/analytics";
 import {
   UK_REGIONS,
@@ -114,7 +116,7 @@ function EstimatePage() {
 
 function EstimateContent({ id, project }: { id: string; project: ProjectWithProgress }) {
   const navigate = useNavigate();
-  const setStage = useSetProjectStage();
+  const queryClient = useQueryClient();
   const { from } = Route.useSearch();
 
   // Read scope rooms from sessionStorage when navigating from scope analysis
@@ -135,6 +137,9 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
   const [condition, setCondition] = useState<ConditionLevel>("Dated");
   const [finish, setFinish] = useState<FinishLevel>("Standard");
   const [categories, setCategories] = useState<EstimateCategory[]>(DEFAULT_CATEGORIES);
+  /** Lazy idempotency key for the current quick-save intent; rotate on success or material input change. */
+  const idempotencyKeyRef = useRef<string | null>(null);
+  const lastIntentRef = useRef<string>("");
 
   useEffect(() => {
     trackEvent("estimate_viewed");
@@ -144,6 +149,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
     setRegion(project.region);
   }, [project.region]);
 
+  // Preview only — browser engine for display. Canonical save recomputes on the server.
   const result = useMemo(
     () =>
       runPricingEngine({
@@ -183,6 +189,22 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
     setCategories((prev) => (checked ? [...prev, cat] : prev.filter((c) => c !== cat)));
   }
 
+  function resolveIdempotencyKey(): string {
+    const intent = JSON.stringify({
+      projectId: id,
+      region,
+      property_condition: condition,
+      finish_quality: finish,
+      selected_categories: categories,
+      property_size_sqm: project.size_sqm,
+    });
+    if (intent !== lastIntentRef.current || !idempotencyKeyRef.current) {
+      lastIntentRef.current = intent;
+      idempotencyKeyRef.current = crypto.randomUUID();
+    }
+    return idempotencyKeyRef.current;
+  }
+
   async function handleReportClick(event: MouseEvent<HTMLAnchorElement>) {
     if (
       event.defaultPrevented ||
@@ -197,15 +219,72 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
 
     event.preventDefault();
     try {
-      if (project) {
-        await saveProjectEstimate(id, result);
+      // Canonical path: non-money inputs only. Server recomputes pricing and
+      // sets projects.estimate_done atomically via private RPC.
+      const response = await saveAuthorityCategoryEstimateServerFn({
+        data: {
+          projectId: id,
+          inputs: {
+            region,
+            property_condition: condition,
+            finish_quality: finish,
+            selected_categories: categories,
+            property_size_sqm: project.size_sqm,
+          },
+          idempotencyKey: resolveIdempotencyKey(),
+        },
+      });
+
+      if (!response.ok) {
+        const { code, message, retryable, retryAfterSeconds } = response.error;
+        logger.error("[estimates] authority save failed", { code, message });
+        // Safe user-facing messages only — never raw exception / SQL text.
+        switch (code) {
+          case "RATE_LIMITED":
+            toast.error(`Too many save attempts. Please try again in ${retryAfterSeconds ?? 60}s.`);
+            break;
+          case "PROJECT_OWNERSHIP_CHANGED":
+            toast.error("Project access has changed. Refreshing project details…");
+            await queryClient.invalidateQueries({ queryKey: projectKeys.byId(id) });
+            break;
+          case "PROJECT_NOT_FOUND":
+            toast.error("This project is no longer available.");
+            break;
+          case "IDEMPOTENCY_CONFLICT":
+            toast.error(
+              "This save conflicted with a previous attempt. Adjust inputs and try again.",
+            );
+            break;
+          case "AUTHORITY_PERSISTENCE_UNAVAILABLE":
+            toast.error("Could not save the estimate. Please try again.");
+            break;
+          case "AUTHORITY_PERSISTENCE_FAILED":
+            toast.error("Could not save the estimate.");
+            break;
+          default:
+            toast.error("Could not save the estimate. Please check your inputs.");
+            break;
+        }
+        // Retain the same idempotency key only for genuinely retryable failures
+        // (or ambiguous transport errors that throw into the catch path).
+        if (!retryable) {
+          idempotencyKeyRef.current = null;
+          lastIntentRef.current = "";
+        }
+        return;
       }
 
-      setStage.mutate({ id, stage: "estimate", value: true });
+      // Success: rotate key and navigate.
+      idempotencyKeyRef.current = null;
+      lastIntentRef.current = "";
+
+      await queryClient.invalidateQueries({ queryKey: projectKeys.byId(id) });
+      await queryClient.invalidateQueries({ queryKey: projectKeys.all, exact: true });
       navigate({ to: "/projects/$id/report", params: { id } });
     } catch (err) {
-      logger.error("[estimates] save failed", { error: String(err) });
-      return;
+      // Input-validator / unexpected transport failures.
+      logger.error("[estimates] authority save failed", { error: String(err) });
+      toast.error("Could not save the estimate. Please try again.");
     }
   }
 
@@ -269,9 +348,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
             initialRegion={project.region}
             postcode={project.postcode}
             initialScopeRooms={scopeRooms}
-            onSaved={() => {
-              setStage.mutate({ id, stage: "estimate", value: true });
-            }}
+            // Draft-only path: must not mark projects.estimate_done.
           />
         </TabsContent>
 
@@ -279,9 +356,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
           <EstimateBuilder
             projectId={id}
             project={project}
-            onSaved={() => {
-              setStage.mutate({ id, stage: "estimate", value: true });
-            }}
+            // Draft-only path: must not mark projects.estimate_done.
           />
         </TabsContent>
 

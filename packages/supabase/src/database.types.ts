@@ -268,6 +268,57 @@ export type Database = {
           },
         ];
       };
+      estimate_authority_idempotency: {
+        Row: {
+          completed_at: string | null;
+          created_at: string;
+          id: string;
+          idempotency_key: string;
+          operation_status: string;
+          payload_hash: string;
+          pricing_authority: string;
+          project_id: string;
+          resulting_estimate_id: string | null;
+        };
+        Insert: {
+          completed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          idempotency_key: string;
+          operation_status: string;
+          payload_hash: string;
+          pricing_authority: string;
+          project_id: string;
+          resulting_estimate_id?: string | null;
+        };
+        Update: {
+          completed_at?: string | null;
+          created_at?: string;
+          id?: string;
+          idempotency_key?: string;
+          operation_status?: string;
+          payload_hash?: string;
+          pricing_authority?: string;
+          project_id?: string;
+          resulting_estimate_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "estimate_authority_idempotency_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "estimate_authority_idempotency_resulting_estimate_id_fkey";
+            columns: ["resulting_estimate_id"];
+            isOneToOne: false;
+            referencedRelation: "estimates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       estimate_rooms: {
         Row: {
           area_sqm: number | null;
@@ -309,6 +360,7 @@ export type Database = {
       estimates: {
         Row: {
           ai_generated: boolean | null;
+          catalog_revision: string | null;
           condition_level: string | null;
           contingency: number | null;
           contingency_percent: number;
@@ -321,6 +373,8 @@ export type Database = {
           materials_total: number | null;
           mid_total: number | null;
           notes: string | null;
+          pricing_authority: string;
+          pricing_policy_version: string | null;
           project_id: string;
           region: string | null;
           roi_percent: number | null;
@@ -338,6 +392,7 @@ export type Database = {
         };
         Insert: {
           ai_generated?: boolean | null;
+          catalog_revision?: string | null;
           condition_level?: string | null;
           contingency?: number | null;
           contingency_percent?: number;
@@ -350,6 +405,8 @@ export type Database = {
           materials_total?: number | null;
           mid_total?: number | null;
           notes?: string | null;
+          pricing_authority?: string;
+          pricing_policy_version?: string | null;
           project_id: string;
           region?: string | null;
           roi_percent?: number | null;
@@ -367,6 +424,7 @@ export type Database = {
         };
         Update: {
           ai_generated?: boolean | null;
+          catalog_revision?: string | null;
           condition_level?: string | null;
           contingency?: number | null;
           contingency_percent?: number;
@@ -379,6 +437,8 @@ export type Database = {
           materials_total?: number | null;
           mid_total?: number | null;
           notes?: string | null;
+          pricing_authority?: string;
+          pricing_policy_version?: string | null;
           project_id?: string;
           region?: string | null;
           roi_percent?: number | null;
@@ -1803,6 +1863,39 @@ export type Database = {
       };
       is_admin: { Args: never; Returns: boolean };
       is_project_owner: { Args: { p_project_id: string }; Returns: boolean };
+      persist_category_engine_estimate: {
+        Args: {
+          p_condition_level: string;
+          p_contingency: number;
+          p_expected_owner_id: string;
+          p_finish_level: string;
+          p_high_total: number;
+          p_idempotency_key: string;
+          p_items: Json;
+          p_labour_total: number;
+          p_low_total: number;
+          p_materials_total: number;
+          p_mid_total: number;
+          p_payload_hash: string;
+          p_pricing_policy_version: string;
+          p_project_id: string;
+          p_region: string;
+          p_subtotal: number;
+          p_timeline_weeks: number;
+          p_vat_amount: number;
+        };
+        Returns: Json;
+      };
+      resolve_share_link: {
+        Args: { p_token: string };
+        Returns: {
+          access_role: string;
+          expires_at: string;
+          id: string;
+          owner_user_id: string;
+          study_id: string;
+        }[];
+      };
       uuid_v7: { Args: never; Returns: string };
     };
     Enums: {

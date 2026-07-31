@@ -1,10 +1,21 @@
 /**
  * Estimate slice — RPC surface (TanStack `createServerFn`).
  * Moved from `src/core/ai/serverFns.ts` (which now re-exports from here).
+ *
+ * Client-safe *declarations* only. Server-only modules are dynamic-imported
+ * inside handlers. Do not statically import `.server.ts` modules here.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { checkRateLimit, rateLimitKeyForUser } from "@/lib/rate-limit";
+import {
+  decodeSaveAuthorityCategoryEstimateCommand,
+  executeAuthorityCategorySave,
+  makeSaveAuthorityCategoryEstimate,
+  type AuthoritySaveResponse,
+} from "../application/authority";
+
+export type { AuthoritySaveResponse, AuthoritySaveSuccessData } from "../application/authority";
 
 async function requireServerAuth(): Promise<{ id: string }> {
   // cookieName must match browser client ("pip-auth") or getUser() is always null.
@@ -36,4 +47,43 @@ export const generateEstimateServerFn = createServerFn({ method: "POST" })
     const { runSecureEstimateGeneration } =
       await import("../infrastructure/adapters/ai-estimate.adapter.server");
     return runSecureEstimateGeneration(data);
+  });
+
+/**
+ * Canonical category authority save.
+ *
+ * inputValidator runs the strict decoder *before* the handler (and therefore
+ * before authentication). Money/authority fields are rejected at this boundary.
+ * Handler returns a structured discriminated response for application failures.
+ */
+export const saveAuthorityCategoryEstimateServerFn = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => {
+    try {
+      return decodeSaveAuthorityCategoryEstimateCommand(input);
+    } catch (err) {
+      if (err instanceof Error) throw err;
+      throw new Error(String(err));
+    }
+  })
+  .handler(async ({ data: command }): Promise<AuthoritySaveResponse> => {
+    const { requireUser } = await import("@/serverFns/auth.server");
+    const { assertProjectOwnedBy, persistCategoryEngineEstimate } =
+      await import("../infrastructure/repositories/categoryAuthorityEstimate.repository.server");
+
+    return executeAuthorityCategorySave(command, {
+      requireUser: async () => {
+        const user = await requireUser();
+        return { id: user.id };
+      },
+      checkRateLimit,
+      rateLimitKeyForUser,
+      save: async (cmd, userId) => {
+        const save = makeSaveAuthorityCategoryEstimate({
+          auth: { requireUserId: async () => userId },
+          projects: { assertProjectOwnedBy },
+          persistence: { persistCategoryEngineEstimate },
+        });
+        return save(cmd);
+      },
+    });
   });

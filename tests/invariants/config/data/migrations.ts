@@ -64,6 +64,7 @@ export const MIGRATION_FILENAMES = [
   "20260611150000_deal_opportunities_write_policy.sql",
   "20260721230000_p0_security_rls_hardening.sql",
   "20260724000000_profile_company_from_signup_metadata.sql",
+  "20260730120000_estimate_authority_persistence_foundation.sql",
 ] as const;
 
 export const MIGRATION_TIMESTAMP_PATTERN = /^\d{14}_[\w-]+\.sql$/;

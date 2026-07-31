@@ -21,7 +21,9 @@
     "security:secrets": "gitleaks detect --source . --config gitleaks.toml --redact",
     "security:secrets:staged": "gitleaks protect --staged --config gitleaks.toml --redact",
     "security:audit": "pnpm audit --audit-level=high",
-    "security:boundary": "TSX_TSCONFIG_PATH=./tsconfig.json tsx --test tests/invariants/auth-env.invariant.test.ts tests/invariants/server-only-boundary.invariant.test.ts"
+    "security:boundary": "TSX_TSCONFIG_PATH=./tsconfig.json tsx --test tests/invariants/auth-env.invariant.test.ts tests/invariants/server-only-boundary.invariant.test.ts",
+    "verify:4c2b-types": "node scripts/verify-4c2b-database-types.mjs",
+    "verify:4c2b-types:generate": "node scripts/verify-4c2b-database-types.mjs --require-generate"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
