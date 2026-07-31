@@ -1,10 +1,10 @@
 # L3 Measured-BOQ Catalogue Foundation Plan
 
 ```text
-Status: Discovery and architecture decision complete (Ticket 4C2C-A)
+Status: 4C2C-A plan complete; 4C2C-B foundation IMPLEMENTED (production rates still blocked)
 Parent contract: l3-estimate-authority-contract.md
 Parent integration plan: l3-save-seam-integration-plan.md
-Implementation status: Planning only — no production catalogue, migration, or resolver
+Implementation status: 4C2C-B mechanism landed — no production rates, no measured persist RPC, no builders/readers
 Ticket: 4C2C-A
 Base SHA at planning: 9408b203fd27dd171455cf663bd9e47ee58c9309
 Branch: plan/4c2c-measured-boq-catalogue

@@ -179,6 +179,8 @@ export type Database = {
       };
       estimate_items: {
         Row: {
+          base_unit_rate: number | null;
+          catalog_revision: string | null;
           category: string;
           created_at: string;
           description: string | null;
@@ -192,6 +194,10 @@ export type Database = {
           notes: string | null;
           project_id: string | null;
           quantity: number;
+          rate_key: string | null;
+          rate_source: string | null;
+          regional_multiplier: number | null;
+          resolved_unit_rate: number | null;
           room_id: string | null;
           total_cost: number;
           unit: string;
@@ -201,6 +207,8 @@ export type Database = {
           weeks: number | null;
         };
         Insert: {
+          base_unit_rate?: number | null;
+          catalog_revision?: string | null;
           category: string;
           created_at?: string;
           description?: string | null;
@@ -214,6 +222,10 @@ export type Database = {
           notes?: string | null;
           project_id?: string | null;
           quantity?: number;
+          rate_key?: string | null;
+          rate_source?: string | null;
+          regional_multiplier?: number | null;
+          resolved_unit_rate?: number | null;
           room_id?: string | null;
           total_cost?: number;
           unit?: string;
@@ -223,6 +235,8 @@ export type Database = {
           weeks?: number | null;
         };
         Update: {
+          base_unit_rate?: number | null;
+          catalog_revision?: string | null;
           category?: string;
           created_at?: string;
           description?: string | null;
@@ -236,6 +250,10 @@ export type Database = {
           notes?: string | null;
           project_id?: string | null;
           quantity?: number;
+          rate_key?: string | null;
+          rate_source?: string | null;
+          regional_multiplier?: number | null;
+          resolved_unit_rate?: number | null;
           room_id?: string | null;
           total_cost?: number;
           unit?: string;
@@ -245,6 +263,13 @@ export type Database = {
           weeks?: number | null;
         };
         Relationships: [
+          {
+            foreignKeyName: "estimate_items_catalog_entry_fkey";
+            columns: ["catalog_revision", "rate_key"];
+            isOneToOne: false;
+            referencedRelation: "measured_boq_catalog_entries";
+            referencedColumns: ["catalog_revision", "rate_key"];
+          },
           {
             foreignKeyName: "estimate_items_estimate_id_fkey";
             columns: ["estimate_id"];
@@ -318,6 +343,131 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      measured_boq_catalog_entries: {
+        Row: {
+          base_unit_rate: number;
+          catalog_revision: string;
+          cost_type: string;
+          created_at: string;
+          currency: string;
+          description: string | null;
+          display_name: string;
+          id: string;
+          rate_key: string;
+          replacement_rate_key: string | null;
+          source_reference: string | null;
+          status: string;
+          trade_or_domain: string;
+          unit: string;
+          updated_at: string;
+          vat_basis: string;
+        };
+        Insert: {
+          base_unit_rate: number;
+          catalog_revision: string;
+          cost_type: string;
+          created_at?: string;
+          currency?: string;
+          description?: string | null;
+          display_name: string;
+          id?: string;
+          rate_key: string;
+          replacement_rate_key?: string | null;
+          source_reference?: string | null;
+          status?: string;
+          trade_or_domain: string;
+          unit: string;
+          updated_at?: string;
+          vat_basis?: string;
+        };
+        Update: {
+          base_unit_rate?: number;
+          catalog_revision?: string;
+          cost_type?: string;
+          created_at?: string;
+          currency?: string;
+          description?: string | null;
+          display_name?: string;
+          id?: string;
+          rate_key?: string;
+          replacement_rate_key?: string | null;
+          source_reference?: string | null;
+          status?: string;
+          trade_or_domain?: string;
+          unit?: string;
+          updated_at?: string;
+          vat_basis?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "measured_boq_catalog_entries_catalog_revision_fkey";
+            columns: ["catalog_revision"];
+            isOneToOne: false;
+            referencedRelation: "measured_boq_catalog_revisions";
+            referencedColumns: ["catalog_revision"];
+          },
+        ];
+      };
+      measured_boq_catalog_revisions: {
+        Row: {
+          catalog_revision: string;
+          content_checksum: string;
+          created_at: string;
+          created_by: string;
+          currency: string;
+          effective_from: string;
+          entry_count: number;
+          id: string;
+          published_at: string | null;
+          regional_basis: string;
+          release_notes: string | null;
+          retired_at: string | null;
+          schema_version: string;
+          source_description: string;
+          status: string;
+          updated_at: string;
+          vat_basis: string;
+        };
+        Insert: {
+          catalog_revision: string;
+          content_checksum: string;
+          created_at?: string;
+          created_by: string;
+          currency?: string;
+          effective_from: string;
+          entry_count?: number;
+          id?: string;
+          published_at?: string | null;
+          regional_basis?: string;
+          release_notes?: string | null;
+          retired_at?: string | null;
+          schema_version: string;
+          source_description: string;
+          status?: string;
+          updated_at?: string;
+          vat_basis?: string;
+        };
+        Update: {
+          catalog_revision?: string;
+          content_checksum?: string;
+          created_at?: string;
+          created_by?: string;
+          currency?: string;
+          effective_from?: string;
+          entry_count?: number;
+          id?: string;
+          published_at?: string | null;
+          regional_basis?: string;
+          release_notes?: string | null;
+          retired_at?: string | null;
+          schema_version?: string;
+          source_description?: string;
+          status?: string;
+          updated_at?: string;
+          vat_basis?: string;
+        };
+        Relationships: [];
       };
       estimate_rooms: {
         Row: {

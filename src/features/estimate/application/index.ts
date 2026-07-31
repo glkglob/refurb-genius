@@ -74,3 +74,19 @@ export {
   type AuthoritySaveResponse,
   type AuthoritySaveSuccessData,
 } from "./authority";
+
+/**
+ * Pure catalogue validation / mixed-revision gate (no IO).
+ * Server-only catalogue loaders are NOT exported here.
+ */
+export {
+  assertSingleCatalogRevision,
+  validateCatalogueSnapshot,
+  computeCatalogueContentChecksum,
+  MAX_CATALOG_ENTRIES,
+  CANONICAL_MEASURED_BOQ_UNITS,
+  MEASURED_BOQ_COST_TYPES,
+  type MixedCatalogRevisionResult,
+  type MeasuredBoqCatalogueSourceSnapshot,
+  type CatalogueValidationResult,
+} from "./catalogue";

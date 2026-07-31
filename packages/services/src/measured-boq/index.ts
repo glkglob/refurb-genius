@@ -31,8 +31,13 @@ export type {
   EligibleMeasuredBoqRateResolution,
   IneligibleMeasuredBoqRateResolution,
   MeasuredBoqRateResolution,
+  MeasuredBoqLibraryLineProvenance,
+  MeasuredBoqLineRateContext,
   MeasuredBoqLineResult,
   MeasuredBoqRoomResult,
   MeasuredBoqPricingResult,
   MeasuredBoqEngineOutcome,
 } from "./measuredBoqEngine";
+
+/** Pure catalogue source contract, validation, checksum, mixed-revision gate. */
+export * from "./catalogue/index";

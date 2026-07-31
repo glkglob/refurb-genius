@@ -29,6 +29,8 @@ const TEST_CATALOGUE = new Map<string, MeasuredBoqLibraryCatalogEntry>([
       baseUnitRate: 100,
       currency: "GBP",
       vatBasis: "exclusive",
+      unit: "m2",
+      costType: "combined",
     },
   ],
   [
@@ -39,6 +41,8 @@ const TEST_CATALOGUE = new Map<string, MeasuredBoqLibraryCatalogEntry>([
       baseUnitRate: 40,
       currency: "GBP",
       vatBasis: "exclusive",
+      unit: "m2",
+      costType: "materials",
     },
   ],
   [
@@ -49,6 +53,8 @@ const TEST_CATALOGUE = new Map<string, MeasuredBoqLibraryCatalogEntry>([
       baseUnitRate: 33.333,
       currency: "GBP",
       vatBasis: "exclusive",
+      unit: "item",
+      costType: "combined",
     },
   ],
 ]);
@@ -186,7 +192,24 @@ describe("golden vectors", () => {
 
   it("Vector C — pence rounding order", () => {
     const outcome = runMeasuredBoqEngine(
-      singleLineInput("London", libraryRef("pence.item"), 3),
+      {
+        region: "London",
+        rooms: [
+          {
+            id: "r1",
+            name: "Kitchen",
+            items: [
+              {
+                id: "i1",
+                name: "Pence item",
+                quantity: 3,
+                unit: "item",
+                rate: libraryRef("pence.item"),
+              },
+            ],
+          },
+        ],
+      },
       trustedDeps,
     );
     expect(outcome.status).toBe("authority-priced");
@@ -253,6 +276,8 @@ describe("trusted library authority", () => {
         baseUnitRate: 100,
         currency: "GBP",
         vatBasis: "exclusive",
+        unit: "m2",
+        costType: "combined",
       }),
     };
     const outcome = runMeasuredBoqEngine(singleLineInput("London", libraryRef("paint.m2")), deps);
@@ -269,6 +294,8 @@ describe("trusted library authority", () => {
         baseUnitRate: 100,
         currency: "GBP",
         vatBasis: "exclusive",
+        unit: "m2",
+        costType: "combined",
       }),
     };
     const outcome = runMeasuredBoqEngine(singleLineInput("London", libraryRef("paint.m2")), deps);
@@ -283,6 +310,8 @@ describe("trusted library authority", () => {
         baseUnitRate: 0,
         currency: "GBP" as const,
         vatBasis: "exclusive" as const,
+        unit: "m2",
+        costType: "combined" as const,
       },
       {
         rateKey: "paint.m2",
@@ -290,6 +319,8 @@ describe("trusted library authority", () => {
         baseUnitRate: -5,
         currency: "GBP" as const,
         vatBasis: "exclusive" as const,
+        unit: "m2",
+        costType: "combined" as const,
       },
       {
         rateKey: "paint.m2",
@@ -297,6 +328,8 @@ describe("trusted library authority", () => {
         baseUnitRate: NaN,
         currency: "GBP" as const,
         vatBasis: "exclusive" as const,
+        unit: "m2",
+        costType: "combined" as const,
       },
       {
         rateKey: "paint.m2",
@@ -304,6 +337,8 @@ describe("trusted library authority", () => {
         baseUnitRate: 100,
         currency: "USD" as "GBP",
         vatBasis: "exclusive" as const,
+        unit: "m2",
+        costType: "combined" as const,
       },
       {
         rateKey: "paint.m2",
@@ -311,6 +346,8 @@ describe("trusted library authority", () => {
         baseUnitRate: 100,
         currency: "GBP" as const,
         vatBasis: "inclusive" as "exclusive",
+        unit: "m2",
+        costType: "combined" as const,
       },
     ]) {
       const deps: MeasuredBoqEngineDependencies = {
@@ -565,5 +602,116 @@ describe("draft outcomes", () => {
     expect(runMeasuredBoqEngine(input, trustedDeps)).toEqual(
       runMeasuredBoqEngine(input, trustedDeps),
     );
+  });
+});
+
+describe("catalogue unit and cost-type compatibility", () => {
+  it("exact unit accepted", () => {
+    const outcome = runMeasuredBoqEngine(
+      singleLineInput("London", libraryRef("paint.m2")),
+      trustedDeps,
+    );
+    expect(outcome.status).toBe("authority-priced");
+  });
+
+  it("unit alias rejected at runtime (sqm vs m2)", () => {
+    const outcome = runMeasuredBoqEngine(
+      {
+        region: "London",
+        rooms: [
+          {
+            id: "r1",
+            name: "Kitchen",
+            items: [
+              {
+                id: "i1",
+                name: "Paint",
+                quantity: 1,
+                unit: "sqm",
+                rate: libraryRef("paint.m2"),
+              },
+            ],
+          },
+        ],
+      },
+      trustedDeps,
+    );
+    expect(outcome.status).toBe("draft");
+    if (outcome.status !== "draft") return;
+    expect(outcome.issues.some((i) => i.code === "CATALOG_UNIT_MISMATCH")).toBe(true);
+  });
+
+  it("unit mismatch rejected", () => {
+    const outcome = runMeasuredBoqEngine(
+      {
+        region: "London",
+        rooms: [
+          {
+            id: "r1",
+            name: "Kitchen",
+            items: [
+              {
+                id: "i1",
+                name: "Paint",
+                quantity: 1,
+                unit: "item",
+                rate: libraryRef("paint.m2"),
+              },
+            ],
+          },
+        ],
+      },
+      trustedDeps,
+    );
+    expect(outcome.status).toBe("draft");
+    if (outcome.status !== "draft") return;
+    expect(outcome.issues.some((i) => i.code === "CATALOG_UNIT_MISMATCH")).toBe(true);
+  });
+
+  it("cost-type mismatch rejected", () => {
+    const outcome = runMeasuredBoqEngine(
+      {
+        region: "London",
+        rooms: [
+          {
+            id: "r1",
+            name: "Kitchen",
+            items: [
+              {
+                id: "i1",
+                name: "Paint",
+                quantity: 1,
+                unit: "m2",
+                costType: "labour",
+                rate: libraryRef("paint.m2"),
+              },
+            ],
+          },
+        ],
+      },
+      trustedDeps,
+    );
+    expect(outcome.status).toBe("draft");
+    if (outcome.status !== "draft") return;
+    expect(outcome.issues.some((i) => i.code === "CATALOG_COST_TYPE_MISMATCH")).toBe(true);
+  });
+
+  it("omitted library cost type derives trusted entry cost type", () => {
+    const outcome = runMeasuredBoqEngine(
+      singleLineInput("London", libraryRef("tile.m2")),
+      trustedDeps,
+    );
+    expect(outcome.status).toBe("authority-priced");
+    if (outcome.status !== "authority-priced") return;
+    expect(outcome.pricing.rooms[0]!.items[0]!.costType).toBe("materials");
+    expect(outcome.pricing.rooms[0]!.items[0]!.libraryProvenance?.costType).toBe("materials");
+  });
+
+  it("non-library omitted cost type remains combined", () => {
+    const outcome = runMeasuredBoqEngine(singleLineInput("London", acceptedQuote(50)), trustedDeps);
+    expect(outcome.status).toBe("authority-priced");
+    if (outcome.status !== "authority-priced") return;
+    expect(outcome.pricing.rooms[0]!.items[0]!.costType).toBe("combined");
+    expect(outcome.pricing.rooms[0]!.items[0]!.libraryProvenance).toBeUndefined();
   });
 });

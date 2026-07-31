@@ -11,7 +11,8 @@ Hardening amendments:
   Ticket 4C2A2R — scalar bounds, atomic ownership, provenance, sequencing
 Programme updates:
   Ticket 4C2B — COMPLETED (category authority persistence foundation)
-  Ticket 4C2C-A — PLAN COMPLETE — see l3-measured-boq-catalogue-foundation-plan.md
+  Ticket 4C2C-A — COMPLETED
+  Ticket 4C2C-B — IMPLEMENTED (production catalogue rates BLOCKED)
   Ticket 4C2C-B — NOT STARTED (catalogue mechanism + provenance implementation)
 ```
 

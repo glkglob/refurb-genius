@@ -93,12 +93,39 @@ export const PUBLIC_TABLES: DbTableRecord[] = [
     schema: "public",
     domainId: "estimates",
     owner: "refurb-genius",
-    purpose: "Estimate line items",
+    purpose: "Estimate line items with optional measured-BOQ library provenance",
     tenantKey: "user_id + parent estimate ownership",
     tenantScope: "authenticated-user",
     rlsSummary:
-      "owner SELECT via parent estimate; INSERT/UPDATE/DELETE only when parent pricing_authority=none; admin SELECT",
-    rlsEvidence: "supabase/migrations/20260730120000_estimate_authority_persistence_foundation.sql",
+      "owner SELECT via parent estimate; INSERT/UPDATE/DELETE only when parent pricing_authority=none and provenance NULL; admin SELECT",
+    rlsEvidence:
+      "supabase/migrations/20260730120000_estimate_authority_persistence_foundation.sql; supabase/migrations/20260731120000_measured_boq_catalogue_foundation.sql",
+    enforcementStatus: "enforced",
+  },
+  {
+    name: "measured_boq_catalog_revisions",
+    schema: "public",
+    domainId: "estimates",
+    owner: "refurb-genius",
+    purpose: "Immutable measured-BOQ catalogue revisions (natural key catalog_revision)",
+    tenantKey: "none (private catalogue)",
+    tenantScope: "system",
+    rlsSummary:
+      "RLS enabled; no authenticated/anon policies; REVOKE PUBLIC/anon/authenticated; service_role only; published/retired immutable via trigger",
+    rlsEvidence: "supabase/migrations/20260731120000_measured_boq_catalogue_foundation.sql",
+    enforcementStatus: "enforced",
+  },
+  {
+    name: "measured_boq_catalog_entries",
+    schema: "public",
+    domainId: "estimates",
+    owner: "refurb-genius",
+    purpose: "Measured-BOQ catalogue entries keyed by (catalog_revision, rate_key)",
+    tenantKey: "none (private catalogue)",
+    tenantScope: "system",
+    rlsSummary:
+      "RLS enabled; no browser access; service_role only; mutable only while parent revision is draft",
+    rlsEvidence: "supabase/migrations/20260731120000_measured_boq_catalogue_foundation.sql",
     enforcementStatus: "enforced",
   },
   {

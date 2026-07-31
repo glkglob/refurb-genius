@@ -289,7 +289,7 @@ test("emits data architecture registry summary", () => {
   const summary = summarizeDataRegistry(diskCount);
   console.log("\n" + summary + "\n");
   assert.match(summary, /Domains: \d+/);
-  assert.match(summary, /Tables: 37/);
+  assert.match(summary, /Tables: 39/);
   assert.match(summary, /Storage buckets: 4/);
   assert.match(summary, /Org tenancy present: false/);
 });
