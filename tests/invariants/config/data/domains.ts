@@ -83,7 +83,7 @@ export const DATA_DOMAINS: DataDomain[] = [
     tables: ["estimates", "estimate_items", "estimate_rooms", "estimate_authority_idempotency"],
     sourceOfTruth: "public.estimates (+ children + private idempotency)",
     persistenceLayer: "Category authority: serverFn + service_role RPC; drafts: browser repository",
-    tenantScope: "authenticated-user",
+    tenantScope: "mixed",
     lifecycle:
       "Draft/none rows via browser RLS; category-engine rows via private RPC with durable idempotency",
     maturity: "live",

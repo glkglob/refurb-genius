@@ -118,6 +118,9 @@ COMMENT ON TABLE public.estimate_authority_idempotency IS
 
 DROP POLICY IF EXISTS "estimates_all_own" ON public.estimates;
 
+-- Helper predicate: estimate row user owns the referenced project.
+-- Draft writes must never attach estimates to a foreign project.
+
 DROP POLICY IF EXISTS "estimates_select_own" ON public.estimates;
 CREATE POLICY "estimates_select_own"
   ON public.estimates
@@ -135,6 +138,12 @@ CREATE POLICY "estimates_insert_draft_own"
     AND pricing_authority = 'none'
     AND pricing_policy_version IS NULL
     AND catalog_revision IS NULL
+    AND EXISTS (
+      SELECT 1
+      FROM public.projects p
+      WHERE p.id = estimates.project_id
+        AND p.user_id = auth.uid()
+    )
   );
 
 DROP POLICY IF EXISTS "estimates_update_draft_own" ON public.estimates;
@@ -145,14 +154,28 @@ CREATE POLICY "estimates_update_draft_own"
   USING (
     auth.uid() = user_id
     AND pricing_authority = 'none'
+    AND EXISTS (
+      SELECT 1
+      FROM public.projects p
+      WHERE p.id = estimates.project_id
+        AND p.user_id = auth.uid()
+    )
   )
   WITH CHECK (
     auth.uid() = user_id
     AND pricing_authority = 'none'
     AND pricing_policy_version IS NULL
     AND catalog_revision IS NULL
+    AND EXISTS (
+      SELECT 1
+      FROM public.projects p
+      WHERE p.id = estimates.project_id
+        AND p.user_id = auth.uid()
+    )
   );
 
+-- Delete only self-owned none/draft estimates whose project is still owned
+-- by the authenticated user (blocks delete after ownership transfer).
 DROP POLICY IF EXISTS "estimates_delete_draft_own" ON public.estimates;
 CREATE POLICY "estimates_delete_draft_own"
   ON public.estimates
@@ -161,12 +184,18 @@ CREATE POLICY "estimates_delete_draft_own"
   USING (
     auth.uid() = user_id
     AND pricing_authority = 'none'
+    AND EXISTS (
+      SELECT 1
+      FROM public.projects p
+      WHERE p.id = estimates.project_id
+        AND p.user_id = auth.uid()
+    )
   );
 
 -- Admin select policy already exists (estimates_select_admin); leave intact.
 
 -- ────────────────────────────────────────────────────────────────────
--- 4. estimate_rooms — draft-only browser writes (parent authority = none)
+-- 4. estimate_rooms — draft-only browser writes via estimate + project
 -- ────────────────────────────────────────────────────────────────────
 
 DROP POLICY IF EXISTS "Users can manage rooms on their own estimates" ON public.estimate_rooms;
@@ -194,8 +223,10 @@ CREATE POLICY "estimate_rooms_insert_draft_own"
     EXISTS (
       SELECT 1
       FROM public.estimates e
+      JOIN public.projects p ON p.id = e.project_id
       WHERE e.id = estimate_rooms.estimate_id
         AND e.user_id = auth.uid()
+        AND p.user_id = auth.uid()
         AND e.pricing_authority = 'none'
     )
   );
@@ -209,8 +240,10 @@ CREATE POLICY "estimate_rooms_update_draft_own"
     EXISTS (
       SELECT 1
       FROM public.estimates e
+      JOIN public.projects p ON p.id = e.project_id
       WHERE e.id = estimate_rooms.estimate_id
         AND e.user_id = auth.uid()
+        AND p.user_id = auth.uid()
         AND e.pricing_authority = 'none'
     )
   )
@@ -218,8 +251,10 @@ CREATE POLICY "estimate_rooms_update_draft_own"
     EXISTS (
       SELECT 1
       FROM public.estimates e
+      JOIN public.projects p ON p.id = e.project_id
       WHERE e.id = estimate_rooms.estimate_id
         AND e.user_id = auth.uid()
+        AND p.user_id = auth.uid()
         AND e.pricing_authority = 'none'
     )
   );
@@ -233,8 +268,10 @@ CREATE POLICY "estimate_rooms_delete_draft_own"
     EXISTS (
       SELECT 1
       FROM public.estimates e
+      JOIN public.projects p ON p.id = e.project_id
       WHERE e.id = estimate_rooms.estimate_id
         AND e.user_id = auth.uid()
+        AND p.user_id = auth.uid()
         AND e.pricing_authority = 'none'
     )
   );
@@ -242,7 +279,7 @@ CREATE POLICY "estimate_rooms_delete_draft_own"
 -- Admin select preserved (estimate_rooms_select_admin).
 
 -- ────────────────────────────────────────────────────────────────────
--- 5. estimate_items — draft-only browser writes via parent authority
+-- 5. estimate_items — draft-only browser writes via estimate + project
 -- ────────────────────────────────────────────────────────────────────
 
 DROP POLICY IF EXISTS "estimate_items_all_own" ON public.estimate_items;
@@ -271,8 +308,10 @@ CREATE POLICY "estimate_items_insert_draft_own"
     AND EXISTS (
       SELECT 1
       FROM public.estimates e
+      JOIN public.projects p ON p.id = e.project_id
       WHERE e.id = estimate_items.estimate_id
         AND e.user_id = auth.uid()
+        AND p.user_id = auth.uid()
         AND e.pricing_authority = 'none'
     )
   );
@@ -286,8 +325,10 @@ CREATE POLICY "estimate_items_update_draft_own"
     EXISTS (
       SELECT 1
       FROM public.estimates e
+      JOIN public.projects p ON p.id = e.project_id
       WHERE e.id = estimate_items.estimate_id
         AND e.user_id = auth.uid()
+        AND p.user_id = auth.uid()
         AND e.pricing_authority = 'none'
     )
   )
@@ -296,8 +337,10 @@ CREATE POLICY "estimate_items_update_draft_own"
     AND EXISTS (
       SELECT 1
       FROM public.estimates e
+      JOIN public.projects p ON p.id = e.project_id
       WHERE e.id = estimate_items.estimate_id
         AND e.user_id = auth.uid()
+        AND p.user_id = auth.uid()
         AND e.pricing_authority = 'none'
     )
   );
@@ -311,8 +354,10 @@ CREATE POLICY "estimate_items_delete_draft_own"
     EXISTS (
       SELECT 1
       FROM public.estimates e
+      JOIN public.projects p ON p.id = e.project_id
       WHERE e.id = estimate_items.estimate_id
         AND e.user_id = auth.uid()
+        AND p.user_id = auth.uid()
         AND e.pricing_authority = 'none'
     )
   );
@@ -355,6 +400,16 @@ DECLARE
   v_item jsonb;
   v_item_order integer := 0;
   v_result jsonb;
+  v_cat text;
+  v_labour numeric;
+  v_materials numeric;
+  v_total numeric;
+  v_weeks numeric;
+  v_key_count integer;
+  v_sum_labour numeric;
+  v_sum_materials numeric;
+  v_sum_total numeric;
+  v_eps constant numeric := 0.0001;
 BEGIN
   -- Input sanity (server-trusted path still validates hard bounds)
   IF p_project_id IS NULL THEN
@@ -379,6 +434,32 @@ BEGIN
   IF p_items IS NULL OR jsonb_typeof(p_items) <> 'array' THEN
     RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
   END IF;
+  IF jsonb_array_length(p_items) = 0 THEN
+    RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
+  END IF;
+
+  -- Header arithmetic must hold for trusted engine-produced values.
+  IF p_labour_total IS NULL OR p_materials_total IS NULL
+     OR p_subtotal IS NULL OR p_contingency IS NULL OR p_vat_amount IS NULL
+     OR p_low_total IS NULL OR p_mid_total IS NULL OR p_high_total IS NULL
+     OR p_timeline_weeks IS NULL THEN
+    RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
+  END IF;
+  IF p_labour_total < 0 OR p_materials_total < 0 OR p_subtotal < 0
+     OR p_contingency < 0 OR p_vat_amount < 0
+     OR p_low_total < 0 OR p_mid_total < 0 OR p_high_total < 0
+     OR p_timeline_weeks < 0 THEN
+    RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
+  END IF;
+  IF abs(p_subtotal - (p_labour_total + p_materials_total)) > v_eps THEN
+    RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
+  END IF;
+  IF abs(p_mid_total - (p_subtotal + p_contingency + p_vat_amount)) > v_eps THEN
+    RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
+  END IF;
+  IF p_low_total > p_mid_total OR p_mid_total > p_high_total THEN
+    RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
+  END IF;
 
   -- 6.1 Ownership lock + recheck (authoritative)
   SELECT p.user_id
@@ -396,6 +477,8 @@ BEGIN
   END IF;
 
   -- 6.2 Idempotency lookup / reservation (serialized by project lock)
+  -- pending and committed transitions share this transaction; failures roll
+  -- back the pending row (no age-based reaper required under normal PG semantics).
   SELECT *
     INTO v_idemp
   FROM public.estimate_authority_idempotency i
@@ -492,11 +575,51 @@ BEGIN
   )
   RETURNING id INTO v_estimate_id;
 
-  -- 6.4 Category line items (no rooms)
+  -- 6.4 Category line items — strict shape, no COALESCE defaults for money/category
   FOR v_item IN
     SELECT value FROM jsonb_array_elements(p_items)
   LOOP
     IF jsonb_typeof(v_item) <> 'object' THEN
+      RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
+    END IF;
+
+    -- Exact required keys only: category, labour, materials, total, weeks
+    SELECT count(*) INTO v_key_count
+    FROM jsonb_object_keys(v_item) AS k(key);
+
+    IF v_key_count <> 5
+       OR NOT (v_item ? 'category')
+       OR NOT (v_item ? 'labour')
+       OR NOT (v_item ? 'materials')
+       OR NOT (v_item ? 'total')
+       OR NOT (v_item ? 'weeks') THEN
+      RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
+    END IF;
+
+    IF jsonb_typeof(v_item->'category') <> 'string' THEN
+      RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
+    END IF;
+    v_cat := v_item->>'category';
+    IF v_cat IS NULL OR length(btrim(v_cat)) = 0 OR length(v_cat) > 100 THEN
+      RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
+    END IF;
+
+    IF jsonb_typeof(v_item->'labour') <> 'number'
+       OR jsonb_typeof(v_item->'materials') <> 'number'
+       OR jsonb_typeof(v_item->'total') <> 'number'
+       OR jsonb_typeof(v_item->'weeks') <> 'number' THEN
+      RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
+    END IF;
+
+    v_labour := (v_item->>'labour')::numeric;
+    v_materials := (v_item->>'materials')::numeric;
+    v_total := (v_item->>'total')::numeric;
+    v_weeks := (v_item->>'weeks')::numeric;
+
+    IF v_labour < 0 OR v_materials < 0 OR v_total < 0 OR v_weeks < 0 THEN
+      RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
+    END IF;
+    IF abs(v_total - (v_labour + v_materials)) > v_eps THEN
       RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
     END IF;
 
@@ -514,18 +637,33 @@ BEGIN
     ) VALUES (
       v_estimate_id,
       p_expected_owner_id,
-      COALESCE(v_item->>'category', ''),
-      COALESCE(v_item->>'category', ''),
-      COALESCE((v_item->>'labour')::numeric, 0),
-      COALESCE((v_item->>'materials')::numeric, 0),
-      COALESCE((v_item->>'total')::numeric, 0),
-      COALESCE((v_item->>'weeks')::numeric, 0),
+      v_cat,
+      v_cat,
+      v_labour,
+      v_materials,
+      v_total,
+      v_weeks,
       v_item_order,
       false
     );
 
     v_item_order := v_item_order + 1;
   END LOOP;
+
+  -- Aggregate consistency: item sums must match header totals
+  SELECT
+    COALESCE(sum(ei.labour), 0),
+    COALESCE(sum(ei.materials), 0),
+    COALESCE(sum(ei.total_cost), 0)
+  INTO v_sum_labour, v_sum_materials, v_sum_total
+  FROM public.estimate_items ei
+  WHERE ei.estimate_id = v_estimate_id;
+
+  IF abs(v_sum_labour - p_labour_total) > v_eps
+     OR abs(v_sum_materials - p_materials_total) > v_eps
+     OR abs(v_sum_total - p_subtotal) > v_eps THEN
+    RAISE EXCEPTION 'INVALID_AUTHORITY_FIELD_VALUE' USING ERRCODE = '22023';
+  END IF;
 
   -- 6.5 Atomic stage flag — never estimated_gdv
   UPDATE public.projects

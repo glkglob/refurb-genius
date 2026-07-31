@@ -194,8 +194,9 @@ export function decodeSaveAuthorityCategoryEstimateCommand(
     );
   }
 
-  const idempotencyKey = assertString(root.idempotencyKey, "idempotencyKey");
-  if (idempotencyKey.length === 0 || idempotencyKey.trim().length === 0) {
+  // Canonical form: trim then store the trimmed value (UI generates UUIDs).
+  const idempotencyKey = assertString(root.idempotencyKey, "idempotencyKey").trim();
+  if (idempotencyKey.length === 0) {
     throw new AuthorityError(
       "INVALID_AUTHORITY_FIELD_VALUE",
       "idempotencyKey must be non-empty.",

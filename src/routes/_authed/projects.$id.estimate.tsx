@@ -53,6 +53,7 @@ import {
   type FinishLevel,
 } from "@/core/pricing";
 import { runRoiEngine, type RoiRiskLevel as RiskLevel } from "@/features/roi";
+import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { saveAuthorityCategoryEstimateServerFn } from "@/features/estimate";
 import { projectKeys } from "@/lib/queries/projects";
@@ -136,8 +137,8 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
   const [condition, setCondition] = useState<ConditionLevel>("Dated");
   const [finish, setFinish] = useState<FinishLevel>("Standard");
   const [categories, setCategories] = useState<EstimateCategory[]>(DEFAULT_CATEGORIES);
-  /** Stable idempotency key for the current quick-save intent; rotate on success or material input change. */
-  const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
+  /** Lazy idempotency key for the current quick-save intent; rotate on success or material input change. */
+  const idempotencyKeyRef = useRef<string | null>(null);
   const lastIntentRef = useRef<string>("");
 
   useEffect(() => {
@@ -197,7 +198,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
       selected_categories: categories,
       property_size_sqm: project.size_sqm,
     });
-    if (intent !== lastIntentRef.current) {
+    if (intent !== lastIntentRef.current || !idempotencyKeyRef.current) {
       lastIntentRef.current = intent;
       idempotencyKeyRef.current = crypto.randomUUID();
     }
@@ -220,7 +221,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
     try {
       // Canonical path: non-money inputs only. Server recomputes pricing and
       // sets projects.estimate_done atomically via private RPC.
-      await saveAuthorityCategoryEstimateServerFn({
+      const response = await saveAuthorityCategoryEstimateServerFn({
         data: {
           projectId: id,
           inputs: {
@@ -233,16 +234,56 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
           idempotencyKey: resolveIdempotencyKey(),
         },
       });
-      // Rotate key after confirmed success so a later intentional re-save is independent.
-      idempotencyKeyRef.current = crypto.randomUUID();
+
+      if (!response.ok) {
+        const { code, message, retryable, retryAfterSeconds } = response.error;
+        logger.error("[estimates] authority save failed", { code, message });
+        // Safe user-facing messages only — never raw exception / SQL text.
+        switch (code) {
+          case "RATE_LIMITED":
+            toast.error(`Too many save attempts. Please try again in ${retryAfterSeconds ?? 60}s.`);
+            break;
+          case "PROJECT_OWNERSHIP_CHANGED":
+            toast.error("Project access has changed. Reloading…");
+            await queryClient.invalidateQueries({ queryKey: projectKeys.byId(id) });
+            break;
+          case "PROJECT_NOT_FOUND":
+            toast.error("This project is no longer available.");
+            break;
+          case "IDEMPOTENCY_CONFLICT":
+            toast.error(
+              "This save conflicted with a previous attempt. Adjust inputs and try again.",
+            );
+            // Force a new intent key on next attempt.
+            idempotencyKeyRef.current = null;
+            lastIntentRef.current = "";
+            break;
+          case "AUTHORITY_PERSISTENCE_FAILED":
+            toast.error(
+              retryable
+                ? "Could not save the estimate. Please try again."
+                : "Could not save the estimate.",
+            );
+            break;
+          default:
+            toast.error("Could not save the estimate. Please check your inputs.");
+            break;
+        }
+        // Retryable / ambiguous failures keep the same idempotency key.
+        return;
+      }
+
+      // Success: rotate key and navigate.
+      idempotencyKeyRef.current = null;
       lastIntentRef.current = "";
 
       await queryClient.invalidateQueries({ queryKey: projectKeys.byId(id) });
-      await queryClient.invalidateQueries({ queryKey: projectKeys.all });
+      await queryClient.invalidateQueries({ queryKey: projectKeys.all, exact: true });
       navigate({ to: "/projects/$id/report", params: { id } });
     } catch (err) {
+      // Input-validator / unexpected transport failures.
       logger.error("[estimates] authority save failed", { error: String(err) });
-      return;
+      toast.error("Could not save the estimate. Please try again.");
     }
   }
 

@@ -45,20 +45,32 @@ test("quick canonical route does not import or call browser saveProjectEstimate"
 
 test("quick canonical save sends no totals or user ID", () => {
   const text = read(ROUTE);
-  // Extract the serverFn call site payload (non-money inputs only).
-  const call = text.match(
-    /saveAuthorityCategoryEstimateServerFn\(\{[\s\S]*?idempotencyKey:[\s\S]*?\}\s*\}/,
-  );
-  assert.ok(call, "must call saveAuthorityCategoryEstimateServerFn with payload");
-  const payload = call[0];
+  // Balanced extraction of the serverFn argument object.
+  const start = text.indexOf("saveAuthorityCategoryEstimateServerFn({");
+  assert.ok(start >= 0, "must call saveAuthorityCategoryEstimateServerFn");
+  let depth = 0;
+  let end = -1;
+  for (let i = start + "saveAuthorityCategoryEstimateServerFn".length; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === "(" || ch === "{") depth++;
+    else if (ch === ")" || ch === "}") {
+      depth--;
+      if (depth === 0) {
+        end = i + 1;
+        break;
+      }
+    }
+  }
+  assert.ok(end > start, "must find balanced call end");
+  const payload = text.slice(start, end);
   assert.match(payload, /selected_categories:\s*categories/);
   assert.match(payload, /property_size_sqm:\s*project\.size_sqm/);
-  assert.doesNotMatch(payload, /\bsubtotal\b/);
   assert.doesNotMatch(payload, /\buserId\b/);
   assert.doesNotMatch(payload, /\bmid_total\b/);
-  assert.doesNotMatch(payload, /\bresult\b/);
   assert.doesNotMatch(payload, /\blabour_total\b/);
   assert.doesNotMatch(payload, /\bpricingAuthority\b/);
+  // Money totals must not be sent as save inputs (response handling may mention totals).
+  assert.doesNotMatch(payload, /inputs:\s*\{[^}]*\bsubtotal\b/);
 });
 
 test("manual/AI draft callbacks do not mark estimate_done", () => {

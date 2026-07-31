@@ -140,7 +140,22 @@ describe("decodeSaveAuthorityCategoryEstimateCommand", () => {
     );
   });
 
-  it("rejects overlong idempotency key", () => {
+  it("rejects whitespace-only idempotency key", () => {
+    expectCode(
+      () => decodeSaveAuthorityCategoryEstimateCommand({ ...VALID, idempotencyKey: "   " }),
+      "INVALID_AUTHORITY_FIELD_VALUE",
+    );
+  });
+
+  it("trims leading/trailing whitespace and stores canonical key", () => {
+    const cmd = decodeSaveAuthorityCategoryEstimateCommand({
+      ...VALID,
+      idempotencyKey: "  intent-1  ",
+    });
+    expect(cmd.idempotencyKey).toBe("intent-1");
+  });
+
+  it("rejects overlong idempotency key after trim", () => {
     expectCode(
       () =>
         decodeSaveAuthorityCategoryEstimateCommand({
@@ -151,12 +166,23 @@ describe("decodeSaveAuthorityCategoryEstimateCommand", () => {
     );
   });
 
-  it("accepts idempotency key at max length", () => {
+  it("accepts idempotency key at max normalized length", () => {
     const cmd = decodeSaveAuthorityCategoryEstimateCommand({
       ...VALID,
       idempotencyKey: "k".repeat(MAX_IDEMPOTENCY_KEY_LENGTH),
     });
     expect(cmd.idempotencyKey).toHaveLength(MAX_IDEMPOTENCY_KEY_LENGTH);
+  });
+
+  it("large finite property size is accepted and engine remains finite", async () => {
+    const { runPricingEngine } = await import("../../domain");
+    const cmd = decodeSaveAuthorityCategoryEstimateCommand({
+      ...VALID,
+      inputs: { ...VALID.inputs, property_size_sqm: 1_000_000 },
+    });
+    const priced = runPricingEngine(cmd.inputs);
+    expect(Number.isFinite(priced.mid_total)).toBe(true);
+    expect(priced.mid_total).toBeGreaterThan(0);
   });
 
   it("rejects oversized request", () => {

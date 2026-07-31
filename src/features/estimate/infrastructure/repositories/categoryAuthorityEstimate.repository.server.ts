@@ -13,6 +13,15 @@ type ServiceClient = Awaited<
   ReturnType<typeof import("@/platform/supabase/service.server").createServiceRoleSupabase>
 >;
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+type SupabaseRpcError = {
+  message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+};
+
 async function getServiceClient(): Promise<ServiceClient> {
   const { createServiceRoleSupabase } = await import("@/platform/supabase/service.server");
   try {
@@ -25,27 +34,99 @@ async function getServiceClient(): Promise<ServiceClient> {
   }
 }
 
-function mapRpcError(message: string): AuthorityError {
+/**
+ * Map PostgREST / Postgres errors to structured AuthorityError.
+ * Prefer SQLSTATE codes; message matching is fallback only.
+ */
+export function mapRpcError(error: SupabaseRpcError | string): AuthorityError {
+  const message = typeof error === "string" ? error : (error.message ?? "");
+  const code = typeof error === "string" ? "" : (error.code ?? "");
   const upper = message.toUpperCase();
-  if (upper.includes("IDEMPOTENCY_CONFLICT")) {
+
+  // Prefer code + message for unique_violation → only IDEMPOTENCY_CONFLICT
+  // is intentionally raised as 23505 from this RPC.
+  if (
+    (code === "23505" && upper.includes("IDEMPOTENCY_CONFLICT")) ||
+    upper.includes("IDEMPOTENCY_CONFLICT")
+  ) {
     return new AuthorityError(
       "IDEMPOTENCY_CONFLICT",
       "Idempotency key reused with a different payload.",
     );
   }
-  if (upper.includes("PROJECT_NOT_FOUND")) {
+  if (code === "P0002" || upper.includes("PROJECT_NOT_FOUND")) {
     return new AuthorityError("PROJECT_NOT_FOUND", "Project not found.");
   }
-  if (upper.includes("PROJECT_OWNERSHIP_CHANGED")) {
+  if (code === "P0001" || upper.includes("PROJECT_OWNERSHIP_CHANGED")) {
     return new AuthorityError(
       "PROJECT_OWNERSHIP_CHANGED",
       "Project ownership does not match the authenticated user.",
+    );
+  }
+  if (code === "22023" || upper.includes("INVALID_AUTHORITY_FIELD_VALUE")) {
+    return new AuthorityError(
+      "INVALID_AUTHORITY_FIELD_VALUE",
+      "Authority persistence rejected invalid field values.",
     );
   }
   return new AuthorityError(
     "AUTHORITY_PERSISTENCE_FAILED",
     "Failed to persist category authority estimate.",
   );
+}
+
+function parseRpcResponse(data: unknown): {
+  estimateId: string;
+  replay: boolean;
+  estimate: Record<string, unknown>;
+  items: Record<string, unknown>[];
+} {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new AuthorityError(
+      "AUTHORITY_PERSISTENCE_FAILED",
+      "Empty response from category authority persistence.",
+    );
+  }
+  const payload = data as Record<string, unknown>;
+  const estimateId = payload.estimate_id;
+  const replay = payload.replay;
+  const estimate = payload.estimate;
+  const items = payload.items;
+
+  if (typeof estimateId !== "string" || !UUID_RE.test(estimateId)) {
+    throw new AuthorityError(
+      "AUTHORITY_PERSISTENCE_FAILED",
+      "Malformed response from category authority persistence.",
+    );
+  }
+  if (typeof replay !== "boolean") {
+    throw new AuthorityError(
+      "AUTHORITY_PERSISTENCE_FAILED",
+      "Malformed response from category authority persistence.",
+    );
+  }
+  if (!estimate || typeof estimate !== "object" || Array.isArray(estimate)) {
+    throw new AuthorityError(
+      "AUTHORITY_PERSISTENCE_FAILED",
+      "Malformed response from category authority persistence.",
+    );
+  }
+  if (
+    !Array.isArray(items) ||
+    !items.every((i) => i && typeof i === "object" && !Array.isArray(i))
+  ) {
+    throw new AuthorityError(
+      "AUTHORITY_PERSISTENCE_FAILED",
+      "Malformed response from category authority persistence.",
+    );
+  }
+
+  return {
+    estimateId,
+    replay,
+    estimate: estimate as Record<string, unknown>,
+    items: items as Record<string, unknown>[],
+  };
 }
 
 export type PersistCategoryEngineEstimateInput = {
@@ -72,6 +153,25 @@ export async function persistCategoryEngineEstimate(
   client?: ServiceClient,
 ): Promise<PersistCategoryEngineEstimateResult> {
   const supabase = client ?? (await getServiceClient());
+
+  // Guard non-finite engine outputs before RPC (engine clamps size; still verify).
+  const moneyFields = [
+    input.pricing.labour_total,
+    input.pricing.materials_total,
+    input.pricing.subtotal,
+    input.pricing.contingency,
+    input.pricing.vat,
+    input.pricing.low_total,
+    input.pricing.mid_total,
+    input.pricing.high_total,
+    input.pricing.timeline_weeks,
+  ];
+  if (moneyFields.some((n) => typeof n !== "number" || !Number.isFinite(n) || n < 0)) {
+    throw new AuthorityError(
+      "AUTHORITY_PERSISTENCE_FAILED",
+      "Pricing engine produced non-persistable results.",
+    );
+  }
 
   const items = input.pricing.lineItems.map((item) => ({
     category: item.category,
@@ -103,36 +203,10 @@ export async function persistCategoryEngineEstimate(
   });
 
   if (error) {
-    throw mapRpcError(error.message);
+    throw mapRpcError(error);
   }
 
-  if (!data || typeof data !== "object") {
-    throw new AuthorityError(
-      "AUTHORITY_PERSISTENCE_FAILED",
-      "Empty response from category authority persistence.",
-    );
-  }
-
-  const payload = data as {
-    estimate_id?: string;
-    replay?: boolean;
-    estimate?: Record<string, unknown>;
-    items?: Record<string, unknown>[];
-  };
-
-  if (!payload.estimate_id || !payload.estimate) {
-    throw new AuthorityError(
-      "AUTHORITY_PERSISTENCE_FAILED",
-      "Malformed response from category authority persistence.",
-    );
-  }
-
-  return {
-    estimateId: payload.estimate_id,
-    replay: Boolean(payload.replay),
-    estimate: payload.estimate,
-    items: Array.isArray(payload.items) ? payload.items : [],
-  };
+  return parseRpcResponse(data);
 }
 
 /**
