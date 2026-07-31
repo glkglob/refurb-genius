@@ -194,7 +194,7 @@ BEGIN
     PERFORM pg_temp.record('composite_reference', false, SQLERRM);
   END;
 
-  -- 8 draft provenance rejection
+  -- 8 draft provenance rejection (trigger path → exactly P0001)
   BEGIN
     INSERT INTO public.estimates (
       id, project_id, user_id, region, condition_level, finish_level,
@@ -217,10 +217,38 @@ BEGIN
       PERFORM pg_temp.record('draft_provenance_reject', false, 'allowed');
     EXCEPTION WHEN OTHERS THEN
       GET STACKED DIAGNOSTICS v_sqlstate = RETURNED_SQLSTATE;
-      PERFORM pg_temp.record('draft_provenance_reject', v_sqlstate IN ('P0001', '42501', '23514'), v_sqlstate);
+      PERFORM pg_temp.record('draft_provenance_reject', v_sqlstate = 'P0001', v_sqlstate);
     END;
   EXCEPTION WHEN OTHERS THEN
     PERFORM pg_temp.record('draft_provenance_reject', false, SQLERRM);
+  END;
+
+  -- 8b RLS-only denial on measured header (trigger would accept; RLS → 42501)
+  BEGIN
+    PERFORM set_config('role', 'authenticated', true);
+    PERFORM set_config('request.jwt.claim.sub', v_owner::text, true);
+    PERFORM set_config('request.jwt.claim.role', 'authenticated', true);
+    BEGIN
+      INSERT INTO public.estimate_items (
+        id, estimate_id, user_id, category, name, quantity, unit, unit_cost, total_cost,
+        rate_source, rate_key, catalog_revision, base_unit_rate, regional_multiplier, resolved_unit_rate
+      ) VALUES (
+        '55555555-5555-4555-8555-555555555555',
+        'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        v_owner, 'paint', 'rls block', 1, 'm2', 12, 12,
+        'library', 'synth.probe.m2', 'mboq-2099.03.01', 12, 1.0, 12
+      );
+      PERFORM pg_temp.record('rls_measured_insert_deny', false, 'allowed');
+    EXCEPTION WHEN insufficient_privilege THEN
+      PERFORM pg_temp.record('rls_measured_insert_deny', true, '42501');
+    WHEN OTHERS THEN
+      GET STACKED DIAGNOSTICS v_sqlstate = RETURNED_SQLSTATE;
+      PERFORM pg_temp.record('rls_measured_insert_deny', v_sqlstate = '42501', v_sqlstate);
+    END;
+    PERFORM set_config('role', 'postgres', true);
+  EXCEPTION WHEN OTHERS THEN
+    PERFORM set_config('role', 'postgres', true);
+    PERFORM pg_temp.record('rls_measured_insert_deny', false, SQLERRM);
   END;
 
   -- 9 category compatibility
@@ -275,7 +303,7 @@ DO $$
 DECLARE
   v_total int;
   v_failed int;
-  v_expected int := 10;
+  v_expected int := 11;
 BEGIN
   SELECT count(*), count(*) FILTER (WHERE NOT ok)
   INTO v_total, v_failed

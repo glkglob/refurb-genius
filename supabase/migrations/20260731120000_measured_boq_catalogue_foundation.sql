@@ -279,29 +279,34 @@ CREATE TRIGGER measured_boq_catalog_revisions_immutable
   FOR EACH ROW
   EXECUTE FUNCTION public.measured_boq_catalog_revision_immutable();
 
-CREATE OR REPLACE FUNCTION public.measured_boq_catalog_entry_parent_draft_only()
-RETURNS trigger
+-- Ensures every affected parent revision is draft under a held row lock so
+-- concurrent publication (UPDATE status) waits for the entry mutation to finish.
+-- FOR SHARE is the least exclusive lock that still blocks status UPDATE.
+CREATE OR REPLACE FUNCTION public.measured_boq_catalog_assert_parent_draft(
+  p_revision text
+)
+RETURNS void
 LANGUAGE plpgsql
 SET search_path = ''
 AS $$
 DECLARE
   v_status text;
-  v_revision text;
 BEGIN
-  IF TG_OP = 'DELETE' THEN
-    v_revision := OLD.catalog_revision;
-  ELSE
-    v_revision := NEW.catalog_revision;
+  IF p_revision IS NULL OR length(btrim(p_revision)) = 0 THEN
+    RAISE EXCEPTION 'CATALOG_REVISION_NOT_FOUND'
+      USING ERRCODE = 'P0002',
+            DETAIL = 'Parent catalogue revision is required';
   END IF;
 
   SELECT r.status INTO v_status
   FROM public.measured_boq_catalog_revisions r
-  WHERE r.catalog_revision = v_revision;
+  WHERE r.catalog_revision = p_revision
+  FOR SHARE;
 
-  IF v_status IS NULL THEN
+  IF NOT FOUND OR v_status IS NULL THEN
     RAISE EXCEPTION 'CATALOG_REVISION_NOT_FOUND'
       USING ERRCODE = 'P0002',
-            DETAIL = format('Parent catalogue revision %s not found', v_revision);
+            DETAIL = format('Parent catalogue revision %s not found', p_revision);
   END IF;
 
   IF v_status <> 'draft' THEN
@@ -312,10 +317,48 @@ BEGIN
               v_status
             );
   END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.measured_boq_catalog_entry_parent_draft_only()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+DECLARE
+  v_old text;
+  v_new text;
+  v_first text;
+  v_second text;
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    PERFORM public.measured_boq_catalog_assert_parent_draft(NEW.catalog_revision);
+    RETURN NEW;
+  END IF;
 
   IF TG_OP = 'DELETE' THEN
+    PERFORM public.measured_boq_catalog_assert_parent_draft(OLD.catalog_revision);
     RETURN OLD;
   END IF;
+
+  -- UPDATE: lock and validate OLD and NEW parents (deterministic order when different)
+  v_old := OLD.catalog_revision;
+  v_new := NEW.catalog_revision;
+
+  IF v_old IS NOT DISTINCT FROM v_new THEN
+    PERFORM public.measured_boq_catalog_assert_parent_draft(v_new);
+  ELSE
+    IF v_old < v_new THEN
+      v_first := v_old;
+      v_second := v_new;
+    ELSE
+      v_first := v_new;
+      v_second := v_old;
+    END IF;
+    PERFORM public.measured_boq_catalog_assert_parent_draft(v_first);
+    PERFORM public.measured_boq_catalog_assert_parent_draft(v_second);
+  END IF;
+
   RETURN NEW;
 END;
 $$;
@@ -402,9 +445,34 @@ BEGIN
       FOREIGN KEY (catalog_revision, rate_key)
       REFERENCES public.measured_boq_catalog_entries (catalog_revision, rate_key)
       ON UPDATE RESTRICT
-      ON DELETE RESTRICT;
+      ON DELETE RESTRICT
+      NOT VALID;
   END IF;
 END $$;
+
+ALTER TABLE public.estimate_items
+  VALIDATE CONSTRAINT estimate_items_catalog_entry_fkey;
+
+-- Header catalog_revision must reference a real catalogue revision when set.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'estimates_catalog_revision_fkey'
+  ) THEN
+    ALTER TABLE public.estimates
+      ADD CONSTRAINT estimates_catalog_revision_fkey
+      FOREIGN KEY (catalog_revision)
+      REFERENCES public.measured_boq_catalog_revisions (catalog_revision)
+      ON UPDATE RESTRICT
+      ON DELETE RESTRICT
+      NOT VALID;
+  END IF;
+END $$;
+
+ALTER TABLE public.estimates
+  VALIDATE CONSTRAINT estimates_catalog_revision_fkey;
 
 COMMENT ON COLUMN public.estimate_items.rate_source IS
   'Library provenance source; null for draft/category. Only library authorised in 4C2C-B.';
@@ -426,6 +494,7 @@ COMMENT ON COLUMN public.estimate_items.resolved_unit_rate IS
 CREATE OR REPLACE FUNCTION public.estimate_items_library_provenance_integrity()
 RETURNS trigger
 LANGUAGE plpgsql
+SECURITY DEFINER
 SET search_path = ''
 AS $$
 DECLARE
@@ -434,10 +503,14 @@ DECLARE
   v_expected_resolved numeric(14, 4);
   v_expected_total numeric(14, 4);
 BEGIN
+  -- Lock header so concurrent header authority/revision changes wait for item write.
+  -- SECURITY DEFINER: integrity must observe measured headers even when the
+  -- invoker lacks UPDATE policy on non-draft estimates (SELECT FOR UPDATE + RLS).
   SELECT e.pricing_authority, e.catalog_revision
   INTO v_authority, v_header_revision
   FROM public.estimates e
-  WHERE e.id = NEW.estimate_id;
+  WHERE e.id = NEW.estimate_id
+  FOR UPDATE;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'ESTIMATE_NOT_FOUND'
@@ -533,64 +606,224 @@ CREATE TRIGGER estimate_items_library_provenance_integrity
   EXECUTE FUNCTION public.estimate_items_library_provenance_integrity();
 
 -- ────────────────────────────────────────────────────────────────────
+-- 6b. Header-side measured provenance / revision enforcement
+-- ────────────────────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION public.estimates_measured_header_integrity()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+DECLARE
+  v_bad_count integer;
+BEGIN
+  IF NEW.pricing_authority = 'measured-boq-engine' THEN
+    IF NEW.catalog_revision IS NULL OR length(btrim(NEW.catalog_revision)) = 0 THEN
+      RAISE EXCEPTION 'MEASURED_HEADER_REVISION_REQUIRED'
+        USING ERRCODE = 'P0001',
+              DETAIL = 'measured-boq-engine requires catalog_revision';
+    END IF;
+
+    IF NEW.pricing_policy_version IS NULL OR length(btrim(NEW.pricing_policy_version)) = 0 THEN
+      RAISE EXCEPTION 'MEASURED_HEADER_POLICY_REQUIRED'
+        USING ERRCODE = 'P0001',
+              DETAIL = 'measured-boq-engine requires pricing_policy_version';
+    END IF;
+
+    SELECT count(*)::integer INTO v_bad_count
+    FROM public.estimate_items i
+    WHERE i.estimate_id = NEW.id
+      AND (
+        i.rate_source IS DISTINCT FROM 'library'
+        OR i.rate_key IS NULL
+        OR i.catalog_revision IS NULL
+        OR i.base_unit_rate IS NULL
+        OR i.regional_multiplier IS NULL
+        OR i.resolved_unit_rate IS NULL
+        OR i.catalog_revision IS DISTINCT FROM NEW.catalog_revision
+      );
+
+    IF v_bad_count > 0 THEN
+      RAISE EXCEPTION 'HEADER_ITEM_PROVENANCE_MISMATCH'
+        USING ERRCODE = 'P0001',
+              DETAIL = format(
+                '%s measured items lack complete library provenance matching header revision',
+                v_bad_count
+              );
+    END IF;
+
+    RETURN NEW;
+  END IF;
+
+  IF NEW.pricing_authority IN ('none', 'category-engine') THEN
+    SELECT count(*)::integer INTO v_bad_count
+    FROM public.estimate_items i
+    WHERE i.estimate_id = NEW.id
+      AND (
+        i.rate_source IS NOT NULL
+        OR i.rate_key IS NOT NULL
+        OR i.catalog_revision IS NOT NULL
+        OR i.base_unit_rate IS NOT NULL
+        OR i.regional_multiplier IS NOT NULL
+        OR i.resolved_unit_rate IS NOT NULL
+      );
+
+    IF v_bad_count > 0 THEN
+      RAISE EXCEPTION 'PROVENANCE_FORBIDDEN_FOR_AUTHORITY'
+        USING ERRCODE = 'P0001',
+              DETAIL = format(
+                'Cannot set pricing_authority=%s while %s items retain library provenance',
+                NEW.pricing_authority,
+                v_bad_count
+              );
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS estimates_measured_header_integrity
+  ON public.estimates;
+CREATE TRIGGER estimates_measured_header_integrity
+  BEFORE INSERT OR UPDATE OF pricing_authority, pricing_policy_version, catalog_revision
+  ON public.estimates
+  FOR EACH ROW
+  EXECUTE FUNCTION public.estimates_measured_header_integrity();
+
+-- ────────────────────────────────────────────────────────────────────
 -- 7. Harden browser draft RLS — forbid provenance injection
 -- ────────────────────────────────────────────────────────────────────
 
-DROP POLICY IF EXISTS "estimate_items_insert_draft_own" ON public.estimate_items;
-CREATE POLICY "estimate_items_insert_draft_own"
-  ON public.estimate_items
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    auth.uid() = user_id
-    AND rate_source IS NULL
-    AND rate_key IS NULL
-    AND catalog_revision IS NULL
-    AND base_unit_rate IS NULL
-    AND regional_multiplier IS NULL
-    AND resolved_unit_rate IS NULL
-    AND EXISTS (
-      SELECT 1
-      FROM public.estimates e
-      JOIN public.projects p ON p.id = e.project_id
-      WHERE e.id = estimate_items.estimate_id
-        AND e.user_id = auth.uid()
-        AND p.user_id = auth.uid()
-        AND e.pricing_authority = 'none'
-    )
-  );
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'estimate_items'
+      AND policyname = 'estimate_items_insert_draft_own'
+  ) THEN
+    ALTER POLICY "estimate_items_insert_draft_own" ON public.estimate_items
+      WITH CHECK (
+        auth.uid() = user_id
+        AND rate_source IS NULL
+        AND rate_key IS NULL
+        AND catalog_revision IS NULL
+        AND base_unit_rate IS NULL
+        AND regional_multiplier IS NULL
+        AND resolved_unit_rate IS NULL
+        AND EXISTS (
+          SELECT 1
+          FROM public.estimates e
+          JOIN public.projects p ON p.id = e.project_id
+          WHERE e.id = estimate_items.estimate_id
+            AND e.user_id = auth.uid()
+            AND p.user_id = auth.uid()
+            AND e.pricing_authority = 'none'
+        )
+      );
+  ELSE
+    CREATE POLICY "estimate_items_insert_draft_own"
+      ON public.estimate_items
+      FOR INSERT
+      TO authenticated
+      WITH CHECK (
+        auth.uid() = user_id
+        AND rate_source IS NULL
+        AND rate_key IS NULL
+        AND catalog_revision IS NULL
+        AND base_unit_rate IS NULL
+        AND regional_multiplier IS NULL
+        AND resolved_unit_rate IS NULL
+        AND EXISTS (
+          SELECT 1
+          FROM public.estimates e
+          JOIN public.projects p ON p.id = e.project_id
+          WHERE e.id = estimate_items.estimate_id
+            AND e.user_id = auth.uid()
+            AND p.user_id = auth.uid()
+            AND e.pricing_authority = 'none'
+        )
+      );
+  END IF;
+END
+$$;
 
-DROP POLICY IF EXISTS "estimate_items_update_draft_own" ON public.estimate_items;
-CREATE POLICY "estimate_items_update_draft_own"
-  ON public.estimate_items
-  FOR UPDATE
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1
-      FROM public.estimates e
-      JOIN public.projects p ON p.id = e.project_id
-      WHERE e.id = estimate_items.estimate_id
-        AND e.user_id = auth.uid()
-        AND p.user_id = auth.uid()
-        AND e.pricing_authority = 'none'
-    )
-  )
-  WITH CHECK (
-    auth.uid() = user_id
-    AND rate_source IS NULL
-    AND rate_key IS NULL
-    AND catalog_revision IS NULL
-    AND base_unit_rate IS NULL
-    AND regional_multiplier IS NULL
-    AND resolved_unit_rate IS NULL
-    AND EXISTS (
-      SELECT 1
-      FROM public.estimates e
-      JOIN public.projects p ON p.id = e.project_id
-      WHERE e.id = estimate_items.estimate_id
-        AND e.user_id = auth.uid()
-        AND p.user_id = auth.uid()
-        AND e.pricing_authority = 'none'
-    )
-  );
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'estimate_items'
+      AND policyname = 'estimate_items_update_draft_own'
+  ) THEN
+    ALTER POLICY "estimate_items_update_draft_own" ON public.estimate_items
+      USING (
+        EXISTS (
+          SELECT 1
+          FROM public.estimates e
+          JOIN public.projects p ON p.id = e.project_id
+          WHERE e.id = estimate_items.estimate_id
+            AND e.user_id = auth.uid()
+            AND p.user_id = auth.uid()
+            AND e.pricing_authority = 'none'
+        )
+      )
+      WITH CHECK (
+        auth.uid() = user_id
+        AND rate_source IS NULL
+        AND rate_key IS NULL
+        AND catalog_revision IS NULL
+        AND base_unit_rate IS NULL
+        AND regional_multiplier IS NULL
+        AND resolved_unit_rate IS NULL
+        AND EXISTS (
+          SELECT 1
+          FROM public.estimates e
+          JOIN public.projects p ON p.id = e.project_id
+          WHERE e.id = estimate_items.estimate_id
+            AND e.user_id = auth.uid()
+            AND p.user_id = auth.uid()
+            AND e.pricing_authority = 'none'
+        )
+      );
+  ELSE
+    CREATE POLICY "estimate_items_update_draft_own"
+      ON public.estimate_items
+      FOR UPDATE
+      TO authenticated
+      USING (
+        EXISTS (
+          SELECT 1
+          FROM public.estimates e
+          JOIN public.projects p ON p.id = e.project_id
+          WHERE e.id = estimate_items.estimate_id
+            AND e.user_id = auth.uid()
+            AND p.user_id = auth.uid()
+            AND e.pricing_authority = 'none'
+        )
+      )
+      WITH CHECK (
+        auth.uid() = user_id
+        AND rate_source IS NULL
+        AND rate_key IS NULL
+        AND catalog_revision IS NULL
+        AND base_unit_rate IS NULL
+        AND regional_multiplier IS NULL
+        AND resolved_unit_rate IS NULL
+        AND EXISTS (
+          SELECT 1
+          FROM public.estimates e
+          JOIN public.projects p ON p.id = e.project_id
+          WHERE e.id = estimate_items.estimate_id
+            AND e.user_id = auth.uid()
+            AND p.user_id = auth.uid()
+            AND e.pricing_authority = 'none'
+        )
+      );
+  END IF;
+END
+$$;

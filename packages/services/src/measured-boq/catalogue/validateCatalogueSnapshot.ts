@@ -24,13 +24,19 @@ import {
   MAX_TRADE_OR_DOMAIN_LENGTH,
   MEASURED_BOQ_COST_TYPES,
   RATE_KEY_PATTERN,
+  type CanonicalMeasuredBoqUnit,
+  type MeasuredBoqCatalogueCostType,
 } from "./constants";
 import { computeSnapshotContentChecksum } from "./checksum";
 import type {
+  CatalogueEntryStatus,
+  CatalogueRevisionStatus,
   CatalogueValidationIssue,
   CatalogueValidationResult,
   MeasuredBoqCatalogueSourceEntry,
   MeasuredBoqCatalogueSourceSnapshot,
+  MeasuredBoqCatalogueValidatedEntry,
+  MeasuredBoqCatalogueValidatedSnapshot,
 } from "./types";
 
 function issue(
@@ -57,14 +63,27 @@ function isPositiveFinite(n: unknown): n is number {
   return typeof n === "number" && Number.isFinite(n) && n > 0;
 }
 
-function validateEntry(
-  entry: MeasuredBoqCatalogueSourceEntry,
-  index: number,
-  production: boolean,
-): CatalogueValidationIssue[] {
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+type EntryValidation = {
+  issues: CatalogueValidationIssue[];
+  entry: MeasuredBoqCatalogueValidatedEntry | null;
+};
+
+function validateEntry(raw: unknown, index: number, production: boolean): EntryValidation {
   const path = `entries[${index}]`;
   const issues: CatalogueValidationIssue[] = [];
 
+  if (!isPlainObject(raw)) {
+    issues.push(issue("CATALOG_ENTRY_INVALID", path, "entry must be a non-null object"));
+    return { issues, entry: null };
+  }
+
+  const entry = raw as MeasuredBoqCatalogueSourceEntry;
+
+  let rateKey: string | null = null;
   if (typeof entry.rateKey !== "string" || !RATE_KEY_PATTERN.test(entry.rateKey)) {
     issues.push(
       issue(
@@ -81,8 +100,11 @@ function validateEntry(
         `rateKey exceeds ${MAX_RATE_KEY_LENGTH} characters`,
       ),
     );
+  } else {
+    rateKey = entry.rateKey;
   }
 
+  let displayName: string | null = null;
   if (
     typeof entry.displayName !== "string" ||
     entry.displayName.trim() === "" ||
@@ -91,15 +113,25 @@ function validateEntry(
     issues.push(
       issue("CATALOG_ENTRY_INVALID", `${path}.displayName`, "displayName is required and bounded"),
     );
+  } else {
+    displayName = entry.displayName;
   }
 
-  if (
-    entry.description != null &&
-    (typeof entry.description !== "string" || entry.description.length > MAX_DESCRIPTION_LENGTH)
-  ) {
-    issues.push(issue("CATALOG_ENTRY_INVALID", `${path}.description`, "description exceeds bound"));
+  let description: string | null = null;
+  if (entry.description != null) {
+    if (
+      typeof entry.description !== "string" ||
+      entry.description.length > MAX_DESCRIPTION_LENGTH
+    ) {
+      issues.push(
+        issue("CATALOG_ENTRY_INVALID", `${path}.description`, "description exceeds bound"),
+      );
+    } else {
+      description = entry.description;
+    }
   }
 
+  let tradeOrDomain: string | null = null;
   if (
     typeof entry.tradeOrDomain !== "string" ||
     entry.tradeOrDomain.trim() === "" ||
@@ -112,8 +144,11 @@ function validateEntry(
         "tradeOrDomain is required and bounded",
       ),
     );
+  } else {
+    tradeOrDomain = entry.tradeOrDomain;
   }
 
+  let unit: CanonicalMeasuredBoqUnit | null = null;
   if (
     typeof entry.unit !== "string" ||
     !(CANONICAL_MEASURED_BOQ_UNITS as readonly string[]).includes(entry.unit)
@@ -125,8 +160,11 @@ function validateEntry(
         `unit must be one of ${CANONICAL_MEASURED_BOQ_UNITS.join(", ")}`,
       ),
     );
+  } else {
+    unit = entry.unit as CanonicalMeasuredBoqUnit;
   }
 
+  let costType: MeasuredBoqCatalogueCostType | null = null;
   if (
     typeof entry.costType !== "string" ||
     !(MEASURED_BOQ_COST_TYPES as readonly string[]).includes(entry.costType)
@@ -138,8 +176,11 @@ function validateEntry(
         `costType must be one of ${MEASURED_BOQ_COST_TYPES.join(", ")}`,
       ),
     );
+  } else {
+    costType = entry.costType as MeasuredBoqCatalogueCostType;
   }
 
+  let baseUnitRate: number | null = null;
   if (!isPositiveFinite(entry.baseUnitRate)) {
     issues.push(
       issue(
@@ -148,17 +189,27 @@ function validateEntry(
         "baseUnitRate must be a finite number greater than zero",
       ),
     );
+  } else {
+    baseUnitRate = entry.baseUnitRate;
   }
 
+  let currency: "GBP" | null = null;
   if (entry.currency !== "GBP") {
     issues.push(issue("CATALOG_CURRENCY_INVALID", `${path}.currency`, "currency must be GBP"));
+  } else {
+    currency = "GBP";
   }
+
+  let vatBasis: "exclusive" | null = null;
   if (entry.vatBasis !== "exclusive") {
     issues.push(
       issue("CATALOG_VAT_BASIS_INVALID", `${path}.vatBasis`, "vatBasis must be exclusive"),
     );
+  } else {
+    vatBasis = "exclusive";
   }
 
+  let status: CatalogueEntryStatus | null = null;
   if (
     typeof entry.status !== "string" ||
     !(CATALOG_ENTRY_STATUSES as readonly string[]).includes(entry.status)
@@ -166,8 +217,11 @@ function validateEntry(
     issues.push(
       issue("CATALOG_ENTRY_INVALID", `${path}.status`, "status must be active or deprecated"),
     );
+  } else {
+    status = entry.status as CatalogueEntryStatus;
   }
 
+  let sourceReference: string | null = null;
   if (entry.sourceReference != null) {
     if (
       typeof entry.sourceReference !== "string" ||
@@ -181,6 +235,8 @@ function validateEntry(
           "sourceReference must be non-empty and bounded when present",
         ),
       );
+    } else {
+      sourceReference = entry.sourceReference;
     }
   } else if (production) {
     issues.push(
@@ -192,28 +248,91 @@ function validateEntry(
     );
   }
 
+  let replacementRateKey: string | null = null;
   if (entry.replacementRateKey != null) {
-    if (
-      typeof entry.replacementRateKey !== "string" ||
-      !RATE_KEY_PATTERN.test(entry.replacementRateKey) ||
-      entry.replacementRateKey === entry.rateKey
-    ) {
+    if (typeof entry.replacementRateKey !== "string") {
+      issues.push(
+        issue(
+          "CATALOG_REPLACEMENT_KEY_INVALID",
+          `${path}.replacementRateKey`,
+          "replacementRateKey must be a string when present",
+        ),
+      );
+    } else if (entry.replacementRateKey.length > MAX_RATE_KEY_LENGTH) {
+      issues.push(
+        issue(
+          "CATALOG_REPLACEMENT_KEY_INVALID",
+          `${path}.replacementRateKey`,
+          `replacementRateKey exceeds ${MAX_RATE_KEY_LENGTH} characters`,
+        ),
+      );
+    } else if (!RATE_KEY_PATTERN.test(entry.replacementRateKey)) {
       issues.push(
         issue(
           "CATALOG_RATE_KEY_INVALID",
           `${path}.replacementRateKey`,
-          "replacementRateKey must be a valid key different from rateKey",
+          "replacementRateKey must match rate key grammar",
         ),
       );
+    } else if (rateKey != null && entry.replacementRateKey === rateKey) {
+      issues.push(
+        issue(
+          "CATALOG_REPLACEMENT_KEY_INVALID",
+          `${path}.replacementRateKey`,
+          "replacementRateKey must differ from rateKey",
+        ),
+      );
+    } else if (status != null && status !== "deprecated") {
+      issues.push(
+        issue(
+          "CATALOG_REPLACEMENT_KEY_INVALID",
+          `${path}.replacementRateKey`,
+          "replacementRateKey is only allowed when status is deprecated",
+        ),
+      );
+    } else {
+      replacementRateKey = entry.replacementRateKey;
     }
   }
 
-  return issues;
+  if (
+    issues.length > 0 ||
+    rateKey == null ||
+    displayName == null ||
+    tradeOrDomain == null ||
+    unit == null ||
+    costType == null ||
+    baseUnitRate == null ||
+    currency == null ||
+    vatBasis == null ||
+    status == null
+  ) {
+    return { issues, entry: null };
+  }
+
+  return {
+    issues,
+    entry: {
+      rateKey,
+      displayName,
+      description,
+      tradeOrDomain,
+      unit,
+      costType,
+      baseUnitRate,
+      currency,
+      vatBasis,
+      sourceReference,
+      status,
+      replacementRateKey,
+    },
+  };
 }
 
 /**
  * Validate a catalogue source snapshot and recompute content checksum.
  * Does not perform database IO or publish.
+ * Never throws for malformed entry elements — returns structured issues.
  */
 export function validateCatalogueSnapshot(
   snapshot: MeasuredBoqCatalogueSourceSnapshot,
@@ -221,6 +340,7 @@ export function validateCatalogueSnapshot(
   const issues: CatalogueValidationIssue[] = [];
   const production = snapshot.production === true;
 
+  let catalogRevision: string | null = null;
   if (
     typeof snapshot.catalogRevision !== "string" ||
     snapshot.catalogRevision.length > MAX_CATALOG_REVISION_LENGTH ||
@@ -233,8 +353,11 @@ export function validateCatalogueSnapshot(
         "catalogRevision must match mboq-YYYY.MM.DD[.N]",
       ),
     );
+  } else {
+    catalogRevision = snapshot.catalogRevision;
   }
 
+  let schemaVersion: string | null = null;
   if (
     typeof snapshot.schemaVersion !== "string" ||
     snapshot.schemaVersion.trim() === "" ||
@@ -247,15 +370,26 @@ export function validateCatalogueSnapshot(
         "schemaVersion is required and bounded",
       ),
     );
+  } else {
+    schemaVersion = snapshot.schemaVersion;
   }
 
-  if (!(CATALOG_CURRENCIES as readonly string[]).includes(snapshot.currency)) {
+  let currency: "GBP" | null = null;
+  if (!(CATALOG_CURRENCIES as readonly string[]).includes(snapshot.currency as string)) {
     issues.push(issue("CATALOG_CURRENCY_INVALID", "currency", "currency must be GBP"));
+  } else {
+    currency = "GBP";
   }
-  if (!(CATALOG_VAT_BASES as readonly string[]).includes(snapshot.vatBasis)) {
+
+  let vatBasis: "exclusive" | null = null;
+  if (!(CATALOG_VAT_BASES as readonly string[]).includes(snapshot.vatBasis as string)) {
     issues.push(issue("CATALOG_VAT_BASIS_INVALID", "vatBasis", "vatBasis must be exclusive"));
+  } else {
+    vatBasis = "exclusive";
   }
-  if (!(CATALOG_REGIONAL_BASES as readonly string[]).includes(snapshot.regionalBasis)) {
+
+  let regionalBasis: "uk-region-multipliers-v1" | null = null;
+  if (!(CATALOG_REGIONAL_BASES as readonly string[]).includes(snapshot.regionalBasis as string)) {
     issues.push(
       issue(
         "CATALOG_REGIONAL_BASIS_INVALID",
@@ -263,9 +397,12 @@ export function validateCatalogueSnapshot(
         "regionalBasis must be uk-region-multipliers-v1",
       ),
     );
+  } else {
+    regionalBasis = "uk-region-multipliers-v1";
   }
 
-  if (!isIsoDateOnly(snapshot.effectiveFrom)) {
+  let effectiveFrom: string | null = null;
+  if (typeof snapshot.effectiveFrom !== "string" || !isIsoDateOnly(snapshot.effectiveFrom)) {
     issues.push(
       issue(
         "CATALOG_EFFECTIVE_FROM_INVALID",
@@ -273,8 +410,11 @@ export function validateCatalogueSnapshot(
         "effectiveFrom must be a valid ISO date YYYY-MM-DD",
       ),
     );
+  } else {
+    effectiveFrom = snapshot.effectiveFrom;
   }
 
+  let sourceDescription: string | null = null;
   if (
     typeof snapshot.sourceDescription !== "string" ||
     snapshot.sourceDescription.trim() === "" ||
@@ -287,38 +427,55 @@ export function validateCatalogueSnapshot(
         "sourceDescription is required and bounded",
       ),
     );
+  } else {
+    sourceDescription = snapshot.sourceDescription;
   }
 
-  if (
-    snapshot.status != null &&
-    !(CATALOG_REVISION_STATUSES as readonly string[]).includes(snapshot.status)
-  ) {
-    issues.push(
-      issue(
-        "CATALOG_STATUS_INVALID",
-        "status",
-        "status must be draft, published, or retired when present",
-      ),
-    );
+  let status: CatalogueRevisionStatus | undefined;
+  if (snapshot.status != null) {
+    if (
+      typeof snapshot.status !== "string" ||
+      !(CATALOG_REVISION_STATUSES as readonly string[]).includes(snapshot.status)
+    ) {
+      issues.push(
+        issue(
+          "CATALOG_STATUS_INVALID",
+          "status",
+          "status must be draft, published, or retired when present",
+        ),
+      );
+    } else {
+      status = snapshot.status as CatalogueRevisionStatus;
+    }
   }
 
-  if (
-    snapshot.createdBy != null &&
-    (typeof snapshot.createdBy !== "string" ||
+  let createdBy: string | undefined;
+  if (snapshot.createdBy != null) {
+    if (
+      typeof snapshot.createdBy !== "string" ||
       snapshot.createdBy.trim() === "" ||
-      snapshot.createdBy.length > MAX_CREATED_BY_LENGTH)
-  ) {
-    issues.push(
-      issue("CATALOG_ENTRY_INVALID", "createdBy", "createdBy must be non-empty and bounded"),
-    );
+      snapshot.createdBy.length > MAX_CREATED_BY_LENGTH
+    ) {
+      issues.push(
+        issue("CATALOG_ENTRY_INVALID", "createdBy", "createdBy must be non-empty and bounded"),
+      );
+    } else {
+      createdBy = snapshot.createdBy;
+    }
   }
 
-  if (
-    snapshot.releaseNotes != null &&
-    (typeof snapshot.releaseNotes !== "string" ||
-      snapshot.releaseNotes.length > MAX_RELEASE_NOTES_LENGTH)
-  ) {
-    issues.push(issue("CATALOG_ENTRY_INVALID", "releaseNotes", "releaseNotes exceeds bound"));
+  let releaseNotes: string | null | undefined;
+  if (snapshot.releaseNotes != null) {
+    if (
+      typeof snapshot.releaseNotes !== "string" ||
+      snapshot.releaseNotes.length > MAX_RELEASE_NOTES_LENGTH
+    ) {
+      issues.push(issue("CATALOG_ENTRY_INVALID", "releaseNotes", "releaseNotes exceeds bound"));
+    } else {
+      releaseNotes = snapshot.releaseNotes;
+    }
+  } else {
+    releaseNotes = snapshot.releaseNotes === null ? null : undefined;
   }
 
   if (!Array.isArray(snapshot.entries)) {
@@ -332,20 +489,31 @@ export function validateCatalogueSnapshot(
     );
   }
 
-  if (snapshot.entryCount !== snapshot.entries.length) {
+  const entryCount =
+    typeof snapshot.entryCount === "number" && Number.isInteger(snapshot.entryCount)
+      ? snapshot.entryCount
+      : null;
+  if (entryCount == null) {
+    issues.push(
+      issue("CATALOG_ENTRY_COUNT_MISMATCH", "entryCount", "entryCount must be an integer"),
+    );
+  } else if (entryCount !== snapshot.entries.length) {
     issues.push(
       issue(
         "CATALOG_ENTRY_COUNT_MISMATCH",
         "entryCount",
-        `entryCount ${snapshot.entryCount} does not match entries.length ${snapshot.entries.length}`,
+        `entryCount ${entryCount} does not match entries.length ${snapshot.entries.length}`,
       ),
     );
   }
 
   const seen = new Set<string>();
+  const validatedEntries: MeasuredBoqCatalogueValidatedEntry[] = [];
+
   for (let i = 0; i < snapshot.entries.length; i++) {
-    const entry = snapshot.entries[i]!;
-    if (typeof entry.rateKey === "string") {
+    const { issues: entryIssues, entry } = validateEntry(snapshot.entries[i], i, production);
+    issues.push(...entryIssues);
+    if (entry) {
       if (seen.has(entry.rateKey)) {
         issues.push(
           issue(
@@ -357,17 +525,50 @@ export function validateCatalogueSnapshot(
       } else {
         seen.add(entry.rateKey);
       }
+      validatedEntries.push(entry);
     }
-    issues.push(...validateEntry(entry, i, production));
   }
 
   if (issues.length > 0) {
     return { ok: false, issues };
   }
 
-  const contentChecksum = computeSnapshotContentChecksum(snapshot);
+  if (
+    catalogRevision == null ||
+    schemaVersion == null ||
+    currency == null ||
+    vatBasis == null ||
+    regionalBasis == null ||
+    effectiveFrom == null ||
+    sourceDescription == null ||
+    entryCount == null
+  ) {
+    return { ok: false, issues: [issue("CATALOG_ENTRY_INVALID", "", "internal validation gap")] };
+  }
 
-  if (snapshot.contentChecksum != null && snapshot.contentChecksum !== contentChecksum) {
+  const narrowed: MeasuredBoqCatalogueValidatedSnapshot = {
+    schemaVersion,
+    catalogRevision,
+    currency,
+    vatBasis,
+    regionalBasis,
+    effectiveFrom,
+    sourceDescription,
+    entryCount,
+    status,
+    createdBy,
+    releaseNotes,
+    production,
+    entries: validatedEntries,
+  };
+
+  const contentChecksum = computeSnapshotContentChecksum(narrowed);
+
+  if (
+    snapshot.contentChecksum != null &&
+    typeof snapshot.contentChecksum === "string" &&
+    snapshot.contentChecksum !== contentChecksum
+  ) {
     return {
       ok: false,
       issues: [
@@ -382,7 +583,11 @@ export function validateCatalogueSnapshot(
 
   return {
     ok: true,
-    snapshot,
+    snapshot: {
+      ...narrowed,
+      contentChecksum:
+        typeof snapshot.contentChecksum === "string" ? snapshot.contentChecksum : undefined,
+    },
     contentChecksum,
   };
 }

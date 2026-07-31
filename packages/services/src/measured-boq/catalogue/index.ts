@@ -33,9 +33,13 @@ export {
 export type {
   MeasuredBoqCatalogueSourceEntry,
   MeasuredBoqCatalogueSourceSnapshot,
+  MeasuredBoqCatalogueValidatedEntry,
+  MeasuredBoqCatalogueValidatedSnapshot,
   CatalogueValidationCode,
   CatalogueValidationIssue,
   CatalogueValidationResult,
   CatalogueRevisionStatus,
   CatalogueEntryStatus,
 } from "./types";
+
+export { sha256Hex, utf8BytesFallback, writeSha256BitLength } from "./sha256";

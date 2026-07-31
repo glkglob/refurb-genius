@@ -4,7 +4,7 @@
  */
 
 import { sha256Hex } from "./sha256";
-import type { MeasuredBoqCatalogueSourceEntry, MeasuredBoqCatalogueSourceSnapshot } from "./types";
+import type { MeasuredBoqCatalogueValidatedEntry } from "./types";
 
 export type CanonicalCatalogueChecksumInput = {
   schemaVersion: string;
@@ -13,10 +13,25 @@ export type CanonicalCatalogueChecksumInput = {
   vatBasis: string;
   regionalBasis: string;
   effectiveFrom: string;
-  entries: MeasuredBoqCatalogueSourceEntry[];
+  entries: Array<{
+    rateKey: string;
+    displayName: string;
+    description?: string | null;
+    tradeOrDomain: string;
+    unit: string;
+    costType: string;
+    baseUnitRate: number;
+    currency: string;
+    vatBasis: string;
+    sourceReference?: string | null;
+    status: string;
+    replacementRateKey?: string | null;
+  }>;
 };
 
-function canonicalEntry(entry: MeasuredBoqCatalogueSourceEntry): Record<string, unknown> {
+function canonicalEntry(
+  entry: CanonicalCatalogueChecksumInput["entries"][number],
+): Record<string, unknown> {
   return {
     rateKey: entry.rateKey,
     displayName: entry.displayName,
@@ -62,7 +77,15 @@ export function computeCatalogueContentChecksum(input: CanonicalCatalogueChecksu
 
 export function computeSnapshotContentChecksum(
   snapshot: Pick<
-    MeasuredBoqCatalogueSourceSnapshot,
+    {
+      schemaVersion: string;
+      catalogRevision: string;
+      currency: string;
+      vatBasis: string;
+      regionalBasis: string;
+      effectiveFrom: string;
+      entries: MeasuredBoqCatalogueValidatedEntry[] | CanonicalCatalogueChecksumInput["entries"];
+    },
     | "schemaVersion"
     | "catalogRevision"
     | "currency"

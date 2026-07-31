@@ -20,6 +20,8 @@ export {
   type MixedCatalogRevisionResult,
   type MeasuredBoqCatalogueSourceSnapshot,
   type MeasuredBoqCatalogueSourceEntry,
+  type MeasuredBoqCatalogueValidatedSnapshot,
+  type MeasuredBoqCatalogueValidatedEntry,
   type CatalogueValidationResult,
   type CatalogueValidationIssue,
   type CatalogueValidationCode,

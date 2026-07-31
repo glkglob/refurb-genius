@@ -696,6 +696,27 @@ describe("catalogue unit and cost-type compatibility", () => {
     expect(outcome.issues.some((i) => i.code === "CATALOG_COST_TYPE_MISMATCH")).toBe(true);
   });
 
+  it("reports both unit and costType catalogue entry issues independently", () => {
+    const deps = {
+      resolveLibraryRate: () => ({
+        rateKey: "paint.m2",
+        catalogRevision: "2026.07",
+        baseUnitRate: 10,
+        currency: "GBP" as const,
+        vatBasis: "exclusive" as const,
+        unit: "",
+        costType: "plant" as never,
+      }),
+    };
+    const outcome = runMeasuredBoqEngine(singleLineInput("London", libraryRef("paint.m2")), deps);
+    expect(outcome.status).toBe("draft");
+    if (outcome.status !== "draft") return;
+    const unitIssue = outcome.issues.find((i) => i.message.includes("unit is required"));
+    const costIssue = outcome.issues.find((i) => i.message.includes("costType must be"));
+    expect(unitIssue?.code).toBe("INVALID_RATE");
+    expect(costIssue?.code).toBe("INVALID_RATE");
+  });
+
   it("omitted library cost type derives trusted entry cost type", () => {
     const outcome = runMeasuredBoqEngine(
       singleLineInput("London", libraryRef("tile.m2")),

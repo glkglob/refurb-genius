@@ -42,31 +42,64 @@ const K = new Uint32Array([
   0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 ]);
 
-function utf8Bytes(input: string): Uint8Array {
-  if (typeof TextEncoder !== "undefined") {
-    return new TextEncoder().encode(input);
-  }
-  // Fallback for older environments
+/** Encode UTF-8 without TextEncoder (fallback path). Surrogates follow UTF-8 / U+FFFD rules. */
+export function utf8BytesFallback(input: string): Uint8Array {
   const out: number[] = [];
   for (let i = 0; i < input.length; i++) {
     const c = input.charCodeAt(i);
-    if (c < 0x80) out.push(c);
-    else if (c < 0x800) {
+    if (c < 0x80) {
+      out.push(c);
+    } else if (c < 0x800) {
       out.push(0xc0 | (c >> 6), 0x80 | (c & 0x3f));
-    } else if (c >= 0xd800 && c <= 0xdbff && i + 1 < input.length) {
-      const c2 = input.charCodeAt(++i);
-      const cp = 0x10000 + ((c & 0x3ff) << 10) + (c2 & 0x3ff);
-      out.push(
-        0xf0 | (cp >> 18),
-        0x80 | ((cp >> 12) & 0x3f),
-        0x80 | ((cp >> 6) & 0x3f),
-        0x80 | (cp & 0x3f),
-      );
+    } else if (c >= 0xd800 && c <= 0xdbff) {
+      // High surrogate — only form a pair with a valid low surrogate.
+      if (i + 1 < input.length) {
+        const c2 = input.charCodeAt(i + 1);
+        if (c2 >= 0xdc00 && c2 <= 0xdfff) {
+          i += 1;
+          const cp = 0x10000 + ((c & 0x3ff) << 10) + (c2 & 0x3ff);
+          out.push(
+            0xf0 | (cp >> 18),
+            0x80 | ((cp >> 12) & 0x3f),
+            0x80 | ((cp >> 6) & 0x3f),
+            0x80 | (cp & 0x3f),
+          );
+          continue;
+        }
+      }
+      // Unpaired high surrogate → U+FFFD
+      out.push(0xef, 0xbf, 0xbd);
+    } else if (c >= 0xdc00 && c <= 0xdfff) {
+      // Unpaired low surrogate → U+FFFD
+      out.push(0xef, 0xbf, 0xbd);
     } else {
       out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 0x3f), 0x80 | (c & 0x3f));
     }
   }
   return new Uint8Array(out);
+}
+
+function utf8Bytes(input: string): Uint8Array {
+  if (typeof TextEncoder !== "undefined") {
+    return new TextEncoder().encode(input);
+  }
+  return utf8BytesFallback(input);
+}
+
+/**
+ * Write 64-bit big-endian bit length into the last 8 bytes of the padding block.
+ * Exported for unit tests without allocating multi-GiB messages.
+ */
+export function writeSha256BitLength(
+  view: DataView,
+  offset: number,
+  bitLen: number | bigint,
+): void {
+  const bits = typeof bitLen === "bigint" ? bitLen : BigInt(bitLen);
+  const high = Number((bits >> 32n) & 0xffffffffn);
+  const low = Number(bits & 0xffffffffn);
+  view.setUint32(offset, high >>> 0, false);
+  view.setUint32(offset + 4, low >>> 0, false);
 }
 
 /** SHA-256 digest as lowercase hex. */
@@ -79,9 +112,8 @@ export function sha256Hex(message: string): string {
   const buf = new Uint8Array(totalLen);
   buf.set(bytes);
   buf[bytes.length] = 0x80;
-  // length as 64-bit big-endian (high 32 always 0 for practical message sizes)
   const view = new DataView(buf.buffer);
-  view.setUint32(totalLen - 4, bitLen >>> 0, false);
+  writeSha256BitLength(view, totalLen - 8, bitLen);
 
   let h0 = 0x6a09e667;
   let h1 = 0xbb67ae85;

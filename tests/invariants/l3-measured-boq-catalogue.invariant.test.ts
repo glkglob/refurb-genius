@@ -40,6 +40,10 @@ describe("l3 measured-BOQ catalogue foundation", () => {
     );
     assert.match(sql, /measured_boq_catalog_revision_immutable/);
     assert.match(sql, /measured_boq_catalog_entry_parent_draft_only/);
+    assert.match(sql, /measured_boq_catalog_assert_parent_draft/);
+    assert.match(sql, /FOR SHARE/);
+    assert.match(sql, /estimates_measured_header_integrity/);
+    assert.match(sql, /estimates_catalog_revision_fkey/);
     assert.match(sql, /rate_source/);
     assert.match(sql, /estimate_items_catalog_entry_fkey/);
     assert.match(sql, /estimate_items_library_provenance_integrity/);
@@ -52,16 +56,27 @@ describe("l3 measured-BOQ catalogue foundation", () => {
     assert.equal(exists(LOADER), true);
     assert.match(LOADER, /\.server\.ts$/);
     const barrel = read(INFRA_BARREL);
-    // Comment may name the module; must not re-export it.
     assert.doesNotMatch(barrel, /export \{[^}]*measuredBoqCatalogue/);
     assert.doesNotMatch(barrel, /from ["'].*catalogue\//);
     const loader = read(LOADER);
     assert.match(loader, /createServiceRoleSupabase/);
     assert.match(loader, /service\.server/);
-    // Forbidden aliases must be rejected, not used as fallback load targets.
     assert.match(loader, /latest\/current catalogue aliases are forbidden/);
     assert.doesNotMatch(loader, /\.eq\(["']catalog_revision["'],\s*["']latest["']\)/);
     assert.doesNotMatch(loader, /order\(["']published_at["']/);
+    assert.match(loader, /MEASURED_BOQ_CATALOGUE_CACHE_MAX_ENTRIES/);
+    assert.match(loader, /createMeasuredBoqLibraryResolverFromMap/);
+    assert.match(loader, /Object\.freeze/);
+    // Public LoadedCatalogueSnapshot must not expose a mutable Map field.
+    const loadedTypeStart = loader.indexOf("export type LoadedCatalogueSnapshot");
+    assert.ok(loadedTypeStart >= 0, "LoadedCatalogueSnapshot type missing");
+    const loadedTypeEnd = loader.indexOf("};", loadedTypeStart);
+    assert.ok(loadedTypeEnd > loadedTypeStart, "LoadedCatalogueSnapshot type unclosed");
+    const loadedType = loader.slice(loadedTypeStart, loadedTypeEnd);
+    assert.doesNotMatch(loadedType, /entriesByRateKey/);
+    assert.match(loadedType, /resolveLibraryRate/);
+    assert.match(loader, /CATALOG_ENTRY_PAGE_INCOMPLETE/);
+    assert.match(loader, /AbortSignal\.timeout/);
   });
 
   it("@repo/services catalogue has no Supabase imports", () => {
@@ -81,10 +96,12 @@ describe("l3 measured-BOQ catalogue foundation", () => {
     assert.match(engine, /CATALOG_UNIT_MISMATCH/);
     assert.match(engine, /CATALOG_COST_TYPE_MISMATCH/);
     assert.match(engine, /libraryProvenance/);
-    const libraryRateBlock = engine.slice(
-      engine.indexOf("export type MeasuredBoqLibraryRate ="),
-      engine.indexOf("export type MeasuredBoqUserQuoteRate"),
-    );
+    const start = engine.indexOf("export type MeasuredBoqLibraryRate =");
+    const end = engine.indexOf("export type MeasuredBoqUserQuoteRate");
+    assert.ok(start >= 0, "MeasuredBoqLibraryRate type marker missing");
+    assert.ok(end >= 0, "MeasuredBoqUserQuoteRate type marker missing");
+    assert.ok(end > start, "type markers out of order");
+    const libraryRateBlock = engine.slice(start, end);
     assert.doesNotMatch(libraryRateBlock, /baseUnitRate|unitRate|money/);
     assert.match(libraryRateBlock, /rateKey: string/);
     assert.match(libraryRateBlock, /catalogRevision: string/);

@@ -2,7 +2,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(48);
+select plan(57);
 
 -- ── fixtures ──────────────────────────────────────────────────────────────
 do $$
@@ -588,7 +588,8 @@ select throws_ok(
   'invalid line-total arithmetic fails'
 );
 
--- browser policy: provenance injection rejected
+-- Trigger path: draft estimate + library provenance → BEFORE trigger P0001
+-- (does not reach RLS WITH CHECK)
 set local role authenticated;
 select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
@@ -607,7 +608,7 @@ select throws_ok(
   $$,
   'P0001',
   null,
-  'browser provenance injection is rejected'
+  'draft browser provenance injection rejected by trigger before RLS'
 );
 
 select lives_ok(
@@ -624,6 +625,124 @@ select lives_ok(
   'draft browser policy remains functional'
 );
 reset role;
+
+-- RLS-only denial: measured header + complete valid provenance would pass the
+-- BEFORE trigger, but authenticated WITH CHECK requires pricing_authority=none
+-- and null provenance columns → exactly 42501.
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select throws_ok(
+  $$
+    insert into public.estimate_items (
+      id, estimate_id, user_id, category, name, quantity, unit, unit_cost, total_cost,
+      rate_source, rate_key, catalog_revision, base_unit_rate, regional_multiplier, resolved_unit_rate
+    ) values (
+      '23232323-2323-4232-8232-232323232323',
+      '15151515-1515-4151-8151-151515151515',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      'paint', 'RLS block measured write', 1, 'm2', 13, 13,
+      'library', 'synth.paint.m2', 'mboq-2099.01.01', 10, 1.3, 13
+    )
+  $$,
+  '42501',
+  null,
+  'authenticated measured insert denied by RLS with 42501'
+);
+reset role;
+
+-- Entry cannot move out of published revision into a draft parent
+select lives_ok(
+  $$
+    insert into public.measured_boq_catalog_revisions (
+      catalog_revision, status, schema_version, currency, vat_basis, regional_basis,
+      source_description, entry_count, content_checksum, effective_from, created_by
+    ) values (
+      'mboq-2099.04.01', 'draft', 'mboq-catalogue-v1', 'GBP', 'exclusive', 'uk-region-multipliers-v1',
+      'SYNTHETIC move target', 0,
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      '2099-04-01', 'test'
+    )
+  $$,
+  'draft destination revision for move test'
+);
+
+select throws_ok(
+  $$
+    update public.measured_boq_catalog_entries
+    set catalog_revision = 'mboq-2099.04.01'
+    where catalog_revision = 'mboq-2099.01.01'
+      and rate_key = 'synth.paint.m2'
+  $$,
+  'P0001',
+  null,
+  'cannot move entry out of published revision'
+);
+
+-- Header cannot change measured catalog_revision while items pin old revision
+select throws_ok(
+  $$
+    update public.estimates
+    set catalog_revision = 'mboq-2099.01.02'
+    where id = '15151515-1515-4151-8151-151515151515'
+  $$,
+  'P0001',
+  null,
+  'header revision change with mismatched items fails'
+);
+
+-- Header cannot demote measured → none while library provenance items exist
+select throws_ok(
+  $$
+    update public.estimates
+    set pricing_authority = 'none',
+        pricing_policy_version = null,
+        catalog_revision = null
+    where id = '15151515-1515-4151-8151-151515151515'
+  $$,
+  'P0001',
+  null,
+  'measured header demotion with provenance items fails'
+);
+
+-- Header cannot switch measured → category-engine while provenance items exist
+select throws_ok(
+  $$
+    update public.estimates
+    set pricing_authority = 'category-engine',
+        pricing_policy_version = 'category-engine-v1',
+        catalog_revision = null
+    where id = '15151515-1515-4151-8151-151515151515'
+  $$,
+  'P0001',
+  null,
+  'measured to category-engine with provenance items fails'
+);
+
+-- Consistent measured header (policy-only change) remains valid
+select lives_ok(
+  $$
+    update public.estimates
+    set pricing_policy_version = '2026-07-30.1'
+    where id = '15151515-1515-4151-8151-151515151515'
+  $$,
+  'consistent measured header remains valid'
+);
+
+-- Parent lock helper present
+select has_function(
+  'public',
+  'measured_boq_catalog_assert_parent_draft',
+  array['text'],
+  'parent draft assert helper exists'
+);
+
+select has_function(
+  'public',
+  'estimates_measured_header_integrity',
+  array[]::text[],
+  'header integrity function exists'
+);
 
 -- 4C2B RPC privileges unchanged
 select ok(

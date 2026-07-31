@@ -376,9 +376,10 @@ export function resolveMeasuredBoqRate(
     }
     if (typeof entry.unit !== "string" || entry.unit.trim() === "") {
       issues.push(issue("INVALID_RATE", path, "Catalogue entry unit is required"));
-    } else if (
-      !VALID_COST_TYPES.has(entry.costType as MeasuredBoqCostType) ||
-      typeof entry.costType !== "string"
+    }
+    if (
+      typeof entry.costType !== "string" ||
+      !VALID_COST_TYPES.has(entry.costType as MeasuredBoqCostType)
     ) {
       issues.push(
         issue(

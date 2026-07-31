@@ -1,13 +1,13 @@
 # L3 Measured-BOQ Catalogue Foundation Plan
 
 ```text
-Status: 4C2C-A plan complete; 4C2C-B foundation IMPLEMENTED (production rates still blocked)
+Status: 4C2C-A plan complete; 4C2C-B foundation IMPLEMENTED AND REMEDIATED (production rates still blocked; pending 4C2C-B-V)
 Parent contract: l3-estimate-authority-contract.md
 Parent integration plan: l3-save-seam-integration-plan.md
-Implementation status: 4C2C-B mechanism landed — no production rates, no measured persist RPC, no builders/readers
-Ticket: 4C2C-A
+Implementation status: 4C2C-B mechanism + integrity remediation landed — no production rates, no measured persist RPC, no builders/readers
+Ticket: 4C2C-A / 4C2C-B
 Base SHA at planning: 9408b203fd27dd171455cf663bd9e47ee58c9309
-Branch: plan/4c2c-measured-boq-catalogue
+Branch: feat/4c2c-catalogue-foundation
 Issue #90: OPEN — unrelated full database.types.ts baseline debt (out of scope)
 ```
 
