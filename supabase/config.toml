@@ -6,9 +6,6 @@ project_id = "sxhzjmzfkgbogmlsbeju"
 # The old src/integrations/supabase/types.ts is now a re-export shim.
 [db]
 major_version = 17
-# Local stack password (default). Keeps `supabase gen types --local` from
-# picking up a remote SUPABASE_DB_PASSWORD from developer .env files.
-password = "postgres"
 
 # CLI 2.111.0+ revokes default Data API GRANTs on new public tables unless this
 # is explicitly true (legacy behaviour). Required for existing migrations that
