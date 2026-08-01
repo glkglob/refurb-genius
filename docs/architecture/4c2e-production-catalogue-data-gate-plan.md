@@ -55,8 +55,10 @@ Schema: READY for draft→publish of lawful rates without migration
 
 [Repository-confirmed] The 4C2C catalogue mechanism (tables, immutability,
 validation, checksum, server-only loader, 4C2D composition) is complete and
-dormant. Production tables are intentionally empty; synthetic fixtures are
-test-only. [External research] Standard UK commercial cost books and desk
+dormant. This repository commits no production catalogue rows (migrations do
+not seed production rates; fixtures are synthetic test-only). Production
+database state is unknown / not verified in this phase. [External research]
+Standard UK commercial cost books and desk
 subscriptions do not grant multi-tenant SaaS redistribution rights.
 [Reasoned recommendation] Adopt a **blended** strategy (company-owned unit
 rates + OGL indices + optional contracted suppliers + optional later OEM),
@@ -520,7 +522,7 @@ not precomputed estimate totals.
 | Zero / negative rates | **reject** (`base_unit_rate > 0`) |
 | Duplicates | fatal within revision |
 | Aliases | **forbidden** at runtime; import aliases for units only |
-| Obsolete entries | `status=deprecated` + optional `replacement_rate_key`; still resolve if present |
+| Obsolete entries | `status=deprecated` + optional `replacement_rate_key`; authority loads reject deprecated; reproduction loads only resolve deprecated if present |
 
 ---
 
@@ -690,19 +692,27 @@ exact catalog_revision remains explicit on every authority command
 
 ```text
 1. Identify / create draft revision row (status=draft)
-2. Replace draft entries (delete+insert under draft lock)
-3. validateCatalogueSnapshot + recompute content_checksum
-4. optional comparative report vs prior published
-5. write MANIFEST + evidence artifact
-6. record approval in MANIFEST
+2. Acquire revision-row lock (held through step 7 publish)
+3. Replace draft entries (delete+insert under lock)
+4. validateCatalogueSnapshot + compute entry_count + content_checksum
+5. optional comparative report vs prior published
+6. recompute and verify entry_count + content_checksum immediately before publish
 7. UPDATE status='published', published_at=now(), entry_count, content_checksum
-8. DB freezes content; entries immutable
-9. verify loadMeasuredBoqCatalogueSnapshot({ purpose: 'authority' })
-10. emit audit evidence (no rate payload dumps)
+8. DB freezes content; entries immutable; release lock
+9. write MANIFEST + evidence artifact (only after publish commits)
+10. verify loadMeasuredBoqCatalogueSnapshot({ purpose: 'authority' })
+11. emit audit evidence (no rate payload dumps)
 ```
 
-There is **no** publish RPC today; service_role UPDATE is the technical
-publication act ([Repository-confirmed] pgTAP).
+There is **no** publish RPC today; service_role UPDATE is the current
+technical publication mechanism ([Repository-confirmed] pgTAP). For 4C2E-B2,
+a controlled publisher path (SECURITY DEFINER RPC or equivalent write-boundary
+gate) **must** enforce licence, coverage, and dual-approval validation at the
+database level, not only in the CLI. Direct/ad-hoc status changes outside the
+controlled publisher path must be rejected (fail closed). Approvals must be
+independently verifiable and tied to the exact revision `content_checksum`, not
+merely recorded informally in a MANIFEST that isn't cryptographically bound to
+the revision being published.
 
 ### Recommended tooling shape (future 4C2E-B)
 
@@ -813,7 +823,7 @@ dormant runtime path remains safe when tables empty
 | Source file access | Restrict `catalogue-sources/` production packages; no browser imports |
 | Licence documents | Store offline / secret manager references; paths in MANIFEST only |
 | Import credentials | service_role local/CI secrets only; never commit |
-| Production publish auth | Dual approval (engineering + product) before `--mode publish` in prod |
+| Production publish auth | Database write-boundary enforcement (controlled publisher RPC/gate) verifying licence, coverage, dual approval tied to exact `content_checksum`; unrestricted service_role status updates disallowed; fail closed |
 | Audit logging | revision, checksum prefix, counts, actor, env — no full rate dumps |
 | Least privilege | service_role for catalogue write/load; no authenticated SELECT |
 | Immutable artifacts | VCS package + DB freeze + evidence JSON |
@@ -898,7 +908,7 @@ full source file contents
 | Field | Content |
 | --- | --- |
 | Objective | Draft upsert + atomic publish + post-load verify + retire helper |
-| Scope | service_role publisher path; evidence; local/staging only until legal approval |
+| Scope | controlled publisher RPC/gate enforcing licence/coverage/approval at DB write boundary; evidence; local/staging only until legal approval |
 | Excluded | Production rate content without approval; builders; readers |
 | Expected files | publish helper (script or `*.server.ts`), retire script, docs |
 | Validation | local supabase tests; dry-run→publish synthetic; authority load verify |
@@ -1031,13 +1041,16 @@ NEXT SAFE STEP (after business approval of path C and tooling scope):
 
 | Environment expectation | State |
 | --- | --- |
-| Production / linked Supabase | Not inspected in this phase; **must not** be used |
-| Local default after migrations | Empty catalogue tables (no seed) |
+| Production / linked Supabase | **Not inspected in this phase**; actual database state unknown |
+| Local default after migrations | Empty catalogue tables (migrations do not seed production rates) |
 | Tests | Synthetic `mboq-2099.01.01` / `.02` fixtures only |
-| `catalogue-sources/measured-boq` | README + schema version; **no production rates** |
+| `catalogue-sources/measured-boq` | README + schema version; **no production rates committed** |
 
-Local Supabase was **not running** at planning time; emptiness is confirmed by
-migration “Does NOT seed production catalogue rates” and source README.
+This repository does not commit or seed production catalogue rows. Local
+Supabase was **not running** at planning time; the local-empty claim is
+confirmed by migration contract ("Does NOT seed production catalogue rates")
+and source README, not by runtime inspection. Production database state
+remains unverified.
 
 ## Appendix B — Hybrid ownership (locked)
 
