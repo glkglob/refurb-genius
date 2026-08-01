@@ -18,6 +18,7 @@ import {
   type PhotoUploadItemState,
   type PhotoWriteStage,
   MAX_PHOTOS_PER_BATCH,
+  MAX_CONCURRENT_PHOTO_UPLOADS,
 } from "@/lib/photos-write";
 import type { ProjectPhoto } from "@/lib/photos-types";
 import {
@@ -26,6 +27,7 @@ import {
   formatPhotoUploadError,
   formatPhotoUploadBatchError,
   trackEvent,
+  classifyPhotoUploadAnalyticsError,
 } from "@/features/ai-upload";
 
 type UploadStatus = "queued" | "uploading" | "uploaded" | "completed" | "failed";
@@ -45,7 +47,8 @@ interface BulkPhotoUploadProps {
   projectId: string;
 }
 
-const BATCH_CONCURRENCY = 3;
+/** Per-call local concurrency; shared Storage cap is MAX_CONCURRENT_PHOTO_UPLOADS. */
+const BATCH_CONCURRENCY = MAX_CONCURRENT_PHOTO_UPLOADS;
 
 /** Monotonic stage-derived progress; complete alone reaches 100. */
 const STAGE_PROGRESS: Record<PhotoUploadItemState, number> = {
@@ -216,15 +219,26 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
 
       if (error.successes.length > 0) {
         invalidateProjectPhotos();
+        trackEvent("photos_uploaded", {
+          projectId,
+          photo_count: error.successes.length,
+        });
         trackEvent("upload_partial_success", {
           projectId,
           success_count: error.successes.length,
           failure_count: error.failures.length,
         });
       } else {
+        const classified = classifyPhotoUploadAnalyticsError(error, batchSnapshot.length);
         trackEvent("upload_failed", {
           projectId,
-          failure_count: error.failures.length,
+          stage: classified.stage,
+          reason: classified.reason,
+          attempted_count: classified.attempted_count,
+          failure_count: classified.failure_count,
+          ...(classified.selected_count !== undefined
+            ? { selected_count: classified.selected_count }
+            : {}),
         });
       }
 
@@ -239,9 +253,16 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
       for (const target of batchSnapshot) {
         updateItem(target.uiId, { status: "failed", error: message });
       }
+      const classified = classifyPhotoUploadAnalyticsError(err, batchSnapshot.length);
       trackEvent("upload_failed", {
         projectId,
-        failure_count: batchSnapshot.length,
+        stage: classified.stage,
+        reason: classified.reason,
+        attempted_count: classified.attempted_count,
+        failure_count: classified.failure_count,
+        ...(classified.selected_count !== undefined
+          ? { selected_count: classified.selected_count }
+          : {}),
       });
       toast.error(message);
     },

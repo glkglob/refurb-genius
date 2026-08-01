@@ -12,6 +12,7 @@ import {
   PhotoWriteError,
   type PhotoRemovalResult,
 } from "@/lib/photos-write";
+// PhotoWriteError used for preflight analytics classification tests
 
 const uploadProjectPhotos = vi.fn();
 const removeProjectPhoto = vi.fn();
@@ -263,6 +264,10 @@ describe("useUploadPhotos", () => {
       expect(result.current.isError).toBe(true);
       expect(result.current.error).toBe(batchError);
     });
+    expect(trackEvent).toHaveBeenCalledWith("photos_uploaded", {
+      projectId: PROJECT_ID,
+      photo_count: 2,
+    });
     expect(trackEvent).toHaveBeenCalledWith(
       "upload_partial_success",
       expect.objectContaining({
@@ -271,6 +276,16 @@ describe("useUploadPhotos", () => {
         failure_count: 1,
       }),
     );
+    // Partial funnel order: started → photos_uploaded → partial
+    const names = trackEvent.mock.calls.map((c) => c[0]);
+    expect(names.indexOf("upload_started")).toBeLessThan(names.indexOf("photos_uploaded"));
+    expect(names.indexOf("photos_uploaded")).toBeLessThan(names.indexOf("upload_partial_success"));
+    // No raw error payload on partial path
+    for (const call of trackEvent.mock.calls) {
+      const payload = call[1] as Record<string, unknown>;
+      expect(payload).not.toHaveProperty("error");
+      expect(JSON.stringify(payload)).not.toMatch(/bad\.jpg|storage boom/i);
+    }
   });
 
   it("does not invalidate on total batch failure (zero successes)", async () => {
@@ -313,8 +328,58 @@ describe("useUploadPhotos", () => {
     expect(invalidateSpy).not.toHaveBeenCalled();
     expect(trackEvent).toHaveBeenCalledWith(
       "upload_failed",
-      expect.objectContaining({ projectId: PROJECT_ID, failure_count: 2 }),
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        attempted_count: 2,
+        failure_count: 2,
+        stage: expect.any(String),
+        reason: expect.any(String),
+      }),
     );
+    const failPayload = trackEvent.mock.calls.find((c) => c[0] === "upload_failed")?.[1] as Record<
+      string,
+      unknown
+    >;
+    expect(failPayload).not.toHaveProperty("error");
+  });
+
+  it("emits zero-attempt safe analytics for pre-upload batch limit errors", async () => {
+    const files = Array.from({ length: 31 }, (_, i) => makeFile(`f${i}.jpg`));
+    uploadProjectPhotos.mockRejectedValue(
+      new PhotoWriteError("Too many files in one batch (max 30). Upload in smaller sets.", {
+        stage: "validation",
+        code: "file_count_limit",
+      }),
+    );
+    const qc = createTestQueryClient();
+    const { result } = renderHook(() => useUploadPhotos(PROJECT_ID), {
+      wrapper: createWrapper(qc),
+    });
+
+    await act(async () => {
+      try {
+        await result.current.mutateAsync(files);
+      } catch {
+        /* expected */
+      }
+    });
+
+    expect(trackEvent).toHaveBeenCalledWith(
+      "upload_failed",
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        stage: "batch_validation",
+        reason: "file_count_limit",
+        attempted_count: 0,
+        failure_count: 0,
+        selected_count: 31,
+      }),
+    );
+    const payload = trackEvent.mock.calls.find((c) => c[0] === "upload_failed")?.[1] as Record<
+      string,
+      unknown
+    >;
+    expect(payload).not.toHaveProperty("error");
   });
 
   it("delegates empty batch to the canonical primitive", async () => {

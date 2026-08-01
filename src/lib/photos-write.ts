@@ -38,9 +38,18 @@ export const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 /** Soft cap for a single batch to avoid browser memory pressure. */
 export const MAX_PHOTOS_PER_BATCH = 30;
 
+/**
+ * Canonical max simultaneous Storage writes across all uploadProjectPhotos
+ * calls in one JavaScript runtime (browser tab / process / isolate).
+ * Not cross-tab or distributed global enforcement.
+ */
+export const MAX_CONCURRENT_PHOTO_UPLOADS = 3;
+
 const UPLOAD_TIMEOUT_MS = 60_000;
-const DEFAULT_UPLOAD_CONCURRENCY = 4;
 const MAX_EXTENSION_LENGTH = 16;
+
+/** Shared across all batches in this runtime so concurrent callers cannot exceed the cap. */
+const sharedPhotoUploadLimiter = new ConcurrencyLimiter(MAX_CONCURRENT_PHOTO_UPLOADS);
 
 export const PHOTO_WRITE_AUTH_ERROR = "You must be signed in to manage project photos.";
 
@@ -78,11 +87,24 @@ export interface PhotoUploadItemEvent {
 
 // ── Structured errors ─────────────────────────────────────────────
 
+/** Stable machine codes for analytics (never free-text). */
+export type PhotoWriteErrorCode =
+  | "file_count_limit"
+  | "file_too_large"
+  | "unsupported_file_type"
+  | "empty_file"
+  | "not_authenticated"
+  | "invalid_concurrency"
+  | "storage_upload_failed"
+  | "metadata_write_failed"
+  | "unknown";
+
 export class PhotoWriteError extends Error {
   readonly name = "PhotoWriteError";
   readonly stage: PhotoWriteStage;
   readonly cause: unknown;
   readonly rollbackError?: unknown;
+  readonly code: PhotoWriteErrorCode;
 
   constructor(
     message: string,
@@ -90,12 +112,14 @@ export class PhotoWriteError extends Error {
       stage: PhotoWriteStage;
       cause?: unknown;
       rollbackError?: unknown;
+      code?: PhotoWriteErrorCode;
     },
   ) {
     super(message);
     this.stage = options.stage;
     this.cause = options.cause ?? undefined;
     this.rollbackError = options.rollbackError;
+    this.code = options.code ?? "unknown";
   }
 }
 
@@ -213,6 +237,7 @@ async function resolvePhotoWriteUser(): Promise<AuthUser> {
   throw new PhotoWriteError(PHOTO_WRITE_AUTH_ERROR, {
     stage: "authentication",
     cause: new Error(PHOTO_WRITE_AUTH_ERROR),
+    code: "not_authenticated",
   });
 }
 
@@ -278,29 +303,39 @@ export async function uploadProjectPhoto(input: {
   emit("validating");
   assertSafePathSegment(projectId, "projectId");
 
-  const failValidation = (message: string, causeMessage: string): never => {
+  const failValidation = (
+    message: string,
+    causeMessage: string,
+    code: PhotoWriteErrorCode,
+  ): never => {
     const err = new PhotoWriteError(message, {
       stage: "validation",
       cause: new Error(causeMessage),
+      code,
     });
     emit("failed", { stage: "validation", error: err });
     throw err;
   };
 
   if (!file) {
-    failValidation("File is required", "File is required");
+    failValidation("File is required", "File is required", "empty_file");
   }
   if (!isImageFile(file)) {
-    failValidation("Not an image file. Use JPG, PNG, WEBP, or HEIC.", "Not an image file");
+    failValidation(
+      "Not an image file. Use JPG, PNG, WEBP, or HEIC.",
+      "Not an image file",
+      "unsupported_file_type",
+    );
   }
   if (file.size <= 0) {
-    failValidation("File is empty", "File is empty");
+    failValidation("File is empty", "File is empty", "empty_file");
   }
   if (file.size > MAX_PHOTO_BYTES) {
     const mb = (file.size / (1024 * 1024)).toFixed(1);
     failValidation(
       `"${file.name}" is ${mb}MB — maximum is ${MAX_PHOTO_BYTES / (1024 * 1024)}MB per photo.`,
       "File too large",
+      "file_too_large",
     );
   }
 
@@ -341,14 +376,17 @@ export async function uploadProjectPhoto(input: {
 
   // ── Storage upload ──────────────────────────────────────────────
   // Timeout races without cancelling the underlying request (repository pattern).
+  // Shared limiter caps active Storage writes across all concurrent batches.
   emit("uploading");
   try {
-    const uploadResult = await timeoutPromise(
-      supabase.storage
-        .from(PROJECT_PHOTOS_BUCKET)
-        .upload(path, file, { contentType, upsert: false }),
-      UPLOAD_TIMEOUT_MS,
-      `Upload ${file.name} to storage`,
+    const uploadResult = await sharedPhotoUploadLimiter.run(() =>
+      timeoutPromise(
+        supabase.storage
+          .from(PROJECT_PHOTOS_BUCKET)
+          .upload(path, file, { contentType, upsert: false }),
+        UPLOAD_TIMEOUT_MS,
+        `Upload ${file.name} to storage`,
+      ),
     );
 
     const { error: upErr } = uploadResult;
@@ -368,6 +406,7 @@ export async function uploadProjectPhoto(input: {
       throw new PhotoWriteError(upErr.message, {
         stage: "storage-upload",
         cause: upErr,
+        code: "storage_upload_failed",
       });
     }
   } catch (err) {
@@ -403,7 +442,11 @@ export async function uploadProjectPhoto(input: {
         stage: "storage",
       });
     }
-    const wrapped = new PhotoWriteError(errorMessage(err), { stage, cause: err });
+    const wrapped = new PhotoWriteError(errorMessage(err), {
+      stage,
+      cause: err,
+      code: "storage_upload_failed",
+    });
     emit("failed", { stage, error: wrapped });
     throw wrapped;
   }
@@ -459,6 +502,7 @@ export async function uploadProjectPhoto(input: {
         stage: "metadata-insert",
         cause: insErr ?? new Error(errMsg),
         rollbackError,
+        code: "metadata_write_failed",
       });
       emit("failed", { stage: "metadata-insert", error: primary });
       throw primary;
@@ -498,6 +542,7 @@ export async function uploadProjectPhoto(input: {
       stage: "metadata-insert",
       cause: metaErr,
       rollbackError,
+      code: "metadata_write_failed",
     });
     emit("failed", { stage: "metadata-insert", error: primary });
     throw primary;
@@ -510,7 +555,12 @@ export async function uploadProjectPhoto(input: {
  * Upload many files with concurrency limit.
  *
  * Contract: continue after failures; keep successful uploads; after all finish,
- * throw PhotoUploadBatchError if any failed. Default concurrency is 4.
+ * throw PhotoUploadBatchError if any failed. Default concurrency is
+ * MAX_CONCURRENT_PHOTO_UPLOADS (3). Callers may request fewer; requests above
+ * the canonical cap are clamped. Active Storage writes are additionally
+ * bounded by a process-local shared limiter so concurrent batches cannot exceed
+ * the cap.
+ *
  * Successes and failures are ordered by original input index.
  */
 export async function uploadProjectPhotos(input: {
@@ -531,6 +581,7 @@ export async function uploadProjectPhotos(input: {
       {
         stage: "validation",
         cause: new Error("Batch too large"),
+        code: "file_count_limit",
       },
     );
   }
@@ -612,14 +663,16 @@ export async function uploadProjectPhotos(input: {
 }
 
 function normaliseConcurrency(value: number | undefined): number {
-  if (value === undefined) return DEFAULT_UPLOAD_CONCURRENCY;
+  if (value === undefined) return MAX_CONCURRENT_PHOTO_UPLOADS;
   if (!Number.isFinite(value) || !Number.isInteger(value) || value < 1) {
     throw new PhotoWriteError("concurrency must be a positive integer", {
       stage: "validation",
       cause: new Error(`Invalid concurrency: ${String(value)}`),
+      code: "invalid_concurrency",
     });
   }
-  return value;
+  // Callers may request fewer than the cap, never more.
+  return Math.min(value, MAX_CONCURRENT_PHOTO_UPLOADS);
 }
 
 // ── Remove ────────────────────────────────────────────────────────

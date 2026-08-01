@@ -6,17 +6,17 @@ Implementation of the phased reliability plan for project photo upload and visio
 
 | Change | Location |
 | --- | --- |
-| Canonical max size `MAX_PHOTO_BYTES` (10MB) + batch cap | `src/lib/photos-write.ts` |
-| Stage-aware user error copy | `src/lib/upload-errors.ts` |
+| Canonical max size `MAX_PHOTO_BYTES` (10MB) + batch cap 30 + shared Storage concurrency 3 (process-local) | `src/lib/photos-write.ts` |
+| Stage-aware user error copy | `src/features/ai-upload/presentation/formatPhotoUploadError.ts` |
 | Per-file progress + partial success + retry on upload page | `src/routes/_authed/projects.$id.upload.tsx` |
-| Upload readiness probe (auth + non-destructive storage write probe (upload+remove under .health/)) | `src/lib/upload-health.ts` |
+| Upload readiness probe (auth + non-destructive storage write probe (upload+remove under .health/)) | `src/features/ai-upload/presentation/checkUploadHealth.ts` |
 | Bulk uploader uses same error copy + retry | `src/components/BulkPhotoUpload.tsx` |
 
 ## Phase 2 — Observability
 
 | Change | Location |
 | --- | --- |
-| Events: `upload_started`, `upload_failed`, `upload_partial_success`, `analysis_fallback`, `analysis_retry`, `estimate_generated` | `src/lib/analytics.ts` |
+| Events: `upload_started`, `photos_uploaded` (full **and** partial), `upload_partial_success`, `upload_failed` (safe stage/reason; zero attempted on preflight), `analysis_fallback`, `analysis_retry` | hooks + BulkPhotoUpload |
 | Structured start/success/failure logs with projectId, size, stage | `src/lib/photos-write.ts` |
 | Hook-level event emission | `useUploadPhotos` |
 
@@ -51,11 +51,13 @@ Implementation of the phased reliability plan for project photo upload and visio
 
 1. Valid JPEG/PNG/WebP/HEIC under 10MB upload successfully with per-file progress.
 2. Oversized / non-image files show clear validation errors without partial orphans.
-3. Partial batch failure keeps successes and offers retry for failures.
-4. Health banner appears when auth/storage probe fails.
-5. Analysis of many photos does not fan out unbounded (max 3 concurrent vision calls per server isolate (process-local)).
-6. Fallback / low-confidence photos show “Needs review” and can be re-analysed.
-7. Analysis UI groups results by room type.
+3. Partial batch failure keeps successes and offers retry for failures; analytics emit `photos_uploaded` + `upload_partial_success`.
+4. Health banner appears when auth/storage write probe fails.
+5. Concurrent photo Storage writes never exceed 3 in one browser runtime (shared limiter; not cross-tab or distributed).
+6. Analysis of many photos does not fan out unbounded (max 3 concurrent vision calls per server isolate, process-local).
+7. Fallback / low-confidence photos show “Needs review” and can be re-analysed.
+8. Analysis UI groups results by room type.
+
 
 ## Bucket / env checklist
 

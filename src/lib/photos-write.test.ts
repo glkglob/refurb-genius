@@ -105,6 +105,7 @@ import {
   assertSafePathSegment,
   uploadProjectPhoto,
   uploadProjectPhotos,
+  MAX_CONCURRENT_PHOTO_UPLOADS,
   removeProjectPhoto,
   PhotoWriteError,
   PhotoUploadBatchError,
@@ -505,7 +506,7 @@ describe("uploadProjectPhotos batch", () => {
     ).rejects.toMatchObject({ stage: "validation" });
   });
 
-  it("uploads multi-file batch successfully with default concurrency 4", async () => {
+  it("uploads multi-file batch successfully with default concurrency 3", async () => {
     let n = 0;
     randomUUIDMock.mockImplementation(() => `id-${n++}`);
     mockSuccessfulInserts();
@@ -800,5 +801,97 @@ describe("validation item state", () => {
       }),
     ).rejects.toMatchObject({ stage: "validation" });
     expect(events.some((e) => e.state === "failed" && e.stage === "validation")).toBe(true);
+  });
+});
+
+describe("shared cross-batch Storage concurrency", () => {
+  it("two simultaneous batches never exceed shared Storage cap of 3", async () => {
+    let active = 0;
+    let maxActive = 0;
+    let n = 0;
+    randomUUIDMock.mockImplementation(() => `x-${n++}`);
+
+    // Controllable deferred uploads so both batches truly overlap.
+    const releaseGates: Array<() => void> = [];
+    storageUploadMock.mockImplementation(async () => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await new Promise<void>((resolve) => {
+        releaseGates.push(() => {
+          active -= 1;
+          resolve();
+        });
+      });
+      return { error: null };
+    });
+    mockSuccessfulInserts();
+
+    const batchA = Array.from({ length: 3 }, (_, i) => makeImageFile(`a${i}.jpg`));
+    const batchB = Array.from({ length: 3 }, (_, i) => makeImageFile(`b${i}.jpg`));
+
+    const p1 = uploadProjectPhotos({ projectId: "proj-1", files: batchA, concurrency: 3 });
+    const p2 = uploadProjectPhotos({ projectId: "proj-1", files: batchB, concurrency: 3 });
+
+    // Wait until both batches have queued work into the shared limiter.
+    await new Promise((r) => setTimeout(r, 30));
+    expect(maxActive).toBeLessThanOrEqual(3);
+    expect(maxActive).toBeGreaterThan(0);
+
+    // Release all gated uploads
+    while (releaseGates.length > 0) {
+      const gate = releaseGates.shift()!;
+      gate();
+      await new Promise((r) => setTimeout(r, 0));
+    }
+
+    await Promise.all([p1, p2]);
+    expect(maxActive).toBeLessThanOrEqual(3);
+  });
+
+  it("clamps requested concurrency above the canonical cap", async () => {
+    let active = 0;
+    let maxActive = 0;
+    let n = 0;
+    randomUUIDMock.mockImplementation(() => `y-${n++}`);
+    storageUploadMock.mockImplementation(async () => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((r) => setTimeout(r, 15));
+      active -= 1;
+      return { error: null };
+    });
+    mockSuccessfulInserts();
+    const files = Array.from({ length: 6 }, (_, i) => makeImageFile(`c${i}.jpg`));
+    await uploadProjectPhotos({ projectId: "proj-1", files, concurrency: 10 });
+    expect(maxActive).toBeLessThanOrEqual(3);
+  });
+
+  it("releases shared permits after a Storage failure", async () => {
+    let active = 0;
+    let maxActive = 0;
+    let n = 0;
+    randomUUIDMock.mockImplementation(() => `z-${n++}`);
+    let call = 0;
+    storageUploadMock.mockImplementation(async () => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((r) => setTimeout(r, 10));
+      active -= 1;
+      call += 1;
+      if (call === 1) return { error: { message: "boom" } };
+      return { error: null };
+    });
+    mockSuccessfulInserts();
+    const files = [makeImageFile("fail.jpg"), makeImageFile("ok.jpg")];
+    await expect(
+      uploadProjectPhotos({ projectId: "proj-1", files, concurrency: 2 }),
+    ).rejects.toBeInstanceOf(PhotoUploadBatchError);
+    // Subsequent batch must still run under the cap (permits released).
+    await uploadProjectPhotos({
+      projectId: "proj-1",
+      files: [makeImageFile("later.jpg")],
+      concurrency: 1,
+    });
+    expect(maxActive).toBeLessThanOrEqual(3);
   });
 });

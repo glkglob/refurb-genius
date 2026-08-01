@@ -18,6 +18,7 @@ import {
 import { photosQueryOptions, projectKeys } from "@/lib/queries/projects";
 import { logger } from "@/lib/logger";
 import { trackEvent } from "@/lib/analytics";
+import { classifyPhotoUploadAnalyticsError } from "../classifyPhotoUploadAnalyticsError";
 
 export function usePhotos(projectId: string) {
   const { user } = useAuth();
@@ -38,6 +39,11 @@ export type UploadPhotosVariables = {
  * Accepts File[] or { files, onItemState, concurrency } for per-file progress.
  * Full success returns ProjectPhoto[].
  * Partial batch success invalidates the project-photo list then rethrows PhotoUploadBatchError.
+ *
+ * Analytics contract:
+ * - full: upload_started → photos_uploaded
+ * - partial: upload_started → photos_uploaded → upload_partial_success
+ * - failure: upload_started → upload_failed (safe stage/reason only)
  */
 export function useUploadPhotos(projectId: string) {
   const queryClient = useQueryClient();
@@ -68,27 +74,43 @@ export function useUploadPhotos(projectId: string) {
         });
         return photos;
       } catch (error) {
-        // Persist partial successes into the product list cache authority.
         if (error instanceof PhotoUploadBatchError) {
           if (error.successes.length > 0) {
             void queryClient.invalidateQueries({ queryKey: photosKey });
+            // Canonical success funnel for every persisted photo, including partial batches.
+            trackEvent("photos_uploaded", {
+              projectId,
+              photo_count: error.successes.length,
+            });
             trackEvent("upload_partial_success", {
               projectId,
               success_count: error.successes.length,
               failure_count: error.failures.length,
             });
           } else {
+            const classified = classifyPhotoUploadAnalyticsError(error, files.length);
             trackEvent("upload_failed", {
               projectId,
-              failure_count: error.failures.length,
-              stages: error.failures.map((f) => f.stage).join(","),
+              stage: classified.stage,
+              reason: classified.reason,
+              attempted_count: classified.attempted_count,
+              failure_count: classified.failure_count,
+              ...(classified.selected_count !== undefined
+                ? { selected_count: classified.selected_count }
+                : {}),
             });
           }
         } else {
+          const classified = classifyPhotoUploadAnalyticsError(error, files.length);
           trackEvent("upload_failed", {
             projectId,
-            failure_count: files.length,
-            error: error instanceof Error ? error.message : "unknown",
+            stage: classified.stage,
+            reason: classified.reason,
+            attempted_count: classified.attempted_count,
+            failure_count: classified.failure_count,
+            ...(classified.selected_count !== undefined
+              ? { selected_count: classified.selected_count }
+              : {}),
           });
         }
         throw error;

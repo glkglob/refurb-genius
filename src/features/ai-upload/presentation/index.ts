@@ -47,6 +47,12 @@ export {
   mergeAnalysesRetainingGood,
   analysisPhotoKey,
 } from "./retryWeakAnalyses";
+export {
+  classifyPhotoUploadAnalyticsError,
+  type UploadFailureAnalytics,
+  type UploadAnalyticsStage,
+  type UploadAnalyticsReason,
+} from "./classifyPhotoUploadAnalyticsError";
 
 /** Re-export analytics for feature consumers (avoids new @/lib edges from components). */
 export { trackEvent } from "@/lib/analytics";
@@ -59,10 +65,12 @@ export {
   PhotoWriteError,
   MAX_PHOTOS_PER_BATCH,
   MAX_PHOTO_BYTES,
+  MAX_CONCURRENT_PHOTO_UPLOADS,
   PROJECT_PHOTOS_BUCKET,
   type PhotoUploadItemEvent,
   type PhotoUploadItemState,
   type PhotoWriteStage,
   type PhotoUploadFailure,
+  type PhotoWriteErrorCode,
 } from "@/lib/photos-write";
 export type { ProjectPhoto } from "@/lib/photos-types";

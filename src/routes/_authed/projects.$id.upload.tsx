@@ -38,6 +38,7 @@ import {
   type PhotoWriteStage,
   MAX_PHOTOS_PER_BATCH,
   MAX_PHOTO_BYTES,
+  MAX_CONCURRENT_PHOTO_UPLOADS,
   trackEvent,
 } from "@/features/ai-upload";
 import { toast } from "sonner";
@@ -203,7 +204,11 @@ function UploadPage() {
     };
 
     try {
-      await uploadPhotos.mutateAsync({ files, onItemState, concurrency: 3 });
+      await uploadPhotos.mutateAsync({
+        files,
+        onItemState,
+        concurrency: MAX_CONCURRENT_PHOTO_UPLOADS,
+      });
       toast.success(files.length === 1 ? "Photo uploaded." : `${files.length} photos uploaded.`);
       setBatchItems((prev) =>
         prev.map((item) =>
