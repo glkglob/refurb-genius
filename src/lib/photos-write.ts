@@ -277,37 +277,44 @@ export async function uploadProjectPhoto(input: {
 
   emit("validating");
   assertSafePathSegment(projectId, "projectId");
-  if (!file) {
-    throw new PhotoWriteError("File is required", {
+
+  const failValidation = (message: string, causeMessage: string): never => {
+    const err = new PhotoWriteError(message, {
       stage: "validation",
-      cause: new Error("File is required"),
+      cause: new Error(causeMessage),
     });
+    emit("failed", { stage: "validation", error: err });
+    throw err;
+  };
+
+  if (!file) {
+    failValidation("File is required", "File is required");
   }
   if (!isImageFile(file)) {
-    throw new PhotoWriteError("Not an image file. Use JPG, PNG, WEBP, or HEIC.", {
-      stage: "validation",
-      cause: new Error("Not an image file"),
-    });
+    failValidation("Not an image file. Use JPG, PNG, WEBP, or HEIC.", "Not an image file");
   }
   if (file.size <= 0) {
-    throw new PhotoWriteError("File is empty", {
-      stage: "validation",
-      cause: new Error("File is empty"),
-    });
+    failValidation("File is empty", "File is empty");
   }
   if (file.size > MAX_PHOTO_BYTES) {
     const mb = (file.size / (1024 * 1024)).toFixed(1);
-    throw new PhotoWriteError(
+    failValidation(
       `"${file.name}" is ${mb}MB — maximum is ${MAX_PHOTO_BYTES / (1024 * 1024)}MB per photo.`,
-      {
-        stage: "validation",
-        cause: new Error("File too large"),
-      },
+      "File too large",
     );
   }
 
   emit("authenticating");
-  const user = await resolvePhotoWriteUser();
+  let user;
+  try {
+    user = await resolvePhotoWriteUser();
+  } catch (err) {
+    if (err instanceof PhotoWriteError) {
+      emit("failed", { stage: err.stage, error: err });
+      throw err;
+    }
+    throw err;
+  }
 
   const id = crypto.randomUUID();
   const path = buildProjectPhotoStoragePath({

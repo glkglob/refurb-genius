@@ -787,3 +787,19 @@ describe("module exports", () => {
     expect(PROJECT_PHOTOS_BUCKET).toBe("project-photos");
   });
 });
+
+
+describe("validation item state", () => {
+  it("oversized emits failed with stage validation", async () => {
+    const events: Array<{ state: string; stage?: string }> = [];
+    const big = new File([new Uint8Array(11 * 1024 * 1024)], "big.jpg", { type: "image/jpeg" });
+    await expect(
+      uploadProjectPhoto({
+        projectId: "proj-1",
+        file: big,
+        onItemState: (e) => events.push({ state: e.state, stage: e.stage }),
+      }),
+    ).rejects.toMatchObject({ stage: "validation" });
+    expect(events.some((e) => e.state === "failed" && e.stage === "validation")).toBe(true);
+  });
+});

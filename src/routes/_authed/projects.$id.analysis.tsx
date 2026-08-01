@@ -16,14 +16,16 @@ import {
   getPhotoAnalysis,
   loadPhotoAnalysis,
   runPhotoAnalysis,
+  retryWeakPhotoAnalyses,
   groupAnalysesByRoom,
   hasFallbackResults,
-  isRetryableAnalysis,
   needsHumanReview,
+  countNeedingReview,
   type RoomAnalysis,
 } from "@/features/ai-upload";
 import {
   generateRedesignConcepts,
+  clearRedesignConceptsCache,
   type RedesignConcept,
   REDESIGN_CONCEPTS,
 } from "@/features/ai-design";
@@ -49,14 +51,7 @@ function AnalysisPage() {
   const [redesignError, setRedesignError] = useState<string | null>(null);
 
   const roomGroups = useMemo(() => groupAnalysesByRoom(results), [results]);
-  const fallbackCount = useMemo(
-    () => results.filter((r) => r.source === "fallback" || isRetryableAnalysis(r)).length,
-    [results],
-  );
-  const needsReviewCount = useMemo(
-    () => results.filter((r) => needsHumanReview(r)).length,
-    [results],
-  );
+  const needsReviewCount = useMemo(() => countNeedingReview(results), [results]);
 
   useEffect(() => {
     let cancelled = false;
@@ -150,21 +145,40 @@ function AnalysisPage() {
     setRetrying(true);
     trackEvent("analysis_retry", {
       projectId: id,
-      retry_count: fallbackCount,
+      retry_count: needsReviewCount,
     });
     try {
-      const fresh = await runPhotoAnalysis({ projectId: id });
+      const fresh = await retryWeakPhotoAnalyses({ projectId: id });
       setResults(fresh);
       setStage.mutate({ id, stage: "analysis", value: true });
-      const stillWeak = fresh.filter((a) => a.source === "fallback").length;
-      if (stillWeak > 0) {
+
+      // Invalidate redesign cache only after successful persistence of merged analyses.
+      clearRedesignConceptsCache(id);
+      setConceptsLoading(true);
+      setRedesignError(null);
+      try {
+        const regenerated = await generateRedesignConcepts({ projectId: id });
+        setConcepts(regenerated);
+      } catch (regenErr) {
+        const msg =
+          regenErr instanceof Error ? regenErr.message : "Could not regenerate redesign concepts.";
+        setRedesignError(msg);
+        toast.error("Redesign concepts unavailable", {
+          description: "Analyses were updated. Redesign suggestions may be stale until retry.",
+        });
+      } finally {
+        setConceptsLoading(false);
+      }
+
+      const stillNeedReview = countNeedingReview(fresh);
+      if (stillNeedReview > 0) {
         trackEvent("analysis_fallback", {
           projectId: id,
-          fallback_count: stillWeak,
+          fallback_count: stillNeedReview,
           total: fresh.length,
         });
         toast.message("Re-analysis finished", {
-          description: `${stillWeak} photo${stillWeak === 1 ? "" : "s"} still need review.`,
+          description: `${stillNeedReview} photo${stillNeedReview === 1 ? "" : "s"} still need review.`,
         });
       } else {
         toast.success("Re-analysis complete.");
@@ -220,7 +234,7 @@ function AnalysisPage() {
       subtitle="Room-by-room condition assessment with recommended works."
       actions={
         <div className="flex flex-wrap gap-2">
-          {fallbackCount > 0 ? (
+          {needsReviewCount > 0 ? (
             <Button variant="outline" onClick={() => void handleRetryWeak()} disabled={retrying}>
               <RefreshCw className={`mr-1 h-4 w-4 ${retrying ? "animate-spin" : ""}`} />
               Re-analyse weak photos

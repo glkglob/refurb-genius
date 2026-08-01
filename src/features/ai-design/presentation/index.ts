@@ -7,6 +7,7 @@ export {
   mockRedesignProvider,
   listRedesignConcepts,
   generateRedesignConcepts,
+  clearRedesignConceptsCache,
   REDESIGN_CONCEPTS,
   REDESIGN_STYLES,
   type RedesignInput,

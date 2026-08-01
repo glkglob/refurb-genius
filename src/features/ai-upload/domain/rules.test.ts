@@ -10,6 +10,7 @@ import {
   CONFIDENCE_REVIEW_THRESHOLD,
   isSuccessfulAnalysis,
   hasFallbackResults,
+  mergeAnalysesRetainingGood,
 } from "./rules";
 
 function analysis(partial: Partial<RoomAnalysis> & Pick<RoomAnalysis, "id">): RoomAnalysis {
@@ -88,5 +89,56 @@ describe("ai-upload domain rules", () => {
     expect(isSuccessfulAnalysis(fb)).toBe(false);
     expect(hasFallbackResults([ok, fb])).toBe(true);
     expect(isRetryableAnalysis(fb)).toBe(true);
+  });
+
+  it("treats empty/whitespace summary as needs review and retryable", () => {
+    const empty = analysis({ id: "e", confidence_score: 0.95, ai_summary: "" });
+    const space = analysis({ id: "s", confidence_score: 0.95, ai_summary: "   " });
+    const good = analysis({ id: "g", confidence_score: 0.95, ai_summary: "Solid kitchen." });
+    expect(needsHumanReview(empty)).toBe(true);
+    expect(isRetryableAnalysis(empty)).toBe(true);
+    expect(needsHumanReview(space)).toBe(true);
+    expect(isRetryableAnalysis(space)).toBe(true);
+    expect(needsHumanReview(good)).toBe(false);
+    expect(isRetryableAnalysis(good)).toBe(false);
+  });
+
+  it("keeps needsHumanReview and isRetryableAnalysis identical", () => {
+    const fixtures = [
+      analysis({ id: "1", confidence_score: 0.9 }),
+      analysis({ id: "2", confidence_score: 0.1 }),
+      analysis({ id: "3", source: "fallback", confidence_score: 0 }),
+      analysis({ id: "4", source: "mock", confidence_score: 0.9 }),
+      analysis({ id: "5", confidence_score: 0.9, ai_summary: "" }),
+      analysis({ id: "6", confidence_score: 0.9, ai_summary: "  " }),
+    ];
+    for (const f of fixtures) {
+      expect(isRetryableAnalysis(f)).toBe(needsHumanReview(f));
+    }
+  });
+
+  it("mergeAnalysesRetainingGood retains good rows and overwrites keys", () => {
+    const existing = [
+      analysis({ id: "good", photo_url: "https://u/good", confidence_score: 0.9 }),
+      analysis({
+        id: "weak",
+        photo_url: "https://u/weak",
+        source: "fallback",
+        confidence_score: 0,
+      }),
+    ];
+    const refreshed = [
+      analysis({
+        id: "weak2",
+        photo_url: "https://u/weak",
+        confidence_score: 0.85,
+        ai_summary: "Better",
+      }),
+    ];
+    const merged = mergeAnalysesRetainingGood(existing, refreshed);
+    expect(merged).toHaveLength(2);
+    expect(merged[0]?.photo_url).toBe("https://u/good");
+    expect(merged[0]?.confidence_score).toBe(0.9);
+    expect(merged[1]?.ai_summary).toBe("Better");
   });
 });

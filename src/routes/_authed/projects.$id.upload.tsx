@@ -22,16 +22,24 @@ import {
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useProject } from "@/hooks/useProjects";
 import { useSetProjectStage } from "@/features/projects";
-import { usePhotos, useUploadPhotos, useRemovePhoto, isImageFile } from "@/features/ai-upload";
-import { trackEvent } from "@/lib/analytics";
 import {
-  MAX_PHOTO_BYTES,
+  usePhotos,
+  useUploadPhotos,
+  useRemovePhoto,
+  isImageFile,
+  formatPhotoUploadBatchError,
+  formatPhotoUploadError,
+  checkUploadHealth,
+  type UploadHealthResult,
   PhotoUploadBatchError,
+  PhotoWriteError,
   type PhotoUploadItemEvent,
   type PhotoUploadItemState,
-} from "@/lib/photos-write";
-import { formatPhotoUploadBatchError, formatPhotoUploadError } from "@/lib/upload-errors";
-import { checkUploadHealth, type UploadHealthResult } from "@/lib/upload-health";
+  type PhotoWriteStage,
+  MAX_PHOTOS_PER_BATCH,
+  MAX_PHOTO_BYTES,
+  trackEvent,
+} from "@/features/ai-upload";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authed/projects/$id/upload")({
@@ -58,7 +66,7 @@ const STAGE_PROGRESS: Record<PhotoUploadItemState, number> = {
   saving: 75,
   "rolling-back": 70,
   complete: 100,
-  failed: 70,
+  failed: 0,
 };
 
 function mapState(state: PhotoUploadItemState): LocalUploadStatus {
@@ -175,7 +183,12 @@ function UploadPage() {
       const target = locals[event.index];
       if (!target) return;
       const status = mapState(event.state);
-      const progress = STAGE_PROGRESS[event.state] ?? target.progress;
+      const progress =
+        event.state === "failed"
+          ? target.progress
+          : event.state === "complete"
+            ? 100
+            : Math.max(target.progress, STAGE_PROGRESS[event.state] ?? target.progress);
       const patch: Partial<LocalUploadItem> = { status, progress };
       if (event.state === "complete" && event.photo) {
         patch.photoId = event.photo.id;

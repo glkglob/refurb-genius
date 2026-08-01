@@ -401,7 +401,7 @@ describe("BulkPhotoUpload partial success", () => {
     await startUpload();
 
     await waitFor(() => {
-      expect(toastError).toHaveBeenCalledWith("1 file failed to upload.");
+      expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/2 uploaded, 1 failed/i));
     });
     expect(toastSuccess).not.toHaveBeenCalled();
 

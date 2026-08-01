@@ -40,15 +40,54 @@ export function needsHumanReview(analysis: RoomAnalysis): boolean {
   return false;
 }
 
-/** Analyses that are safe to re-run (fallback / low confidence / mock / empty summary). */
+/**
+ * Analyses that are safe to re-run.
+ * Canonical: every result that needs human review is retryable (single source of truth).
+ */
 export function isRetryableAnalysis(analysis: RoomAnalysis): boolean {
-  // Keep aligned with needsHumanReview so every incomplete result can be retried.
-  return (
-    analysis.source === "fallback" ||
-    analysis.source === "mock" ||
-    analysis.confidence_score < CONFIDENCE_REVIEW_THRESHOLD ||
-    !analysis.ai_summary?.trim()
-  );
+  return needsHumanReview(analysis);
+}
+
+/** Count analyses that still need human review / retry. */
+export function countNeedingReview(analyses: RoomAnalysis[]): number {
+  return analyses.filter(needsHumanReview).length;
+}
+
+/**
+ * Stable photo identity for merge after re-analysis.
+ * Prefer photo_url — after DB load, analysis.id is the row UUID, not photo id.
+ */
+export function analysisPhotoKey(analysis: Pick<RoomAnalysis, "photo_url" | "photo_name">): string {
+  return analysis.photo_url || analysis.photo_name;
+}
+
+/**
+ * Merge re-analysed results into existing set by photo key.
+ * Refreshed entries overwrite only their keys; good analyses are retained.
+ */
+export function mergeAnalysesRetainingGood(
+  existing: RoomAnalysis[],
+  refreshed: RoomAnalysis[],
+): RoomAnalysis[] {
+  const byKey = new Map(existing.map((a) => [analysisPhotoKey(a), a]));
+  for (const r of refreshed) {
+    byKey.set(analysisPhotoKey(r), r);
+  }
+  const seen = new Set<string>();
+  const out: RoomAnalysis[] = [];
+  for (const a of existing) {
+    const k = analysisPhotoKey(a);
+    out.push(byKey.get(k)!);
+    seen.add(k);
+  }
+  for (const r of refreshed) {
+    const k = analysisPhotoKey(r);
+    if (!seen.has(k)) {
+      out.push(r);
+      seen.add(k);
+    }
+  }
+  return out;
 }
 
 export type PhotoAiStatus = "pending" | "analysed" | "fallback" | "failed" | "needs_review";

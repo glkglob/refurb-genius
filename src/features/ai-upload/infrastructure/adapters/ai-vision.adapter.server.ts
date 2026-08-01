@@ -23,8 +23,13 @@ import { withRetry } from "@/core/ai/platform/retry";
 import { ConcurrencyLimiter } from "@/lib/concurrency";
 
 const AI_ANALYSIS_TIMEOUT_MS = 60_000;
-/** Cap parallel vision calls to avoid rate limits and timeouts. */
+/**
+ * Cap parallel vision calls per server isolate (process-local).
+ * Shared across overlapping analysis requests on the same isolate.
+ * Not a durable multi-instance global semaphore (Vercel serverless).
+ */
 const AI_ANALYSIS_CONCURRENCY = 3;
+const visionConcurrencyLimiter = new ConcurrencyLimiter(AI_ANALYSIS_CONCURRENCY);
 
 const VALID_ROOM_TYPES: RoomType[] = [
   "Kitchen",
@@ -249,9 +254,8 @@ export async function runSecurePhotoAnalysis(input: {
     timeoutPerPhotoMs: AI_ANALYSIS_TIMEOUT_MS,
   });
 
-  const limiter = new ConcurrencyLimiter(AI_ANALYSIS_CONCURRENCY);
   const results = await Promise.all(
-    photos.map((photo) => limiter.run(() => analysePhoto(apiKey, photo))),
+    photos.map((photo) => visionConcurrencyLimiter.run(() => analysePhoto(apiKey, photo))),
   );
 
   const successCount = results.filter((r) => r.source === "ai" && r.confidence_score > 0).length;

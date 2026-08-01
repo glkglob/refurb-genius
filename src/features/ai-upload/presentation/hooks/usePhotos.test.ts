@@ -121,6 +121,14 @@ describe("useUploadPhotos", () => {
       projectId: PROJECT_ID,
       files,
     });
+    expect(trackEvent).toHaveBeenCalledWith(
+      "upload_started",
+      expect.objectContaining({ projectId: PROJECT_ID, file_count: 2 }),
+    );
+    expect(trackEvent).toHaveBeenCalledWith("photos_uploaded", {
+      projectId: PROJECT_ID,
+      photo_count: 2,
+    });
   });
 
   it("source does not reference photoStore or legacy photos module", async () => {
@@ -255,6 +263,14 @@ describe("useUploadPhotos", () => {
       expect(result.current.isError).toBe(true);
       expect(result.current.error).toBe(batchError);
     });
+    expect(trackEvent).toHaveBeenCalledWith(
+      "upload_partial_success",
+      expect.objectContaining({
+        projectId: PROJECT_ID,
+        success_count: 2,
+        failure_count: 1,
+      }),
+    );
   });
 
   it("does not invalidate on total batch failure (zero successes)", async () => {
@@ -295,6 +311,10 @@ describe("useUploadPhotos", () => {
 
     expect(caught).toBe(batchError);
     expect(invalidateSpy).not.toHaveBeenCalled();
+    expect(trackEvent).toHaveBeenCalledWith(
+      "upload_failed",
+      expect.objectContaining({ projectId: PROJECT_ID, failure_count: 2 }),
+    );
   });
 
   it("delegates empty batch to the canonical primitive", async () => {

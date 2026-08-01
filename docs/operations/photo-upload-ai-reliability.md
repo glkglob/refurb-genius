@@ -9,7 +9,7 @@ Implementation of the phased reliability plan for project photo upload and visio
 | Canonical max size `MAX_PHOTO_BYTES` (10MB) + batch cap | `src/lib/photos-write.ts` |
 | Stage-aware user error copy | `src/lib/upload-errors.ts` |
 | Per-file progress + partial success + retry on upload page | `src/routes/_authed/projects.$id.upload.tsx` |
-| Upload readiness probe (auth + storage list) | `src/lib/upload-health.ts` |
+| Upload readiness probe (auth + non-destructive storage write probe (upload+remove under .health/)) | `src/lib/upload-health.ts` |
 | Bulk uploader uses same error copy + retry | `src/components/BulkPhotoUpload.tsx` |
 
 ## Phase 2 — Observability
@@ -26,7 +26,7 @@ Implementation of the phased reliability plan for project photo upload and visio
 
 | Change | Location |
 | --- | --- |
-| Vision concurrency capped at 3 (OpenAI + HuggingFace) | `ai-vision.adapter.server.ts`, `hf-vision.adapter.server.ts` |
+| Vision concurrency capped at 3 concurrent calls per server isolate (process-local; not a durable multi-instance global semaphore) (OpenAI + HuggingFace) | `ai-vision.adapter.server.ts`, `hf-vision.adapter.server.ts` |
 | Existing per-photo retry (`withRetry`) + fallback preserved | vision adapters |
 | Re-analyse weak photos control | analysis page |
 | Domain status helpers (`photoAiStatus`, `isRetryableAnalysis`) | `domain/rules.ts` |
@@ -49,11 +49,11 @@ Implementation of the phased reliability plan for project photo upload and visio
 
 ## Exit criteria (manual QA)
 
-1. Valid JPEG/PNG/WebP under 10MB upload successfully with per-file progress.
+1. Valid JPEG/PNG/WebP/HEIC under 10MB upload successfully with per-file progress.
 2. Oversized / non-image files show clear validation errors without partial orphans.
 3. Partial batch failure keeps successes and offers retry for failures.
 4. Health banner appears when auth/storage probe fails.
-5. Analysis of many photos does not fan out unbounded (max 3 concurrent vision calls).
+5. Analysis of many photos does not fan out unbounded (max 3 concurrent vision calls per server isolate (process-local)).
 6. Fallback / low-confidence photos show “Needs review” and can be re-analysed.
 7. Analysis UI groups results by room type.
 

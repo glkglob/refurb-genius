@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { formatPhotoUploadError, formatPhotoUploadBatchError, stageLabel } from "./upload-errors";
-import { PhotoUploadBatchError, PhotoWriteError } from "./photos-write";
+import {
+  formatPhotoUploadError,
+  formatPhotoUploadBatchError,
+  stageLabel,
+} from "./formatPhotoUploadError";
+import { PhotoUploadBatchError, PhotoWriteError } from "@/lib/photos-write";
 
 describe("upload-errors", () => {
   it("maps auth stage failures clearly", () => {
