@@ -11,7 +11,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -151,13 +151,31 @@ function verifySurface(label, source) {
   return surface;
 }
 
+function cleanupGenerated() {
+  try {
+    if (existsSync(GENERATED)) {
+      rmSync(GENERATED, { force: true });
+    }
+  } catch {
+    // Best-effort only: never block the verifier on cleanup.
+  }
+}
+
 function tryGenerate() {
   mkdirSync(TMP_DIR, { recursive: true });
   try {
+    // Prefer repository CLI; force local DB password so a remote SUPABASE_DB_PASSWORD
+    // from developer .env does not break `gen types --local` (CLI 2.111.0+).
+    // Child env only — do not mutate process.env for the verifier process.
     const out = execFileSync(
-      "supabase",
-      ["gen", "types", "typescript", "--local", "--schema", "public"],
-      { cwd: ROOT, encoding: "utf8", maxBuffer: 20 * 1024 * 1024 },
+      "pnpm",
+      ["exec", "supabase", "gen", "types", "typescript", "--local", "--schema", "public"],
+      {
+        cwd: ROOT,
+        encoding: "utf8",
+        maxBuffer: 20 * 1024 * 1024,
+        env: { ...process.env, SUPABASE_DB_PASSWORD: "postgres" },
+      },
     );
     writeFileSync(GENERATED, out);
     return true;
@@ -167,24 +185,28 @@ function tryGenerate() {
   }
 }
 
-const committed = readFileSync(COMMITTED, "utf8");
-const committedSurface = verifySurface("committed", committed);
-console.log("verify-4c2c: committed surface OK");
+try {
+  const committed = readFileSync(COMMITTED, "utf8");
+  const committedSurface = verifySurface("committed", committed);
+  console.log("verify-4c2c: committed surface OK");
 
-if (!committedOnly) {
-  const generatedOk = tryGenerate();
-  if (generatedOk && existsSync(GENERATED)) {
-    const generated = readFileSync(GENERATED, "utf8");
-    const genSurface = verifySurface("generated", generated);
-    if (JSON.stringify(committedSurface) !== JSON.stringify(genSurface)) {
-      throw new Error("verify-4c2c: committed vs generated surface mismatch");
+  if (!committedOnly) {
+    const generatedOk = tryGenerate();
+    if (generatedOk && existsSync(GENERATED)) {
+      const generated = readFileSync(GENERATED, "utf8");
+      const genSurface = verifySurface("generated", generated);
+      if (JSON.stringify(committedSurface) !== JSON.stringify(genSurface)) {
+        throw new Error("verify-4c2c: committed vs generated surface mismatch");
+      }
+      console.log("verify-4c2c: generated surface matches committed");
+    } else if (requireGenerate) {
+      throw new Error("verify-4c2c: generation required but failed");
+    } else {
+      console.log("verify-4c2c: local generation skipped (Supabase unavailable)");
     }
-    console.log("verify-4c2c: generated surface matches committed");
-  } else if (requireGenerate) {
-    throw new Error("verify-4c2c: generation required but failed");
-  } else {
-    console.log("verify-4c2c: local generation skipped (Supabase unavailable)");
   }
-}
 
-console.log("verify-4c2c: PASS");
+  console.log("verify-4c2c: PASS");
+} finally {
+  cleanupGenerated();
+}

@@ -25,7 +25,14 @@
     "verify:4c2b-types": "node scripts/verify-4c2b-database-types.mjs",
     "verify:4c2b-types:generate": "node scripts/verify-4c2b-database-types.mjs --require-generate",
     "verify:4c2c-types": "node scripts/verify-4c2c-database-types.mjs",
-    "verify:4c2c-types:generate": "node scripts/verify-4c2c-database-types.mjs --require-generate"
+    "verify:4c2c-types:generate": "node scripts/verify-4c2c-database-types.mjs --require-generate",
+    "supabase:status": "supabase status",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "supabase:test:db": "supabase test db",
+    "supabase:types": "SUPABASE_DB_PASSWORD=postgres supabase gen types typescript --local --schema public",
+    "supabase:lint": "supabase db lint"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -151,6 +158,7 @@
     "playwright": "1.61.1",
     "postgres": "^3.4.9",
     "prettier": "^3.7.3",
+    "supabase": "2.111.0",
     "tsx": "^4.21.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.65.0",
