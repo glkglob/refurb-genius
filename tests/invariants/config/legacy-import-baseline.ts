@@ -123,7 +123,6 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/routes/_authed/projects.$id.scope.tsx|@/core/pricing",
   "src/routes/_authed/projects.$id.scope.tsx|@/lib/logger",
   "src/routes/_authed/projects.$id.scope.tsx|@/lib/sentry",
-  "src/routes/_authed/projects.$id.upload.tsx|@/lib/analytics",
   "src/routes/_authed/projects.$id.upload.tsx|@/lib/file-utils",
   "src/routes/_authed/projects.new.tsx|@/core/constants",
   "src/routes/_authed/projects.new.tsx|@/core/projects",

@@ -57,6 +57,11 @@ export const redesignProvider: RedesignProvider = {
   },
 };
 
+/** Drop cached redesign concepts so the next generate uses fresh analyses. */
+export function clearRedesignConceptsCache(projectId: string): void {
+  cache.delete(projectId);
+}
+
 export function listRedesignConcepts(input?: RedesignInput): RedesignConcept[] {
   return redesignProvider.list(input);
 }

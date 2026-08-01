@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { memo } from "react";
 import { Sparkles, AlertTriangle, Wrench } from "lucide-react";
-import type { RoomAnalysis, ConditionLevel } from "@/features/ai-upload";
+import { needsHumanReview, type RoomAnalysis, type ConditionLevel } from "@/features/ai-upload";
 import { AnalysisSourceBadge } from "./AnalysisSourceBadge";
 
 const conditionTone: Record<ConditionLevel, Parameters<typeof StatusBadge>[0]["tone"]> = {
@@ -19,6 +19,8 @@ export type AnalysisCardProps = {
 };
 
 function AnalysisCardComponent({ analysis: r }: AnalysisCardProps) {
+  const review = needsHumanReview(r);
+
   return (
     <Card className="overflow-hidden border border-border/60 shadow-sm transition hover:shadow-md">
       <div className="relative aspect-[16/10] w-full bg-muted">
@@ -29,11 +31,16 @@ function AnalysisCardComponent({ analysis: r }: AnalysisCardProps) {
           loading="lazy"
           decoding="async"
         />
-        <div className="absolute left-3 top-3 flex gap-2">
+        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
           <Badge variant="secondary" className="bg-background/90 backdrop-blur">
             {r.room_type}
           </Badge>
           <StatusBadge tone={conditionTone[r.condition_level]}>{r.condition_level}</StatusBadge>
+          {review ? (
+            <Badge variant="destructive" className="bg-destructive/90 backdrop-blur">
+              Needs review
+            </Badge>
+          ) : null}
         </div>
         <div className="absolute right-3 top-3 flex flex-col items-end gap-1.5">
           <Badge variant="secondary" className="bg-background/90 backdrop-blur">

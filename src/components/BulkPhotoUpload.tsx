@@ -8,19 +8,27 @@
  * UI item ids are React-state identity only — not Storage or database IDs.
  */
 import { useState, useCallback, useRef } from "react";
-import { Upload, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Upload, CheckCircle2, XCircle, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@repo/ui";
 import { toast } from "sonner";
 import {
   uploadProjectPhotos,
   PhotoUploadBatchError,
-  PhotoWriteError,
   type PhotoUploadItemEvent,
   type PhotoUploadItemState,
   type PhotoWriteStage,
+  MAX_PHOTOS_PER_BATCH,
+  MAX_CONCURRENT_PHOTO_UPLOADS,
 } from "@/lib/photos-write";
-import { isImageFile, useInvalidateProjectPhotos } from "@/features/ai-upload";
 import type { ProjectPhoto } from "@/lib/photos-types";
+import {
+  isImageFile,
+  useInvalidateProjectPhotos,
+  formatPhotoUploadError,
+  formatPhotoUploadBatchError,
+  trackEvent,
+  classifyPhotoUploadAnalyticsError,
+} from "@/features/ai-upload";
 
 type UploadStatus = "queued" | "uploading" | "uploaded" | "completed" | "failed";
 
@@ -39,7 +47,8 @@ interface BulkPhotoUploadProps {
   projectId: string;
 }
 
-const BATCH_CONCURRENCY = 3;
+/** Per-call local concurrency; shared Storage cap is MAX_CONCURRENT_PHOTO_UPLOADS. */
+const BATCH_CONCURRENCY = MAX_CONCURRENT_PHOTO_UPLOADS;
 
 /** Monotonic stage-derived progress; complete alone reaches 100. */
 const STAGE_PROGRESS: Record<PhotoUploadItemState, number> = {
@@ -50,7 +59,7 @@ const STAGE_PROGRESS: Record<PhotoUploadItemState, number> = {
   saving: 70,
   "rolling-back": 70,
   complete: 100,
-  failed: 70,
+  failed: 0, // terminal: keep last real stage progress (see applyStageProgress)
 };
 
 function statusForState(state: PhotoUploadItemState): UploadStatus {
@@ -74,21 +83,14 @@ function statusForState(state: PhotoUploadItemState): UploadStatus {
 }
 
 function errorTextFromUnknown(error: unknown, stage?: PhotoWriteStage): string {
-  if (error instanceof PhotoWriteError) {
-    return error.message;
-  }
-  if (error instanceof Error && error.message) {
-    return stage ? `${error.message} (${stage})` : error.message;
-  }
-  if (stage) return `Upload failed (${stage})`;
-  return "Upload failed";
+  return formatPhotoUploadError(error, stage);
 }
 
 function applyStageProgress(current: number, state: PhotoUploadItemState): number {
-  const next = STAGE_PROGRESS[state] ?? current;
   if (state === "complete") return 100;
-  // Never regress percentage except terminal failed (keep progress).
-  if (state === "failed") return Math.max(current, next);
+  // Terminal failure preserves the last successfully reached stage progress.
+  if (state === "failed") return current;
+  const next = STAGE_PROGRESS[state] ?? current;
   return Math.max(current, next);
 }
 
@@ -118,14 +120,29 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
       toast.error("Please select image files only.");
       return;
     }
-    const newItems: UploadItem[] = fileArray.map((file) => ({
-      uiId: crypto.randomUUID(),
-      file,
-      status: "queued",
-      progress: 0,
-    }));
-
-    setItems((prev) => [...prev, ...newItems]);
+    setItems((prev) => {
+      const activeCount = prev.filter((i) => i.status !== "completed").length;
+      const remaining = MAX_PHOTOS_PER_BATCH - activeCount;
+      if (remaining <= 0) {
+        toast.error(
+          `You already have ${MAX_PHOTOS_PER_BATCH} photos in the queue. Clear completed or failed items first.`,
+        );
+        return prev;
+      }
+      if (fileArray.length > remaining) {
+        toast.error(
+          `You can add at most ${remaining} more photo${remaining === 1 ? "" : "s"} (max ${MAX_PHOTOS_PER_BATCH} per batch). Selection was not added.`,
+        );
+        return prev;
+      }
+      const newItems: UploadItem[] = fileArray.map((file) => ({
+        uiId: crypto.randomUUID(),
+        file,
+        status: "queued" as const,
+        progress: 0,
+      }));
+      return [...prev, ...newItems];
+    });
   }, []);
 
   const onItemState = useCallback(
@@ -165,8 +182,12 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
       });
       invalidateProjectPhotos();
       toast.success("Upload complete.");
+      trackEvent("photos_uploaded", {
+        projectId,
+        photo_count: photos.length,
+      });
     },
-    [invalidateProjectPhotos, updateItem],
+    [invalidateProjectPhotos, updateItem, projectId],
   );
 
   const applyBatchError = useCallback(
@@ -198,12 +219,32 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
 
       if (error.successes.length > 0) {
         invalidateProjectPhotos();
+        trackEvent("photos_uploaded", {
+          projectId,
+          photo_count: error.successes.length,
+        });
+        trackEvent("upload_partial_success", {
+          projectId,
+          success_count: error.successes.length,
+          failure_count: error.failures.length,
+        });
+      } else {
+        const classified = classifyPhotoUploadAnalyticsError(error, batchSnapshot.length);
+        trackEvent("upload_failed", {
+          projectId,
+          stage: classified.stage,
+          reason: classified.reason,
+          attempted_count: classified.attempted_count,
+          failure_count: classified.failure_count,
+          ...(classified.selected_count !== undefined
+            ? { selected_count: classified.selected_count }
+            : {}),
+        });
       }
 
-      const failCount = error.failures.length;
-      toast.error(`${failCount} file${failCount > 1 ? "s" : ""} failed to upload.`);
+      toast.error(formatPhotoUploadBatchError(error));
     },
-    [invalidateProjectPhotos, updateItem],
+    [invalidateProjectPhotos, updateItem, projectId],
   );
 
   const applyTotalUnknownFailure = useCallback(
@@ -212,44 +253,67 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
       for (const target of batchSnapshot) {
         updateItem(target.uiId, { status: "failed", error: message });
       }
-      toast.error(
-        `${batchSnapshot.length} file${batchSnapshot.length > 1 ? "s" : ""} failed to upload.`,
-      );
+      const classified = classifyPhotoUploadAnalyticsError(err, batchSnapshot.length);
+      trackEvent("upload_failed", {
+        projectId,
+        stage: classified.stage,
+        reason: classified.reason,
+        attempted_count: classified.attempted_count,
+        failure_count: classified.failure_count,
+        ...(classified.selected_count !== undefined
+          ? { selected_count: classified.selected_count }
+          : {}),
+      });
+      toast.error(message);
     },
-    [updateItem],
+    [updateItem, projectId],
   );
 
-  const processQueue = useCallback(async () => {
-    if (processingRef.current) return;
+  const processQueue = useCallback(
+    async (explicitBatch?: UploadItem[]) => {
+      if (processingRef.current) return;
 
-    // Immutable snapshot of currently queued items — event indexes map only to this batch.
-    const batchSnapshot = items.filter((i) => i.status === "queued");
-    if (batchSnapshot.length === 0) return;
+      // Immutable snapshot — event indexes map only to this batch.
+      const batchSnapshot = explicitBatch ?? items.filter((i) => i.status === "queued");
+      if (batchSnapshot.length === 0) return;
 
-    processingRef.current = true;
-    setIsProcessing(true);
-
-    const files = batchSnapshot.map((i) => i.file);
-
-    try {
-      const photos = await uploadProjectPhotos({
-        projectId,
-        files,
-        concurrency: BATCH_CONCURRENCY,
-        onItemState: (event) => onItemState(batchSnapshot, event),
-      });
-      applyFullSuccess(batchSnapshot, photos);
-    } catch (err: unknown) {
-      if (err instanceof PhotoUploadBatchError) {
-        applyBatchError(batchSnapshot, err);
-      } else {
-        applyTotalUnknownFailure(batchSnapshot, err);
+      if (batchSnapshot.length > MAX_PHOTOS_PER_BATCH) {
+        toast.error(
+          `Too many photos selected (max ${MAX_PHOTOS_PER_BATCH}). Remove some and try again.`,
+        );
+        return;
       }
-    } finally {
-      processingRef.current = false;
-      setIsProcessing(false);
-    }
-  }, [items, projectId, onItemState, applyFullSuccess, applyBatchError, applyTotalUnknownFailure]);
+
+      processingRef.current = true;
+      setIsProcessing(true);
+
+      const files = batchSnapshot.map((i) => i.file);
+      trackEvent("upload_started", {
+        projectId,
+        file_count: files.length,
+      });
+
+      try {
+        const photos = await uploadProjectPhotos({
+          projectId,
+          files,
+          concurrency: BATCH_CONCURRENCY,
+          onItemState: (event) => onItemState(batchSnapshot, event),
+        });
+        applyFullSuccess(batchSnapshot, photos);
+      } catch (err: unknown) {
+        if (err instanceof PhotoUploadBatchError) {
+          applyBatchError(batchSnapshot, err);
+        } else {
+          applyTotalUnknownFailure(batchSnapshot, err);
+        }
+      } finally {
+        processingRef.current = false;
+        setIsProcessing(false);
+      }
+    },
+    [items, projectId, onItemState, applyFullSuccess, applyBatchError, applyTotalUnknownFailure],
+  );
 
   const onDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
@@ -277,8 +341,31 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
     setItems((prev) => prev.filter((i) => i.uiId !== uiId));
   };
 
+  const retryFailed = () => {
+    if (processingRef.current) return;
+    let batchToRetry: UploadItem[] = [];
+    setItems((prev) => {
+      batchToRetry = [];
+      return prev.map((item) => {
+        if (item.status !== "failed") return item;
+        const updated: UploadItem = {
+          ...item,
+          status: "queued",
+          progress: 0,
+          error: undefined,
+        };
+        batchToRetry.push(updated);
+        return updated;
+      });
+    });
+    if (batchToRetry.length > 0) {
+      void processQueue(batchToRetry);
+    }
+  };
+
   const hasQueued = items.some((i) => i.status === "queued");
   const hasActive = items.some((i) => i.status === "uploading" || i.status === "uploaded");
+  const hasFailed = items.some((i) => i.status === "failed");
 
   return (
     <div className="space-y-4">
@@ -288,7 +375,7 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
         className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 p-8 text-center hover:bg-accent/5 transition-colors"
       >
         <Upload className="mb-3 h-8 w-8 text-muted-foreground" />
-        <p className="text-sm font-medium">Drag &amp; drop photos here, or</p>
+        <p className="text-sm font-medium">Drag & drop photos here, or</p>
         <label className="mt-2 cursor-pointer text-sm text-primary underline">
           browse files
           <input
@@ -312,6 +399,12 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
               {hasQueued && !hasActive && (
                 <Button size="sm" onClick={startUpload} disabled={isProcessing}>
                   Start Upload
+                </Button>
+              )}
+              {hasFailed && !hasActive && (
+                <Button size="sm" variant="outline" onClick={retryFailed} disabled={isProcessing}>
+                  <RefreshCw className="mr-1 h-3.5 w-3.5" />
+                  Retry failed
                 </Button>
               )}
               <Button size="sm" variant="outline" onClick={clearCompleted}>

@@ -32,8 +32,12 @@ import {
 import { logger } from "@/lib/logger";
 import { incrementCounter } from "@/lib/provider-diagnostics";
 import { timeoutPromise, isTimeoutError } from "@/lib/timeout";
+import { ConcurrencyLimiter } from "@/lib/concurrency";
 import { withRetry } from "@/core/ai/platform/retry";
 
+/** Process-local vision concurrency (shared across overlapping HF batches on this isolate). */
+const AI_ANALYSIS_CONCURRENCY = 3;
+const hfVisionConcurrencyLimiter = new ConcurrencyLimiter(AI_ANALYSIS_CONCURRENCY);
 const AI_ANALYSIS_TIMEOUT_MS = 60_000;
 
 const VALID_ROOM_TYPES: RoomType[] = [
@@ -267,7 +271,9 @@ export async function runSecurePhotoAnalysisHuggingFace(input: {
     timeoutPerPhotoMs: AI_ANALYSIS_TIMEOUT_MS,
   });
 
-  const results = await Promise.all(photos.map((photo) => analysePhoto(config, photo)));
+  const results = await Promise.all(
+    photos.map((photo) => hfVisionConcurrencyLimiter.run(() => analysePhoto(config, photo))),
+  );
 
   const successCount = results.filter((r) => r.confidence_score > 0).length;
   const fallbackCount = results.filter((r) => r.confidence_score === 0).length;

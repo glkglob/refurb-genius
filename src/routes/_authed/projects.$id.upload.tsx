@@ -4,20 +4,91 @@ import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
+import { PipelineChecklist } from "@/components/PipelineChecklist";
+import { buildProjectPipelineSteps } from "@/components/pipeline-checklist";
 import { formatFileSize } from "@/lib/file-utils";
-import { Upload, ImagePlus, X, Sparkles, Loader2, AlertCircle, ArrowRight } from "lucide-react";
-import { useRef, useState, type ChangeEvent } from "react";
+import {
+  Upload,
+  ImagePlus,
+  X,
+  Sparkles,
+  Loader2,
+  AlertCircle,
+  ArrowRight,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useProject } from "@/hooks/useProjects";
 import { useSetProjectStage } from "@/features/projects";
-import { usePhotos, useUploadPhotos, useRemovePhoto, isImageFile } from "@/features/ai-upload";
-import { trackEvent } from "@/lib/analytics";
+import {
+  usePhotos,
+  useUploadPhotos,
+  useRemovePhoto,
+  isImageFile,
+  formatPhotoUploadBatchError,
+  formatPhotoUploadError,
+  checkUploadHealth,
+  type UploadHealthResult,
+  PhotoUploadBatchError,
+  PhotoWriteError,
+  type PhotoUploadItemEvent,
+  type PhotoUploadItemState,
+  type PhotoWriteStage,
+  MAX_PHOTOS_PER_BATCH,
+  MAX_PHOTO_BYTES,
+  MAX_CONCURRENT_PHOTO_UPLOADS,
+  trackEvent,
+} from "@/features/ai-upload";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authed/projects/$id/upload")({
   head: () => ({ meta: [{ title: "Upload photos — Refurb Genius" }] }),
   component: UploadPage,
 });
 
-const MAX_BYTES = 10 * 1024 * 1024;
+type LocalUploadStatus = "queued" | "uploading" | "saving" | "completed" | "failed";
+
+type LocalUploadItem = {
+  uiId: string;
+  file: File;
+  status: LocalUploadStatus;
+  progress: number;
+  error?: string;
+  photoId?: string;
+};
+
+const STAGE_PROGRESS: Record<PhotoUploadItemState, number> = {
+  queued: 0,
+  validating: 8,
+  authenticating: 15,
+  uploading: 45,
+  saving: 75,
+  "rolling-back": 70,
+  complete: 100,
+  failed: 0,
+};
+
+function mapState(state: PhotoUploadItemState): LocalUploadStatus {
+  switch (state) {
+    case "queued":
+      return "queued";
+    case "validating":
+    case "authenticating":
+    case "uploading":
+    case "rolling-back":
+      return "uploading";
+    case "saving":
+      return "saving";
+    case "complete":
+      return "completed";
+    case "failed":
+      return "failed";
+    default:
+      return "uploading";
+  }
+}
 
 function UploadPage() {
   const { id } = Route.useParams();
@@ -25,12 +96,38 @@ function UploadPage() {
   const libraryInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [batchItems, setBatchItems] = useState<LocalUploadItem[]>([]);
+  const [health, setHealth] = useState<UploadHealthResult | null>(null);
 
   const { data: project, isLoading: projectLoading, error: projectError } = useProject(id);
   const { data: photos = [] } = usePhotos(id);
   const uploadPhotos = useUploadPhotos(id);
   const removePhoto = useRemovePhoto(id);
   const setStage = useSetProjectStage();
+
+  useEffect(() => {
+    let cancelled = false;
+    void checkUploadHealth().then((result) => {
+      if (!cancelled) setHealth(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const updateBatchItem = useCallback((uiId: string, patch: Partial<LocalUploadItem>) => {
+    setBatchItems((prev) =>
+      prev.map((item) => {
+        if (item.uiId !== uiId) return item;
+        const next = { ...item, ...patch };
+        if (typeof patch.progress === "number") {
+          next.progress = Math.max(item.progress, patch.progress);
+        }
+        if (patch.status === "completed") next.progress = 100;
+        return next;
+      }),
+    );
+  }, []);
 
   if (projectLoading) {
     return (
@@ -57,22 +154,90 @@ function UploadPage() {
   const handleFiles = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
     const files = Array.from(fileList);
-    const tooBig = files.find((f) => f.size > MAX_BYTES);
-    if (tooBig) {
-      setError(`"${tooBig.name}" is over 10MB.`);
-      return;
-    }
+
     const nonImage = files.find((f) => !isImageFile(f));
     if (nonImage) {
-      setError(`"${nonImage.name || "Selected file"}" is not an image.`);
+      setError(
+        `"${nonImage.name || "Selected file"}" is not an image. Use JPG, PNG, WEBP, or HEIC.`,
+      );
       return;
     }
+    const tooBig = files.find((f) => f.size > MAX_PHOTO_BYTES);
+    if (tooBig) {
+      setError(
+        `"${tooBig.name}" is over ${MAX_PHOTO_BYTES / (1024 * 1024)}MB. Compress it or choose a smaller photo.`,
+      );
+      return;
+    }
+
     setError(null);
+
+    const locals: LocalUploadItem[] = files.map((file) => ({
+      uiId: crypto.randomUUID(),
+      file,
+      status: "queued",
+      progress: 0,
+    }));
+    setBatchItems((prev) => [...prev, ...locals]);
+
+    const onItemState = (event: PhotoUploadItemEvent) => {
+      const target = locals[event.index];
+      if (!target) return;
+      const status = mapState(event.state);
+      const progress =
+        event.state === "failed"
+          ? target.progress
+          : event.state === "complete"
+            ? 100
+            : Math.max(target.progress, STAGE_PROGRESS[event.state] ?? target.progress);
+      const patch: Partial<LocalUploadItem> = { status, progress };
+      if (event.state === "complete" && event.photo) {
+        patch.photoId = event.photo.id;
+        patch.status = "completed";
+        patch.progress = 100;
+      }
+      if (event.state === "failed") {
+        patch.status = "failed";
+        patch.error = formatPhotoUploadError(event.error, event.stage);
+      }
+      updateBatchItem(target.uiId, patch);
+    };
+
     try {
-      await uploadPhotos.mutateAsync(files);
-      trackEvent("photos_uploaded", { photo_count: files.length });
+      await uploadPhotos.mutateAsync({
+        files,
+        onItemState,
+        concurrency: MAX_CONCURRENT_PHOTO_UPLOADS,
+      });
+      toast.success(files.length === 1 ? "Photo uploaded." : `${files.length} photos uploaded.`);
+      setBatchItems((prev) =>
+        prev.map((item) =>
+          locals.some((l) => l.uiId === item.uiId)
+            ? { ...item, status: "completed" as const, progress: 100 }
+            : item,
+        ),
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed.");
+      if (err instanceof PhotoUploadBatchError) {
+        const message = formatPhotoUploadBatchError(err);
+        setError(message);
+        toast.error(message);
+        for (const failure of err.failures) {
+          const target = locals[failure.index];
+          if (!target) continue;
+          updateBatchItem(target.uiId, {
+            status: "failed",
+            error: formatPhotoUploadError(failure.cause, failure.stage),
+          });
+        }
+      } else {
+        const message = formatPhotoUploadError(err);
+        setError(message);
+        toast.error(message);
+        for (const local of locals) {
+          updateBatchItem(local.uiId, { status: "failed", error: message });
+        }
+      }
     } finally {
       if (libraryInputRef.current) libraryInputRef.current.value = "";
       if (cameraInputRef.current) cameraInputRef.current.value = "";
@@ -88,12 +253,28 @@ function UploadPage() {
   };
 
   const handleAnalyse = () => {
-    trackEvent("ai_analysis_started");
+    trackEvent("ai_analysis_started", { projectId: id, photo_count: photos.length });
     setStage.mutate({ id, stage: "photos", value: true });
     navigate({ to: "/projects/$id/analysis", params: { id } });
   };
 
+  const retryFailed = () => {
+    const failedFiles = batchItems.filter((i) => i.status === "failed").map((i) => i.file);
+    if (failedFiles.length === 0) return;
+    setBatchItems((prev) => prev.filter((i) => i.status !== "failed"));
+    const dt = new DataTransfer();
+    failedFiles.forEach((f) => dt.items.add(f));
+    void handleFiles(dt.files);
+  };
+
   const uploading = uploadPhotos.isPending;
+  const failedCount = batchItems.filter((i) => i.status === "failed").length;
+  const pipelineSteps = buildProjectPipelineSteps({
+    photoCount: photos.length,
+    analysisComplete: project.analysis_done,
+    estimateComplete: project.estimate_done,
+    current: "upload",
+  });
 
   return (
     <AppLayout
@@ -106,13 +287,27 @@ function UploadPage() {
               Back
             </Link>
           </Button>
-          <Button onClick={handleAnalyse} disabled={photos.length === 0}>
+          <Button onClick={handleAnalyse} disabled={photos.length === 0 || uploading}>
             <Sparkles className="h-4 w-4" /> Run AI Analysis
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
       }
     >
+      <div className="mb-5">
+        <PipelineChecklist steps={pipelineSteps} />
+      </div>
+
+      {health && !health.ok ? (
+        <div className="mb-4 flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-100">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <div>
+            <p className="font-medium">Upload may not work right now</p>
+            <p className="mt-0.5 text-xs opacity-90">{health.message}</p>
+          </div>
+        </div>
+      ) : null}
+
       <Card>
         <CardContent className="p-6">
           <div
@@ -132,7 +327,8 @@ function UploadPage() {
               {uploading ? "Uploading…" : "Take photos or upload from your library"}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
-              JPG, PNG, or HEIC — up to 10MB each
+              JPG, PNG, WEBP, or HEIC — up to {MAX_PHOTO_BYTES / (1024 * 1024)}MB each · up to 3
+              concurrent
             </p>
             <div className="mt-4 flex flex-wrap justify-center gap-2">
               <Button
@@ -179,9 +375,85 @@ function UploadPage() {
           {error && (
             <div className="mt-4 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{error}</span>
+              <div className="min-w-0 flex-1">
+                <span>{error}</span>
+                {failedCount > 0 ? (
+                  <div className="mt-2">
+                    <Button type="button" size="sm" variant="outline" onClick={retryFailed}>
+                      <RefreshCw className="mr-1 h-3.5 w-3.5" />
+                      Retry failed ({failedCount})
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
             </div>
           )}
+
+          {batchItems.length > 0 ? (
+            <div className="mt-5 space-y-2">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Current batch</span>
+                <button
+                  type="button"
+                  className="text-xs underline-offset-2 hover:underline"
+                  onClick={() =>
+                    setBatchItems((prev) =>
+                      prev.filter((i) => i.status !== "completed" && i.status !== "failed"),
+                    )
+                  }
+                >
+                  Clear finished
+                </button>
+              </div>
+              {batchItems.map((item) => (
+                <div
+                  key={item.uiId}
+                  className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/60 p-3 text-sm"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-medium">{item.file.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatFileSize(item.file.size)}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded bg-muted">
+                      <div
+                        className="h-1.5 bg-primary transition-all"
+                        style={{ width: `${item.progress}%` }}
+                      />
+                    </div>
+                    {item.error ? (
+                      <p className="mt-1 truncate text-xs text-destructive" title={item.error}>
+                        {item.error}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="shrink-0 text-xs">
+                    {item.status === "completed" && (
+                      <span className="flex items-center gap-1 text-emerald-600">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Done
+                      </span>
+                    )}
+                    {item.status === "failed" && (
+                      <span className="flex items-center gap-1 text-destructive">
+                        <XCircle className="h-3.5 w-3.5" /> Failed
+                      </span>
+                    )}
+                    {(item.status === "uploading" || item.status === "saving") && (
+                      <span className="flex items-center gap-1 text-amber-600">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        {item.status === "saving" ? "Saving" : "Uploading"}
+                      </span>
+                    )}
+                    {item.status === "queued" && (
+                      <span className="text-muted-foreground">Queued</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
 
           <div className="mt-6">
             {photos.length === 0 ? (

@@ -20,8 +20,16 @@ import { logger } from "@/lib/logger";
 import { incrementCounter } from "@/lib/provider-diagnostics";
 import { timeoutPromise, isTimeoutError } from "@/lib/timeout";
 import { withRetry } from "@/core/ai/platform/retry";
+import { ConcurrencyLimiter } from "@/lib/concurrency";
 
 const AI_ANALYSIS_TIMEOUT_MS = 60_000;
+/**
+ * Cap parallel vision calls per server isolate (process-local).
+ * Shared across overlapping analysis requests on the same isolate.
+ * Not a durable multi-instance global semaphore (Vercel serverless).
+ */
+const AI_ANALYSIS_CONCURRENCY = 3;
+const visionConcurrencyLimiter = new ConcurrencyLimiter(AI_ANALYSIS_CONCURRENCY);
 
 const VALID_ROOM_TYPES: RoomType[] = [
   "Kitchen",
@@ -246,10 +254,12 @@ export async function runSecurePhotoAnalysis(input: {
     timeoutPerPhotoMs: AI_ANALYSIS_TIMEOUT_MS,
   });
 
-  const results = await Promise.all(photos.map((photo) => analysePhoto(apiKey, photo)));
+  const results = await Promise.all(
+    photos.map((photo) => visionConcurrencyLimiter.run(() => analysePhoto(apiKey, photo))),
+  );
 
-  const successCount = results.filter((r) => r.confidence_score > 0).length;
-  const fallbackCount = results.filter((r) => r.confidence_score === 0).length;
+  const successCount = results.filter((r) => r.source === "ai" && r.confidence_score > 0).length;
+  const fallbackCount = results.filter((r) => r.source === "fallback").length;
   const durationMs = Date.now() - startTime;
 
   addDiagnosticBreadcrumb("ai:gpt4o:batch:complete", {
@@ -257,8 +267,18 @@ export async function runSecurePhotoAnalysis(input: {
     photoCount: photos.length,
     successCount,
     fallbackCount,
+    concurrency: AI_ANALYSIS_CONCURRENCY,
     durationMs,
     avgPerPhotoMs: Math.round(durationMs / photos.length),
+  });
+
+  logger.info("[ai-server] vision batch complete", {
+    projectId: input.projectId,
+    photoCount: photos.length,
+    successCount,
+    fallbackCount,
+    concurrency: AI_ANALYSIS_CONCURRENCY,
+    durationMs,
   });
 
   return results;
