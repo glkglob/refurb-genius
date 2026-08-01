@@ -38,6 +38,7 @@ export type DryRunIssueCode =
   | "SNAPSHOT_INVALID"
   | "SNAPSHOT_UNKNOWN_KEY"
   | "ENTRY_UNKNOWN_KEY"
+  | "AMBIGUOUS_FIELD_ALIAS"
   | "RATE_INVALID"
   | "UNIT_INVALID"
   | "DUPLICATE_RATE_KEY"
@@ -118,8 +119,6 @@ export type RunCatalogueDryRunInput = {
   snapshotText: string;
   expectedInputChecksum?: string;
   expectedOutputChecksum?: string;
-  /** Default true — reject unknown keys. */
-  strict?: boolean;
 };
 
 export type RunCatalogueDryRunResult = {

@@ -6,9 +6,11 @@ import {
   B1_LICENCE_STATUSES,
   canonicalizeBaseUnitRate,
   computePackageArtifactChecksum,
+  computePackageArtifactChecksumV1Retired,
   numberToExactDecimalText,
   normaliseCatalogueSnapshot,
   parseCatalogueManifest,
+  PACKAGE_ARTIFACT_DOMAIN,
   runCatalogueDryRun,
   sha256Hex,
   UNIT_IMPORT_ALIASES,
@@ -87,7 +89,7 @@ describe("parseCatalogueManifest", () => {
     expect(result.ok).toBe(false);
   });
 
-  it("rejects unknown top-level keys in strict mode", () => {
+  it("rejects unknown top-level keys", () => {
     const result = parseCatalogueManifest({ ...VALID_MINIMUM_MANIFEST, extra: true });
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -332,7 +334,7 @@ describe("normalisation", () => {
     expect(result.issues.some((i) => i.code === "DUPLICATE_RATE_KEY")).toBe(true);
   });
 
-  it("rejects unknown entry keys in strict mode", () => {
+  it("rejects unknown entry keys", () => {
     const result = normaliseCatalogueSnapshot({
       ...VALID_MINIMUM_SNAPSHOT,
       entries: [{ ...VALID_MINIMUM_SNAPSHOT.entries[0], sku: "X" }],
@@ -366,35 +368,216 @@ describe("normalisation", () => {
   });
 });
 
-describe("package artifact checksum", () => {
-  it("is stable for same raw bytes", () => {
+describe("package artifact checksum (v2 injective framing)", () => {
+  it("is stable for same raw bytes and matches v2 preimage", () => {
     const m = validMinimumManifestText();
     const s = validMinimumSnapshotText();
     const a = computePackageArtifactChecksum(m, s);
     const b = computePackageArtifactChecksum(m, s);
     expect(a).toBe(b);
     expect(a).toMatch(/^[0-9a-f]{64}$/);
-    expect(a).toBe(nodeSha256(`mboq-package-v1\nMANIFEST.json\n${m}\nsnapshot.json\n${s}\n`));
-    expect(a).toBe(sha256Hex(`mboq-package-v1\nMANIFEST.json\n${m}\nsnapshot.json\n${s}\n`));
+    expect(PACKAGE_ARTIFACT_DOMAIN).toBe("mboq-package-v2\n");
+    const expected = sha256Hex(
+      `${PACKAGE_ARTIFACT_DOMAIN}manifest:${sha256Hex(m)}\nsnapshot:${sha256Hex(s)}\n`,
+    );
+    expect(a).toBe(expected);
+    expect(a).toBe(
+      nodeSha256(
+        `${PACKAGE_ARTIFACT_DOMAIN}manifest:${nodeSha256(m)}\nsnapshot:${nodeSha256(s)}\n`,
+      ),
+    );
   });
 
-  it("changes when whitespace changes", () => {
+  it("changes when manifest or snapshot bytes change", () => {
     const m = validMinimumManifestText();
     const s = validMinimumSnapshotText();
-    const a = computePackageArtifactChecksum(m, s);
-    const b = computePackageArtifactChecksum(m + " ", s);
-    expect(a).not.toBe(b);
+    const base = computePackageArtifactChecksum(m, s);
+    expect(computePackageArtifactChecksum(m + " ", s)).not.toBe(base);
+    expect(computePackageArtifactChecksum(m, s + " ")).not.toBe(base);
+  });
+
+  it("changes when artifacts are swapped", () => {
+    const m = validMinimumManifestText();
+    const s = validMinimumSnapshotText();
+    expect(computePackageArtifactChecksum(m, s)).not.toBe(computePackageArtifactChecksum(s, m));
   });
 
   it("changes when line endings change", () => {
     const m = validMinimumManifestText();
     const s = validMinimumSnapshotText();
     const a = computePackageArtifactChecksum(m, s);
-    const b = computePackageArtifactChecksum(m.replace(/\n/g, "\r\n"), s);
-    // if no newlines in compact JSON, force difference via snapshot
     const c = computePackageArtifactChecksum(m, s + "\r\n");
     expect(a).not.toBe(c);
-    void b;
+  });
+
+  it("handles Unicode content (UTF-8 via pure sha256)", () => {
+    const m = validMinimumManifestText();
+    const s = validMinimumSnapshotText();
+    const withUnicode = s.replace("SYNTHETIC", "SYNTHETIC✓");
+    expect(computePackageArtifactChecksum(m, withUnicode)).not.toBe(
+      computePackageArtifactChecksum(m, s),
+    );
+  });
+
+  it("v2 resolves the v1 delimiter collision pair to different digests", () => {
+    const sep = "\nsnapshot.json\n";
+    const mA = "X";
+    const sA = "Y" + sep + "Z";
+    const mB = "X" + sep + "Y";
+    const sB = "Z";
+    // Document retired v1 ambiguity for regression context.
+    expect(computePackageArtifactChecksumV1Retired(mA, sA)).toBe(
+      computePackageArtifactChecksumV1Retired(mB, sB),
+    );
+    expect(computePackageArtifactChecksum(mA, sA)).not.toBe(computePackageArtifactChecksum(mB, sB));
+  });
+
+  it("boundary text inside JSON strings cannot recreate another pair's v2 digest", () => {
+    const m = '{"note":"snapshot.json"}';
+    const s = '{"ok":true}';
+    const otherM = '{"note":"other"}';
+    const otherS = "snapshot.json" + s;
+    expect(computePackageArtifactChecksum(m, s)).not.toBe(
+      computePackageArtifactChecksum(otherM, otherS),
+    );
+  });
+});
+
+describe("B1B3 dual-alias rejection", () => {
+  it("accepts camelCase-only catalogRevision", () => {
+    const result = parseCatalogueManifest({
+      manifestVersion: "1",
+      catalogRevision: "mboq-2099.01.01",
+      source: {
+        id: "synthetic-test-source",
+        name: "Synthetic Test Source",
+        version: "1",
+        effectiveDate: "2099-01-01",
+        licenceReference: "synthetic-only",
+        licenceStatus: "synthetic",
+      },
+      transformation: { schemaVersion: "1", normaliserVersion: "1" },
+      package: { snapshotPath: "snapshot.json", production: false },
+    });
+    expect(result.ok).toBe(true);
+  });
+
+  it("accepts snake_case-only catalog_revision", () => {
+    const result = parseCatalogueManifest(VALID_MINIMUM_MANIFEST);
+    expect(result.ok).toBe(true);
+  });
+
+  it("rejects identical dual catalogRevision aliases", () => {
+    const result = parseCatalogueManifest({
+      manifest_version: "1",
+      catalogRevision: "mboq-2099.01.01",
+      catalog_revision: "mboq-2099.01.01",
+      source: VALID_MINIMUM_MANIFEST.source,
+      transformation: VALID_MINIMUM_MANIFEST.transformation,
+      package: VALID_MINIMUM_MANIFEST.package,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues.some((i) => i.code === "AMBIGUOUS_FIELD_ALIAS")).toBe(true);
+    expect(
+      result.issues.some(
+        (i) => i.code === "AMBIGUOUS_FIELD_ALIAS" && i.path === "manifest.catalogRevision",
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects conflicting dual catalogRevision aliases", () => {
+    const result = parseCatalogueManifest({
+      manifest_version: "1",
+      catalogRevision: "mboq-2099.12.31",
+      catalog_revision: "mboq-2099.01.01",
+      source: VALID_MINIMUM_MANIFEST.source,
+      transformation: VALID_MINIMUM_MANIFEST.transformation,
+      package: VALID_MINIMUM_MANIFEST.package,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues.some((i) => i.code === "AMBIGUOUS_FIELD_ALIAS")).toBe(true);
+  });
+
+  it("rejects dual entry rateKey aliases (identical and conflicting)", () => {
+    const base = { ...VALID_MINIMUM_SNAPSHOT.entries[0]! };
+    for (const dual of [
+      { rateKey: "synth.paint.m2", rate_key: "synth.paint.m2" },
+      { rateKey: "synth.paint.m2", rate_key: "synth.other.m2" },
+    ]) {
+      const result = normaliseCatalogueSnapshot({
+        ...VALID_MINIMUM_SNAPSHOT,
+        entries: [{ ...base, ...dual }],
+      });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.issues.some((i) => i.code === "AMBIGUOUS_FIELD_ALIAS")).toBe(true);
+    }
+  });
+
+  it("rejects triple trade aliases", () => {
+    const result = normaliseCatalogueSnapshot({
+      ...VALID_MINIMUM_SNAPSHOT,
+      entries: [
+        {
+          ...VALID_MINIMUM_SNAPSHOT.entries[0],
+          tradeOrDomain: "test",
+          trade_or_domain: "test",
+          trade: "test",
+        },
+      ],
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues.some((i) => i.code === "AMBIGUOUS_FIELD_ALIAS")).toBe(true);
+  });
+
+  it("ambiguity issues are deterministic across repeated runs", () => {
+    const input = {
+      manifest_version: "1",
+      catalogRevision: "mboq-2099.01.01",
+      catalog_revision: "mboq-2099.01.01",
+      source: VALID_MINIMUM_MANIFEST.source,
+      transformation: VALID_MINIMUM_MANIFEST.transformation,
+      package: VALID_MINIMUM_MANIFEST.package,
+    };
+    const a = parseCatalogueManifest(input);
+    const b = parseCatalogueManifest(input);
+    expect(a).toEqual(b);
+  });
+});
+
+describe("B1B3 unknown-key enforcement (no strict bypass)", () => {
+  it("rejects unknown nested source field", () => {
+    const result = parseCatalogueManifest({
+      ...VALID_MINIMUM_MANIFEST,
+      source: { ...VALID_MINIMUM_MANIFEST.source, sneaky: true },
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues.some((i) => i.code === "MANIFEST_UNKNOWN_KEY")).toBe(true);
+  });
+
+  it("rejects unknown snapshot field", () => {
+    const result = normaliseCatalogueSnapshot({
+      ...VALID_MINIMUM_SNAPSHOT,
+      unexpected: 1,
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.issues.some((i) => i.code === "SNAPSHOT_UNKNOWN_KEY")).toBe(true);
+  });
+
+  it("runCatalogueDryRun rejects unknown fields (legacy strict ignored if present)", () => {
+    const result = runCatalogueDryRun({
+      manifestText: JSON.stringify({ ...VALID_MINIMUM_MANIFEST, extra: 1 }),
+      snapshotText: validMinimumSnapshotText(),
+      // @ts-expect-error legacy option must not weaken contract
+      strict: false,
+    });
+    expect(result.report.ok).toBe(false);
+    expect(result.report.issues.some((i) => i.code === "MANIFEST_UNKNOWN_KEY")).toBe(true);
   });
 });
 

@@ -68,7 +68,12 @@ export {
   type RunCatalogueDryRunResult,
 } from "./manifestTypes";
 
-export { computePackageArtifactChecksum, PACKAGE_ARTIFACT_DOMAIN } from "./packageChecksum";
+export {
+  computePackageArtifactChecksum,
+  computePackageArtifactChecksumV1Retired,
+  PACKAGE_ARTIFACT_DOMAIN,
+  PACKAGE_ARTIFACT_DOMAIN_V1_RETIRED,
+} from "./packageChecksum";
 
 export {
   parseCatalogueManifest,

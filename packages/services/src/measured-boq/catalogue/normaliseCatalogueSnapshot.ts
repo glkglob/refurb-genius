@@ -39,9 +39,33 @@ function issue(
   };
 }
 
-function pick(obj: Record<string, unknown>, camel: string, snake: string): unknown {
-  if (camel in obj) return obj[camel];
-  if (snake in obj) return obj[snake];
+/**
+ * At most one accepted alias may be present for a logical field.
+ * Dual camelCase/snake_case (even with identical values) is rejected.
+ */
+function pickExclusive(
+  obj: Record<string, unknown>,
+  aliases: readonly string[],
+  logicalPath: string,
+  issues: DryRunIssue[],
+  extra?: { recordIndex?: number; rateKey?: string },
+): unknown {
+  const present = aliases.filter((key) => Object.prototype.hasOwnProperty.call(obj, key));
+  if (present.length > 1) {
+    issues.push(
+      issue(
+        "AMBIGUOUS_FIELD_ALIAS",
+        "structural",
+        logicalPath,
+        `ambiguous field aliases: ${present.join(", ")}`,
+        extra,
+      ),
+    );
+    return undefined;
+  }
+  if (present.length === 1) {
+    return obj[present[0]!];
+  }
   return undefined;
 }
 
@@ -285,12 +309,10 @@ export type NormaliseCatalogueSnapshotResult =
 export function normaliseCatalogueSnapshot(
   input: unknown,
   options: {
-    strict?: boolean;
     /** Forced production flag from MANIFEST when snapshot omits it. */
     productionFromManifest?: boolean;
   } = {},
 ): NormaliseCatalogueSnapshotResult {
-  const strict = options.strict !== false;
   const issues: DryRunIssue[] = [];
   const unitAliasApplications: UnitAliasApplication[] = [];
   const rateEvidence: Array<{ path: string; text: string; value: number }> = [];
@@ -305,27 +327,60 @@ export function normaliseCatalogueSnapshot(
     };
   }
 
-  if (strict) {
-    for (const key of Object.keys(input)) {
-      if (!SNAPSHOT_KEYS.has(key)) {
-        issues.push(
-          issue("SNAPSHOT_UNKNOWN_KEY", "structural", `snapshot.${key}`, `unknown key ${key}`),
-        );
-      }
+  for (const key of Object.keys(input)) {
+    if (!SNAPSHOT_KEYS.has(key)) {
+      issues.push(
+        issue("SNAPSHOT_UNKNOWN_KEY", "structural", `snapshot.${key}`, `unknown key ${key}`),
+      );
     }
   }
 
-  const schemaVersion = pick(input, "schemaVersion", "schema_version");
-  const catalogRevision = pick(input, "catalogRevision", "catalog_revision");
+  const schemaVersion = pickExclusive(
+    input,
+    ["schemaVersion", "schema_version"],
+    "snapshot.schemaVersion",
+    issues,
+  );
+  const catalogRevision = pickExclusive(
+    input,
+    ["catalogRevision", "catalog_revision"],
+    "snapshot.catalogRevision",
+    issues,
+  );
   const currency = input.currency;
-  const vatBasis = pick(input, "vatBasis", "vat_basis");
-  const regionalBasis = pick(input, "regionalBasis", "regional_basis");
-  const effectiveFrom = pick(input, "effectiveFrom", "effective_from");
-  const sourceDescription = pick(input, "sourceDescription", "source_description");
-  const contentChecksum = pick(input, "contentChecksum", "content_checksum");
+  const vatBasis = pickExclusive(input, ["vatBasis", "vat_basis"], "snapshot.vatBasis", issues);
+  const regionalBasis = pickExclusive(
+    input,
+    ["regionalBasis", "regional_basis"],
+    "snapshot.regionalBasis",
+    issues,
+  );
+  const effectiveFrom = pickExclusive(
+    input,
+    ["effectiveFrom", "effective_from"],
+    "snapshot.effectiveFrom",
+    issues,
+  );
+  const sourceDescription = pickExclusive(
+    input,
+    ["sourceDescription", "source_description"],
+    "snapshot.sourceDescription",
+    issues,
+  );
+  const contentChecksum = pickExclusive(
+    input,
+    ["contentChecksum", "content_checksum"],
+    "snapshot.contentChecksum",
+    issues,
+  );
   const status = input.status;
-  const createdBy = pick(input, "createdBy", "created_by");
-  const releaseNotesVal = pick(input, "releaseNotes", "release_notes");
+  const createdBy = pickExclusive(input, ["createdBy", "created_by"], "snapshot.createdBy", issues);
+  const releaseNotesVal = pickExclusive(
+    input,
+    ["releaseNotes", "release_notes"],
+    "snapshot.releaseNotes",
+    issues,
+  );
   const productionRaw =
     input.production !== undefined
       ? input.production
@@ -359,19 +414,19 @@ export function normaliseCatalogueSnapshot(
       continue;
     }
 
-    if (strict) {
-      for (const key of Object.keys(raw)) {
-        if (!ENTRY_KEYS.has(key)) {
-          issues.push(
-            issue("ENTRY_UNKNOWN_KEY", "structural", `${path}.${key}`, `unknown key ${key}`, {
-              recordIndex: i,
-            }),
-          );
-        }
+    for (const key of Object.keys(raw)) {
+      if (!ENTRY_KEYS.has(key)) {
+        issues.push(
+          issue("ENTRY_UNKNOWN_KEY", "structural", `${path}.${key}`, `unknown key ${key}`, {
+            recordIndex: i,
+          }),
+        );
       }
     }
 
-    const rateKeyRaw = pick(raw, "rateKey", "rate_key");
+    const rateKeyRaw = pickExclusive(raw, ["rateKey", "rate_key"], `${path}.rateKey`, issues, {
+      recordIndex: i,
+    });
     const rateKey = typeof rateKeyRaw === "string" ? rateKeyRaw : undefined;
     // Do not case-fold rate keys; validator enforces grammar.
     if (typeof rateKey === "string") {
@@ -393,7 +448,13 @@ export function normaliseCatalogueSnapshot(
       }
     }
 
-    const displayNameRaw = pick(raw, "displayName", "display_name");
+    const displayNameRaw = pickExclusive(
+      raw,
+      ["displayName", "display_name"],
+      `${path}.displayName`,
+      issues,
+      { recordIndex: i },
+    );
     const displayName = typeof displayNameRaw === "string" ? displayNameRaw.trim() : displayNameRaw;
 
     let description: unknown = raw.description;
@@ -402,18 +463,29 @@ export function normaliseCatalogueSnapshot(
       description = t === "" ? null : t;
     }
 
-    const tradeRaw =
-      pick(raw, "tradeOrDomain", "trade_or_domain") !== undefined
-        ? pick(raw, "tradeOrDomain", "trade_or_domain")
-        : raw.trade;
+    const tradeRaw = pickExclusive(
+      raw,
+      ["tradeOrDomain", "trade_or_domain", "trade"],
+      `${path}.tradeOrDomain`,
+      issues,
+      { recordIndex: i },
+    );
     const tradeOrDomain = typeof tradeRaw === "string" ? tradeRaw.trim() : tradeRaw;
 
     const unit = normaliseUnit(raw.unit, `${path}.unit`, issues, unitAliasApplications, i);
 
-    const costType = pick(raw, "costType", "cost_type");
+    const costType = pickExclusive(raw, ["costType", "cost_type"], `${path}.costType`, issues, {
+      recordIndex: i,
+    });
 
     const ratePath = `${path}.baseUnitRate`;
-    const rateRaw = pick(raw, "baseUnitRate", "base_unit_rate");
+    const rateRaw = pickExclusive(
+      raw,
+      ["baseUnitRate", "base_unit_rate"],
+      `${path}.baseUnitRate`,
+      issues,
+      { recordIndex: i },
+    );
     const rate = canonicalizeBaseUnitRate(rateRaw);
     if (!rate.ok) {
       issues.push(
@@ -432,21 +504,34 @@ export function normaliseCatalogueSnapshot(
         : snapCurrency !== undefined
           ? snapCurrency
           : undefined;
+    const entryVatRaw = pickExclusive(raw, ["vatBasis", "vat_basis"], `${path}.vatBasis`, issues, {
+      recordIndex: i,
+    });
     const entryVat =
-      pick(raw, "vatBasis", "vat_basis") !== undefined
-        ? pick(raw, "vatBasis", "vat_basis")
-        : snapVat !== undefined
-          ? snapVat
-          : undefined;
+      entryVatRaw !== undefined ? entryVatRaw : snapVat !== undefined ? snapVat : undefined;
 
-    let sourceReference = pick(raw, "sourceReference", "source_reference");
+    let sourceReference = pickExclusive(
+      raw,
+      ["sourceReference", "source_reference"],
+      `${path}.sourceReference`,
+      issues,
+      { recordIndex: i },
+    );
     if (typeof sourceReference === "string") {
       const t = sourceReference.trim();
       sourceReference = t === "" ? null : t;
     }
 
-    const statusVal = pick(raw, "status", "entry_status");
-    const replacementRateKey = pick(raw, "replacementRateKey", "replacement_rate_key");
+    const statusVal = pickExclusive(raw, ["status", "entry_status"], `${path}.status`, issues, {
+      recordIndex: i,
+    });
+    const replacementRateKey = pickExclusive(
+      raw,
+      ["replacementRateKey", "replacement_rate_key"],
+      `${path}.replacementRateKey`,
+      issues,
+      { recordIndex: i },
+    );
 
     normalisedEntries.push({
       rateKey,
@@ -465,7 +550,12 @@ export function normaliseCatalogueSnapshot(
   }
 
   // entryCount default
-  let entryCount = pick(input, "entryCount", "entry_count");
+  let entryCount = pickExclusive(
+    input,
+    ["entryCount", "entry_count"],
+    "snapshot.entryCount",
+    issues,
+  );
   if (entryCount === undefined) {
     entryCount = normalisedEntries.length;
   }

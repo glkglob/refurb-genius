@@ -60,7 +60,6 @@ function emptyReport(
  * Pure dry-run evaluation of raw manifest + snapshot artifact text.
  */
 export function runCatalogueDryRun(input: RunCatalogueDryRunInput): RunCatalogueDryRunResult {
-  const strict = input.strict !== false;
   const issues: DryRunIssue[] = [];
   const warnings: DryRunIssue[] = [];
 
@@ -77,7 +76,7 @@ export function runCatalogueDryRun(input: RunCatalogueDryRunInput): RunCatalogue
   }
 
   // Parse manifest
-  const parsedManifest = parseCatalogueManifest(input.manifestText, { strict });
+  const parsedManifest = parseCatalogueManifest(input.manifestText);
   if (!parsedManifest.ok) {
     issues.push(...parsedManifest.issues);
     const report = emptyReport({
@@ -117,7 +116,6 @@ export function runCatalogueDryRun(input: RunCatalogueDryRunInput): RunCatalogue
 
   // Normalise
   const normalised = normaliseCatalogueSnapshot(snapshotRaw, {
-    strict,
     productionFromManifest: manifest.package.production,
   });
 

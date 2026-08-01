@@ -78,9 +78,31 @@ const TRANSFORMATION_KEYS = new Set([
 
 const PACKAGE_KEYS = new Set(["snapshotPath", "snapshot_path", "production"]);
 
-function pick(obj: Record<string, unknown>, camel: string, snake: string): unknown {
-  if (camel in obj) return obj[camel];
-  if (snake in obj) return obj[snake];
+/**
+ * At most one accepted alias may be present for a logical field.
+ * Dual camelCase/snake_case (even with identical values) is rejected.
+ */
+function pickExclusive(
+  obj: Record<string, unknown>,
+  aliases: readonly string[],
+  logicalPath: string,
+  issues: DryRunIssue[],
+): unknown {
+  const present = aliases.filter((key) => Object.prototype.hasOwnProperty.call(obj, key));
+  if (present.length > 1) {
+    issues.push(
+      issue(
+        "AMBIGUOUS_FIELD_ALIAS",
+        "structural",
+        logicalPath,
+        `ambiguous field aliases: ${present.join(", ")}`,
+      ),
+    );
+    return undefined;
+  }
+  if (present.length === 1) {
+    return obj[present[0]!];
+  }
   return undefined;
 }
 
@@ -106,11 +128,7 @@ export type ParseCatalogueManifestResult =
 /**
  * Parse a raw JSON string or already-decoded object into a CatalogueManifest.
  */
-export function parseCatalogueManifest(
-  input: string | unknown,
-  options: { strict?: boolean } = {},
-): ParseCatalogueManifestResult {
-  const strict = options.strict !== false;
+export function parseCatalogueManifest(input: string | unknown): ParseCatalogueManifestResult {
   const issues: DryRunIssue[] = [];
 
   let raw: unknown = input;
@@ -134,11 +152,14 @@ export function parseCatalogueManifest(
     };
   }
 
-  if (strict) {
-    rejectUnknown(raw, TOP_KEYS, "manifest", issues);
-  }
+  rejectUnknown(raw, TOP_KEYS, "manifest", issues);
 
-  const manifestVersionRaw = pick(raw, "manifestVersion", "manifest_version");
+  const manifestVersionRaw = pickExclusive(
+    raw,
+    ["manifestVersion", "manifest_version"],
+    "manifest.manifestVersion",
+    issues,
+  );
   if (manifestVersionRaw !== B1_MANIFEST_VERSION) {
     if (typeof manifestVersionRaw === "string" && manifestVersionRaw !== B1_MANIFEST_VERSION) {
       issues.push(
@@ -161,7 +182,10 @@ export function parseCatalogueManifest(
     }
   }
 
-  const catalogRevision = asNonEmptyString(pick(raw, "catalogRevision", "catalog_revision"), 64);
+  const catalogRevision = asNonEmptyString(
+    pickExclusive(raw, ["catalogRevision", "catalog_revision"], "manifest.catalogRevision", issues),
+    64,
+  );
   if (catalogRevision == null) {
     issues.push(
       issue(
@@ -178,7 +202,7 @@ export function parseCatalogueManifest(
     issues.push(
       issue("MANIFEST_FIELD_INVALID", "structural", "manifest.source", "source is required"),
     );
-  } else if (strict) {
+  } else {
     rejectUnknown(sourceRaw, SOURCE_KEYS, "manifest.source", issues);
   }
 
@@ -192,7 +216,7 @@ export function parseCatalogueManifest(
         "transformation is required",
       ),
     );
-  } else if (strict) {
+  } else {
     rejectUnknown(transformationRaw, TRANSFORMATION_KEYS, "manifest.transformation", issues);
   }
 
@@ -201,7 +225,7 @@ export function parseCatalogueManifest(
     issues.push(
       issue("MANIFEST_FIELD_INVALID", "structural", "manifest.package", "package is required"),
     );
-  } else if (strict) {
+  } else {
     rejectUnknown(packageRaw, PACKAGE_KEYS, "manifest.package", issues);
   }
 
@@ -247,7 +271,15 @@ export function parseCatalogueManifest(
         ),
       );
     }
-    const ed = asNonEmptyString(pick(sourceRaw, "effectiveDate", "effective_date"), 32);
+    const ed = asNonEmptyString(
+      pickExclusive(
+        sourceRaw,
+        ["effectiveDate", "effective_date"],
+        "manifest.source.effectiveDate",
+        issues,
+      ),
+      32,
+    );
     if (ed == null || !isIsoDateOnly(ed)) {
       issues.push(
         issue(
@@ -261,7 +293,12 @@ export function parseCatalogueManifest(
       effectiveDate = ed;
     }
 
-    const ra = pick(sourceRaw, "retrievedAt", "retrieved_at");
+    const ra = pickExclusive(
+      sourceRaw,
+      ["retrievedAt", "retrieved_at"],
+      "manifest.source.retrievedAt",
+      issues,
+    );
     if (ra !== undefined) {
       if (typeof ra !== "string" || ra.trim() === "") {
         issues.push(
@@ -278,7 +315,12 @@ export function parseCatalogueManifest(
     }
 
     licenceReference = asNonEmptyString(
-      pick(sourceRaw, "licenceReference", "licence_reference"),
+      pickExclusive(
+        sourceRaw,
+        ["licenceReference", "licence_reference"],
+        "manifest.source.licenceReference",
+        issues,
+      ),
       500,
     );
     if (licenceReference == null) {
@@ -292,7 +334,12 @@ export function parseCatalogueManifest(
       );
     }
 
-    const ls = pick(sourceRaw, "licenceStatus", "licence_status");
+    const ls = pickExclusive(
+      sourceRaw,
+      ["licenceStatus", "licence_status"],
+      "manifest.source.licenceStatus",
+      issues,
+    );
     if (typeof ls !== "string" || !(B1_LICENCE_STATUSES as readonly string[]).includes(ls)) {
       issues.push(
         issue(
@@ -311,7 +358,12 @@ export function parseCatalogueManifest(
   let normaliserVersion: string | null = null;
   if (isPlainObject(transformationRaw)) {
     transformSchema = asNonEmptyString(
-      pick(transformationRaw, "schemaVersion", "schema_version"),
+      pickExclusive(
+        transformationRaw,
+        ["schemaVersion", "schema_version"],
+        "manifest.transformation.schemaVersion",
+        issues,
+      ),
       64,
     );
     if (transformSchema == null) {
@@ -335,7 +387,12 @@ export function parseCatalogueManifest(
     }
 
     normaliserVersion = asNonEmptyString(
-      pick(transformationRaw, "normaliserVersion", "normaliser_version"),
+      pickExclusive(
+        transformationRaw,
+        ["normaliserVersion", "normaliser_version"],
+        "manifest.transformation.normaliserVersion",
+        issues,
+      ),
       64,
     );
     if (normaliserVersion == null) {
@@ -362,7 +419,12 @@ export function parseCatalogueManifest(
   let snapshotPath: string | null = null;
   let production: boolean | null = null;
   if (isPlainObject(packageRaw)) {
-    const sp = pick(packageRaw, "snapshotPath", "snapshot_path");
+    const sp = pickExclusive(
+      packageRaw,
+      ["snapshotPath", "snapshot_path"],
+      "manifest.package.snapshotPath",
+      issues,
+    );
     if (typeof sp !== "string" || sp.trim() === "") {
       issues.push(
         issue(
