@@ -20,8 +20,11 @@ import { logger } from "@/lib/logger";
 import { incrementCounter } from "@/lib/provider-diagnostics";
 import { timeoutPromise, isTimeoutError } from "@/lib/timeout";
 import { withRetry } from "@/core/ai/platform/retry";
+import { ConcurrencyLimiter } from "@/lib/concurrency";
 
 const AI_ANALYSIS_TIMEOUT_MS = 60_000;
+/** Cap parallel vision calls to avoid rate limits and timeouts. */
+const AI_ANALYSIS_CONCURRENCY = 3;
 
 const VALID_ROOM_TYPES: RoomType[] = [
   "Kitchen",
@@ -246,10 +249,13 @@ export async function runSecurePhotoAnalysis(input: {
     timeoutPerPhotoMs: AI_ANALYSIS_TIMEOUT_MS,
   });
 
-  const results = await Promise.all(photos.map((photo) => analysePhoto(apiKey, photo)));
+  const limiter = new ConcurrencyLimiter(AI_ANALYSIS_CONCURRENCY);
+  const results = await Promise.all(
+    photos.map((photo) => limiter.run(() => analysePhoto(apiKey, photo))),
+  );
 
-  const successCount = results.filter((r) => r.confidence_score > 0).length;
-  const fallbackCount = results.filter((r) => r.confidence_score === 0).length;
+  const successCount = results.filter((r) => r.source === "ai" && r.confidence_score > 0).length;
+  const fallbackCount = results.filter((r) => r.source === "fallback").length;
   const durationMs = Date.now() - startTime;
 
   addDiagnosticBreadcrumb("ai:gpt4o:batch:complete", {
@@ -257,8 +263,18 @@ export async function runSecurePhotoAnalysis(input: {
     photoCount: photos.length,
     successCount,
     fallbackCount,
+    concurrency: AI_ANALYSIS_CONCURRENCY,
     durationMs,
     avgPerPhotoMs: Math.round(durationMs / photos.length),
+  });
+
+  logger.info("[ai-server] vision batch complete", {
+    projectId: input.projectId,
+    photoCount: photos.length,
+    successCount,
+    fallbackCount,
+    concurrency: AI_ANALYSIS_CONCURRENCY,
+    durationMs,
   });
 
   return results;

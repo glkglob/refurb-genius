@@ -17,6 +17,15 @@ export {
   hasFallbackResults,
   isActionableAnalysisSet,
   averageConfidence,
+  CONFIDENCE_REVIEW_THRESHOLD,
+  needsHumanReview,
+  isRetryableAnalysis,
+  photoAiStatus,
+  groupAnalysesByRoom,
+  findDuplicatePhotoIds,
+  suggestWithoutOverwrite,
+  type PhotoAiStatus,
+  type RoomAnalysisGroup,
 } from "./rules";
 export {
   roomTypeSchema,

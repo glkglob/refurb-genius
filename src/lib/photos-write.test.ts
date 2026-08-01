@@ -647,6 +647,20 @@ describe("uploadProjectPhotos batch", () => {
 
 // ── Remove ────────────────────────────────────────────────────────
 
+
+describe("uploadProjectPhoto size validation", () => {
+  it("rejects files over MAX_PHOTO_BYTES", async () => {
+    const { uploadProjectPhoto, PhotoWriteError, MAX_PHOTO_BYTES } = await import("./photos-write");
+    const big = new File([new Uint8Array(MAX_PHOTO_BYTES + 1)], "huge.jpg", { type: "image/jpeg" });
+    // Ensure size is reported correctly in jsdom/node
+    Object.defineProperty(big, "size", { value: MAX_PHOTO_BYTES + 1 });
+    await expect(uploadProjectPhoto({ projectId: "proj-1", file: big })).rejects.toMatchObject({
+      name: "PhotoWriteError",
+      stage: "validation",
+    });
+  });
+});
+
 describe("removeProjectPhoto", () => {
   it("authenticates before delete and uses deleted row storage_path", async () => {
     deleteChainMock.maybeSingle.mockResolvedValue({

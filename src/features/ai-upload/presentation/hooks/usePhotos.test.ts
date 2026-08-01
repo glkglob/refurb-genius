@@ -16,6 +16,7 @@ import {
 const uploadProjectPhotos = vi.fn();
 const removeProjectPhoto = vi.fn();
 const loggerWarn = vi.fn();
+const trackEvent = vi.fn();
 
 vi.mock("@/lib/photos-write", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/photos-write")>();
@@ -33,6 +34,10 @@ vi.mock("@/lib/logger", () => ({
     warn: (...args: unknown[]) => loggerWarn(...args),
     error: vi.fn(),
   },
+}));
+
+vi.mock("@/lib/analytics", () => ({
+  trackEvent: (...args: unknown[]) => trackEvent(...args),
 }));
 
 vi.mock("@/hooks/useAuth", () => ({
@@ -92,6 +97,7 @@ beforeEach(() => {
   uploadProjectPhotos.mockReset();
   removeProjectPhoto.mockReset();
   loggerWarn.mockReset();
+  trackEvent.mockReset();
 });
 
 // ─── Upload ──────────────────────────────────────────────────────────────────
