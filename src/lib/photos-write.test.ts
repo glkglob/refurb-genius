@@ -647,7 +647,6 @@ describe("uploadProjectPhotos batch", () => {
 
 // ── Remove ────────────────────────────────────────────────────────
 
-
 describe("uploadProjectPhoto size validation", () => {
   it("rejects files over MAX_PHOTO_BYTES", async () => {
     const { uploadProjectPhoto, PhotoWriteError, MAX_PHOTO_BYTES } = await import("./photos-write");

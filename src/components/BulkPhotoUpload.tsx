@@ -262,14 +262,7 @@ export function BulkPhotoUpload({ projectId }: BulkPhotoUploadProps) {
       processingRef.current = false;
       setIsProcessing(false);
     }
-  }, [
-    items,
-    projectId,
-    onItemState,
-    applyFullSuccess,
-    applyBatchError,
-    applyTotalUnknownFailure,
-  ]);
+  }, [items, projectId, onItemState, applyFullSuccess, applyBatchError, applyTotalUnknownFailure]);
 
   const onDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {

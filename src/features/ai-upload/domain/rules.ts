@@ -88,9 +88,7 @@ export function groupAnalysesByRoom(analyses: RoomAnalysis[]): RoomAnalysisGroup
   return order.map((roomType) => {
     const group = map.get(roomType) ?? [];
     const avg =
-      group.length === 0
-        ? 0
-        : group.reduce((s, a) => s + a.confidence_score, 0) / group.length;
+      group.length === 0 ? 0 : group.reduce((s, a) => s + a.confidence_score, 0) / group.length;
     return {
       roomType,
       analyses: group,

@@ -2,11 +2,7 @@
  * User-facing photo upload error copy.
  * Maps PhotoWrite stages + common Supabase/browser failures to clear messages.
  */
-import {
-  PhotoUploadBatchError,
-  PhotoWriteError,
-  type PhotoWriteStage,
-} from "@/lib/photos-write";
+import { PhotoUploadBatchError, PhotoWriteError, type PhotoWriteStage } from "@/lib/photos-write";
 
 const STAGE_HINT: Record<PhotoWriteStage, string> = {
   validation: "Check the file type and size, then try again.",
@@ -81,11 +77,7 @@ function classifyRawMessage(raw: string): string | null {
     return "Upload timed out or lost connection. Check your network and retry.";
   }
 
-  if (
-    lower.includes("bucket") ||
-    lower.includes("storage") ||
-    lower.includes("object not found")
-  ) {
+  if (lower.includes("bucket") || lower.includes("storage") || lower.includes("object not found")) {
     return "Photo storage is unavailable right now. Please try again in a moment.";
   }
 

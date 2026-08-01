@@ -4,10 +4,8 @@ import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
-import {
-  PipelineChecklist,
-  buildProjectPipelineSteps,
-} from "@/components/PipelineChecklist";
+import { PipelineChecklist } from "@/components/PipelineChecklist";
+import { buildProjectPipelineSteps } from "@/components/pipeline-checklist";
 import { formatFileSize } from "@/lib/file-utils";
 import {
   Upload,
@@ -32,10 +30,7 @@ import {
   type PhotoUploadItemEvent,
   type PhotoUploadItemState,
 } from "@/lib/photos-write";
-import {
-  formatPhotoUploadBatchError,
-  formatPhotoUploadError,
-} from "@/lib/upload-errors";
+import { formatPhotoUploadBatchError, formatPhotoUploadError } from "@/lib/upload-errors";
 import { checkUploadHealth, type UploadHealthResult } from "@/lib/upload-health";
 import { toast } from "sonner";
 

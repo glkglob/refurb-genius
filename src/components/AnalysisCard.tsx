@@ -3,11 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { memo } from "react";
 import { Sparkles, AlertTriangle, Wrench } from "lucide-react";
-import {
-  needsHumanReview,
-  type RoomAnalysis,
-  type ConditionLevel,
-} from "@/features/ai-upload";
+import { needsHumanReview, type RoomAnalysis, type ConditionLevel } from "@/features/ai-upload";
 import { AnalysisSourceBadge } from "./AnalysisSourceBadge";
 
 const conditionTone: Record<ConditionLevel, Parameters<typeof StatusBadge>[0]["tone"]> = {

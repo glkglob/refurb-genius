@@ -1,9 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  formatPhotoUploadError,
-  formatPhotoUploadBatchError,
-  stageLabel,
-} from "./upload-errors";
+import { formatPhotoUploadError, formatPhotoUploadBatchError, stageLabel } from "./upload-errors";
 import { PhotoUploadBatchError, PhotoWriteError } from "./photos-write";
 
 describe("upload-errors", () => {

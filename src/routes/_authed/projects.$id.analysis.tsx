@@ -7,10 +7,8 @@ import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import { AnalysisCard } from "@/components/AnalysisCard";
 import { RedesignCard } from "@/components/RedesignCard";
-import {
-  PipelineChecklist,
-  buildProjectPipelineSteps,
-} from "@/components/PipelineChecklist";
+import { PipelineChecklist } from "@/components/PipelineChecklist";
+import { buildProjectPipelineSteps } from "@/components/pipeline-checklist";
 import { useEffect, useMemo, useState } from "react";
 import { Sparkles, ArrowRight, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
