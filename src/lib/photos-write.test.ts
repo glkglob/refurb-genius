@@ -788,7 +788,6 @@ describe("module exports", () => {
   });
 });
 
-
 describe("validation item state", () => {
   it("oversized emits failed with stage validation", async () => {
     const events: Array<{ state: string; stage?: string }> = [];
