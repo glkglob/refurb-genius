@@ -6,7 +6,9 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist", ".output", ".vinxi", ".vercel", ".tmp"] },
+  // supabase/.temp is gitignored CLI runtime state (edge-runtime bootstrap, secrets).
+  // CLI 2.111.0 writes TypeScript under start-secrets that must not be linted as app code.
+  { ignores: ["dist", ".output", ".vinxi", ".vercel", ".tmp", "supabase/.temp"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

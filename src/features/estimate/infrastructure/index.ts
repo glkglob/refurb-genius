@@ -1,9 +1,10 @@
 /**
  * Estimate slice — infrastructure public surface (browser-safe).
  *
- * The AI adapter (`adapters/ai-estimate.adapter.server.ts`) is deliberately
- * NOT exported here: it is server-only and must be reached via dynamic
- * `import()` inside serverFn handlers.
+ * The AI adapter (`adapters/ai-estimate.adapter.server.ts`) and catalogue
+ * loader (`catalogue/measuredBoqCatalogue.repository.server.ts`) are
+ * deliberately NOT exported here: they are server-only and must be reached
+ * via dynamic `import()` inside server handlers only.
  */
 export {
   SupabaseEstimateRepository,

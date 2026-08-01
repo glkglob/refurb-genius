@@ -80,18 +80,28 @@ export const DATA_DOMAINS: DataDomain[] = [
     id: "estimates",
     label: "Estimates",
     owner: "refurb-genius",
-    tables: ["estimates", "estimate_items", "estimate_rooms", "estimate_authority_idempotency"],
-    sourceOfTruth: "public.estimates (+ children + private idempotency)",
-    persistenceLayer: "Category authority: serverFn + service_role RPC; drafts: browser repository",
+    tables: [
+      "estimates",
+      "estimate_items",
+      "estimate_rooms",
+      "estimate_authority_idempotency",
+      "measured_boq_catalog_revisions",
+      "measured_boq_catalog_entries",
+    ],
+    sourceOfTruth: "public.estimates (+ children + private idempotency + private catalogue)",
+    persistenceLayer:
+      "Category authority: serverFn + service_role RPC; drafts: browser repository; catalogue: service_role only",
     tenantScope: "mixed",
     lifecycle:
-      "Draft/none rows via browser RLS; category-engine rows via private RPC with durable idempotency",
+      "Draft/none rows via browser RLS; category-engine rows via private RPC; measured catalogue immutable when published",
     maturity: "live",
     enforcementStatus: "enforced",
     persistenceKind: "persistent",
     enforcementEvidence: [
       "supabase/migrations/20260730120000_estimate_authority_persistence_foundation.sql",
+      "supabase/migrations/20260731120000_measured_boq_catalogue_foundation.sql",
       "tests/invariants/l3-category-authority-persistence.invariant.test.ts",
+      "tests/invariants/l3-measured-boq-catalogue.invariant.test.ts",
     ],
   },
   {

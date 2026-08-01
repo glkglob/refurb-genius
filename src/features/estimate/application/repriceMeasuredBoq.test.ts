@@ -17,6 +17,8 @@ const TEST_CATALOGUE = new Map<string, MeasuredBoqLibraryCatalogEntry>([
       baseUnitRate: 100,
       currency: "GBP",
       vatBasis: "exclusive",
+      unit: "m2",
+      costType: "combined",
     },
   ],
 ]);

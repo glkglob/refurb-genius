@@ -39,6 +39,10 @@ export type MeasuredBoqLibraryCatalogEntry = {
   baseUnitRate: number;
   currency: "GBP";
   vatBasis: "exclusive";
+  /** Canonical unit code — must exactly match the BOQ line unit for library rates. */
+  unit: string;
+  /** Fixed cost allocation for this catalogue entry. */
+  costType: MeasuredBoqCostType;
 };
 
 export type MeasuredBoqLibraryRateReference = {
@@ -154,7 +158,9 @@ export type MeasuredBoqIssueCode =
   | "INVALID_QUOTE_DATE"
   | "INELIGIBLE_AI_RATE"
   | "INELIGIBLE_FALLBACK_RATE"
-  | "UNCLASSIFIED_RATE";
+  | "UNCLASSIFIED_RATE"
+  | "CATALOG_UNIT_MISMATCH"
+  | "CATALOG_COST_TYPE_MISMATCH";
 
 export type MeasuredBoqIssue = {
   code: MeasuredBoqIssueCode;
@@ -164,6 +170,17 @@ export type MeasuredBoqIssue = {
 
 // ── Rate resolution ────────────────────────────────────────────────────────
 
+/** Discrete library provenance — never parse rateReference for identity. */
+export type MeasuredBoqLibraryLineProvenance = {
+  rateKey: string;
+  catalogRevision: string;
+  unit: string;
+  costType: MeasuredBoqCostType;
+  baseUnitRate: number;
+  regionalMultiplier: number;
+  resolvedUnitRate: number;
+};
+
 export type EligibleMeasuredBoqRateResolution = {
   eligible: true;
   source: "library" | "user-quote";
@@ -171,6 +188,10 @@ export type EligibleMeasuredBoqRateResolution = {
   regionalMultiplier: number;
   resolvedUnitRate: number;
   reference: string;
+  /** Present only for resolved library lines. */
+  libraryProvenance?: MeasuredBoqLibraryLineProvenance;
+  /** Trusted cost type from catalogue (library) or undefined (user-quote). */
+  catalogCostType?: MeasuredBoqCostType;
 };
 
 export type IneligibleMeasuredBoqRateResolution = {
@@ -236,16 +257,25 @@ function issue(code: MeasuredBoqIssueCode, path: string, message: string): Measu
   return { code, path, message };
 }
 
+export type MeasuredBoqLineRateContext = {
+  unit: string;
+  costType?: MeasuredBoqCostType;
+};
+
 /**
  * Resolve a single rate to an eligible authority rate or structured issues.
  * Authority is derived here — callers cannot pass an authoritative flag or
  * library money amounts.
+ *
+ * Optional `lineContext` enables unit/cost-type compatibility checks for library
+ * rates against the trusted catalogue entry.
  */
 export function resolveMeasuredBoqRate(
   rate: MeasuredBoqRateInput,
   region: UKRegion,
   path: string,
   dependencies: MeasuredBoqEngineDependencies,
+  lineContext?: MeasuredBoqLineRateContext,
 ): MeasuredBoqRateResolution {
   if (rate.source === "ai-assisted") {
     return {
@@ -344,12 +374,58 @@ export function resolveMeasuredBoqRate(
     if (entry.vatBasis !== "exclusive") {
       issues.push(issue("INVALID_RATE", path, "Catalogue rate must be VAT-exclusive"));
     }
+    if (typeof entry.unit !== "string" || entry.unit.trim() === "") {
+      issues.push(issue("INVALID_RATE", path, "Catalogue entry unit is required"));
+    }
+    if (
+      typeof entry.costType !== "string" ||
+      !VALID_COST_TYPES.has(entry.costType as MeasuredBoqCostType)
+    ) {
+      issues.push(
+        issue(
+          "INVALID_RATE",
+          path,
+          "Catalogue entry costType must be labour, materials, or combined",
+        ),
+      );
+    }
+
+    if (lineContext) {
+      if (typeof lineContext.unit === "string" && lineContext.unit !== entry.unit) {
+        issues.push(
+          issue(
+            "CATALOG_UNIT_MISMATCH",
+            path,
+            `Line unit "${lineContext.unit}" does not match catalogue unit "${entry.unit}"`,
+          ),
+        );
+      }
+      if (lineContext.costType !== undefined && lineContext.costType !== entry.costType) {
+        issues.push(
+          issue(
+            "CATALOG_COST_TYPE_MISMATCH",
+            path,
+            `Line costType "${lineContext.costType}" does not match catalogue costType "${entry.costType}"`,
+          ),
+        );
+      }
+    }
+
     if (issues.length > 0) {
       return { eligible: false, source: "library", issues };
     }
 
     const regionalMultiplier = getRegionalMultiplier(region);
     const resolvedUnitRate = roundMeasuredBoqMoney(entry.baseUnitRate * regionalMultiplier);
+    const libraryProvenance: MeasuredBoqLibraryLineProvenance = {
+      rateKey: entry.rateKey,
+      catalogRevision: entry.catalogRevision,
+      unit: entry.unit,
+      costType: entry.costType,
+      baseUnitRate: entry.baseUnitRate,
+      regionalMultiplier,
+      resolvedUnitRate,
+    };
     return {
       eligible: true,
       source: "library",
@@ -357,6 +433,8 @@ export function resolveMeasuredBoqRate(
       regionalMultiplier,
       resolvedUnitRate,
       reference: `${rate.rateKey}@${rate.catalogRevision}`,
+      libraryProvenance,
+      catalogCostType: entry.costType,
     };
   }
 
@@ -471,6 +549,8 @@ export type MeasuredBoqLineResult = {
   unitRate: number;
   totalCost: number;
   notes?: string;
+  /** Discrete library provenance for persistence; absent for user-quote. */
+  libraryProvenance?: MeasuredBoqLibraryLineProvenance;
 };
 
 export type MeasuredBoqRoomResult = {
@@ -618,6 +698,7 @@ export function assessMeasuredBoqAuthority(
         input.region,
         `${itemPath}.rate`,
         dependencies,
+        { unit: item.unit, costType: item.costType },
       );
       if (!rateResolution.eligible) {
         issues.push(...rateResolution.issues);
@@ -683,7 +764,10 @@ export function runMeasuredBoqEngine(
   for (const room of input.rooms) {
     const items: MeasuredBoqLineResult[] = [];
     for (const item of room.items) {
-      const resolved = resolveMeasuredBoqRate(item.rate, input.region, "rate", dependencies);
+      const resolved = resolveMeasuredBoqRate(item.rate, input.region, "rate", dependencies, {
+        unit: item.unit,
+        costType: item.costType,
+      });
       if (!resolved.eligible) {
         return {
           status: "draft",
@@ -693,7 +777,13 @@ export function runMeasuredBoqEngine(
       }
       if (resolved.source === "user-quote") hasUserQuote = true;
 
-      const costType: MeasuredBoqCostType = item.costType ?? "combined";
+      // Library lines: trusted catalogue cost type when caller omits costType.
+      // Non-library: preserve historical default of "combined".
+      const costType: MeasuredBoqCostType =
+        item.costType ??
+        (resolved.source === "library" && resolved.catalogCostType
+          ? resolved.catalogCostType
+          : "combined");
       const unitRate = resolved.resolvedUnitRate;
       const totalCost = roundMeasuredBoqMoney(item.quantity * unitRate);
 
@@ -711,6 +801,7 @@ export function runMeasuredBoqEngine(
         unitRate,
         totalCost,
         notes: item.notes,
+        libraryProvenance: resolved.libraryProvenance,
       };
       items.push(line);
       allLines.push(line);

@@ -3,7 +3,7 @@
 ```text
 Status: Living integration plan (hardened — Ticket 4C2A1 / 4C2A2R)
 Parent contract: l3-estimate-authority-contract.md
-Implementation status: 4C2B COMPLETED; 4C2C-A planning complete; later tickets not started
+Implementation status: 4C2B COMPLETED; 4C2C-B foundation implemented (production rates blocked)
 Scope: Ticket 4C2 save-seam and authority-input integration
 Base SHA at planning: 922ee4ce08a491eabdffff460293c66eb5eeabdc
 Hardening amendments:
@@ -11,8 +11,8 @@ Hardening amendments:
   Ticket 4C2A2R — scalar bounds, atomic ownership, provenance, sequencing
 Programme updates:
   Ticket 4C2B — COMPLETED (category authority persistence foundation)
-  Ticket 4C2C-A — PLAN COMPLETE — see l3-measured-boq-catalogue-foundation-plan.md
-  Ticket 4C2C-B — NOT STARTED (catalogue mechanism + provenance implementation)
+  Ticket 4C2C-A — COMPLETED
+  Ticket 4C2C-B — IMPLEMENTED AND REMEDIATED (production catalogue rates BLOCKED; pending 4C2C-B-V)
 ```
 
 This document maps **current behaviour**, **security/trust gaps**, **approved

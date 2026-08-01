@@ -65,6 +65,7 @@ export const MIGRATION_FILENAMES = [
   "20260721230000_p0_security_rls_hardening.sql",
   "20260724000000_profile_company_from_signup_metadata.sql",
   "20260730120000_estimate_authority_persistence_foundation.sql",
+  "20260731120000_measured_boq_catalogue_foundation.sql",
   "20260731193719_baseline_public_schema.sql",
 ] as const;
 
@@ -112,10 +113,5 @@ export const MIGRATION_CLUSTERS = [
     id: "profile-company",
     glob: "20260724000000*",
     purpose: "map signup company metadata into profiles.company",
-  },
-  {
-    id: "baseline-public-schema-issue-90",
-    glob: "20260731193719*",
-    purpose: "baseline remote-only analysis_jobs + scope_analysis* tables for local typegen",
   },
 ] as const;
