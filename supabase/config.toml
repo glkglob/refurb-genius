@@ -4,3 +4,11 @@ project_id = "sxhzjmzfkgbogmlsbeju"
 #   supabase gen types typescript --local > packages/supabase/src/database.types.ts
 # See packages/supabase/src/database.types.ts and the re-export in packages/supabase/src/index.ts
 # The old src/integrations/supabase/types.ts is now a re-export shim.
+[db]
+major_version = 17
+
+# CLI 2.111.0+ revokes default Data API GRANTs on new public tables unless this
+# is explicitly true (legacy behaviour). Required for existing migrations that
+# rely on auto-grants to anon/authenticated/service_role. Deprecated 2026-10-30.
+[api]
+auto_expose_new_tables = true
