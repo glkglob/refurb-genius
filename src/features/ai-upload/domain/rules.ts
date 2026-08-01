@@ -40,12 +40,14 @@ export function needsHumanReview(analysis: RoomAnalysis): boolean {
   return false;
 }
 
-/** Analyses that are safe to re-run (fallback / low confidence / mock). */
+/** Analyses that are safe to re-run (fallback / low confidence / mock / empty summary). */
 export function isRetryableAnalysis(analysis: RoomAnalysis): boolean {
+  // Keep aligned with needsHumanReview so every incomplete result can be retried.
   return (
     analysis.source === "fallback" ||
     analysis.source === "mock" ||
-    analysis.confidence_score < CONFIDENCE_REVIEW_THRESHOLD
+    analysis.confidence_score < CONFIDENCE_REVIEW_THRESHOLD ||
+    !analysis.ai_summary?.trim()
   );
 }
 
@@ -79,67 +81,52 @@ export function groupAnalysesByRoom(analyses: RoomAnalysis[]): RoomAnalysisGroup
   for (const a of analyses) {
     const key = a.room_type;
     if (!map.has(key)) {
-      map.set(key, []);
       order.push(key);
+      map.set(key, []);
     }
     map.get(key)!.push(a);
   }
 
   return order.map((roomType) => {
-    const group = map.get(roomType) ?? [];
-    const avg =
-      group.length === 0 ? 0 : group.reduce((s, a) => s + a.confidence_score, 0) / group.length;
+    const group = map.get(roomType)!;
     return {
       roomType,
       analyses: group,
-      averageConfidence: avg,
+      averageConfidence: averageConfidence(group),
       needsReviewCount: group.filter(needsHumanReview).length,
     };
   });
 }
 
-/**
- * Detect likely duplicate photos by name + size (cheap pre-filter).
- * Returns ids that are duplicates of an earlier photo in the list.
- */
+/** Detect likely duplicate photos by exact name+size (client-side heuristic). */
 export function findDuplicatePhotoIds(
-  photos: Array<{ id: string; name: string; size?: number }>,
+  photos: Array<{ id: string; name: string; size: number }>,
 ): string[] {
   const seen = new Map<string, string>();
-  const duplicates: string[] = [];
-
+  const dups: string[] = [];
   for (const p of photos) {
-    const key = `${p.name.toLowerCase()}::${p.size ?? 0}`;
-    const prior = seen.get(key);
-    if (prior) {
-      duplicates.push(p.id);
-    } else {
-      seen.set(key, p.id);
-    }
+    const key = `${p.name}::${p.size}`;
+    const first = seen.get(key);
+    if (first) dups.push(p.id);
+    else seen.set(key, p.id);
   }
-
-  return duplicates;
+  return dups;
 }
 
 /**
- * Merge AI analysis suggestions into user-editable fields without clobbering.
- * - Empty target → take suggestion
- * - Non-empty target → keep target; expose suggestion separately
+ * Non-destructive AI pre-fill: never overwrite a non-empty user value.
+ * Returns the value to keep plus optional suggestion when AI differs.
  */
-export function suggestWithoutOverwrite<T extends string | number | null | undefined>(
-  current: T,
-  suggestion: T,
-): { value: T; suggestion: T | null; applied: boolean } {
-  const isEmpty =
-    current === null ||
-    current === undefined ||
-    (typeof current === "string" && current.trim() === "");
-
-  if (isEmpty) {
-    return { value: suggestion, suggestion: null, applied: true };
+export function suggestWithoutOverwrite(
+  current: string,
+  aiSuggestion: string,
+): { value: string; suggestion: string | null; applied: boolean } {
+  const trimmed = current.trim();
+  if (!trimmed) {
+    return { value: aiSuggestion, suggestion: null, applied: true };
   }
-  if (current === suggestion) {
+  if (trimmed === aiSuggestion.trim()) {
     return { value: current, suggestion: null, applied: false };
   }
-  return { value: current, suggestion, applied: false };
+  return { value: current, suggestion: aiSuggestion, applied: false };
 }
