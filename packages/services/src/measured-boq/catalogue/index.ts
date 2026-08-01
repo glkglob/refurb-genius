@@ -43,3 +43,43 @@ export type {
 } from "./types";
 
 export { sha256Hex, utf8BytesFallback, writeSha256BitLength } from "./sha256";
+
+/** B1B pure manifest / dry-run pipeline (no filesystem or CLI). */
+export {
+  B1_MANIFEST_VERSION,
+  B1_NORMALISER_VERSION,
+  B1_TRANSFORMATION_SCHEMA_VERSION,
+  MAX_BASE_UNIT_RATE_INTEGER_DIGITS,
+  MAX_BASE_UNIT_RATE_DECIMAL_PLACES,
+  BASE_UNIT_RATE_DECIMAL_STRING_PATTERN,
+  B1_LICENCE_STATUSES,
+  DRY_RUN_ISSUE_CLASSES,
+  type B1LicenceStatus,
+  type DryRunIssueClass,
+  type DryRunIssueCode,
+  type DryRunIssue,
+  type UnitAliasApplication,
+  type CatalogueManifestSource,
+  type CatalogueManifestTransformation,
+  type CatalogueManifestPackage,
+  type CatalogueManifest,
+  type CatalogueDryRunReport,
+  type RunCatalogueDryRunInput,
+  type RunCatalogueDryRunResult,
+} from "./manifestTypes";
+
+export { computePackageArtifactChecksum, PACKAGE_ARTIFACT_DOMAIN } from "./packageChecksum";
+
+export {
+  parseCatalogueManifest,
+  type ParseCatalogueManifestResult,
+} from "./parseCatalogueManifest";
+
+export {
+  canonicalizeBaseUnitRate,
+  numberToExactDecimalText,
+  normaliseCatalogueSnapshot,
+  type NormaliseCatalogueSnapshotResult,
+} from "./normaliseCatalogueSnapshot";
+
+export { runCatalogueDryRun } from "./runCatalogueDryRun";
