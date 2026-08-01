@@ -1,8 +1,8 @@
 # 4C2E-B1A — Source-Agnostic Catalogue Manifest and Deterministic Dry-Run Tooling Plan
 
 ```text
-Status: 4C2E-B1A PLAN COMPLETE
-Decision: READY FOR B1 IMPLEMENTATION APPROVAL
+Status: 4C2E-B1A PLAN COMPLETE (B1A3 safety repair applied)
+Decision: READY FOR SPLIT B1 IMPLEMENTATION APPROVAL
 Parent contracts:
   - docs/architecture/4c2e-production-catalogue-data-gate-plan.md (4C2E-A, merged)
   - docs/architecture/l3-measured-boq-catalogue-foundation-plan.md
@@ -10,6 +10,7 @@ Parent contracts:
 Ticket: 4C2E-B1A (planning only)
 Base SHA at planning: f9b0f5b0a0a2bf447a23a72bc4253746cce9c991
 Branch: docs/4c2e-b1-source-agnostic-tooling-plan
+B1A2 finding repair: 4C2E-B1A3 (this document revision)
 ```
 
 This document is the **implementation-ready plan** for **4C2E-B1**: source-agnostic
@@ -37,7 +38,15 @@ Evidence labels used throughout:
 ### Verdict
 
 ```text
-READY FOR B1 IMPLEMENTATION APPROVAL
+READY FOR SPLIT B1 IMPLEMENTATION APPROVAL
+```
+
+Implementation is split into:
+
+```text
+4C2E-B1B — Pure manifest and normalisation pipeline
+4C2E-B1C — Dry-run CLI and boundary seal
+4C2E-B1D — Independent verification
 ```
 
 This readiness verdict **does not** authorise:
@@ -52,6 +61,7 @@ production publication
 runtime reader activation
 estimate-builder integration
 4C2F implementation
+B1B or B1C implementation in this planning PR
 ```
 
 ### One-paragraph summary
@@ -61,13 +71,13 @@ validation (`validateCatalogueSnapshot`), deterministic content checksums
 (`computeCatalogueContentChecksum` / SHA-256), revision and rate-key grammars,
 canonical units/cost types/currency/VAT/regional basis, and import-time unit
 aliases (`UNIT_IMPORT_ALIASES`) that are **defined but not applied**. Synthetic
-fixtures exist under `tests/fixtures/measured-boq-catalogue/`. No import CLI or
+fixtures exist under `tests/fixtures/measured-boq-catalogue/`. No dry-run CLI or
 normaliser pipeline exists. [Merged 4C2E-A requirement] B1 is the first safe
 implementation step: source-agnostic manifest + dry-run only.
-[Reasoned B1 recommendation] Implement one vertical B1 ticket: pure normaliser
-+ package reader in `@repo/services` catalogue, thin dry-run CLI under
-`scripts/`, synthetic on-disk package under `catalogue-sources/`, tests and
-invariants proving no Supabase / no production data / no B2 modes.
+[Reasoned B1 recommendation] Implement **split** B1: pure normaliser + package
+reader in `@repo/services` catalogue (**B1B**), dedicated dry-run CLI under
+`scripts/catalogue-dry-run.ts` (**B1C**), one synthetic example package, tests
+and invariants proving no Supabase / no production data / no write modes.
 
 ---
 
@@ -105,10 +115,11 @@ invariants proving no Supabase / no production data / no B2 modes.
 | Stable input + output checksums | Migrations |
 | Structural + semantic validation | Draft upserts |
 | Deterministic dry-run reports | Publication / retirement |
-| CLI or repository script (dry-run only) | Production publication |
+| Dry-run-only CLI (`catalogue-dry-run`) | Production publication |
 | Tests + architecture invariants | Runtime reader activation |
 | | Estimate-builder integration |
 | | 4C2F |
+| | Multi-mode importer / publisher entry points |
 
 ---
 
@@ -147,12 +158,12 @@ invariants proving no Supabase / no production data / no B2 modes.
 | Field | Required | Constraints |
 | --- | --- | --- |
 | `rateKey` | yes | grammar, ≤ 160 |
-| `displayName` | yes | non-empty trim, ≤ 200 |
+| `displayName` | yes | non-empty after trim-check, ≤ 200; **validator does not replace with trimmed string** |
 | `description` | optional | string ≤ 2000 or null |
-| `tradeOrDomain` | yes | non-empty trim, ≤ 100 |
+| `tradeOrDomain` | yes | non-empty after trim-check, ≤ 100; **validator does not replace with trimmed string** |
 | `unit` | yes | canonical enum only (aliases **not** applied in validator) |
 | `costType` | yes | labour \| materials \| combined |
-| `baseUnitRate` | yes | finite number `> 0` |
+| `baseUnitRate` | yes | finite **JavaScript number** `> 0` (not string) |
 | `currency` | yes | `GBP` |
 | `vatBasis` | yes | `exclusive` |
 | `sourceReference` | optional; **required if `production: true`** | non-empty ≤ 500 |
@@ -245,6 +256,16 @@ no on-disk synthetic revision package (MANIFEST + snapshot)
 UNIT_IMPORT_ALIASES unused in runtime or tooling
 ```
 
+### 3.8 Money storage and validation facts
+
+[Repository-confirmed]
+
+* Validator requires `baseUnitRate` as a **positive finite JavaScript number**
+  (`typeof n === "number" && Number.isFinite(n) && n > 0`).
+* PostgreSQL column is `numeric(14, 4)` with `base_unit_rate > 0`.
+* B1 normaliser must therefore accept constrained raw inputs and emit a number
+  that is representable under `numeric(14,4)` **without silent rounding**.
+
 ---
 
 ## 4. Ownership and dependency boundaries
@@ -255,13 +276,13 @@ UNIT_IMPORT_ALIASES unused in runtime or tooling
 | --- | --- | --- |
 | Manifest + raw entry types | `packages/services/src/measured-boq/catalogue/` | Same pure domain as snapshot validation |
 | Unit normalisation | same catalogue module | Beside `UNIT_IMPORT_ALIASES` + validator |
-| Package parse + dry-run pipeline | same catalogue module (pure) | Testable without Node FS if FS injected; default pure from objects |
+| Package parse + dry-run pure pipeline | same catalogue module (pure) | Testable without Node FS if FS injected; default pure from objects |
 | Content checksum | **reuse** existing `checksum.ts` | Do not fork |
-| CLI argument parsing + FS I/O | `scripts/import-measured-boq-catalogue.ts` | Matches 4C2E-A expected file; scripts already host CLIs |
-| Synthetic on-disk package | `catalogue-sources/measured-boq/revisions/<rev>/` | Matches 4C2E-A hybrid model |
-| Unit / pipeline tests | co-located `*.test.ts` under catalogue + script smoke if needed | Existing vitest pattern |
-| Architecture invariants | `tests/invariants/` | Existing catalogue invariant suite |
-| Ops notes (optional) | `docs/operations/` only if CLI UX needs operator docs | Prefer architecture plan + script header for B1 |
+| CLI argument parsing + FS I/O | `scripts/catalogue-dry-run.ts` | Dedicated dry-run entry; Node-only |
+| Synthetic on-disk example package | `catalogue-sources/measured-boq/revisions/<rev>/` | Matches 4C2E-A hybrid model (B1C) |
+| Unit / pipeline tests | co-located `*.test.ts` under catalogue | Existing vitest pattern (B1B) |
+| Architecture invariants | `tests/invariants/` | Existing catalogue invariant suite (B1C seal) |
+| Ops notes (optional) | `docs/operations/` only if B1C evidence requires it | Prefer architecture plan + script header |
 
 ### 4.2 Import rules
 
@@ -269,12 +290,13 @@ UNIT_IMPORT_ALIASES unused in runtime or tooling
 
 ```text
 ALLOWED:
-  scripts/import-measured-boq-catalogue.ts
+  scripts/catalogue-dry-run.ts
     → @repo/services (catalogue pure APIs only)
     → node:fs, node:path, node:process, node:url
 
-  packages/services/.../catalogue/normalise*
+  packages/services/.../catalogue/* (B1B pure modules)
     → sibling catalogue modules only
+    → NO node:*, NO process.argv, NO filesystem, NO network
     → NO @supabase/*, NO createClient, NO service-role helpers
     → NO src/features/**, NO routes, NO presentation, NO builders
 
@@ -282,32 +304,35 @@ FORBIDDEN in B1:
   any import of measuredBoqCatalogue.repository.server
   any import of repriceMeasuredBoqWithCatalogue.server
   any import of createServiceRoleSupabase / createClient
-  any CLI path that calls upsert/publish/retire
-  exposing dry-run pipeline from a browser-facing feature barrel
+  any write mode (upsert / publish / retire / import DB)
+  re-exporting CLI adapters from @repo/services
+  exposing CLI from a browser-facing feature barrel
 ```
 
-### 4.3 Public barrel
+### 4.3 Public barrel purity (services)
 
 [Reasoned B1 recommendation]
 
-* Export pure B1 APIs from `packages/services/src/measured-boq/catalogue/index.ts`
-  (and thus `@repo/services`) so tests and CLI share one implementation.
-* Do **not** add a separate browser-facing feature export.
-* Pure module remains isomorphic (no Node builtins in catalogue normaliser),
-  matching existing `sha256.ts` / `checksum.ts` discipline.
-* CLI-only FS helpers stay in `scripts/`.
+* Pure B1B APIs **may** be exported from
+  `packages/services/src/measured-boq/catalogue/index.ts` (and thus
+  `@repo/services`) so tests and the CLI share one implementation.
+  [Repository-confirmed] Catalogue pure APIs are already on this barrel.
+* **No** Node builtin, filesystem, process/argv, network, Supabase, or
+  repository-write dependency may be imported into those exported modules.
+* CLI adapter code remains under `scripts/` and is **never** re-exported from
+  `@repo/services`.
+* Tests and invariants must enforce the distinction (source greps + no
+  `node:` imports in catalogue non-test sources).
 
-### 4.4 Package script
+### 4.4 Package script (B1C)
 
 [Reasoned B1 recommendation] Add to root `package.json` (implementation phase):
 
 ```json
-"catalogue:dry-run": "tsx scripts/import-measured-boq-catalogue.ts --mode dry-run"
+"catalogue:dry-run": "tsx scripts/catalogue-dry-run.ts"
 ```
 
-Alternative name `catalogue:validate` is acceptable if preferred at implementation,
-but **`--mode dry-run`** must remain the only functional mode in B1 to match
-4C2E-A CLI shape and leave B2 modes as hard stubs.
+B1 has **one program and one mode: dry run**. There is **no** `--mode` flag.
 
 ---
 
@@ -318,10 +343,8 @@ but **`--mode dry-run`** must remain the only functional mode in B1 to match
 ```text
 catalogue-sources/measured-boq/revisions/<catalog_revision>/
   MANIFEST.json      # governance envelope (NOT in content_checksum)
-  snapshot.json      # body aligned to MeasuredBoqCatalogueSourceSnapshot
-                     #   AFTER normalisation, or raw-before-normalise
-                     #   (see §6 — B1 chooses explicit raw vs normalised stages)
-  evidence/          # optional dry-run reports (gitignored or synthetic only)
+  snapshot.json      # RAW source-neutral snapshot body
+  evidence/          # optional; not written by B1 CLI (stdout only)
 ```
 
 ### 5.1 Stage model
@@ -334,15 +357,15 @@ catalogue-sources/measured-boq/revisions/<catalog_revision>/
    snapshot.json  — RAW source-neutral snapshot (may contain unit aliases,
                     optional entry field aliases documented below)
 
-2) NORMALISE (pure)
+2) NORMALISE (pure, B1B)
    raw snapshot → canonical MeasuredBoqCatalogueSourceSnapshot
-   (units via UNIT_IMPORT_ALIASES; strings trimmed per policy;
-    decimal normalisation; entry defaults)
+   (units via UNIT_IMPORT_ALIASES; strings trimmed per B1 normaliser policy;
+    exact decimal canonicalisation; entry defaults)
 
 3) VALIDATE (pure, existing)
    validateCatalogueSnapshot(canonical) → ok + contentChecksum | issues
 
-4) REPORT (CLI)
+4) REPORT (B1B model + B1C stdout adapter)
    deterministic JSON/text report; optional expected checksum checks
 ```
 
@@ -396,27 +419,44 @@ Field classification:
 | `transformation.schema_version` | yes | manifest schema version of transformation block |
 | `transformation.normaliser_version` | yes | code path version; B1 = `"1"` |
 | `package.snapshot_path` | yes | relative path; default `snapshot.json` |
-| `package.production` | yes | boolean; must be `false` for synthetic licence_status |
+| `package.production` | yes | boolean; must be `false` when `licence_status` is `synthetic` |
 
 ### 6.2 `licence_status` enum (B1)
 
 ```text
-synthetic          — test / dry-run only; production MUST be false
-unapproved         — real source metadata present but not approved (B1 may parse
-                     for dry-run structure tests ONLY with production:false;
-                     never ship real rates in-repo)
-approved           — [Future B2 concern] legal approval recorded; still does NOT
-                     alone authorise DB publish without B2 gates
+synthetic | rights_unverified
+```
+
+#### `synthetic`
+
+* test/example data only;
+* `production` must be `false`;
+* no legal or commercial source is represented.
+
+#### `rights_unverified`
+
+* describes a non-synthetic source package presented for **technical** dry-run
+  validation only;
+* means rights have **not** been established by the tooling;
+* must never be interpreted as legal, commercial, product, or publication
+  approval;
+* cannot make a package publishable;
+* does not permit database writes, production inclusion, or runtime use.
+
+```text
+B1 deliberately has no "approved" rights state.
+
+Legal or commercial approval is external governance evidence and cannot be
+created by a manifest token or a successful dry run.
 ```
 
 [Reasoned B1 recommendation]
 
-* B1 **accepts** `synthetic` for all committed fixtures.
-* B1 **rejects** `licence_status: "approved"` combined with any production path
-  in dry-run success messaging that implies publication readiness.
-* B1 **rejects** `production: true` unless `licence_status` is not `synthetic`
-  **and** every entry has `sourceReference` (existing validator). Committed
-  fixtures must keep `production: false` and `licence_status: "synthetic"`.
+* Committed fixtures use `licence_status: "synthetic"` and `production: false`.
+* B1 **rejects** `production: true` regardless of rights metadata
+  (B1 is dry-run tooling only; production packages are not authorised here).
+* B1 **rejects** any other `licence_status` value (including legacy tokens such
+  as `approved` or `unapproved` if present in input).
 * Manifest licence fields **never** constitute legal approval.
   [Merged 4C2E-A requirement]
 
@@ -434,8 +474,7 @@ coverage_threshold overrides that activate product readers
 
 ### 6.4 Forward compatibility
 
-* Unknown **top-level** keys: fail in `--strict` (default for B1); optional
-  non-strict mode may warn — [Reasoned B1 recommendation] **default strict**.
+* Unknown **top-level** keys: fail in `--strict` (default for B1).
 * Unsupported `manifest_version`: exit code 4 (see §13).
 * Nested unknown keys under `source` / `transformation`: strict fail.
 
@@ -457,16 +496,16 @@ snake_case keys at the normaliser boundary only.
 
 | Raw field (canonical) | Type | Req | Aliases (normaliser only) | Canonical after normalise | Validation owner |
 | --- | --- | --- | --- | --- | --- |
-| `rateKey` | string | yes | `rate_key` | trimmed lower? **no** — must already match grammar | existing |
-| `displayName` | string | yes | `display_name` | trim ends only | existing |
-| `description` | string\|null | no | — | trim ends; empty → null | existing |
-| `tradeOrDomain` | string | yes | `trade_or_domain`, `trade` | trim ends | existing |
+| `rateKey` | string | yes | `rate_key` | must already match grammar; **not** case-folded | existing |
+| `displayName` | string | yes | `display_name` | **B1 normaliser trims ends** then validator | normaliser + existing |
+| `description` | string\|null | no | — | B1 normaliser trims ends; empty → null | normaliser + existing |
+| `tradeOrDomain` | string | yes | `trade_or_domain`, `trade` | B1 normaliser trims ends | normaliser + existing |
 | `unit` | string | yes | — | alias map → canonical | normaliser + existing |
 | `costType` | string | yes | `cost_type` | exact enum | existing |
-| `baseUnitRate` | number \| decimal string | yes | `base_unit_rate` | finite number > 0, ≤ 4 dp | normaliser + existing |
+| `baseUnitRate` | number \| decimal string | yes | `base_unit_rate` | exact decimal policy → positive finite number | normaliser + existing |
 | `currency` | string | yes* | — | `GBP` | existing |
 | `vatBasis` | string | yes* | `vat_basis` | `exclusive` | existing |
-| `sourceReference` | string\|null | no† | `source_reference` | trim; empty → null | existing |
+| `sourceReference` | string\|null | no† | `source_reference` | B1 normaliser trims; empty → null | normaliser + existing |
 | `status` | string | yes | `entry_status` | active \| deprecated | existing |
 | `replacementRateKey` | string\|null | no | `replacement_rate_key` | grammar rules | existing |
 
@@ -474,7 +513,8 @@ snake_case keys at the normaliser boundary only.
 values are present; normaliser **fills** from snapshot header.
 [Reasoned B1 recommendation]
 
-† Required when `production: true` (existing validator).
+† Required when `production: true` (existing validator). B1 still rejects
+`production: true` at policy layer.
 
 ### 7.2 Explicitly out of B1 raw contract
 
@@ -508,30 +548,39 @@ source-neutral import convenience.
 
 ## 8. Deterministic normalisation rules
 
-Module (proposed): `packages/services/src/measured-boq/catalogue/normaliseCataloguePackage.ts`
+Module (proposed): `packages/services/src/measured-boq/catalogue/normaliseCatalogueSnapshot.ts`
 (name flexible; keep under catalogue/).
 
-### 8.1 Strings
+### 8.1 Strings — retained-field normalisation (B1 normaliser, not current validator)
+
+[Repository-confirmed] The current validator may check trimmed emptiness
+(`value.trim() === ""`) **without replacing** the retained string with a
+trimmed form.
+
+[Reasoned B1 recommendation] B1 normalisation will **explicitly trim** approved
+display/text fields before constructing the canonical source snapshot that is
+passed to `validateCatalogueSnapshot`.
 
 | Rule | Policy |
 | --- | --- |
 | Unicode | NFC not required; process UTF-8 as-is (checksum uses UTF-8 bytes) |
-| Trim | leading/trailing whitespace on all string fields that are retained |
-| Internal whitespace | preserve for `displayName` / `description`; **reject** rateKey / trade if internal runs need collapsing — rateKey must already match grammar (no spaces) |
-| Case | `rateKey` must already be lowercase (grammar); **do not** auto-lowercase rate keys (fail instead) |
+| Trim (B1 normaliser) | leading/trailing whitespace removed on retained display fields: `displayName`, `description`, `tradeOrDomain`, `sourceReference` (when string), snapshot `sourceDescription` / `schemaVersion` / similar non-key strings as applicable |
+| Internal whitespace | preserve for `displayName` / `description`; rateKey must already match grammar (no spaces) |
+| Case | `rateKey` must already be lowercase (grammar); **do not** silently case-fold rate keys (fail instead) |
 | Empty string | required fields: fail; optional: → `null` where schema allows |
+| Collision after normalisation | two raw records that collide after permitted normalisation (including key alias mapping) must fail as duplicates |
+| Tests | trimming behaviour must be unit-tested |
 
 ### 8.2 Revision and keys
 
 * `catalog_revision` in MANIFEST must equal snapshot `catalogRevision` after normalise.
 * No automatic revision generation.
-* Rate keys: validate grammar only; no rewriting.
+* Rate keys: validate grammar only; no rewriting; no silent case-fold.
 * Duplicate detection:
   1. After alias key mapping (snake→camel), collect raw `rateKey`s.
   2. After full normalise, collect canonical `rateKey`s.
-  3. Any collision → `CATALOG_DUPLICATE_RATE_KEY` (or B1 code
-     `CATALOG_NORMALISE_DUPLICATE_RATE_KEY` if pre-validation). Prefer reusing
-     existing code when possible.
+  3. Any collision → `CATALOG_DUPLICATE_RATE_KEY` (or B1 normalise-specific
+     code if pre-validation). Prefer reusing existing code when possible.
 
 ### 8.3 Units
 
@@ -549,23 +598,111 @@ Alias keys should be matched after trim; case policy for aliases:
 via a single `toLowerCase` for ASCII-only keys — document and test. Do **not**
 locale-lower `m²`.
 
-### 8.4 Money and decimals
+### 8.4 Money and decimals — exact canonicalisation
 
-DB: `numeric(14, 4)`; validator today accepts any finite `number > 0`.
+DB: `numeric(14, 4)`; existing validator accepts any finite JS `number > 0`.
 
-[Reasoned B1 recommendation]
+B1 constants:
 
-| Input | Policy |
-| --- | --- |
-| JSON number | accept if finite, `> 0`, and has ≤ 4 decimal places when serialised in canonical form |
-| Decimal string | accept `/^\d+(\.\d{1,4})?$/` or `/^\d+\.\d{5,}$/` **reject** (no silent round) |
-| Scientific notation | reject (`1e3`, `1E-2`) |
-| Negative / zero / NaN / Infinity | reject |
-| Rounding | **no rounding in B1**; reject excess precision |
-| Max magnitude | reject if integer part would overflow `numeric(14,4)` (10 digits before decimal + 4 after) |
+```text
+MAX_BASE_UNIT_RATE_INTEGER_DIGITS = 10
+MAX_BASE_UNIT_RATE_DECIMAL_PLACES = 4
+```
 
-Canonical number for checksum: JSON number as produced by `JSON.stringify`
-(existing behaviour). Tests must golden-lock known values.
+This matches PostgreSQL `numeric(14,4)`:
+
+* at most ten integer digits;
+* at most four fractional digits;
+* value must be greater than zero.
+
+B1 validates **representability** and rejects ambiguous inputs. B1 does **not**
+perform accounting arithmetic and does **not** claim arbitrary-precision
+decimal safety.
+
+#### Decimal-string input
+
+After the normaliser’s initial trim of the string, accept **only** strings
+matching:
+
+```regex
+^(?:0|[1-9]\d{0,9})(?:\.\d{1,4})?$
+```
+
+Then require:
+
+* parsed value is finite;
+* parsed value is greater than zero;
+* no leading `+`;
+* no negative values or `-0`;
+* no exponent notation;
+* no commas;
+* no surrounding whitespace remaining after trim;
+* no silent rounding;
+* no more than four fractional digits;
+* no more than ten integer digits.
+
+Examples:
+
+```text
+accepted:
+"0.1"
+"10"
+"10.2300"
+"9999999999.9999"
+
+rejected:
+"0"
+"0.0000"
+"-1"
+"-0"
+"+1"
+"01"
+"1."
+".5"
+"1.00000"
+"1e2"
+"1E2"
+"10,000"
+"10000000000"
+```
+
+#### JavaScript-number input
+
+Accept only when **all** are true:
+
+```text
+Number.isFinite(value)
+value > 0
+!Object.is(value, -0)
+```
+
+Then create a **canonical decimal representation** using the normaliser’s
+specified **non-exponential** conversion routine (implementation detail of
+B1B; must be deterministic and unit-tested).
+
+Requirements for that routine:
+
+* Do **not** use `JSON.stringify(value)` alone as proof of valid decimal precision.
+* The resulting canonical decimal **text** must satisfy the same grammar and
+  precision limits as decimal-string input.
+* Do **not** silently round a number to four decimal places.
+* When a number cannot be represented under the exact `numeric(14,4)` policy
+  without rounding (including values that only have exact finite binary forms
+  outside four fractional digits, or that would require exponent form),
+  **reject** it.
+* Implementation must include tests for values JavaScript commonly serialises
+  using exponent notation (very small and very large magnitudes).
+
+#### Canonical output for the existing validator
+
+After acceptance:
+
+1. Keep the canonical decimal text in normalisation evidence when needed for
+   deterministic tests/reports.
+2. Convert the accepted canonical decimal representation to the **positive
+   finite JavaScript number** required by `validateCatalogueSnapshot`.
+3. That number is what enters content-checksum serialisation via existing
+   `JSON.stringify` behaviour of the checksum module.
 
 ### 8.5 Currency, VAT, regional basis
 
@@ -613,15 +750,15 @@ Strict mode: reject unknown entry keys.
 * Stable across entry reorder.
 * Contaminants excluded: timestamps, MANIFEST governance, `retrieved_at`.
 
-### 9.2 Input package checksum (new, B1)
+### 9.2 Input package checksum (new, B1) — artifact identity
 
 [Reasoned B1 recommendation]
 
 ```text
 input_checksum = sha256Hex(
   "mboq-package-v1\n" +
-  "MANIFEST.json\n" + <raw file bytes as UTF-8 string> + "\n" +
-  "snapshot.json\n" + <raw file bytes as UTF-8 string> + "\n"
+  "MANIFEST.json\n" + <raw file text as UTF-8 string> + "\n" +
+  "snapshot.json\n" + <raw file text as UTF-8 string> + "\n"
 )
 ```
 
@@ -634,7 +771,9 @@ Rules:
 * CLI `--expected-input-checksum` compares this value.
 * Mismatch → exit 3; never silent overwrite.
 
-### 9.3 Expected output checksum
+This checksum is **artifact identity**, not logical catalogue identity.
+
+### 9.3 Expected output checksum — normalised catalogue identity
 
 * CLI `--expected-output-checksum` compares `contentChecksum` from validation.
 * Mismatch → exit 3 with both expected and actual in report (no full rate dump).
@@ -660,9 +799,13 @@ small enough for code review
 stable golden checksums
 ```
 
-### 10.2 Proposed paths
+### 10.2 Placement
 
-**On-disk dry-run package (new in B1 implementation):**
+```text
+ONE EXAMPLE PACKAGE PLUS TEST-ONLY FIXTURES
+```
+
+**On-disk dry-run example package (B1C):**
 
 ```text
 catalogue-sources/measured-boq/revisions/mboq-2099.01.01/
@@ -670,35 +813,23 @@ catalogue-sources/measured-boq/revisions/mboq-2099.01.01/
   snapshot.json
 ```
 
-Optional second package for reorder/determinism:
+**Unit-test fixtures (B1B; test-only):**
 
 ```text
-catalogue-sources/measured-boq/revisions/mboq-2099.01.02/
-  MANIFEST.json
-  snapshot.json
+packages/services/src/measured-boq/catalogue/__fixtures__/
+  valid-minimum/
+  valid-comprehensive/
+  invalid-duplicate/
+  invalid-unit/
+  invalid-money/
+  invalid-revision/
+  invalid-checksum/
+  invalid-production-licence/
+  invalid-manifest-version/
 ```
 
-**Unit-test fixtures (extend existing):**
-
-```text
-tests/fixtures/measured-boq-catalogue/
-  synthetic-revision-a.ts          # existing (keep)
-  synthetic-revision-b.ts          # existing (keep)
-  # optional JSON fixtures for CLI integration tests:
-  packages/valid-minimum/
-  packages/valid-comprehensive/
-  packages/invalid-duplicate/
-  packages/invalid-unit/
-  packages/invalid-money/
-  packages/invalid-revision/
-  packages/invalid-checksum/
-  packages/invalid-production-licence/
-```
-
-[Reasoned B1 recommendation] Prefer embedding small JSON under
-`packages/services/src/measured-boq/catalogue/__fixtures__/` for unit tests
-(co-located, no Vite asset issues) **and** one committed on-disk package under
-`catalogue-sources/` for CLI smoke.
+(Existing TypeScript fixtures under `tests/fixtures/measured-boq-catalogue/`
+remain valid regression fixtures and may be reused.)
 
 ### 10.3 Fixture classes
 
@@ -706,88 +837,110 @@ tests/fixtures/measured-boq-catalogue/
 | --- | --- |
 | valid minimum | 1 entry, all required fields, canonical units |
 | valid comprehensive | all 5 units, all 3 cost types, active + deprecated+replacement, unit aliases |
-| invalid duplicate | same rateKey twice |
+| invalid duplicate | same rateKey twice / post-normalise collision |
 | invalid unit | unknown unit `sqft` |
-| invalid money | `0`, negative, `1e3`, 5+ dp string |
+| invalid money | `0`, negative, `1e3`, 5+ dp string, non-canonical numbers |
 | invalid revision | `latest`, `mboq-99` |
 | invalid checksum | wrong `contentChecksum` on snapshot |
-| invalid production/licence | `production:true` + `licence_status:synthetic` |
+| invalid production/licence | `production:true` and/or illegal `licence_status` |
 | invalid manifest version | `manifest_version: "99"` |
 
-Rates in fixtures: tiny integers (e.g. 10, 20, 33.3333 max 4 dp) labelled
-SYNTHETIC.
+Rates in fixtures: tiny representable values labelled SYNTHETIC.
 
 ---
 
-## 11. Dry-run CLI interface
+## 11. Dry-run CLI interface (B1C)
 
 ### 11.1 Command
 
-[Merged 4C2E-A requirement] Expected:
-
-```bash
-pnpm catalogue:dry-run -- --path catalogue-sources/measured-boq/revisions/mboq-2099.01.01
-```
-
-Implementation file:
+B1 dedicated entrypoint:
 
 ```text
-scripts/import-measured-boq-catalogue.ts
+scripts/catalogue-dry-run.ts
 ```
 
-### 11.2 Arguments (B1-justified only)
+```bash
+pnpm catalogue:dry-run -- --path <revision-directory> [--format text|json]
+  [--expected-input-checksum <sha256>]
+  [--expected-output-checksum <sha256>]
+  [--strict]
+```
+
+### 11.2 B1 CLI contract (explicit)
+
+```text
+B1 has one program and one mode: dry run.
+B1 has no --mode flag.
+B1 does not expose, document, or stub upsert, publish, retire, import, or
+  other write modes.
+Unknown arguments fail as invocation errors (exit 2).
+Future importer or publisher tooling belongs to B2 and must use a separately
+  authorised entry point (not this script).
+The B1 CLI does not initialize Supabase.
+The B1 CLI does not read service-role credentials.
+The B1 CLI performs no network access.
+The B1 CLI does not modify the source package (MANIFEST.json / snapshot.json).
+```
+
+Note: 4C2E-A mentioned a future multi-mode importer script name. That name is
+**not** a B1 deliverable. B2 may introduce a separately authorised importer
+after legal/product gates.
+
+### 11.3 Arguments (B1 only)
 
 | Arg | Required | Meaning |
 | --- | --- | --- |
-| `--mode dry-run` | yes (or default) | only supported mode in B1 |
 | `--path <dir>` | yes | directory containing MANIFEST.json |
 | `--format text\|json` | no | default `text` for humans; `json` for CI |
-| `--output <file>` | no | write report file; default stdout only |
-| `--expected-input-checksum <hex>` | no | verify package input checksum |
+| `--expected-input-checksum <hex>` | no | verify package input artifact checksum |
 | `--expected-output-checksum <hex>` | no | verify content checksum |
 | `--strict` | no | default **true**; explicit flag for clarity |
 
-Not in B1:
+**Not in B1:**
 
 ```text
---mode upsert-draft | publish | retire
+--mode
+--output
 --supabase-url | --service-role
---force | --yes for destructive ops
+--force | --yes
+upsert / publish / retire flags
 stdin package streams (optional later; file path is enough)
 ```
 
-### 11.3 Behaviour
+### 11.4 Behaviour
 
 1. Parse argv; unknown args → exit 2.
-2. If `--mode` present and not `dry-run` → exit 2 with message
-   `mode not authorised in B1`.
-3. Resolve `--path`; require `MANIFEST.json` + snapshot file.
-4. Read files as UTF-8; reject if missing.
-5. Parse JSON; on failure exit 2 with parse error (no stack secrets).
-6. Call pure pipeline: parse manifest → normalise → validate.
-7. Build deterministic report.
-8. Compare expected checksums if provided.
-9. Print report to stdout (`json` = single JSON object; `text` = stable lines).
-10. Issues / diagnostics that are not the report body → stderr.
-11. Exit per §13.
+2. Resolve `--path`; require `MANIFEST.json` + snapshot file.
+3. Read files as UTF-8; reject if missing.
+4. Parse JSON; on failure exit 2 with parse error (no stack secrets).
+5. Call pure pipeline: parse manifest → normalise → validate.
+6. Build deterministic report.
+7. Compare expected checksums if provided.
+8. Print report to **stdout** (`json` = single JSON object; `text` = stable lines).
+9. Diagnostics that prevent report creation may go to stderr.
+10. Exit per §13.
 
-### 11.4 File write policy
+### 11.5 Stdout-only output
 
-* `--output` may create/overwrite **only** the report path.
-* Never mutate MANIFEST.json or snapshot.json.
-* Never write under `supabase/` or env files.
+```text
+JSON or text report is written to stdout.
+Diagnostics that prevent report creation may be written to stderr.
+Callers may use shell redirection if they need a file.
+The CLI itself creates no report files or directories.
+No absolute local paths appear in the deterministic report.
+B2 may separately consider persisted operational evidence.
+```
 
-### 11.5 Safety: no database writes
+### 11.6 Safety: no database writes
 
 Hard guarantees:
 
 ```text
 1. Script must not import @supabase/* or createClient.
-2. Script must not read SUPABASE_SERVICE_ROLE_KEY for any code path
-   (if env is present, ignore it).
-3. --mode upsert-draft|publish must fail closed without loading DB code.
-4. Invariant test greps scripts/import-measured-boq-catalogue.ts for
-   supabase / service_role / createClient.
+2. Script must not read SUPABASE_SERVICE_ROLE_KEY (if env is present, ignore it).
+3. No network clients.
+4. Invariant greps scripts/catalogue-dry-run.ts for supabase / service_role /
+   createClient / upsert / publish / retire implementation.
 5. Catalogue pure module already invariant-checked for no Supabase.
 ```
 
@@ -800,8 +953,8 @@ Smallest useful set:
 | Code | Meaning |
 | --- | --- |
 | `0` | valid package; dry-run clean; expected checksums match (if provided) |
-| `1` | structural or semantic validation / normalisation failure |
-| `2` | invocation, FS, or JSON parse error |
+| `1` | structural or semantic validation / normalisation / policy failure |
+| `2` | invocation, FS, or JSON parse error; unknown arguments |
 | `3` | checksum mismatch (input or output) |
 | `4` | unsupported `manifest_version` (or unsupported normaliser_version) |
 | `5` | unexpected internal error (should be rare; message sanitized) |
@@ -830,7 +983,7 @@ Do not print secrets, full env, or entire commercial payloads in logs.
 ```json
 {
   "ok": true,
-  "mode": "dry-run",
+  "tool": "catalogue-dry-run",
   "manifest_version": "1",
   "normaliser_version": "1",
   "catalog_revision": "mboq-2099.01.01",
@@ -871,32 +1024,42 @@ output_checksum: …
 issues: (none) | numbered list sorted by path
 ```
 
-### 13.3 Timestamps
+### 13.3 Timestamps and paths
 
-**Forbidden** in report body (destroy determinism). Optional stderr log line with
-wall clock is allowed only outside `--format json` body.
+**Forbidden** in report body:
+
+* wall-clock timestamps;
+* absolute local paths;
+* full raw source-record dumps;
+* secrets;
+* publication-authority claims.
+
+Optional stderr diagnostics may include non-deterministic detail when a report
+cannot be produced.
 
 ---
 
 ## 14. Validation pipeline (ordered)
 
 ```text
-1. CLI arg parse
+1. CLI arg parse (B1C)
 2. Read MANIFEST.json + snapshot.json (UTF-8)
-3. input_checksum over raw bytes
+3. input_checksum over raw text (artifact identity)
 4. JSON.parse both
 5. structural manifest validation (version, required fields, enums)
-6. policy checks (synthetic ⇒ production false; no secrets keys)
-7. normalise snapshot (aliases, defaults, unit map, decimals)
+6. policy checks (synthetic ⇒ production false; production true blocked;
+   rights_unverified never authorises write/publish; no secrets keys)
+7. normalise snapshot (trim, aliases, defaults, unit map, exact decimals)
 8. catalog_revision MANIFEST ↔ snapshot equality
 9. validateCatalogueSnapshot(normalised)
 10. output content_checksum from step 9
 11. optional expected checksum compares
-12. emit report + exit code
+12. emit report on stdout + exit code
 ```
 
 Error short-circuit: collect issues where cheap; fail-fast on unreadable files
-and unsupported versions.
+and unsupported versions. Do not treat a partial invalid snapshot as an
+authoritative content checksum success.
 
 ---
 
@@ -906,8 +1069,10 @@ and unsupported versions.
 | --- | --- |
 | `licence_status: synthetic` + `production: false` | allowed for fixtures |
 | `licence_status: synthetic` + `production: true` | **reject** (policy) |
-| `production: true` without sourceReference on entries | reject (existing validator) |
-| `licence_status: approved` | allowed only as dry-run metadata; report warning that approval is not publish authorisation; **no production rates in-repo** |
+| `licence_status: rights_unverified` + `production: false` | technical dry-run only; never publishable via B1 |
+| `licence_status: rights_unverified` + `production: true` | **reject** (production blocked in B1) |
+| any other `licence_status` (including `approved`) | **reject** |
+| `production: true` | **reject** in B1 regardless of rights metadata |
 | Committed commercial rates | **forbidden** by invariants / review |
 | Manifest licence fields | **not** legal approval [Merged 4C2E-A] |
 
@@ -919,21 +1084,35 @@ Coverage thresholds, runtime activation, and 4C2F remain **blocked** outside B1.
 
 | Control | Mechanism |
 | --- | --- |
-| Code structure | pure pipeline in `@repo/services` catalogue |
-| CLI | dry-run only; B2 modes fail closed |
-| Dependency | no supabase imports in new files |
-| Invariant | extend `l3-measured-boq-catalogue.invariant.test.ts` |
-| Unit test | assert module source text excludes `@supabase` / `createClient` |
+| Code structure | pure pipeline in `@repo/services` catalogue (B1B) |
+| CLI | dry-run only; no write modes in argv contract (B1C) |
+| Dependency | no supabase / network imports in B1 files |
+| Invariant | extend catalogue tooling invariants |
+| Unit test | assert pure module source excludes `@supabase` / `createClient` / `node:` |
 | Ops | plan forbids linked/production Supabase for B1 |
 
 B1 implementation validation commands must not start Supabase or apply
 migrations.
 
+Recommended invariant boundaries:
+
+```text
+1. packages/services/.../catalogue/** (non-test): zero matches for
+   @supabase|createClient|createServiceRole|node:|process\.argv
+2. scripts/catalogue-dry-run.ts: zero matches for
+   @supabase|createClient|SERVICE_ROLE|upsert|publish|retire
+3. CLI must not read process.env.SUPABASE_* for any branch
+4. catalogue-sources/** committed packages: licence_status=synthetic,
+   production=false only
+5. loader still forbids latest/current (existing)
+6. No import of measuredBoqCatalogue.repository.server from B1 modules
+```
+
 ---
 
 ## 17. Proposed implementation files
 
-### 17.1 Add
+### 17.1 B1B — Pure pipeline (add)
 
 ```text
 packages/services/src/measured-boq/catalogue/manifestTypes.ts
@@ -944,32 +1123,37 @@ packages/services/src/measured-boq/catalogue/packageChecksum.ts
 packages/services/src/measured-boq/catalogue/manifest.validation.test.ts
 packages/services/src/measured-boq/catalogue/normalise.validation.test.ts
 packages/services/src/measured-boq/catalogue/dryRun.pipeline.test.ts
-scripts/import-measured-boq-catalogue.ts
-catalogue-sources/measured-boq/revisions/mboq-2099.01.01/MANIFEST.json
-catalogue-sources/measured-boq/revisions/mboq-2099.01.01/snapshot.json
+packages/services/src/measured-boq/catalogue/__fixtures__/**
 ```
 
-(Exact filenames may vary slightly; keep under catalogue + scripts +
-catalogue-sources.)
-
-### 17.2 Modify
+### 17.2 B1B — Modify
 
 ```text
-packages/services/src/measured-boq/catalogue/index.ts   # export new pure APIs
-package.json                                           # catalogue:dry-run script
-tests/invariants/l3-measured-boq-catalogue.invariant.test.ts  # B1 boundary
-catalogue-sources/measured-boq/README.md               # document package layout
+packages/services/src/measured-boq/catalogue/index.ts   # pure exports only
 ```
 
-### 17.3 Must not modify (B1)
+### 17.3 B1C — CLI and boundary (add/modify)
+
+```text
+scripts/catalogue-dry-run.ts
+package.json                                           # catalogue:dry-run script only
+catalogue-sources/measured-boq/revisions/mboq-2099.01.01/MANIFEST.json
+catalogue-sources/measured-boq/revisions/mboq-2099.01.01/snapshot.json
+catalogue-sources/measured-boq/README.md
+tests/invariants/l3-measured-boq-catalogue.invariant.test.ts
+  (or l3-measured-boq-catalogue-tooling.invariant.test.ts)
+```
+
+### 17.4 Must not modify (B1B + B1C)
 
 ```text
 supabase/migrations/**
-src/features/estimate/** (except none)
+src/features/estimate/**
 runtime loaders / reprice
 estimate builders / ROI / UI / routes
-lockfiles beyond package.json script-only change
+lockfiles (no dependency changes)
 database types
+multi-mode importer scripts
 ```
 
 `package.json` script addition does not require lockfile change if no deps added.
@@ -978,25 +1162,27 @@ database types
 
 ## 18. Test plan
 
-### 18.1 Unit (vitest)
+### 18.1 Unit (vitest) — B1B
 
 | Area | Assertions |
 | --- | --- |
 | Manifest parse | required fields; version; unknown keys in strict |
+| Rights enum | only `synthetic` \| `rights_unverified`; reject others |
 | Normalise units | each UNIT_IMPORT_ALIASES mapping; unknown unit fails |
-| Normalise decimals | accept 4 dp; reject 5 dp, sci-notation, ≤0 |
+| Normalise decimals | exact string grammar; number canonicalisation; reject sci-notation / excess precision / ≤0 |
+| Trim | display fields trimmed by normaliser; keys not case-folded |
 | Duplicates | pre/post normalise collisions |
 | Ordering | reorder entries → same output_checksum |
 | Checksums | golden digests for synthetic package |
-| Production policy | synthetic + production true fails |
+| Production policy | production true fails in B1 |
 | validateCatalogueSnapshot | still passes on normalised output |
-| No DB | source of pure modules has no supabase strings |
+| No Node/DB | pure module sources have no supabase / node: strings |
 
-### 18.2 CLI smoke
+### 18.2 CLI smoke — B1C
 
 ```bash
 pnpm catalogue:dry-run -- --path catalogue-sources/measured-boq/revisions/mboq-2099.01.01 --format json
-# expect exit 0, stable JSON keys, non-empty output_checksum
+# expect exit 0, stable JSON keys, non-empty output_checksum, stdout only
 ```
 
 ### 18.3 Existing catalogue suite (must remain green)
@@ -1013,29 +1199,30 @@ Prior baseline: **48/48** (may increase with new tests; zero failures required).
 
 ---
 
-## 19. Invariant plan
+## 19. Invariant plan (primarily B1C seal)
 
 Extend `tests/invariants/l3-measured-boq-catalogue.invariant.test.ts` (or add
 `l3-measured-boq-catalogue-tooling.invariant.test.ts`):
 
 ```text
-1. scripts/import-measured-boq-catalogue.ts exists
-2. script source matches /dry-run/ and does not match /createClient|@supabase/
-3. script does not reference upsert-draft|publish implementation bodies
-   (or only hard-fail stubs)
-4. catalogue module files still have zero @supabase imports
+1. scripts/catalogue-dry-run.ts exists
+2. script source matches dry-run behaviour and does not match
+   /createClient|@supabase|SERVICE_ROLE|upsert|publish|retire/
+3. no --mode write-surface documentation or flags in the script
+4. catalogue module files still have zero @supabase and zero node: imports
 5. committed catalogue-sources revisions contain only licence_status synthetic
    and production false
 6. no numeric rate package under catalogue-sources claiming production approval
 7. UNIT_IMPORT_ALIASES applied only in normalise module (not in repository.server)
 8. loader still forbids latest/current
+9. CLI is not re-exported from @repo/services
 ```
 
 Invariants baseline prior: **508/508** (may increase).
 
 ---
 
-## 20. Validation commands (B1 implementation phase)
+## 20. Validation commands (implementation phases)
 
 ```bash
 pnpm install --frozen-lockfile
@@ -1044,6 +1231,7 @@ pnpm lint
 pnpm typecheck
 pnpm test:invariants
 pnpm exec vitest run packages/services/src/measured-boq/catalogue/
+# after B1C:
 pnpm catalogue:dry-run -- --path catalogue-sources/measured-boq/revisions/mboq-2099.01.01 --format json
 pnpm build
 ```
@@ -1052,31 +1240,71 @@ Do **not** use linked or production Supabase.
 
 ---
 
-## 21. Implementation slicing recommendation
+## 21. Implementation slicing
 
 ### Recommendation
 
 ```text
-SINGLE B1 IMPLEMENTATION TICKET
+READY FOR SPLIT B1 IMPLEMENTATION APPROVAL
 ```
 
-Rationale:
+### 4C2E-B1B — Pure Manifest and Normalisation Pipeline
 
-* Scope is one vertical slice (parse → normalise → validate → report → CLI).
-* Existing validator/checksum already exist; B1 is thin orchestration + aliases.
-* Splitting CLI from normaliser risks two PRs that cannot be demonstrated
-  end-to-end.
-* File count is modest (~10–15 files).
+**Scope:**
 
-### Optional micro-slices (only if review bandwidth requires)
+* manifest types and strict parsing;
+* source snapshot normalisation;
+* exact decimal canonicalisation;
+* unit alias application;
+* duplicate/collision detection;
+* package artifact checksum;
+* canonical catalogue output checksum;
+* deterministic issue/report model;
+* synthetic test-only fixtures;
+* focused unit tests;
+* pure exports only.
 
-| Slice | Scope | Alone mergeable? |
-| --- | --- | --- |
-| B1.1 | pure normalise + manifest types + unit tests | yes (no CLI) |
-| B1.2 | CLI + on-disk synthetic package + invariants | needs B1.1 |
+**Exclusions:**
 
-[Reasoned B1 recommendation] Prefer **one PR** unless mid-implementation
-review forces a split. Do **not** split B0 or B2 into B1.
+* CLI;
+* filesystem I/O in services modules;
+* argv handling;
+* package script;
+* committed source-directory example package;
+* database access;
+* publication;
+* runtime activation.
+
+### 4C2E-B1C — Dry-Run CLI and Boundary Seal
+
+**Scope:**
+
+* `scripts/catalogue-dry-run.ts`;
+* `catalogue:dry-run` package script;
+* one synthetic example package under `catalogue-sources/`;
+* stdout text/JSON adapter;
+* exit-code mapping;
+* no-database-write invariants;
+* source-directory README update;
+* focused CLI smoke tests;
+* optional short operations note only if implementation evidence requires it.
+
+**Exclusions:**
+
+* importer or publisher modes;
+* Supabase;
+* database writes;
+* production data;
+* source-specific adapters;
+* runtime activation.
+
+### 4C2E-B1D — Independent Verification
+
+Verify B1B and B1C exact heads and the combined programme boundary before
+completion authorisation. Does not auto-authorise implementation.
+
+Production data, database writes, publication, and runtime activation remain
+excluded from every slice.
 
 ---
 
@@ -1084,15 +1312,14 @@ review forces a split. Do **not** split B0 or B2 into B1.
 
 | Item | Class | Notes |
 | --- | --- | --- |
-| Decimal string vs number only | Reasoned B1 recommendation | Plan accepts both; implementer must golden-test JSON number serialisation |
-| Expanding UNIT_IMPORT_ALIASES | Unresolved if product wants `days`→`day` etc. | B1 uses existing map only |
+| Exact non-exponential number→decimal conversion routine | Reasoned B1 recommendation | B1B must specify and test; reject rather than round |
+| Expanding UNIT_IMPORT_ALIASES | Unresolved if product wants more aliases | B1 uses existing map only |
 | snake_case aliases surface area | Reasoned B1 recommendation | Support documented set; strict unknown keys |
 | Input checksum format versioning | Reasoned B1 recommendation | prefix `mboq-package-v1\n` |
-| Whether `approved` licence_status allowed in dry-run | Reasoned B1 recommendation | warn only; no in-repo production rates |
-| B2 mode stubs in same script | Reasoned B1 recommendation | fail closed with exit 2 |
-| Zod vs hand parsers | Reasoned B1 recommendation | hand parsers matching existing catalogue style; zod optional if it reduces code — **no new dependency** (zod already present) but consistency with hand validation preferred |
+| Zod vs hand parsers | Reasoned B1 recommendation | hand parsers matching existing catalogue style preferred |
 
-No unresolved decision blocks B1 implementation approval.
+No unresolved decision blocks split B1 implementation approval after this plan
+merges.
 
 ---
 
@@ -1114,6 +1341,9 @@ no new runtime dependencies (lockfile churn)
 no linked or production Supabase usage
 no B0 SQL provenance migration
 no claim that manifest licence fields are legal approval
+no B1 --mode flag or write-mode stubs
+no B1 --output file writes
+no multi-mode importer entrypoint in B1
 ```
 
 ---
@@ -1133,45 +1363,46 @@ Interpretation for B1:
 * Optional B0 SQL provenance remains deferred.
 * Unresolved legal/product gates still block production publication and runtime
   activation.
+* A successful dry run never authorises publication.
 
 ---
 
-## 25. Follow-up after B1 merge (not this phase)
+## 25. Follow-up after planning merge
 
 ```text
-After B1 merges and independent verification:
-  B2 planning/implementation remains separately authorised
+After this plan merges and B1A4 delta verification passes:
+  authorise 4C2E-B1B then 4C2E-B1C separately
+  4C2E-B1D verifies combined boundary
+  B2 remains separately authorised
   Production rates remain blocked on source/licensing
   Runtime activation remains blocked on coverage + lawful publication
   4C2F remains blocked
 ```
-
-Recommended post-B1 verification ticket: **4C2E-B1C** (or programme C-series)
-independent verification — out of scope here.
 
 ---
 
 ## 26. Final authorization recommendation
 
 ```text
-READY FOR B1 IMPLEMENTATION APPROVAL
+READY FOR SPLIT B1 IMPLEMENTATION APPROVAL
 ```
 
-B1 implementation may proceed only when this planning document is merged (or
-explicitly accepted) and a separate implementation ticket is authorised.
+B1B/B1C implementation may proceed only when this planning document is merged
+(or explicitly accepted) and each implementation ticket is separately
+authorised.
 
-B1 implementation approval still **excludes** production data, database writes,
-publication, and runtime activation.
+Split B1 implementation approval still **excludes** production data, database
+writes, publication, and runtime activation.
 
 ---
 
 ## 27. Planning-phase self-check
 
-This planning PR (4C2E-B1A) changes only:
+This planning document (4C2E-B1A + B1A3 repair) changes only:
 
 ```text
-A docs/architecture/4c2e-b1-source-agnostic-catalogue-tooling-plan.md
+docs/architecture/4c2e-b1-source-agnostic-catalogue-tooling-plan.md
 ```
 
-No implementation files, no tests executed as mutations, no catalogue data, no
-migrations, no database writes, no PR merge of B1 tooling.
+No implementation files, no catalogue data, no migrations, no database writes,
+no PR merge of B1 tooling from this planning workstream alone.
