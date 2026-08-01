@@ -475,7 +475,7 @@ coverage_threshold overrides that activate product readers
 ### 6.4 Forward compatibility
 
 * Unknown **top-level** keys: fail in `--strict` (default for B1).
-* Unsupported `manifest_version`: exit code 4 (see §13).
+* Unsupported `manifest_version`: exit code 4 (see §12).
 * Nested unknown keys under `source` / `transformation`: strict fail.
 
 ### 6.5 Relationship to snapshot `schemaVersion`
@@ -918,7 +918,7 @@ stdin package streams (optional later; file path is enough)
 7. Compare expected checksums if provided.
 8. Print report to **stdout** (`json` = single JSON object; `text` = stable lines).
 9. Diagnostics that prevent report creation may go to stderr.
-10. Exit per §13.
+10. Exit per §12.
 
 ### 11.5 Stdout-only output
 
