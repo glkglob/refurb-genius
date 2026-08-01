@@ -288,7 +288,8 @@ synthetic fixtures under tests/fixtures/measured-boq-catalogue/
 
 ```text
 [Repository-confirmed]
-production rate rows (empty by design)
+no production catalogue rate rows committed or seeded by repository migrations
+no approved production rate package under catalogue-sources/
 import / dry-run / publish CLI
 SECURITY DEFINER publish RPC
 on-disk revision packages (MANIFEST + snapshot.json)
@@ -299,6 +300,9 @@ measured-BOQ persistence RPC
 builder library-identity adapters
 product reader activation
 formal catalogue publisher role assignment
+
+[Not verified]
+linked / production database catalogue population (not inspected in this phase)
 ```
 
 ### Can 4C2E-B remain data-only?
@@ -309,12 +313,12 @@ formal catalogue publisher role assignment
 | --- | --- |
 | Tooling + synthetic dry-run + draft upsert + publish under existing columns | **No** |
 | Production rates that fit current CHECKs after legal approval | **No** (data only) |
-| Extra provenance columns (licence_id, source_id, approval_ref, importer_version) | **Yes** — split 4C2E-B1 schema if product requires them in DB |
+| Extra provenance columns (licence_id, source_id, approval_ref, importer_version) | **Yes** — optional **4C2E-B0** schema only if product requires them in DB |
 | Measured persist RPC / builders / readers | **Separate tickets** |
 
-**Preferred split:** keep 4C2E-B **tooling + provenance manifests in VCS** first;
-add DB columns only if governance requires them in-row rather than in
-immutable revision manifests.
+**Preferred split:** keep **4C2E-B1** tooling + provenance manifests in VCS first;
+add DB columns only via optional **4C2E-B0** if governance requires them in-row
+rather than in immutable revision manifests.
 
 ---
 
@@ -452,8 +456,10 @@ Do **not** commit raw licensed vendor dumps without redistribution rights
 ### Schema gap classification
 
 If product governance requires licence/source IDs **queryable in SQL** for
-every revision, plan a **narrow additive migration** as **4C2E-B1**. Otherwise
-keep 4C2E-B data-only + MANIFEST (preferred first step).
+every revision, plan a **narrow additive migration** as optional **4C2E-B0**
+(schema/provenance only; not authorised by this PR). Otherwise keep
+manifest-only provenance and proceed with **4C2E-B1** dry-run tooling
+(preferred first step; no migration, no DB writes).
 
 ---
 
@@ -522,7 +528,7 @@ not precomputed estimate totals.
 | Zero / negative rates | **reject** (`base_unit_rate > 0`) |
 | Duplicates | fatal within revision |
 | Aliases | **forbidden** at runtime; import aliases for units only |
-| Obsolete entries | `status=deprecated` + optional `replacement_rate_key`; authority loads reject deprecated; reproduction loads only resolve deprecated if present |
+| Obsolete entries | `status=deprecated` + optional `replacement_rate_key`. **Current behaviour:** revision eligibility is enforced at revision level (authority = published; reproduction = published or retired); entry rows including deprecated are loaded into the exact-revision rate map when present; resolution does **not** reject a matching rate solely because entry status is deprecated. **Future policy (not implemented):** rejecting deprecated entries for new authority estimates would require an explicit validation or resolution rule. |
 
 ---
 
@@ -734,13 +740,17 @@ read MANIFEST + snapshot
 → write evidence
 ```
 
-### Migration split recommendation
+### Ticket sequence (authoritative)
 
 | Ticket | Scope |
 | --- | --- |
-| **4C2E-B1** | Manifest format, unit normaliser, dry-run CLI, evidence (no production rates) |
-| **4C2E-B2** | Draft upsert + publish transaction + retire helper + verification |
-| Optional **4C2E-B0** | Narrow provenance columns migration **only if** SQL queryability required |
+| Optional **4C2E-B0** | Provenance schema support **only if** approved provenance cannot remain manifest-only and must be represented in SQL. Planning first; migration not authorised by this PR. |
+| **4C2E-B1** | Source-agnostic manifest, unit normalisation, synthetic fixtures, deterministic checksums, dry-run validation. **No** database writes, production rates, publication, or runtime activation. |
+| **4C2E-B2** | Controlled draft-write and publication tooling (draft upsert, controlled publisher boundary, publish, retire, post-publish verify). Not authorised until separately approved. |
+| **4C2E-C** | Independent verification |
+| **4C2E-D** | Controlled lawful production publication |
+| **4C2E-E** | Post-publication verification |
+| **4C2F-A** | Product-reader activation planning only |
 
 ---
 
@@ -891,19 +901,30 @@ full source file contents
 
 ## 19. Proposed implementation phases
 
-### 4C2E-B1 — Source manifest and deterministic importer (dry-run)
+### 4C2E-B0 — Optional provenance schema support
+
+| Field | Content |
+| --- | --- |
+| Objective | Represent approved provenance in SQL only when manifest-only is insufficient |
+| Scope | Narrow additive provenance/schema planning; migration only if separately approved |
+| Excluded | Production rates; dry-run tooling ownership (B1); publish tooling (B2); builders; readers |
+| Validation | Schema plan review; no unauthorised migration in this programme step |
+| Merge gate | Explicit product/legal need for SQL-queryable provenance |
+| Production-ops gate | N/A |
+
+### 4C2E-B1 — Source-agnostic manifest and deterministic dry-run tooling
 
 | Field | Content |
 | --- | --- |
 | Objective | On-disk package + unit normalisation + dry-run validation/evidence |
 | Scope | `catalogue-sources/…/MANIFEST`, pure normaliser, CLI dry-run, synthetic package only |
-| Excluded | Production rates, migrations, publish, builders, readers |
+| Excluded | Database writes; production rates; publication; migrations; builders; readers |
 | Expected files | `packages/services/.../catalogue/normalise*`, `scripts/import-measured-boq-catalogue.ts`, synthetic revision dir, tests |
-| Validation | unit tests; dry-run of synthetic A/B; no DB writes |
+| Validation | unit tests; dry-run of synthetic A/B; **no DB writes** |
 | Merge gate | tests green; no production rates; invariants green |
 | Production-ops gate | N/A |
 
-### 4C2E-B2 — Validation and publication transaction
+### 4C2E-B2 — Controlled draft-write and publication tooling
 
 | Field | Content |
 | --- | --- |
