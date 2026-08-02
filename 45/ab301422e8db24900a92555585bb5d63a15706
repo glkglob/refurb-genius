@@ -1,0 +1,14 @@
+scripts/verify-database-types-compatibility.test.mjs
+  h_7ea6129503670a 134-149,170-172,177,180,183-194,197,199,202,204,207,216-220,223,244-283
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "45ab301422e8db24900a92555585bb5d63a15706",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
