@@ -1,0 +1,20 @@
+scripts/verify-database-types-canonical.mjs
+  h_7ea6129503670a 72-87,93
+scripts/verify-database-types-canonical.test.mjs
+  h_7ea6129503670a 14,21-36
+scripts/verify-database-types-compatibility.mjs
+  h_7ea6129503670a 154-169,175
+scripts/verify-database-types-compatibility.test.mjs
+  h_7ea6129503670a 13-17,24-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "878276745b3f267c62a5458e47f7f7d8ac420039",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
