@@ -1,0 +1,40 @@
+scripts/verify-database-types-compatibility.test.mjs
+  h_7ea6129503670a 134,154-155,164-180
+src/components/gallery/ProjectCard.tsx
+  h_7ea6129503670a 11
+src/components/marketplace/MessagingInbox.test.tsx
+  h_7ea6129503670a 80
+src/components/marketplace/MessagingInbox.tsx
+  h_7ea6129503670a 181
+src/features/gallery/infrastructure/galleryRepository.test.ts
+  h_7ea6129503670a 2,52-63,90,110-112,126,132-140
+src/features/gallery/infrastructure/galleryRepository.ts
+  h_7ea6129503670a 2,5-12,16,20,29-61,64,69-78,80,82,91
+src/features/gallery/presentation/hooks/useUpsertGalleryProject.test.ts
+  h_7ea6129503670a 234-235
+src/features/gallery/presentation/hooks/useUpsertGalleryProject.ts
+  h_7ea6129503670a 2,12,67
+src/lib/marketplace-write.test.ts
+  h_7ea6129503670a 303,315,318-319,324,328,338
+src/lib/marketplace-write.ts
+  h_7ea6129503670a 166-169,171,175-196,198,200-202,212,215-218
+src/lib/pitchDeck.ts
+  h_7ea6129503670a 363-401,403,417-421
+src/lib/queries/gallery.test.ts
+  h_7ea6129503670a 38-52,65-78
+src/lib/queries/gallery.ts
+  h_7ea6129503670a 7-37,40-105,154,156,181-182,219,256-257,265
+src/lib/queries/marketplace.ts
+  h_7ea6129503670a 18-57,252
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "2c4d410d35f57d95cb0e56b41d5b791db019246f",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
