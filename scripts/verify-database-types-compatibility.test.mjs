@@ -131,6 +131,22 @@ test("injected formatter failure restores tracked file", () => {
   assert.equal(gitStatus(), statusBefore);
 });
 
+/**
+ * Shared post-condition for successful generation+typecheck outcomes
+ * (COMPATIBLE or INCOMPATIBLE). HARNESS_ERROR paths restore separately.
+ */
+function assertSuccessfulRunCleanup(out, hashBefore, statusBefore) {
+  assert.match(
+    out,
+    /GeneratedFormattedChecksum: 84c292ccbbfb9236282326c165bf29a27ae720a4eb063b492b7a30fb0a8611a8/,
+  );
+  assert.match(out, /TrackedChecksumRestored: true/);
+  assert.match(out, /WorkingTreeRestored: true/);
+  assert.match(out, /TemporaryResourcesCleaned: true/);
+  assert.equal(sha256File(TRACKED), hashBefore);
+  assert.equal(gitStatus(), statusBefore);
+}
+
 test("full harness: progressive INCOMPATIBLE or terminal COMPATIBLE, restore when Supabase up", () => {
   const statusProbe = spawnSync("pnpm", ["exec", "supabase", "status"], {
     cwd: ROOT,
@@ -151,24 +167,44 @@ test("full harness: progressive INCOMPATIBLE or terminal COMPATIBLE, restore whe
   );
 
   // Sequential P1B* slices reduce diagnostics from the original 84 baseline.
-  // Terminal COMPATIBLE (exit 0, 0 diagnostics) is valid after P1B4 application
-  // compatibility; progressive INCOMPATIBLE remains valid mid-sequence.
+  // Terminal COMPATIBLE (exit 0, 0/0 + cleanup) is valid after application
+  // compatibility. Progressive INCOMPATIBLE remains valid mid-sequence.
+  // HARNESS_ERROR (exit 1) is never a valid full-run success path.
   const res = runHarness({});
   const out = `${res.stdout}${res.stderr}`;
   const diagMatch = out.match(/DiagnosticCount: (\d+)/);
   const fileMatch = out.match(/AffectedFileCount: (\d+)/);
+  const tcMatch = out.match(/TypecheckExitCode: (-?\d+)/);
   assert.ok(diagMatch, "DiagnosticCount missing from harness output");
   assert.ok(fileMatch, "AffectedFileCount missing from harness output");
+  assert.ok(tcMatch, "TypecheckExitCode missing from harness output");
   const diagCount = Number(diagMatch[1]);
   const fileCount = Number(fileMatch[1]);
+  const typecheckExit = Number(tcMatch[1]);
+
+  // Reject infrastructure failure as if it were a compatibility outcome.
+  assert.notEqual(
+    res.status,
+    1,
+    `full harness must not report HARNESS_ERROR on a successful generation path\n${out}`,
+  );
+  assert.ok(
+    !/Status: HARNESS_ERROR/.test(out),
+    `full harness must not summarise HARNESS_ERROR when generation succeeded\n${out}`,
+  );
 
   if (res.status === 0) {
+    // State A — COMPATIBLE
     assert.match(out, /Status: COMPATIBLE/);
+    assert.doesNotMatch(out, /Status: INCOMPATIBLE/);
     assert.equal(diagCount, 0, `COMPATIBLE requires DiagnosticCount 0, got ${diagCount}`);
     assert.equal(fileCount, 0, `COMPATIBLE requires AffectedFileCount 0, got ${fileCount}`);
+    assert.equal(typecheckExit, 0, `COMPATIBLE requires TypecheckExitCode 0, got ${typecheckExit}`);
   } else {
+    // State B — INCOMPATIBLE (never convert historical error ranges into exit 0)
     assert.equal(res.status, 2, `expected INCOMPATIBLE exit 2 or COMPATIBLE exit 0\n${out}`);
     assert.match(out, /Status: INCOMPATIBLE/);
+    assert.doesNotMatch(out, /Status: COMPATIBLE/);
     assert.ok(
       diagCount > 0 && diagCount <= 84,
       `diagnostic count ${diagCount} outside progressive baseline (1..84)`,
@@ -177,16 +213,14 @@ test("full harness: progressive INCOMPATIBLE or terminal COMPATIBLE, restore whe
       fileCount > 0 && fileCount <= 22,
       `affected file count ${fileCount} outside progressive baseline (1..22)`,
     );
+    assert.notEqual(
+      typecheckExit,
+      0,
+      `INCOMPATIBLE requires non-zero TypecheckExitCode, got ${typecheckExit}`,
+    );
   }
-  assert.match(
-    out,
-    /GeneratedFormattedChecksum: 84c292ccbbfb9236282326c165bf29a27ae720a4eb063b492b7a30fb0a8611a8/,
-  );
-  assert.match(out, /TrackedChecksumRestored: true/);
-  assert.match(out, /WorkingTreeRestored: true/);
 
-  assert.equal(sha256File(TRACKED), hashBefore);
-  assert.equal(gitStatus(), statusBefore);
+  assertSuccessfulRunCleanup(out, hashBefore, statusBefore);
 });
 
 test("injected typecheck ok path yields COMPATIBLE without leaving dirt", () => {
@@ -207,7 +241,44 @@ test("injected typecheck ok path yields COMPATIBLE without leaving dirt", () => 
   });
   const out = `${res.stdout}${res.stderr}`;
   assert.equal(res.status, 0, out);
-  assert.match(out, /Status: COMPATIBLE|COMPATIBLE/);
-  assert.equal(sha256File(TRACKED), hashBefore);
-  assert.equal(gitStatus(), statusBefore);
+  assert.match(out, /Status: COMPATIBLE/);
+  assert.doesNotMatch(out, /Status: INCOMPATIBLE/);
+  assert.doesNotMatch(out, /Status: HARNESS_ERROR/);
+  const diagMatch = out.match(/DiagnosticCount: (\d+)/);
+  const fileMatch = out.match(/AffectedFileCount: (\d+)/);
+  assert.ok(diagMatch && fileMatch, "COMPATIBLE inject missing diagnostic summary");
+  assert.equal(Number(diagMatch[1]), 0);
+  assert.equal(Number(fileMatch[1]), 0);
+  assertSuccessfulRunCleanup(out, hashBefore, statusBefore);
+});
+
+test("injected typecheck fail path yields INCOMPATIBLE with non-zero diagnostics", () => {
+  const statusProbe = spawnSync("pnpm", ["exec", "supabase", "status"], {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  if (statusProbe.status !== 0) {
+    console.log("skip INCOMPATIBLE inject: local Supabase unavailable");
+    return;
+  }
+
+  const statusBefore = gitStatus();
+  const hashBefore = sha256File(TRACKED);
+
+  const res = runHarness({
+    VERIFY_DB_TYPES_COMPAT_INJECT_TYPECHECK: "fail",
+  });
+  const out = `${res.stdout}${res.stderr}`;
+  assert.equal(res.status, 2, `expected INCOMPATIBLE exit 2\n${out}`);
+  assert.match(out, /Status: INCOMPATIBLE/);
+  assert.doesNotMatch(out, /Status: COMPATIBLE/);
+  assert.doesNotMatch(out, /Status: HARNESS_ERROR/);
+  const diagMatch = out.match(/DiagnosticCount: (\d+)/);
+  const fileMatch = out.match(/AffectedFileCount: (\d+)/);
+  assert.ok(diagMatch && fileMatch, "INCOMPATIBLE inject missing diagnostic summary");
+  assert.ok(Number(diagMatch[1]) > 0, "INCOMPATIBLE requires diagnostics > 0");
+  assert.ok(Number(fileMatch[1]) > 0, "INCOMPATIBLE requires affected files > 0");
+  // Historical error counts must never become exit 0
+  assert.notEqual(res.status, 0);
+  assertSuccessfulRunCleanup(out, hashBefore, statusBefore);
 });
