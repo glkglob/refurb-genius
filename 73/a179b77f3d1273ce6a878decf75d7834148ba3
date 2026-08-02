@@ -1,0 +1,48 @@
+packages/types/src/index.ts
+  h_7ea6129503670a 119-136
+packages/types/src/photo-analysis-content.ts
+  h_7ea6129503670a 1-384
+packages/types/src/photo-analysis.ts
+  h_7ea6129503670a 1,14-28
+src/components/photos/PhotoAnalysisCard.tsx
+  h_7ea6129503670a 59,64-79
+src/components/photos/PhotoAnalysisViewer.test.tsx
+  h_7ea6129503670a 63-64,69-70,79
+src/components/photos/PhotoAnalysisViewer.tsx
+  h_7ea6129503670a 49,53-68
+src/features/ai-upload/domain/index.ts
+  h_7ea6129503670a 42-55
+src/features/ai-upload/domain/photo-analysis-content.test.ts
+  h_7ea6129503670a 1-258
+src/features/ai-upload/domain/photo-analysis-content.ts
+  h_7ea6129503670a 1-21
+src/features/ai-upload/presentation/hooks/useUpdatePhotoAnalysisResult.test.ts
+  h_7ea6129503670a 14,46,54,57
+src/features/ai-upload/presentation/hooks/useUpdatePhotoAnalysisResult.ts
+  h_7ea6129503670a 14,45-47,75-83,89-93
+src/features/estimate/application/mapPhotoAnalysesToEstimateRooms.test.ts
+  h_7ea6129503670a 6,13,21,24,156
+src/features/estimate/application/mapPhotoAnalysesToEstimateRooms.ts
+  h_7ea6129503670a 50,52,58-70
+src/features/estimate/presentation/hooks/useApplyPhotoAnalysesToEstimate.test.ts
+  h_7ea6129503670a 15,41,49,51
+src/lib/photo-analysis-write.test.ts
+  h_7ea6129503670a 35,50-57,63,65-71,75,84-91,129-134
+src/lib/photo-analysis-write.ts
+  h_7ea6129503670a 2,5,10-11,20,24-35,41,49-64,67
+src/lib/pitchDeck.ts
+  h_7ea6129503670a 255,261
+src/lib/queries/photo-analysis.ts
+  h_7ea6129503670a 5-9,11-15,29-31,50-52,81-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "73a179b77f3d1273ce6a878decf75d7834148ba3",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
