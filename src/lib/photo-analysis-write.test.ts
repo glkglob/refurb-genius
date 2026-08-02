@@ -32,7 +32,7 @@ describe("photo-analysis-write", () => {
     vi.useRealTimers();
   });
 
-  it("updates photo_analysis_results with exact payload and id filter", async () => {
+  it("updates photo_analysis_results with analysis_data + confidence only", async () => {
     const result = await updatePhotoAnalysisResult({
       id: "analysis-1",
       category: "Kitchen",
@@ -47,31 +47,32 @@ describe("photo-analysis-write", () => {
     expect(fromMock).toHaveBeenCalledWith("photo_analysis_results");
     expect(updateMock).toHaveBeenCalledTimes(1);
     expect(updateMock).toHaveBeenCalledWith({
-      category: "Kitchen",
-      condition_report: "Fair",
-      detected_defects: [{ description: "Crack", severity: "low" }],
-      material_estimates: [{ name: "Tile", quantity: 2, unit: "m2" }],
-      cost_suggestions: { mid: 500 },
-      confidence_score: 0.85,
+      analysis_data: {
+        category: "Kitchen",
+        condition_report: "Fair",
+        detected_defects: [{ description: "Crack", severity: "low" }],
+        material_estimates: [{ name: "Tile", quantity: 2, unit: "m2" }],
+        cost_suggestions: { mid: 500 },
+      },
+      confidence: 0.85,
       updated_at: FIXED,
     });
     const firstCall = updateMock.mock.calls[0] as unknown as [Record<string, unknown>];
     const payload = firstCall[0];
     expect(Object.keys(payload).sort()).toEqual(
-      [
-        "category",
-        "condition_report",
-        "confidence_score",
-        "cost_suggestions",
-        "detected_defects",
-        "material_estimates",
-        "updated_at",
-      ].sort(),
+      ["analysis_data", "confidence", "updated_at"].sort(),
     );
+    // Obsolete flat columns must not appear on the DB update payload
+    expect(payload).not.toHaveProperty("category");
+    expect(payload).not.toHaveProperty("condition_report");
+    expect(payload).not.toHaveProperty("detected_defects");
+    expect(payload).not.toHaveProperty("material_estimates");
+    expect(payload).not.toHaveProperty("cost_suggestions");
+    expect(payload).not.toHaveProperty("confidence_score");
     expect(eqMock).toHaveBeenCalledWith("id", "analysis-1");
   });
 
-  it("applies null fallbacks for optional fields", async () => {
+  it("applies null fallbacks for optional fields inside analysis_data", async () => {
     await updatePhotoAnalysisResult({
       id: "a2",
       detected_defects: [],
@@ -80,12 +81,14 @@ describe("photo-analysis-write", () => {
     });
 
     expect(updateMock).toHaveBeenCalledWith({
-      category: null,
-      condition_report: null,
-      detected_defects: [],
-      material_estimates: [],
-      cost_suggestions: {},
-      confidence_score: null,
+      analysis_data: {
+        category: null,
+        condition_report: null,
+        detected_defects: [],
+        material_estimates: [],
+        cost_suggestions: {},
+      },
+      confidence: null,
       updated_at: FIXED,
     });
   });
@@ -122,5 +125,11 @@ describe("photo-analysis-write", () => {
     expect(src).not.toMatch(/\)\s*\.select\s*\(|\n\s*\.select\s*\(/);
     expect(src).not.toMatch(/\.insert\s*\(|\.delete\s*\(/);
     expect(src).not.toMatch(/from\s+["']@\/lib\/logger["']/);
+  });
+
+  it("source does not use as any or ts-ignore", () => {
+    const src = readFileSync(join(process.cwd(), "src/lib/photo-analysis-write.ts"), "utf8");
+    expect(src).not.toMatch(/as any/);
+    expect(src).not.toMatch(/@ts-ignore|@ts-expect-error/);
   });
 });

@@ -252,12 +252,13 @@ export async function generatePitchDeckPDF(
     y += 5;
     doc.setFontSize(9);
     analyses.slice(0, 3).forEach((a, i) => {
+      // a is PhotoAnalysisAppModel (content from analysis_data via query mapper)
       const room = a.category || "General";
       // confidence_score may be stored as a 0-1 fraction or a 0-100 percent.
       const rawConf = a.confidence_score ?? 0.8;
       const conf = Math.round(rawConf > 1 ? rawConf : rawConf * 100);
       doc.text(
-        `  ${i + 1}. ${room} (${conf}% conf) - ${((a.detected_defects as unknown[]) || []).length} issues noted`,
+        `  ${i + 1}. ${room} (${conf}% conf) - ${(a.detected_defects || []).length} issues noted`,
         margin + 3,
         y,
       );

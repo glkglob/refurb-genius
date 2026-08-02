@@ -12,6 +12,7 @@ import {
   photoAnalysisByProjectQueryOptions,
   type PhotoAnalysisResultRow,
 } from "@/lib/queries/photo-analysis";
+import { createPhotoAnalysisAppModel } from "@repo/types";
 import type { PersistedRoomEstimate } from "../../infrastructure/repositories/estimate.repository";
 
 const mapMock = vi.hoisted(() => vi.fn());
@@ -37,7 +38,7 @@ function createQc() {
 }
 
 function analysis(id: string): PhotoAnalysisResultRow {
-  return {
+  return createPhotoAnalysisAppModel({
     id,
     project_id: PROJECT,
     photo_id: `photo-${id}`,
@@ -45,16 +46,9 @@ function analysis(id: string): PhotoAnalysisResultRow {
     condition_report: null,
     detected_defects: [],
     material_estimates: [],
-    cost_suggestions: {},
+    cost_suggestions: null,
     confidence_score: 0.8,
-    created_at: "2026-01-01T00:00:00.000Z",
-    updated_at: "2026-01-01T00:00:00.000Z",
-    created_by: null,
-    editable_notes: null,
-    room_id: null,
-    severity: null,
-    synced_to_estimate: false,
-  } as PhotoAnalysisResultRow;
+  });
 }
 
 beforeEach(() => {

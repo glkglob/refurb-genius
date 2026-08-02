@@ -39,3 +39,17 @@ export {
   safeParseRoomAnalysis,
   type ValidatedRoomAnalysisInput,
 } from "./validation";
+export {
+  parsePhotoAnalysisContent,
+  serializePhotoAnalysisContent,
+  mapPhotoAnalysisRow,
+  createPhotoAnalysisAppModel,
+  EMPTY_PHOTO_ANALYSIS_CONTENT,
+  type PhotoAnalysisAppModel,
+  type PhotoAnalysisContent,
+  type PhotoAnalysisDefect,
+  type PhotoAnalysisMaterial,
+  type PhotoAnalysisCostSuggestions,
+  type PhotoAnalysisDbRowLike,
+  type PhotoAnalysisJson,
+} from "./photo-analysis-content";

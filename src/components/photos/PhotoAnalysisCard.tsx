@@ -56,13 +56,27 @@ export function PhotoAnalysisCard({
   onApply,
 }: PhotoAnalysisCardProps) {
   const hasAnalysis = !!analysis;
+  // analysis is PhotoAnalysisAppModel — content already parsed at the query boundary
   const parsed: ParsedAnalysis = analysis
     ? {
         room: analysis.category ?? undefined,
         condition_report: analysis.condition_report ?? undefined,
-        defects: (analysis.detected_defects as unknown as ParsedDefect[]) ?? [],
-        material_estimates: analysis.material_estimates as ParsedAnalysis["material_estimates"],
-        cost_suggestions: analysis.cost_suggestions as ParsedAnalysis["cost_suggestions"],
+        defects: analysis.detected_defects.map((d) => ({
+          description: d.description,
+          severity: (d.severity === "high" || d.severity === "medium" || d.severity === "low"
+            ? d.severity
+            : "low") as ParsedDefect["severity"],
+          category: d.category,
+          estimated_cost: d.estimated_cost,
+        })),
+        material_estimates: analysis.material_estimates,
+        cost_suggestions: analysis.cost_suggestions
+          ? {
+              low: analysis.cost_suggestions.low ?? 0,
+              mid: analysis.cost_suggestions.mid ?? 0,
+              high: analysis.cost_suggestions.high ?? 0,
+            }
+          : undefined,
         category: analysis.category ?? undefined,
         confidence: analysis.confidence_score ?? undefined,
       }

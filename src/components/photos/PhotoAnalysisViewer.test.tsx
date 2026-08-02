@@ -60,10 +60,14 @@ const PHOTO: ProjectPhoto = {
   uploadedAt: "2026-01-01T00:00:00.000Z",
 };
 
+// Inline fixture (app model). Avoid importing fixture helpers from @/features/ai-upload
+// here — this suite mocks that module for the edit hook.
 const ANALYSIS: PhotoAnalysisResultRow = {
   id: "analysis-1",
   project_id: PROJECT,
   photo_id: "photo-1",
+  user_id: "user-1",
+  source: "ai",
   category: "Kitchen",
   condition_report: "Fair condition",
   detected_defects: [{ description: "Crack", severity: "low" }],
@@ -72,12 +76,7 @@ const ANALYSIS: PhotoAnalysisResultRow = {
   confidence_score: 0.8,
   created_at: "2026-01-01T00:00:00.000Z",
   updated_at: "2026-01-01T00:00:00.000Z",
-  created_by: null,
-  editable_notes: null,
-  room_id: null,
-  severity: null,
-  synced_to_estimate: false,
-} as PhotoAnalysisResultRow;
+};
 
 function createQc() {
   return new QueryClient({
