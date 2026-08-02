@@ -1,0 +1,22 @@
+package.json
+  h_7ea6129503670a 40
+scripts/verify-database-types-canonical.mjs
+  h_7ea6129503670a 22,192-193,196-209
+scripts/verify-database-types-canonical.test.mjs
+  h_7ea6129503670a 167-191
+scripts/verify-database-types-compatibility.mjs
+  h_7ea6129503670a 23,53-61,232,236-237,240-262,346-347
+scripts/verify-database-types-compatibility.test.mjs
+  h_7ea6129503670a 134-139,143,146-155,157,177-178,181,271-306
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "469c5511935282816a198a13061f62cdf45b7c8c",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
