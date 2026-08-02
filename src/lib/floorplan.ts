@@ -1,17 +1,18 @@
 import { supabase } from "@/platform/supabase/browser";
 import { logger } from "@/lib/logger";
-import type { Tables } from "@repo/supabase";
+import type {
+  FloorplanAnnotationApp,
+  FloorplanMeasurementApp,
+  FloorplanModelApp,
+} from "@/features/floorplan/domain";
 import * as THREE from "three";
-
-export type FloorplanModelRow = Tables<"floorplan_models">;
-export type FloorplanAnnotationRow = Tables<"floorplan_annotations">;
-export type FloorplanMeasurementRow = Tables<"floorplan_measurements">;
 
 const FLOORPLAN_BUCKET = "floorplans";
 
 /**
  * Get a short-lived signed URL for a private floorplan model asset.
  * Use this before passing to GLTF loaders.
+ * @param storagePath - private bucket object path (from model.modelUrl / model_url)
  */
 export async function getSignedModelUrl(
   storagePath: string,
@@ -106,18 +107,33 @@ export function exportScreenshot(
 
 /**
  * Export annotations + measurements as JSON (for the current model).
+ * Uses domain models — no obsolete storage_path field.
  */
 export function exportAnnotationsJson(
-  model: FloorplanModelRow | null,
-  annotations: FloorplanAnnotationRow[],
-  measurements: FloorplanMeasurementRow[],
+  model: FloorplanModelApp | null,
+  annotations: FloorplanAnnotationApp[],
+  measurements: FloorplanMeasurementApp[],
   filename = "floorplan-annotations.json",
 ): void {
   const payload = {
     exportedAt: new Date().toISOString(),
-    model: model ? { id: model.id, name: model.name, storage_path: model.storage_path } : null,
-    annotations,
-    measurements,
+    model: model
+      ? { id: model.id, name: model.name, modelUrl: model.modelUrl, status: model.status }
+      : null,
+    annotations: annotations.map((a) => ({
+      id: a.id,
+      label: a.label,
+      position: a.position,
+      notes: a.notes,
+      roomId: a.roomId,
+      annotationType: a.annotationType,
+    })),
+    measurements: measurements.map((m) => ({
+      id: m.id,
+      measurementType: m.measurementType,
+      value: m.value,
+      unit: m.unit,
+    })),
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);

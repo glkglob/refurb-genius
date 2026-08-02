@@ -1,5 +1,5 @@
 /**
- * Presentation-safe FloorplanViewer Auth + persistence mutations (AO-1H1).
+ * Presentation-safe FloorplanViewer Auth + persistence mutations (AO-1H1 / P1B3).
  *
  * Owns:
  * - auth.getUser() for create model / annotation / measurement
@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { floorplanKeys } from "@/lib/queries/floorplans";
-import { uploadFloorplanModel, deleteFloorplanStorage, pointToArray } from "@/lib/floorplan";
+import { uploadFloorplanModel, deleteFloorplanStorage } from "@/lib/floorplan";
 import {
   createFloorplanModelRecord,
   deleteFloorplanModelRecord,
@@ -31,8 +31,8 @@ import {
   deleteFloorplanAnnotation,
   createFloorplanMeasurement,
   deleteFloorplanMeasurement,
-  type FloorplanModelRow,
 } from "../../infrastructure/floorplanWrite";
+import type { FloorplanModelApp } from "../../domain";
 
 export type FloorplanEstimateRoom = {
   id: string;
@@ -55,10 +55,10 @@ export type UseFloorplanViewerMutationsOptions = {
   selectedModelId: string | null;
   /** Estimate rooms for annotation notes (optional link). */
   estimateRooms: FloorplanEstimateRoom[];
-  /** Called after model create with the inserted row (selection). */
-  onModelCreated?: (model: FloorplanModelRow) => void;
+  /** Called after model create with the inserted domain model (selection). */
+  onModelCreated?: (model: FloorplanModelApp) => void;
   /** Called after model delete (selection recalculation). */
-  onModelDeleted?: (model: FloorplanModelRow) => void;
+  onModelDeleted?: (model: FloorplanModelApp) => void;
   /** Called after annotation save (clear dialog, reset mode). */
   onAnnotationSaved?: () => void;
   /** Called after measurement save (reset mode). */
@@ -67,7 +67,7 @@ export type UseFloorplanViewerMutationsOptions = {
 
 export type UseFloorplanViewerMutationsResult = {
   createModel: (file: File) => void;
-  deleteModel: (model: FloorplanModelRow) => void;
+  deleteModel: (model: FloorplanModelApp) => void;
   saveAnnotation: (variables: SaveAnnotationVariables) => void;
   saveMeasurement: (variables: SaveMeasurementVariables) => void;
   deleteAnnotation: (id: string) => void;
@@ -106,7 +106,7 @@ export function useFloorplanViewerMutations(
           projectId,
           userId: user.id,
           name: file.name.replace(/\.[^/.]+$/, ""),
-          storagePath: path,
+          modelUrl: path,
           fileType: file.name.split(".").pop()?.toLowerCase() ?? "glb",
           metadata: { originalName: file.name, size: file.size },
         });
@@ -129,9 +129,9 @@ export function useFloorplanViewerMutations(
   });
 
   const deleteModelMutation = useMutation({
-    mutationFn: async (model: FloorplanModelRow) => {
-      if (model.storage_path) {
-        await deleteFloorplanStorage(model.storage_path);
+    mutationFn: async (model: FloorplanModelApp) => {
+      if (model.modelUrl) {
+        await deleteFloorplanStorage(model.modelUrl);
       }
       await deleteFloorplanModelRecord(model.id);
     },
@@ -152,15 +152,10 @@ export function useFloorplanViewerMutations(
       const user = auth.getUser();
       if (!user) throw new Error("You must be signed in");
 
-      const THREE = await import("three");
-      const posVec = new THREE.Vector3(payload.position.x, payload.position.y, payload.position.z);
-
       await createFloorplanAnnotation({
         modelId: selectedModelId,
-        projectId,
-        userId: user.id,
         label: payload.label,
-        position: pointToArray(posVec) as unknown as import("@repo/supabase/database.types").Json,
+        position: payload.position,
         roomId: payload.linkedRoomId ?? null,
         notes: payload.linkedRoomId
           ? (estimateRooms.find((r) => r.id === payload.linkedRoomId)?.name ?? null)
@@ -188,22 +183,16 @@ export function useFloorplanViewerMutations(
       const v2 = new THREE.Vector3(payload.p2.x, payload.p2.y, payload.p2.z);
       const dist = v1.distanceTo(v2);
 
-      // NOTE: measurements table stores scalar value + unit. Points are only kept for the live session.
-      // Persisted measurements appear in the list with their value.
+      // Measurements table stores scalar value + unit. Points are session-only
+      // (no canonical geometry column). Persisted measurements appear in the list.
       const user = auth.getUser();
       if (!user) throw new Error("You must be signed in");
 
       await createFloorplanMeasurement({
         modelId: selectedModelId,
-        projectId,
-        userId: user.id,
         measurementType: "distance",
         value: Math.round(dist * 1000) / 1000,
         unit: "m",
-        points: [
-          [payload.p1.x, payload.p1.y, payload.p1.z],
-          [payload.p2.x, payload.p2.y, payload.p2.z],
-        ] as unknown as import("@repo/supabase/database.types").Json,
       });
     },
     onSuccess: () => {
@@ -257,7 +246,7 @@ export function useFloorplanViewerMutations(
     createModel: (file: File) => {
       createModelMutation.mutate(file);
     },
-    deleteModel: (model: FloorplanModelRow) => {
+    deleteModel: (model: FloorplanModelApp) => {
       deleteModelMutation.mutate(model);
     },
     saveAnnotation: (variables: SaveAnnotationVariables) => {

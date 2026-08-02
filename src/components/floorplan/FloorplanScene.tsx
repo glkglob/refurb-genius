@@ -2,20 +2,20 @@
 
 import { Suspense, useEffect, useRef, useCallback, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, Html, Grid, Line } from "@react-three/drei";
+import { OrbitControls, Html, Grid } from "@react-three/drei";
 import * as THREE from "three";
 import { getSignedModelUrl } from "@/lib/floorplan";
 import { FloorplanModel } from "./FloorplanModel";
-import type { Tables } from "@repo/supabase";
-
-type FloorplanModelRow = Tables<"floorplan_models">;
-type FloorplanAnnotationRow = Tables<"floorplan_annotations">;
-type FloorplanMeasurementRow = Tables<"floorplan_measurements">;
+import type {
+  FloorplanAnnotationApp,
+  FloorplanMeasurementApp,
+  FloorplanModelApp,
+} from "@/features/floorplan/domain";
 
 interface FloorplanSceneProps {
-  model: FloorplanModelRow;
-  annotations: FloorplanAnnotationRow[];
-  measurements: FloorplanMeasurementRow[];
+  model: FloorplanModelApp;
+  annotations: FloorplanAnnotationApp[];
+  measurements: FloorplanMeasurementApp[];
   mode: "view" | "tag" | "measure";
   onAddTagPoint: (position: { x: number; y: number; z: number }) => void;
   onMeasurePoint: (position: { x: number; y: number; z: number }) => void;
@@ -26,12 +26,11 @@ interface FloorplanSceneProps {
 function SceneInternals({
   model,
   annotations,
-  measurements,
   mode,
   onAddTagPoint,
   onMeasurePoint,
   onCanvasReady,
-}: Omit<FloorplanSceneProps, "model"> & { model: FloorplanModelRow }) {
+}: Omit<FloorplanSceneProps, "model"> & { model: FloorplanModelApp }) {
   const { camera, gl, scene } = useThree();
   const modelGroupRef = useRef<THREE.Group>(null);
   const [loadableUrl, setLoadableUrl] = useState<string | null>(null);
@@ -44,14 +43,15 @@ function SceneInternals({
     }
   }, [gl.domElement, onCanvasReady]);
 
-  // Load signed URL for private storage (critical for private bucket)
+  // Load signed URL for private storage (critical for private bucket).
+  // modelUrl is the Storage object path persisted in model_url.
   useEffect(() => {
     let cancelled = false;
-    if (!model?.storage_path) {
+    if (!model?.modelUrl) {
       setLoadError("Model has no file path");
       return;
     }
-    getSignedModelUrl(model.storage_path)
+    getSignedModelUrl(model.modelUrl)
       .then((url) => {
         if (!cancelled) {
           setLoadableUrl(url);
@@ -66,7 +66,7 @@ function SceneInternals({
     return () => {
       cancelled = true;
     };
-  }, [model?.storage_path]);
+  }, [model?.modelUrl]);
 
   // Click / pointer handling for tagging and measuring
   const handlePointerDown = useCallback(
@@ -117,12 +117,11 @@ function SceneInternals({
     [mode, onAddTagPoint, onMeasurePoint, camera, gl, scene],
   );
 
-  // Visual annotations (spheres + HTML labels)
+  // Visual annotations (spheres + HTML labels) — domain fields, not raw Json
   const AnnotationMarkers = () => (
     <>
       {annotations.map((ann) => {
-        const posArr = (ann.position as number[]) || [0, 0, 0];
-        const pos = new THREE.Vector3(posArr[0] || 0, posArr[1] || 0, posArr[2] || 0);
+        const pos = new THREE.Vector3(ann.position[0], ann.position[1], ann.position[2]);
         const label = ann.label || "Tag";
         return (
           <group key={ann.id} position={pos}>

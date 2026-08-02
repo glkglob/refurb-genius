@@ -1,13 +1,16 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/platform/supabase/browser";
 import { logger } from "@/lib/logger";
-import type { Tables } from "@repo/supabase";
-import type { FloorplanModel, FloorplanAnnotation, FloorplanMeasurement } from "@repo/types";
+import {
+  mapFloorplanAnnotationRows,
+  mapFloorplanMeasurementRows,
+  mapFloorplanModelRow,
+  mapFloorplanModelRows,
+  type FloorplanAnnotationApp,
+  type FloorplanMeasurementApp,
+  type FloorplanModelApp,
+} from "@/features/floorplan/domain";
 import { projectKeys } from "./projects";
-
-type FloorplanModelRow = Tables<"floorplan_models">;
-type FloorplanAnnotationRow = Tables<"floorplan_annotations">;
-type FloorplanMeasurementRow = Tables<"floorplan_measurements">;
 
 /**
  * Query key factory for 3D floorplan models (per-project).
@@ -24,10 +27,10 @@ export const floorplanKeys = {
 
 /**
  * List floorplan models for a project.
- * Fresh-ish data (models change on upload/processing).
+ * Maps dual-baseline rows to the stable application model at the query boundary.
  */
 export const floorplansByProjectQueryOptions = (projectId: string) =>
-  queryOptions<FloorplanModelRow[]>({
+  queryOptions<FloorplanModelApp[]>({
     queryKey: floorplanKeys.byProject(projectId),
     queryFn: async () => {
       const { data, error } = await supabase
@@ -40,7 +43,7 @@ export const floorplansByProjectQueryOptions = (projectId: string) =>
         logger.error("[queries] floorplans fetch failed", { projectId, error: error.message });
         throw new Error(error.message);
       }
-      return (data ?? []) as FloorplanModelRow[];
+      return mapFloorplanModelRows(data ?? []);
     },
     enabled: !!projectId,
     staleTime: 60 * 1000, // 1 min
@@ -52,7 +55,7 @@ export const floorplansByProjectQueryOptions = (projectId: string) =>
  * Single floorplan model (for 3D viewer / editor).
  */
 export const floorplanModelQueryOptions = (modelId: string) =>
-  queryOptions<FloorplanModelRow | null>({
+  queryOptions<FloorplanModelApp | null>({
     queryKey: floorplanKeys.byId(modelId),
     queryFn: async () => {
       const { data, error } = await supabase
@@ -65,7 +68,8 @@ export const floorplanModelQueryOptions = (modelId: string) =>
         logger.error("[queries] floorplan model fetch failed", { modelId, error: error.message });
         throw new Error(error.message);
       }
-      return (data as FloorplanModelRow | null) ?? null;
+      if (!data) return null;
+      return mapFloorplanModelRow(data);
     },
     enabled: !!modelId,
     staleTime: 2 * 60 * 1000,
@@ -77,7 +81,7 @@ export const floorplanModelQueryOptions = (modelId: string) =>
  * Annotations for a model (used in 3D annotation layer).
  */
 export const floorplanAnnotationsQueryOptions = (modelId: string) =>
-  queryOptions<FloorplanAnnotationRow[]>({
+  queryOptions<FloorplanAnnotationApp[]>({
     queryKey: floorplanKeys.annotationsByModel(modelId),
     queryFn: async () => {
       const { data, error } = await supabase
@@ -93,7 +97,7 @@ export const floorplanAnnotationsQueryOptions = (modelId: string) =>
         });
         throw new Error(error.message);
       }
-      return (data ?? []) as FloorplanAnnotationRow[];
+      return mapFloorplanAnnotationRows(data ?? []);
     },
     enabled: !!modelId,
     staleTime: 30 * 1000,
@@ -105,7 +109,7 @@ export const floorplanAnnotationsQueryOptions = (modelId: string) =>
  * Measurements for a model.
  */
 export const floorplanMeasurementsQueryOptions = (modelId: string) =>
-  queryOptions<FloorplanMeasurementRow[]>({
+  queryOptions<FloorplanMeasurementApp[]>({
     queryKey: floorplanKeys.measurementsByModel(modelId),
     queryFn: async () => {
       const { data, error } = await supabase
@@ -121,7 +125,7 @@ export const floorplanMeasurementsQueryOptions = (modelId: string) =>
         });
         throw new Error(error.message);
       }
-      return (data ?? []) as FloorplanMeasurementRow[];
+      return mapFloorplanMeasurementRows(data ?? []);
     },
     enabled: !!modelId,
     staleTime: 30 * 1000,
@@ -135,9 +139,9 @@ export const floorplanMeasurementsQueryOptions = (modelId: string) =>
  */
 export const floorplanFullQueryOptions = (modelId: string) =>
   queryOptions<{
-    model: FloorplanModelRow | null;
-    annotations: FloorplanAnnotationRow[];
-    measurements: FloorplanMeasurementRow[];
+    model: FloorplanModelApp | null;
+    annotations: FloorplanAnnotationApp[];
+    measurements: FloorplanMeasurementApp[];
   }>({
     queryKey: [...floorplanKeys.byId(modelId), "full"] as const,
     queryFn: async () => {
@@ -160,9 +164,9 @@ export const floorplanFullQueryOptions = (modelId: string) =>
       if (measRes.error) throw new Error(measRes.error.message);
 
       return {
-        model: (modelRes.data as FloorplanModelRow | null) ?? null,
-        annotations: (annRes.data ?? []) as FloorplanAnnotationRow[],
-        measurements: (measRes.data ?? []) as FloorplanMeasurementRow[],
+        model: modelRes.data ? mapFloorplanModelRow(modelRes.data) : null,
+        annotations: mapFloorplanAnnotationRows(annRes.data ?? []),
+        measurements: mapFloorplanMeasurementRows(measRes.data ?? []),
       };
     },
     enabled: !!modelId,

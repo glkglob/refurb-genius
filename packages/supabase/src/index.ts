@@ -12,3 +12,5 @@ export { createServerSupabase, createTokenSupabase, verifyToken, type CookieMap 
 export { resolveSupabaseEnv, assertSupabaseEnv, type SupabaseEnv } from "./env";
 
 export type { Database, Json, Tables, TablesInsert, TablesUpdate } from "./database.types";
+/** Untyped client surface for dual-baseline write helpers (P1B3+). */
+export type { SupabaseClient } from "@supabase/supabase-js";
