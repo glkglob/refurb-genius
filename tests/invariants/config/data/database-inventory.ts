@@ -111,8 +111,9 @@ export const PUBLIC_TABLES: DbTableRecord[] = [
     tenantKey: "none (private catalogue)",
     tenantScope: "system",
     rlsSummary:
-      "RLS enabled; no authenticated/anon policies; REVOKE PUBLIC/anon/authenticated; service_role only; published/retired immutable via trigger",
-    rlsEvidence: "supabase/migrations/20260731120000_measured_boq_catalogue_foundation.sql",
+      "RLS enabled; no authenticated/anon policies; REVOKE PUBLIC/anon/authenticated; service_role only; published/retired immutable via trigger; package-backed freeze (B2C)",
+    rlsEvidence:
+      "supabase/migrations/20260731120000_measured_boq_catalogue_foundation.sql; supabase/migrations/20260802060000_measured_boq_catalogue_persistence_foundation.sql",
     enforcementStatus: "enforced",
   },
   {
@@ -124,8 +125,39 @@ export const PUBLIC_TABLES: DbTableRecord[] = [
     tenantKey: "none (private catalogue)",
     tenantScope: "system",
     rlsSummary:
-      "RLS enabled; no browser access; service_role only; mutable only while parent revision is draft",
-    rlsEvidence: "supabase/migrations/20260731120000_measured_boq_catalogue_foundation.sql",
+      "RLS enabled; no browser access; service_role only; mutable only while parent revision is draft (package-backed entries frozen)",
+    rlsEvidence:
+      "supabase/migrations/20260731120000_measured_boq_catalogue_foundation.sql; supabase/migrations/20260802060000_measured_boq_catalogue_persistence_foundation.sql",
+    enforcementStatus: "enforced",
+  },
+  {
+    name: "measured_boq_catalog_packages",
+    schema: "public",
+    domainId: "estimates",
+    owner: "refurb-genius",
+    purpose:
+      "Immutable package artifacts (manifest/snapshot text + B1 input checksum) 1:1 with catalogue revision",
+    tenantKey: "none (private catalogue)",
+    tenantScope: "system",
+    rlsSummary:
+      "RLS enabled; no authenticated/anon policies; service_role SELECT only; no direct service_role DML; immutable after insert",
+    rlsEvidence:
+      "supabase/migrations/20260802060000_measured_boq_catalogue_persistence_foundation.sql",
+    enforcementStatus: "enforced",
+  },
+  {
+    name: "measured_boq_catalog_events",
+    schema: "public",
+    domainId: "estimates",
+    owner: "refurb-genius",
+    purpose:
+      "Append-only catalogue ops audit with UNIQUE(command_scope, request_id) request idempotency",
+    tenantKey: "none (private catalogue)",
+    tenantScope: "system",
+    rlsSummary:
+      "RLS enabled; no authenticated/anon policies; service_role SELECT only; no direct service_role DML; append-only",
+    rlsEvidence:
+      "supabase/migrations/20260802060000_measured_boq_catalogue_persistence_foundation.sql",
     enforcementStatus: "enforced",
   },
   {

@@ -409,6 +409,151 @@ export type Database = {
           },
         ];
       };
+      measured_boq_catalog_events: {
+        Row: {
+          actor_kind: string;
+          actor_user_id: string | null;
+          catalog_revision: string;
+          command_scope: string;
+          content_checksum: string | null;
+          created_at: string;
+          event_type: string;
+          id: string;
+          input_checksum: string | null;
+          package_id: string | null;
+          payload_json: Json;
+          prior_revision_id: string | null;
+          reason: string | null;
+          request_id: string;
+          result: string;
+          revision_id: string;
+        };
+        Insert: {
+          actor_kind: string;
+          actor_user_id?: string | null;
+          catalog_revision: string;
+          command_scope: string;
+          content_checksum?: string | null;
+          created_at?: string;
+          event_type: string;
+          id?: string;
+          input_checksum?: string | null;
+          package_id?: string | null;
+          payload_json?: Json;
+          prior_revision_id?: string | null;
+          reason?: string | null;
+          request_id: string;
+          result: string;
+          revision_id: string;
+        };
+        Update: {
+          actor_kind?: string;
+          actor_user_id?: string | null;
+          catalog_revision?: string;
+          command_scope?: string;
+          content_checksum?: string | null;
+          created_at?: string;
+          event_type?: string;
+          id?: string;
+          input_checksum?: string | null;
+          package_id?: string | null;
+          payload_json?: Json;
+          prior_revision_id?: string | null;
+          reason?: string | null;
+          request_id?: string;
+          result?: string;
+          revision_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "measured_boq_catalog_events_package_id_fkey";
+            columns: ["package_id"];
+            isOneToOne: false;
+            referencedRelation: "measured_boq_catalog_packages";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "measured_boq_catalog_events_prior_revision_id_fkey";
+            columns: ["prior_revision_id"];
+            isOneToOne: false;
+            referencedRelation: "measured_boq_catalog_revisions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "measured_boq_catalog_events_revision_id_fkey";
+            columns: ["revision_id"];
+            isOneToOne: false;
+            referencedRelation: "measured_boq_catalog_revisions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      measured_boq_catalog_packages: {
+        Row: {
+          catalog_revision: string;
+          content_checksum: string;
+          created_at: string;
+          id: string;
+          input_checksum: string;
+          licence_status: string;
+          manifest_text: string;
+          manifest_version: number;
+          normaliser_version: string;
+          production: boolean;
+          revision_id: string;
+          snapshot_text: string;
+          source_id: string;
+          validation_report: Json;
+        };
+        Insert: {
+          catalog_revision: string;
+          content_checksum: string;
+          created_at?: string;
+          id?: string;
+          input_checksum: string;
+          licence_status: string;
+          manifest_text: string;
+          manifest_version: number;
+          normaliser_version: string;
+          production?: boolean;
+          revision_id: string;
+          snapshot_text: string;
+          source_id: string;
+          validation_report: Json;
+        };
+        Update: {
+          catalog_revision?: string;
+          content_checksum?: string;
+          created_at?: string;
+          id?: string;
+          input_checksum?: string;
+          licence_status?: string;
+          manifest_text?: string;
+          manifest_version?: number;
+          normaliser_version?: string;
+          production?: boolean;
+          revision_id?: string;
+          snapshot_text?: string;
+          source_id?: string;
+          validation_report?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "measured_boq_catalog_packages_catalog_revision_fkey";
+            columns: ["catalog_revision"];
+            isOneToOne: false;
+            referencedRelation: "measured_boq_catalog_revisions";
+            referencedColumns: ["catalog_revision"];
+          },
+          {
+            foreignKeyName: "measured_boq_catalog_packages_revision_id_fkey";
+            columns: ["revision_id"];
+            isOneToOne: true;
+            referencedRelation: "measured_boq_catalog_revisions";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       measured_boq_catalog_revisions: {
         Row: {
           catalog_revision: string;
@@ -419,12 +564,22 @@ export type Database = {
           effective_from: string;
           entry_count: number;
           id: string;
+          input_checksum: string | null;
+          licence_status: string | null;
+          normaliser_version: string | null;
+          production: boolean;
           published_at: string | null;
+          published_by_id: string | null;
+          published_by_kind: string | null;
           regional_basis: string;
           release_notes: string | null;
           retired_at: string | null;
+          retired_by_id: string | null;
+          retired_by_kind: string | null;
+          retirement_reason: string | null;
           schema_version: string;
           source_description: string;
+          source_id: string | null;
           status: string;
           updated_at: string;
           vat_basis: string;
@@ -438,12 +593,22 @@ export type Database = {
           effective_from: string;
           entry_count?: number;
           id?: string;
+          input_checksum?: string | null;
+          licence_status?: string | null;
+          normaliser_version?: string | null;
+          production?: boolean;
           published_at?: string | null;
+          published_by_id?: string | null;
+          published_by_kind?: string | null;
           regional_basis?: string;
           release_notes?: string | null;
           retired_at?: string | null;
+          retired_by_id?: string | null;
+          retired_by_kind?: string | null;
+          retirement_reason?: string | null;
           schema_version: string;
           source_description: string;
+          source_id?: string | null;
           status?: string;
           updated_at?: string;
           vat_basis?: string;
@@ -457,12 +622,22 @@ export type Database = {
           effective_from?: string;
           entry_count?: number;
           id?: string;
+          input_checksum?: string | null;
+          licence_status?: string | null;
+          normaliser_version?: string | null;
+          production?: boolean;
           published_at?: string | null;
+          published_by_id?: string | null;
+          published_by_kind?: string | null;
           regional_basis?: string;
           release_notes?: string | null;
           retired_at?: string | null;
+          retired_by_id?: string | null;
+          retired_by_kind?: string | null;
+          retirement_reason?: string | null;
           schema_version?: string;
           source_description?: string;
+          source_id?: string | null;
           status?: string;
           updated_at?: string;
           vat_basis?: string;
@@ -2013,6 +2188,14 @@ export type Database = {
       };
       is_admin: { Args: never; Returns: boolean };
       is_project_owner: { Args: { p_project_id: string }; Returns: boolean };
+      measured_boq_catalog_is_trusted_lifecycle_owner: {
+        Args: never;
+        Returns: boolean;
+      };
+      measured_boq_package_input_checksum: {
+        Args: { p_manifest_text: string; p_snapshot_text: string };
+        Returns: string;
+      };
       persist_category_engine_estimate: {
         Args: {
           p_condition_level: string;
