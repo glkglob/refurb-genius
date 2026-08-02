@@ -1,0 +1,14 @@
+docs/architecture/4c2e-b2a-catalogue-persistence-publication-plan.md
+  h_7ea6129503670a 1-1257
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "1da5d371f97ec3e7c139babacbd860f5c1334ef2",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
