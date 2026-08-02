@@ -27,6 +27,8 @@
     "verify:4c2b-types:generate": "node scripts/verify-4c2b-database-types.mjs --require-generate",
     "verify:4c2c-types": "node scripts/verify-4c2c-database-types.mjs",
     "verify:4c2c-types:generate": "node scripts/verify-4c2c-database-types.mjs --require-generate",
+    "verify:database-types:compatibility": "node scripts/verify-database-types-compatibility.mjs",
+    "verify:database-types:compatibility:test": "node --test scripts/verify-database-types-compatibility.test.mjs",
     "supabase:status": "supabase status",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
