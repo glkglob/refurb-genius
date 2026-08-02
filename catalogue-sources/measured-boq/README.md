@@ -49,10 +49,14 @@ pnpm catalogue:dry-run -- \
   --path catalogue-sources/measured-boq/revisions/mboq-2099.01.01
 ```
 
-JSON:
+JSON (machine-readable):
+
+Use `pnpm --silent` so package-manager banners are suppressed and **stdout is only
+the JSON report** (one object, one trailing newline). Without `--silent`, pnpm may
+print non-JSON lines before the report.
 
 ```bash
-pnpm catalogue:dry-run -- \
+pnpm --silent catalogue:dry-run -- \
   --path catalogue-sources/measured-boq/revisions/mboq-2099.01.01 \
   --format json
 ```
@@ -60,7 +64,7 @@ pnpm catalogue:dry-run -- \
 Optional expected checksums (64 lowercase hex):
 
 ```bash
-pnpm catalogue:dry-run -- \
+pnpm --silent catalogue:dry-run -- \
   --path catalogue-sources/measured-boq/revisions/mboq-2099.01.01 \
   --format json \
   --expected-input-checksum <sha256> \
@@ -99,8 +103,16 @@ Precedence: `5 > 4 > 3 > 2 > 1 > 0`.
 
 ## Read-only design
 
-The CLI reads `MANIFEST.json` and the approved snapshot path under the selected
-revision directory only. It does **not**:
+The CLI reads package artifacts under the selected revision directory only:
+
+- the revision path is resolved to its **real filesystem root** (`realpath`);
+- `MANIFEST.json` and the manifest-declared snapshot are resolved with
+  `realpath` and must remain **strictly inside** that real root before content
+  is read (symlink escapes to external targets are rejected);
+- package-internal symlinks are accepted only when their final real target stays
+  inside the real revision root.
+
+The CLI does **not**:
 
 - write report files or mutate the package;
 - open Supabase / service-role connections;

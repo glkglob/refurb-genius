@@ -9,8 +9,8 @@
  * Does not modify source packages. Does not publish, upsert, or retire.
  */
 
-import { readFile, stat } from "node:fs/promises";
-import { isAbsolute, join, normalize, relative, resolve } from "node:path";
+import { readFile, realpath, stat } from "node:fs/promises";
+import { isAbsolute, join, normalize, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -197,10 +197,26 @@ function extractSnapshotRelativePath(manifestText: string): string {
   return "snapshot.json";
 }
 
-function assertSafeSnapshotPath(
-  revisionDir: string,
+/** Sanitised containment failure — never include absolute or external paths. */
+const CONTAINMENT_FAILURE = "Catalogue package artifact resolves outside the revision directory.";
+
+/**
+ * Effective-path containment: artifact real path must be a strict descendant of
+ * the real revision root (never equal to the root; never outside).
+ * Uses path.relative — not string startsWith — to avoid /tmp/revision vs
+ * /tmp/revision-evil prefix confusion.
+ */
+export function isStrictlyInsideRoot(rootRealPath: string, artifactRealPath: string): boolean {
+  const rel = relative(rootRealPath, artifactRealPath);
+  return rel.length > 0 && rel !== ".." && !rel.startsWith(`..${sep}`) && !isAbsolute(rel);
+}
+
+/**
+ * Lexical snapshot path checks (absolute / ..) before realpath.
+ */
+function assertLexicalSnapshotRelative(
   snapshotRel: string,
-): { ok: true; absolute: string } | { ok: false; message: string } {
+): { ok: true; normalised: string } | { ok: false; message: string } {
   if (snapshotRel.includes("\0")) {
     return { ok: false, message: "unsafe snapshot path" };
   }
@@ -212,16 +228,10 @@ function assertSafeSnapshotPath(
   if (segments.some((s) => s === "..")) {
     return { ok: false, message: "snapshot path must not contain parent-directory segments" };
   }
-  if (normalised === ".." || normalised.startsWith(`..${"/"}`) || normalised.startsWith("..\\")) {
+  if (normalised === ".." || normalised.startsWith(`..${sep}`) || normalised.startsWith("..\\")) {
     return { ok: false, message: "snapshot path must not escape the revision directory" };
   }
-
-  const absolute = resolve(revisionDir, normalised);
-  const rel = relative(revisionDir, absolute);
-  if (rel.startsWith("..") || isAbsolute(rel)) {
-    return { ok: false, message: "snapshot path resolves outside the revision directory" };
-  }
-  return { ok: true, absolute };
+  return { ok: true, normalised };
 }
 
 export type LoadPackageResult =
@@ -230,13 +240,20 @@ export type LoadPackageResult =
 
 /**
  * Read-only load of MANIFEST.json + approved snapshot under a revision directory.
+ *
+ * Containment policy (effective paths):
+ * - Resolve the revision root via realpath.
+ * - Every package artifact (manifest + snapshot) is realpath'd and must be
+ *   strictly inside that root before its content is read.
+ * - Internal symlinks whose final real targets remain inside the root are
+ *   allowed; external symlink targets are rejected without reading content.
  */
 export async function loadRevisionPackage(pathArg: string): Promise<LoadPackageResult> {
-  const revisionDir = resolve(pathArg);
+  const revisionLexical = resolve(pathArg);
 
   let dirStat;
   try {
-    dirStat = await stat(revisionDir);
+    dirStat = await stat(revisionLexical);
   } catch {
     return { ok: false, message: "revision directory not found or unreadable" };
   }
@@ -244,23 +261,85 @@ export async function loadRevisionPackage(pathArg: string): Promise<LoadPackageR
     return { ok: false, message: "path is not a directory" };
   }
 
-  const manifestPath = join(revisionDir, "MANIFEST.json");
+  let revisionRootReal: string;
+  try {
+    revisionRootReal = await realpath(revisionLexical);
+  } catch {
+    return { ok: false, message: "revision directory not found or unreadable" };
+  }
+
+  // --- MANIFEST.json: realpath then contain, then read the verified real path ---
+  const manifestLexical = join(revisionLexical, "MANIFEST.json");
+  let manifestReal: string;
+  try {
+    manifestReal = await realpath(manifestLexical);
+  } catch {
+    return { ok: false, message: "MANIFEST.json missing or unreadable" };
+  }
+  if (!isStrictlyInsideRoot(revisionRootReal, manifestReal)) {
+    return { ok: false, message: CONTAINMENT_FAILURE };
+  }
+  let manifestStat;
+  try {
+    manifestStat = await stat(manifestReal);
+  } catch {
+    return { ok: false, message: "MANIFEST.json missing or unreadable" };
+  }
+  if (!manifestStat.isFile()) {
+    return { ok: false, message: "MANIFEST.json missing or unreadable" };
+  }
+
   let manifestText: string;
   try {
-    manifestText = await readFile(manifestPath, "utf8");
+    // Read the verified real path (not a different unresolved path).
+    manifestText = await readFile(manifestReal, "utf8");
   } catch {
     return { ok: false, message: "MANIFEST.json missing or unreadable" };
   }
 
+  // --- Snapshot: lexical checks, then realpath + contain, then read ---
   const snapshotRel = extractSnapshotRelativePath(manifestText);
-  const safe = assertSafeSnapshotPath(revisionDir, snapshotRel);
-  if (!safe.ok) {
-    return safe;
+  const lexical = assertLexicalSnapshotRelative(snapshotRel);
+  if (!lexical.ok) {
+    return lexical;
+  }
+
+  const snapshotLexical = resolve(revisionLexical, lexical.normalised);
+  // Lexical prefix check relative to revision root (still not sufficient alone).
+  const lexicalRel = relative(revisionLexical, snapshotLexical);
+  if (
+    lexicalRel.length === 0 ||
+    lexicalRel === ".." ||
+    lexicalRel.startsWith(`..${sep}`) ||
+    isAbsolute(lexicalRel)
+  ) {
+    return { ok: false, message: CONTAINMENT_FAILURE };
+  }
+
+  let snapshotReal: string;
+  try {
+    snapshotReal = await realpath(snapshotLexical);
+  } catch {
+    // Missing file, dangling symlink, or unreadable link.
+    return { ok: false, message: "snapshot file missing or unreadable" };
+  }
+  if (!isStrictlyInsideRoot(revisionRootReal, snapshotReal)) {
+    return { ok: false, message: CONTAINMENT_FAILURE };
+  }
+
+  let snapshotStat;
+  try {
+    snapshotStat = await stat(snapshotReal);
+  } catch {
+    return { ok: false, message: "snapshot file missing or unreadable" };
+  }
+  if (!snapshotStat.isFile()) {
+    return { ok: false, message: "snapshot file missing or unreadable" };
   }
 
   let snapshotText: string;
   try {
-    snapshotText = await readFile(safe.absolute, "utf8");
+    snapshotText = await readFile(snapshotReal, "utf8");
   } catch {
     return { ok: false, message: "snapshot file missing or unreadable" };
   }

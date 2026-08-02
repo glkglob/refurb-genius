@@ -64,6 +64,20 @@ describe("catalogue dry-run CLI boundary (4C2E-B1C)", () => {
     assert.match(src, /readFile/);
   });
 
+  it("CLI enforces effective-path (realpath) containment for package artifacts", () => {
+    const src = read(CLI);
+    assert.match(src, /realpath/);
+    assert.match(src, /from ["']node:fs\/promises["']/);
+    assert.match(src, /\.relative\b|path\.relative|relative\(/);
+    // Containment must apply to both package artifacts (manifest + snapshot).
+    assert.match(src, /MANIFEST\.json/);
+    assert.match(src, /snapshot/i);
+    assert.match(src, /isStrictlyInsideRoot|strictly inside|outside the revision directory/);
+    // Reject unsafe string-prefix containment (prefix confusion).
+    assert.doesNotMatch(src, /\.startsWith\(\s*(root|revisionRoot|revisionDir)/);
+    assert.doesNotMatch(src, /startsWith\(\s*rootRealPath/);
+  });
+
   it("CLI is not exported from services barrels", () => {
     const services = read(SERVICES_INDEX);
     const measured = read(MEASURED_BOQ_INDEX);

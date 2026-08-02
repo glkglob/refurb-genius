@@ -7,9 +7,12 @@ import {
   copyFileSync,
   cpSync,
   existsSync,
+  lstatSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -286,6 +289,180 @@ describe("catalogue dry-run CLI — exit 2", () => {
     expect(r.status).toBe(2);
     expect(r.stderr).toMatch(/parent-directory|escape|outside/i);
   });
+});
+
+function canSymlink(): boolean {
+  try {
+    const dir = mkdtempSync(join(tmpdir(), "b1c-symprobe-"));
+    const target = join(dir, "t");
+    const link = join(dir, "l");
+    writeFileSync(target, "x");
+    symlinkSync(target, link);
+    const ok = lstatSync(link).isSymbolicLink();
+    rmSync(dir, { recursive: true, force: true });
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+const SYMLINK_OK = canSymlink();
+
+function assertContainmentFailure(
+  r: { status: number; stdout: string; stderr: string },
+  externalPath?: string,
+) {
+  expect(r.status).toBe(2);
+  expect(r.stdout).toBe("");
+  expect(r.stderr.endsWith("\n")).toBe(true);
+  expect(r.stderr.endsWith("\n\n")).toBe(false);
+  expect(r.stderr).toMatch(/outside the revision directory|missing or unreadable|not found/i);
+  expect(r.stderr).not.toMatch(/\bat\s+\S+/);
+  expect(r.stderr.includes("\u001b[")).toBe(false);
+  if (externalPath) {
+    expect(r.stderr.includes(externalPath)).toBe(false);
+  }
+}
+
+describe("catalogue dry-run CLI — realpath containment (symlinks)", () => {
+  it.skipIf(!SYMLINK_OK)("rejects snapshot.json symlink to external file", () => {
+    const base = makeTempDir("b1c-extsnap-");
+    const external = join(base, "attacker-snapshot.json");
+    writeFileSync(external, readFileSync(join(ROOT, EXAMPLE, "snapshot.json")));
+    const pkg = join(base, "pkg");
+    mkdirSync(pkg);
+    copyFileSync(join(ROOT, EXAMPLE, "MANIFEST.json"), join(pkg, "MANIFEST.json"));
+    symlinkSync(external, join(pkg, "snapshot.json"));
+    const r = runCli(["--path", pkg, "--format", "json"]);
+    assertContainmentFailure(r, external);
+    // External target unchanged
+    expect(readFileSync(external, "utf8")).toBe(
+      readFileSync(join(ROOT, EXAMPLE, "snapshot.json"), "utf8"),
+    );
+  });
+
+  it.skipIf(!SYMLINK_OK)("rejects nested directory symlink leading outside", () => {
+    const base = makeTempDir("b1c-extnest-");
+    const outside = join(base, "outside-nested");
+    mkdirSync(outside);
+    writeFileSync(
+      join(outside, "snapshot.json"),
+      readFileSync(join(ROOT, EXAMPLE, "snapshot.json")),
+    );
+    const pkg = join(base, "pkg");
+    mkdirSync(pkg);
+    const manifest = JSON.parse(readFileSync(join(ROOT, EXAMPLE, "MANIFEST.json"), "utf8")) as {
+      package: { snapshotPath: string };
+    };
+    manifest.package.snapshotPath = "nested/snapshot.json";
+    writeJson(join(pkg, "MANIFEST.json"), manifest);
+    symlinkSync(outside, join(pkg, "nested"));
+    const r = runCli(["--path", pkg]);
+    assertContainmentFailure(r, outside);
+  });
+
+  it.skipIf(!SYMLINK_OK)("rejects MANIFEST.json symlink to external file", () => {
+    const base = makeTempDir("b1c-extmf-");
+    const externalMf = join(base, "evil-MANIFEST.json");
+    writeFileSync(externalMf, readFileSync(join(ROOT, EXAMPLE, "MANIFEST.json")));
+    const pkg = join(base, "pkg");
+    mkdirSync(pkg);
+    copyFileSync(join(ROOT, EXAMPLE, "snapshot.json"), join(pkg, "snapshot.json"));
+    symlinkSync(externalMf, join(pkg, "MANIFEST.json"));
+    const r = runCli(["--path", pkg]);
+    assertContainmentFailure(r, externalMf);
+  });
+
+  it.skipIf(!SYMLINK_OK)("rejects dangling snapshot symlink", () => {
+    const pkg = makeTempDir("b1c-dang-");
+    copyFileSync(join(ROOT, EXAMPLE, "MANIFEST.json"), join(pkg, "MANIFEST.json"));
+    symlinkSync(join(pkg, "missing-target.json"), join(pkg, "snapshot.json"));
+    const r = runCli(["--path", pkg]);
+    expect(r.status).toBe(2);
+    expect(r.stdout).toBe("");
+    expect(r.stderr).toMatch(/snapshot|missing|unreadable/i);
+    expect(r.stderr.endsWith("\n")).toBe(true);
+  });
+
+  it.skipIf(!SYMLINK_OK)("rejects snapshot symlink to a directory", () => {
+    const base = makeTempDir("b1c-snapdir-");
+    const targetDir = join(base, "dir-target");
+    mkdirSync(targetDir);
+    const pkg = join(base, "pkg");
+    mkdirSync(pkg);
+    copyFileSync(join(ROOT, EXAMPLE, "MANIFEST.json"), join(pkg, "MANIFEST.json"));
+    symlinkSync(targetDir, join(pkg, "snapshot.json"));
+    const r = runCli(["--path", pkg]);
+    expect(r.status).toBe(2);
+    expect(r.stdout).toBe("");
+    expect(r.stderr).toMatch(/snapshot|missing|unreadable|outside/i);
+  });
+
+  it.skipIf(!SYMLINK_OK)("rejects prefix-confusion external package sibling", () => {
+    // /tmp/.../revision  vs  /tmp/.../revision-evil
+    const base = makeTempDir("b1c-prefix-");
+    const root = join(base, "revision");
+    const evil = join(base, "revision-evil");
+    mkdirSync(root);
+    mkdirSync(evil);
+    copyFileSync(join(ROOT, EXAMPLE, "MANIFEST.json"), join(root, "MANIFEST.json"));
+    writeFileSync(join(evil, "snapshot.json"), readFileSync(join(ROOT, EXAMPLE, "snapshot.json")));
+    // Point snapshot.json at sibling revision-evil/snapshot.json via relative escape
+    // that still confuses naive startsWith checks if mis-implemented as absolute evil path symlink.
+    symlinkSync(join(evil, "snapshot.json"), join(root, "snapshot.json"));
+    const r = runCli(["--path", root]);
+    assertContainmentFailure(r, evil);
+  });
+
+  it.skipIf(!SYMLINK_OK)("allows revision root supplied through a symlink", () => {
+    const base = makeTempDir("b1c-revlink-");
+    const realPkg = join(base, "real-pkg");
+    cpSync(join(ROOT, EXAMPLE), realPkg, { recursive: true });
+    const link = join(base, "pkg-link");
+    symlinkSync(realPkg, link);
+    const r = runCli(["--path", link, "--format", "json"]);
+    expect(r.status).toBe(0);
+    expect(r.stderr).toBe("");
+    const report = JSON.parse(r.stdout) as { ok: boolean };
+    expect(report.ok).toBe(true);
+  });
+
+  it.skipIf(!SYMLINK_OK)("allows internal artifact symlink remaining inside the package", () => {
+    const pkg = cloneExample();
+    const realSnap = join(pkg, "snapshot.real.json");
+    copyFileSync(join(pkg, "snapshot.json"), realSnap);
+    rmSync(join(pkg, "snapshot.json"));
+    symlinkSync(realSnap, join(pkg, "snapshot.json"));
+    const r = runCli(["--path", pkg, "--format", "json"]);
+    expect(r.status).toBe(0);
+    expect(r.stderr).toBe("");
+    expect(JSON.parse(r.stdout).ok).toBe(true);
+  });
+
+  it.skipIf(!SYMLINK_OK)(
+    "allows nested internal-directory symlink remaining inside the package",
+    () => {
+      const pkg = cloneExample();
+      const nested = join(pkg, "nested");
+      mkdirSync(nested);
+      const realSnap = join(nested, "snapshot.json");
+      copyFileSync(join(pkg, "snapshot.json"), realSnap);
+      rmSync(join(pkg, "snapshot.json"));
+      const manifest = JSON.parse(readFileSync(join(pkg, "MANIFEST.json"), "utf8")) as {
+        package: { snapshotPath: string };
+      };
+      manifest.package.snapshotPath = "nested/snapshot.json";
+      writeJson(join(pkg, "MANIFEST.json"), manifest);
+      // Internal alias: nested-link -> nested (both under pkg)
+      const nestedLink = join(pkg, "nested-link");
+      symlinkSync(nested, nestedLink);
+      manifest.package.snapshotPath = "nested-link/snapshot.json";
+      writeJson(join(pkg, "MANIFEST.json"), manifest);
+      const r = runCli(["--path", pkg, "--format", "json"]);
+      expect(r.status).toBe(0);
+      expect(JSON.parse(r.stdout).ok).toBe(true);
+    },
+  );
 });
 
 describe("catalogue dry-run CLI — exit 1", () => {
