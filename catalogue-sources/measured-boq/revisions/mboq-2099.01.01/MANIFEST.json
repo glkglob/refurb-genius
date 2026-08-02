@@ -1,0 +1,21 @@
+{
+  "manifestVersion": "1",
+  "catalogRevision": "mboq-2099.01.01",
+  "source": {
+    "id": "synthetic-example-source",
+    "name": "Synthetic Example Source",
+    "version": "1",
+    "effectiveDate": "2099-01-01",
+    "retrievedAt": "2099-01-01T00:00:00Z",
+    "licenceReference": "synthetic-only-not-production",
+    "licenceStatus": "synthetic"
+  },
+  "transformation": {
+    "schemaVersion": "1",
+    "normaliserVersion": "1"
+  },
+  "package": {
+    "snapshotPath": "snapshot.json",
+    "production": false
+  }
+}
