@@ -1,29 +1,30 @@
 # 4C2E-B2A — Catalogue Persistence and Publication Plan
 
 ```text
-Status: 4C2E-B2A PLAN COMPLETE — READY FOR B2B INDEPENDENT VERIFICATION
-         (revision 4C2E-B2A.2 incorporates independent architecture review fixes)
-Ticket: 4C2E-B2A (planning only)
+Status: 4C2E-B2A.3 PLAN REPAIRED — READY FOR B2B2 DELTA VERIFICATION
+Ticket: 4C2E-B2A / 4C2E-B2A3 (planning only)
 Parent contracts:
   - docs/architecture/4c2e-production-catalogue-data-gate-plan.md
   - docs/architecture/4c2e-b1-source-agnostic-catalogue-tooling-plan.md
   - docs/architecture/l3-measured-boq-catalogue-foundation-plan.md
   - docs/architecture/l3-estimate-authority-contract.md
-Base SHA at planning: 0b382794f058b3b26b3b3e6bd9eb89b4efc42392
+Base SHA at original planning: 0b382794f058b3b26b3b3e6bd9eb89b4efc42392
+B2A plan commit: 1da5d371f97ec3e7c139babacbd860f5c1334ef2
 Branch: plan/4c2e-b2a-catalogue-persistence-publication
+Plan version: 4C2E-B2A.3
 ```
 
 This document is the **implementation-ready plan** for measured-BOQ catalogue
 **persistence and publication infrastructure**. It does **not** implement
 migrations, importers, publishers, writers, runtime readers, or production data.
 
-Evidence labels used throughout:
+Evidence labels:
 
 ```text
-[Repository-confirmed]   — verified in code, schema, tests, or committed docs
+[Repository-confirmed]    — verified in code, schema, tests, or committed docs
 [Reasoned recommendation] — planning recommendation from repository evidence
-[Unresolved product policy] — requires product/legal decision; safe default stated
-[Proposed B2 design]     — future work; not existing behaviour
+[Unresolved product policy] — product/legal decision; safe default stated
+[Proposed B2 design]      — future work; not existing behaviour
 ```
 
 ---
@@ -32,10 +33,11 @@ Evidence labels used throughout:
 
 | Item | Value |
 | --- | --- |
-| Phase | **4C2E-B2A** planning only |
+| Phase | **4C2E-B2A** planning (+ **B2A3** consistency repair) |
 | Implementation | **Forbidden** in this phase |
-| Next gate | **4C2E-B2B** independent plan verification |
-| After B2B PASS | Separate explicit authorisation required before B2C |
+| Next gate | **4C2E-B2B2** delta independent verification of the repaired plan |
+| After B2B2 PASS | Separate guarded merge of PR #100 only; B2C still blocked |
+| After merge of PR #100 | Planning complete only; B2C requires **separate explicit authorisation** |
 
 B1 remains authoritative for package validation and checksums. B2 must **compose**
 B1 outputs and must not re-implement or weaken pure validation.
@@ -46,12 +48,12 @@ B1 outputs and must not re-implement or weaken pure validation.
 
 Define an evidence-based, implementation-ready design for:
 
-* validated package draft ingestion;
+* validated package draft ingestion (content-frozen);
 * immutable catalogue revision and entry persistence;
 * package/checksum lineage;
-* publication, retirement, and rollback transactions;
+* publication, retirement, and rollback-retire transactions;
 * concurrency, idempotency, and audit;
-* server-only write authority and RLS posture;
+* fail-closed server-only write authority;
 * migration, test, and verification strategy.
 
 ---
@@ -61,20 +63,17 @@ Define an evidence-based, implementation-ready design for:
 | Item | Value |
 | --- | --- |
 | Repository | `glkglob/refurb-genius` |
-| Branch at planning start | `main` |
-| Exact HEAD | `0b382794f058b3b26b3b3e6bd9eb89b4efc42392` |
-| Working tree | clean (`0 0` divergence) |
+| Exact main at plan open | `0b382794f058b3b26b3b3e6bd9eb89b4efc42392` |
+| B2A plan commit | `1da5d371f97ec3e7c139babacbd860f5c1334ef2` |
 
-### Completed and merged foundations
+### Completed foundations
 
 | Ticket | Meaning | Evidence |
 | --- | --- | --- |
 | 4C2C-B | Immutable catalogue tables + triggers + RLS | `supabase/migrations/20260731120000_measured_boq_catalogue_foundation.sql` |
 | 4C2D | Server-only exact-revision catalogue loader | `src/features/estimate/infrastructure/catalogue/measuredBoqCatalogue.repository.server.ts` |
 | 4C2E-A | Production data-gate plan (licence blocked) | `docs/architecture/4c2e-production-catalogue-data-gate-plan.md` |
-| 4C2E-B1A | Source-agnostic tooling plan | `docs/architecture/4c2e-b1-source-agnostic-catalogue-tooling-plan.md` |
-| 4C2E-B1B | Pure dry-run pipeline | `packages/services/src/measured-boq/catalogue/` |
-| 4C2E-B1C/B1D | Read-only CLI + realpath containment | `scripts/catalogue-dry-run.ts`, PR #99 merge `0b38279` |
+| 4C2E-B1A–B1D | Pure dry-run pipeline + read-only CLI | `packages/services/.../catalogue/`, `scripts/catalogue-dry-run.ts` |
 
 ---
 
@@ -86,124 +85,72 @@ Define an evidence-based, implementation-ready design for:
 | --- | --- |
 | Manifest parse + strict unknown keys | `parseCatalogueManifest` |
 | Alias exclusivity, unit/decimal normalisation | `normaliseCatalogueSnapshot` |
-| Rights / production policy (technical dry-run) | `runCatalogueDryRun` |
+| Rights / production policy (technical dry-run) | `runCatalogueDryRun` / parse path |
 | Semantic catalogue validation | `validateCatalogueSnapshot` |
-| Deterministic issue ordering | B1 pipeline |
 | Package input checksum (`mboq-package-v2`) | `computePackageArtifactChecksum` |
-| Canonical content checksum | `computeCatalogueContentChecksum` |
-| Read-only FS load + containment | `scripts/catalogue-dry-run.ts` |
+| Canonical content checksum (label-bound) | `computeCatalogueContentChecksum` |
+| Read-only FS load + realpath containment | `scripts/catalogue-dry-run.ts` |
 
-B2 consumes:
-
-```text
-manifestText + snapshotText
-  → runCatalogueDryRun(...)
-  → require ok + policy gates
-  → map validated snapshot → DB draft rows
-```
-
-B2 never re-parses package policy with a weaker pipeline.
+B2 consumes B1 outputs only through a **server-owned** application boundary.
 
 ---
 
 ## Current-state evidence
 
-### 1. Catalogue-related tables and migrations
+### Catalogue tables and migrations
 
 [Repository-confirmed]
 
 | Path | Symbol / object | Responsibility | B2 implication |
 | --- | --- | --- | --- |
-| `supabase/migrations/20260731120000_measured_boq_catalogue_foundation.sql` | `measured_boq_catalog_revisions` | Revision header; natural key `catalog_revision`; status lifecycle; `content_checksum` | **Reuse** as canonical revision store; extend columns for package lineage |
-| same | `measured_boq_catalog_entries` | Rate rows; identity `(catalog_revision, rate_key)` | **Reuse**; draft-only mutation via existing triggers |
-| same | `measured_boq_catalog_revision_immutable()` | draft→published→retired; published/retired content frozen | **Rely on**; do not weaken |
-| same | `measured_boq_catalog_assert_parent_draft` + `FOR SHARE` | Entry mutations wait on concurrent publish | **Reuse** for draft write races |
-| same | RLS + REVOKE auth / GRANT service_role | Private catalogue tables | **Preserve** deny-by-default |
-| `supabase/migrations/20260730120000_estimate_authority_persistence_foundation.sql` | `estimate_authority_idempotency` | Private idempotency for authority writes | Pattern analog for package idempotency |
-| same | `persist_category_engine_estimate` SECURITY DEFINER | Privileged product write template | **Mandatory pattern** for all B2 catalogue write RPCs |
+| `supabase/migrations/20260731120000_measured_boq_catalogue_foundation.sql` | `measured_boq_catalog_revisions` | Revision header; natural key `catalog_revision`; status lifecycle; `content_checksum` | **Reuse**; extend for lifecycle metadata |
+| same | `measured_boq_catalog_entries` | Rate rows; `(catalog_revision, rate_key)` | **Reuse**; post-ingest freeze under B2 |
+| same | `measured_boq_catalog_revision_immutable()` | draft→draft full edit **today**; draft→published without content freeze list; published→retired freezes hard-coded column set; retired fully blocked | **Replace in B2C** with package-backed freeze model |
+| same | `measured_boq_catalog_assert_parent_draft` + `FOR SHARE` | Entry mutations require draft parent | **Reuse** for races; B2 still freezes entries via grants/triggers |
+| same | RLS + REVOKE auth / GRANT service_role DML | Private tables | **Tighten in B2C**: revoke service_role DML; RPC-only writes |
+| `supabase/migrations/20260730120000_estimate_authority_persistence_foundation.sql` | `persist_category_engine_estimate` | SECURITY DEFINER write template | **Mandatory pattern** for B2 RPCs |
 
-**Confirmed absent** (searched migrations + types + app code):
+**Confirmed absent today:**
 
 ```text
-active_revision pointer table/column
-catalogue package / input_checksum table
-catalogue audit/events table
-licence_status / source_id / published_by columns on revisions
-SECURITY DEFINER catalogue publish RPC
-application catalogue write repository
+active_revision pointer
+measured_boq_catalog_packages
+measured_boq_catalog_events
+input_checksum / licence_status / source_id columns
+catalogue lifecycle RPCs
+application catalogue write path
 production catalogue seed rows
 ```
 
-### 2. Runtime catalogue reader
-
-| Path | Symbol | Responsibility | B2 implication |
-| --- | --- | --- | --- |
-| `src/features/estimate/infrastructure/catalogue/measuredBoqCatalogue.repository.server.ts` | `loadMeasuredBoqCatalogueSnapshot` | service_role **SELECT** only; exact revision; authority vs reproduction status gates; checksum revalidation; LRU of entry material | **Do not repurpose** as writer; post-publish verify may call it |
-| same | purpose `authority` | requires `status = published` | Publication target for authority eligibility |
-| same | purpose `reproduction` | `published` or `retired` | Historical pin support |
-| same | rejects `latest` / `current` | No active-alias semantics | B2 must not invent global active alias |
-
-### 3. Write paths
-
-[Repository-confirmed] **No application write path** for catalogue rows.
-
-| Surface | Write? |
-| --- | --- |
-| App TS catalogue repository | SELECT only |
-| `scripts/catalogue-dry-run.ts` | FS read only; no DB |
-| pgTAP / probe SQL | service_role writes for contract tests only |
-
-### 4. Publication / active-revision concepts
+### Current immutability (accurate wording)
 
 [Repository-confirmed]
 
-| Concept | Current behaviour |
+| Transition | Current behaviour |
 | --- | --- |
-| Status enum | `draft` \| `published` \| `retired` |
-| Transitions | draft→draft; draft→published; published→retired only |
-| Multiple published revisions | **Allowed** (no unique partial index on published) |
-| Active pointer | **None** — consumers pin exact `catalog_revision` |
-| Estimates | optional `estimates.catalog_revision` FK when authority is measured-boq |
+| draft → draft | Full row mutation allowed |
+| draft → published | Allowed with `published_at`; **no complete content freeze list** |
+| published → retired | Only hard-coded columns frozen; mutable: `status`, `retired_at`, `updated_at` |
+| retired | Fully immutable |
+| Entry I/U/D | Parent must be `draft` under `FOR SHARE` |
 
-### 5. RLS and privileged-write conventions
+B2 **must not** claim the pre-B2C trigger already freezes package-backed content on publish. B2C replaces `measured_boq_catalog_revision_immutable()` in the **same migration transaction** as additive columns and package constraints, **before** any public lifecycle RPC is granted.
+
+### Runtime reader
 
 | Path | Symbol | Responsibility | B2 implication |
 | --- | --- | --- | --- |
-| `src/platform/supabase/service.server.ts` | `createServiceRoleSupabase` | Sole app service-role factory | Writers must use this (or SECURITY DEFINER RPC) |
-| `src/serverFns/auth.server.ts` | `requireUser` | Session identity for product paths | Not sufficient alone for catalogue tables |
-| `public.is_admin()` | DB helper | Admin **SELECT** overlays on user tables | JWT admin **cannot** DML catalogue tables |
-| Category authority stack | `persist_category_engine_estimate` | service_role EXECUTE + ownership recheck | Preferred pattern if in-app later |
+| `…/measuredBoqCatalogue.repository.server.ts` | `loadMeasuredBoqCatalogueSnapshot` | service_role **SELECT**; exact revision; authority=`published`; reproduction=`published\|retired`; rejects `latest`/`current` | **Do not repurpose as writer**; post-publish verify may call it |
+| same | no production/licence gate | Any published revision is authority-loadable | Synthetic residual risk — § Residual risk |
 
-### 6. Audit / actor conventions
+### Privileged write conventions
 
-| Object | Actor field | Notes |
+| Path | Symbol | Responsibility |
 | --- | --- | --- |
-| `measured_boq_catalog_revisions` | `created_by text` | Free-form ops identity (not auth.users FK) |
-| Product tables | `user_id uuid` | Tenancy RLS |
-| `estimate_authority_idempotency` | timestamps + key | Operation lifecycle without spoofable actor body |
+| `src/platform/supabase/service.server.ts` | `createServiceRoleSupabase` | Sole app service-role factory |
+| Category authority stack | `persist_category_engine_estimate` | SECURITY DEFINER; `SET search_path = ''`; EXECUTE service_role only |
 
-### 7. Generated types
-
-| Path | Role |
-| --- | --- |
-| `packages/supabase/src/database.types.ts` | Generated types for catalogue tables + estimate provenance |
-| `packages/services/src/measured-boq/catalogue/*` | Pure domain contracts |
-| `packages/types/` | No catalogue types |
-
-B2C migrations require a later authorised type refresh (not B2A).
-
-### 8. Server-only boundaries and invariants
-
-| Path | Role |
-| --- | --- |
-| `tests/invariants/catalogue-dry-run-boundary.test.ts` | CLI purity + realpath containment seal |
-| `tests/invariants/l3-measured-boq-catalogue.invariant.test.ts` | Loader service_role + composition boundaries |
-| `tests/invariants/server-only-boundary.invariant.test.ts` | `*.server` import rules |
-| `tests/invariants/auth-env.invariant.test.ts` | No `VITE_` service-role key |
-
-### 9. B1 pure API surface (composition contract)
-
-[Repository-confirmed] `@repo/services`:
+### B1 API (composition contract)
 
 ```text
 runCatalogueDryRun({ manifestText, snapshotText, expectedInputChecksum?, expectedOutputChecksum? })
@@ -215,60 +162,48 @@ report fields (selected):
   warningCount, issues, warnings, unitAliasApplications
 ```
 
-Content identity mapping:
-
 ```text
 DB content_checksum  ≡  B1 outputChecksum / computeCatalogueContentChecksum
-B1 inputChecksum     ≡  computePackageArtifactChecksum (mboq-package-v2) — not in DB today
+B1 inputChecksum     ≡  computePackageArtifactChecksum (mboq-package-v2)
 
 [Repository-confirmed] canonicalCatalogueSerialisation INCLUDES catalogRevision.
-Therefore content_checksum is label-bound: two different catalog_revision labels
-ALWAYS produce two different content digests even when rate rows are identical.
+content_checksum is label-bound: different catalog_revision labels ALWAYS yield
+different content digests even when rate rows match.
 ```
-
-### 10. Legacy / transitional ownership
-
-| Layer | Owner today |
-| --- | --- |
-| Pure catalogue domain | `packages/services/src/measured-boq/catalogue/` |
-| Runtime read adapter | `src/features/estimate/infrastructure/catalogue/` |
-| Dry-run CLI | `scripts/catalogue-dry-run.ts` (tooling, not feature API) |
-| Browser barrels | deliberately omit catalogue `.server` modules |
 
 ---
 
 ## Scope
 
-### B2 may eventually cover (after gated slices)
+### B2 may eventually cover
 
 ```text
-validated package draft ingestion
+validated package draft ingestion (content-frozen)
 immutable revision + entry persistence
 package and checksum lineage
-draft state under existing status enum
-publication transaction
-retirement transaction
-rollback as republication / re-pin of prior immutable revision
+draft status under existing status enum
+publication, retirement, rollback-retire transactions
 append-only audit events
-concurrency control and idempotency
-server-only write authority
-database invariants and **mandatory** SECURITY DEFINER write RPCs
+concurrency control and request idempotency
+server-only write authority via SECURITY DEFINER RPCs
+database invariants and fail-closed grants
 repository + application boundaries
-independent verification (B2B, B2F)
+independent verification (B2B2, B2F)
 ```
 
 ### B2 must explicitly exclude
 
 ```text
 production or supplier catalogue acquisition
-source-specific transformation adapters / scraping
-runtime reader activation (switching product to published rates)
+source-specific adapters / scraping
+runtime reader activation / catalogue pin changes
 estimate-builder integration
-automatic repricing of existing estimates
-UI administration for catalogue publish
-scheduled publication / background ingestion
+automatic repricing
+UI administration
+scheduled / background publication
 4C2F reader cutover
-lawful production rate content approval (remains 4C2E data-gate)
+lawful production rate content approval (data-gate)
+hard-delete / purge of catalogue packages in B2
 ```
 
 ---
@@ -276,12 +211,12 @@ lawful production rate content approval (remains 4C2E data-gate)
 ## Explicit exclusions (this document and B2 programme)
 
 ```text
-no SQL migrations in B2A
-no live Supabase / production / preview database access in B2A
-no generated-type regeneration in B2A
-no importer/publisher implementation in B2A
+no SQL migrations in B2A/B2A3
+no live Supabase / production / preview database access in planning
+no generated-type regeneration in planning
+no importer/publisher implementation in planning
 no production or licensed catalogue rows
-no CLI write modes on catalogue-dry-run
+no write modes on catalogue-dry-run
 no estimate-builder or ROI changes
 ```
 
@@ -295,202 +230,257 @@ no estimate-builder or ROI changes
 
 | Concern | Owner |
 | --- | --- |
-| Pure package validation / normalisation / checksums | `packages/services/src/measured-boq/catalogue/` (**unchanged pure**) |
-| DB write orchestration, draft/publish/retire | `src/features/estimate/infrastructure/catalogue/` new `*.server.ts` writers |
-| Application use cases | `src/features/estimate/application/measuredBoq/` new `*.server.ts` |
-| Ops entrypoint | **New** `scripts/` module (e.g. `catalogue-persist.ts`) — **not** `catalogue-dry-run.ts` |
-| Product server functions (if ever in-app) | `src/features/estimate/presentation/serverFns.ts` pattern |
-| DB schema / triggers / RLS | `supabase/migrations/` (B2C+) |
-
-### Rejected alternatives
-
-| Alternative | Why rejected |
-| --- | --- |
-| Put writers in `packages/services` | Violates pure service boundary; services must stay DB-free |
-| Put writers in `packages/integrations` | Package is a stub; no multi-owner reuse demonstrated |
-| Extend dry-run CLI with write modes | Explicitly forbidden by B1 contract and invariants |
-| New generic shared package | Premature; single owner (estimate) today |
-
-### Proposed module tree
-
-```text
-packages/services/src/measured-boq/catalogue/     # pure B1 (no DB)
-scripts/catalogue-dry-run.ts                     # read-only forever
-scripts/catalogue-persist.ts                     # [Proposed B2] ops CLI only
-src/features/estimate/
-  application/measuredBoq/
-    ingestCatalogueDraft.server.ts               # [Proposed]
-    publishCatalogueRevision.server.ts           # [Proposed]
-    retireCatalogueRevision.server.ts            # [Proposed]
-    rollbackCataloguePublication.server.ts       # [Proposed]
-  infrastructure/catalogue/
-    measuredBoqCatalogue.repository.server.ts    # existing READ
-    measuredBoqCatalogueWrite.repository.server.ts  # [Proposed WRITE]
-  presentation/serverFns.ts                      # optional later in-app gates
-tests/invariants/
-  catalogue-persist-boundary.test.ts             # [Proposed]
-supabase/migrations/
-  <timestamp>_measured_boq_catalogue_persist_*.sql  # [Proposed B2C]
-```
+| Pure package validation / checksums | `packages/services/src/measured-boq/catalogue/` (**unchanged pure**) |
+| Server application use cases | `src/features/estimate/application/measuredBoq/*.server.ts` |
+| RPC adapter (no table DML) | `src/features/estimate/infrastructure/catalogue/*Write*.repository.server.ts` |
+| Ops entrypoint | **New** `scripts/` + package script `catalogue:persist` — **not** dry-run |
+| DB schema / triggers / RPCs | `supabase/migrations/` (B2C–B2E) |
 
 ### Import-direction diagram
 
 ```text
 ops CLI (scripts/catalogue-persist.ts)
-  │  dynamic / static import of server application only
+  │  imports application use case only
   ▼
-application/measuredBoq/*Catalogue*.server.ts
-  │  runCatalogueDryRun / validateCatalogueSnapshot  ──►  @repo/services (pure)
-  │  write ports
+application/measuredBoq/persistCatalogueDraft.server.ts  (etc.)
+  │  reads artifact files; runs runCatalogueDryRun (pure)
+  │  constructs RPC params from server-owned B1 result
   ▼
 infrastructure/catalogue/*Write*.repository.server.ts
-  │  createServiceRoleSupabase  ──►  src/platform/supabase/service.server.ts
-  │  rpc(ingest|publish|retire|rollback_…)  ──►  SECURITY DEFINER (mandatory)
+  │  createServiceRoleSupabase
+  │  rpc('persist_measured_boq_catalog_draft' | publish | retire | rollback…)
   ▼
-PostgreSQL measured_boq_catalog_* (+ packages/events)
+PostgreSQL SECURITY DEFINER functions → catalogue tables
 
 FORBIDDEN:
   packages/services ──X──► supabase / feature infra
   scripts/catalogue-dry-run ──X──► write / service_role
-  routes / browser ──X──► write repository (static)
-  routes ──X──► database adapters directly
+  browser / routes ──X──► write repository or RPCs
+  application ──X──► table DML (.from().insert/update/delete/upsert)
 ```
+
+---
+
+## Authoritative publication policy (single source)
+
+This policy is **identical** in every matrix, transition, error contract, test, decision log, threat statement, phase DoD, and definition of done:
+
+```text
+synthetic + production:false + B1 ok:true
+  → draft allowed
+  → publication allowed for persistence/lifecycle plumbing
+
+rights_unverified + production:false + B1 ok:true
+  → draft allowed
+  → publication forbidden
+
+production:true
+  → rejected by B1 (PRODUCTION_BLOCKED via parseCatalogueManifest)
+  → no draft persistence under the current B1 contract
+```
+
+### Policy matrix
+
+| Package class | Draft ingest | Publish | Notes |
+| --- | --- | --- | --- |
+| `ok:false` (any) | **No** | N/A | ops logs only; not persisted |
+| `production:true` | **No** under current B1 | **No** | data-gate + B1 block |
+| `licence_status=synthetic`, `production:false`, `ok:true` | **Yes** | **Yes** | plumbing / non-prod lifecycle |
+| `licence_status=rights_unverified`, `production:false`, `ok:true` | **Yes** | **No** | technical draft only |
+| Future approved commercial licence | Deferred product/legal | Deferred | needs enum expansion + fail-closed RPC checks |
+
+`rights_not_publishable` applies to **rights policy failures** (e.g. `rights_unverified`), **not** to valid synthetic packages.
+
+Warnings on `ok:true` reports may be retained; default allow draft and synthetic publish when `ok:true`.
+
+---
+
+## Residual risk — published synthetic and runtime
+
+```text
+A published synthetic revision is technically loadable by the existing
+exact-revision reader if a future product/runtime caller deliberately pins it.
+```
+
+Mitigations and boundaries:
+
+* B2 introduces **no** active pointer;
+* B2 makes **no** runtime-reader changes;
+* B2 makes **no** builder integration;
+* B2 makes **no** automatic pin;
+* B2 makes **no** synthetic-to-production conversion;
+* package/report retains `synthetic` and `production:false`;
+* later runtime activation must enforce its own product/data-approval gate;
+* B2 completion does **not** imply production-data approval.
+
+**Negative architecture requirement:**
+
+```text
+No B2 phase may add or change a runtime catalogue pin.
+```
+
+Publication does **not** equal runtime activation. B2 alone does **not** make published synthetic rows impossible to read.
 
 ---
 
 ## Target module boundaries
 
-### Requirements (non-negotiable)
+### Proposed tree
+
+```text
+packages/services/src/measured-boq/catalogue/     # pure B1 (no DB)
+scripts/catalogue-dry-run.ts                     # read-only forever
+scripts/catalogue-persist.ts                     # [Proposed B2D] ops only
+src/features/estimate/
+  application/measuredBoq/
+    persistCatalogueDraft.server.ts              # [Proposed B2D]
+    publishCatalogueRevision.server.ts           # [Proposed B2E]
+    retireCatalogueRevision.server.ts            # [Proposed B2E]
+    rollbackCataloguePublication.server.ts       # [Proposed B2E]
+  infrastructure/catalogue/
+    measuredBoqCatalogue.repository.server.ts    # existing READ
+    measuredBoqCatalogueWrite.repository.server.ts  # [Proposed] RPC adapter only
+tests/invariants/
+  catalogue-persist-boundary.test.ts             # [Proposed B2D hard DoD]
+supabase/migrations/
+  <timestamp>_measured_boq_catalogue_persist_schema.sql   # B2C
+  <timestamp>_measured_boq_catalogue_draft_rpc.sql         # B2D
+  <timestamp>_measured_boq_catalogue_lifecycle_rpc.sql     # B2E
+```
+
+### Non-negotiable requirements
 
 1. B1 pure package logic remains database-independent.
-2. B2 write orchestration consumes B1 outputs only after `ok: true` (plus policy gates).
+2. B2 write orchestration recomputes B1 server-side; never trusts client `ok`.
 3. Product/runtime code must not import CLI modules.
-4. Routes must not import database adapters directly.
-5. Write authority remains server-only (`*.server.ts` + service_role / SECURITY DEFINER).
-6. No new generic shared package without demonstrated multi-owner reuse.
-
-### Public feature API (future)
-
-[Proposed B2 design] Prefer exporting **application result types** and server functions only — not raw repository clients. Browser barrels continue to omit write and load `.server` modules until a separately authorised UI phase.
+4. Routes must not import database adapters or RPCs directly.
+5. Write authority is server-only via SECURITY DEFINER RPCs.
+6. No new generic shared package without multi-owner reuse.
 
 ---
 
 ## Persistence model
 
-### Concepts required
+### Concepts
 
-| Concept | Decision | Rationale |
-| --- | --- | --- |
-| Catalogue source | **Column + package metadata**, not separate multi-tenant source table in B2 | Single measured-BOQ product catalogue today; `source_id` text on package/revision is enough |
-| Package ingestion identity | **New table** `measured_boq_catalog_packages` | Holds input checksum, raw artifacts, B1 report summary; enables idempotency without mutating revision content |
-| Immutable catalogue revision | **Reuse** `measured_boq_catalog_revisions` | Already correct natural key + lifecycle |
-| Canonical entries | **Reuse** `measured_boq_catalog_entries` | Already draft-only + frozen when published |
-| Publication event | **Status transition + audit event** | No separate publication-pointer table |
-| Retirement event | **Status transition + audit event** | Same |
-| Active-publication pointer | **Do not introduce** in B2 | Exact-pin model is repository-confirmed and safer |
-| Audit/event record | **New table** `measured_boq_catalog_events` | Append-only ops evidence |
+| Concept | Decision |
+| --- | --- |
+| Catalogue source | `source_id` text on package/revision metadata |
+| Package identity | `measured_boq_catalog_packages` — sole owner of `input_checksum` UNIQUE |
+| Immutable revision | Reuse `measured_boq_catalog_revisions` |
+| Canonical entries | Reuse `measured_boq_catalog_entries` — frozen after ingest |
+| Publication / retirement | Status transition + audit event |
+| Active pointer | **Do not introduce** |
+| Audit | `measured_boq_catalog_events` append-only |
 
 ### Reused table: `measured_boq_catalog_revisions`
 
 | Field | Spec |
 | --- | --- |
-| purpose | Immutable revision header for measured-BOQ catalogue |
-| owner | Platform/DB + estimate write repository |
+| purpose | Catalogue revision header |
 | primary key | `id uuid` |
 | business identity | `catalog_revision text` UNIQUE |
-| foreign keys | none today; [Proposed] optional `package_id` → packages |
-| required columns (existing) | see migration §1 (`status`, `schema_version`, `currency`, `vat_basis`, `regional_basis`, `source_description`, `entry_count`, `content_checksum`, `effective_from`, `created_by`, timestamps) |
-| optional columns (existing) | `release_notes`, `published_at`, `retired_at` |
-| [Proposed B2C] additive columns | `source_id text`, `licence_status text`, `production boolean`, `input_checksum text` (**non-unique denormalised**), `normaliser_version text`, `package_id uuid` (nullable FK to packages, set after package insert inside same RPC), `published_by text`, `retire_reason text` |
-| unique constraints | `catalog_revision` only (existing). **Do not** UNIQUE `input_checksum` on this table |
-| check constraints | existing status/timestamp/checksum grammar; [Proposed] `licence_status IN ('synthetic','rights_unverified','approved')` once product expands statuses |
-| indexes | existing `(status, effective_from)`; [Proposed] `(input_checksum)`, `(content_checksum)` non-unique lookup |
-| immutability | existing trigger: published/retired content frozen; draft editable |
-| delete policy | draft may delete (CASCADE entries); published/retired delete blocked |
-| RLS posture | enabled; no auth policies; service_role only |
-| audit fields | `created_by`, `created_at`, `updated_at`, lifecycle timestamps; events table for full trail |
+| foreign keys | none from package reverse-link (**no** `package_id` column) |
+| existing required columns | status, schema_version, currency, vat_basis, regional_basis, source_description, entry_count, content_checksum, effective_from, created_by, timestamps |
+| existing optional | release_notes, published_at, retired_at |
+| [Proposed B2C] additive | `source_id text`, `licence_status text`, `production boolean NOT NULL DEFAULT false`, `input_checksum text` (**non-unique denorm**), `normaliser_version text`, `published_by_kind text`, `published_by_id uuid NULL`, `retired_by_kind text`, `retired_by_id uuid NULL`, `retirement_reason text` |
+| unique | `catalog_revision` only |
+| content_checksum | one immutable value per revision; **not** a global UNIQUE; label-bound by B1 |
+| RLS | private; SELECT for service_role as needed; **no** service_role DML after B2C grants repair |
+| immutability | B2C rewritten trigger + fail-closed GUC |
 
 ### Reused table: `measured_boq_catalog_entries`
 
 | Field | Spec |
 | --- | --- |
-| purpose | Per-rate catalogue lines for a revision |
 | business identity | `(catalog_revision, rate_key)` |
-| foreign keys | → `measured_boq_catalog_revisions(catalog_revision)` ON DELETE CASCADE |
-| mutability | **draft parent only** (existing trigger + FOR SHARE) |
-| delete policy | CASCADE with draft parent delete; blocked when parent published/retired |
-| RLS | service_role only |
-
-No column redesign required for B2 core; writers must map B1 normalised entries into existing columns (`rate_key`, `display_name`, `trade_or_domain`, `unit`, `cost_type`, `base_unit_rate`, …).
+| FK | → revisions ON DELETE RESTRICT under B2 (prefer RESTRICT for package-backed; draft hard-delete not offered in B2) |
+| mutability | **none after successful package-backed ingestion** |
 
 ### Proposed table: `measured_boq_catalog_packages`
 
 | Field | Spec |
 | --- | --- |
-| purpose | **Sole owner** of package artifact identity, raw retention, B1 report summary |
-| owner | estimate catalogue write boundary |
+| purpose | Sole package artifact identity and raw retention |
 | primary key | `id uuid` |
-| business identity | `input_checksum` **UNIQUE (global)** — only place for this uniqueness |
-| foreign keys | `revision_id uuid NOT NULL REFERENCES measured_boq_catalog_revisions(id)` with **ON DELETE CASCADE** (draft purge); immutability trigger still blocks delete of published/retired parents |
-| required columns | `input_checksum`, `content_checksum`, `revision_id`, `catalog_revision` (denormalised label for ops queries, not a second identity authority), `source_id`, `licence_status`, `production`, `manifest_version`, `normaliser_version`, `manifest_text`, `snapshot_text`, `report_json`, `created_by`, `created_at` |
-| optional | `expected_input_checksum`, `expected_output_checksum`, `correlation_id` |
-| unique | `input_checksum` only (do **not** also UNIQUE on revisions) |
-| check | checksum grammar; `production` boolean; size bounds on texts |
-| immutability | **append-only row** after insert (no UPDATE of artifact bytes/checksums) |
-| delete policy | CASCADE when parent **draft** revision deleted; published/retired parent delete remains blocked by revision immutability trigger, so packages for those statuses are retained |
-| RLS | service_role only; same private pattern |
-| audit | creation only; subsequent lifecycle via events |
-| insert order | **single SECURITY DEFINER RPC** inserts revision → entries → package → event in one function body (no multi-call PostgREST) |
+| business identity | `input_checksum` **UNIQUE (global)** |
+| foreign keys | `revision_id uuid NOT NULL UNIQUE REFERENCES measured_boq_catalog_revisions(id) ON DELETE RESTRICT` |
+| required | input_checksum, content_checksum, revision_id, catalog_revision (denorm label), source_id, licence_status, production, manifest_version, normaliser_version, manifest_text, snapshot_text, validation_report jsonb, created_at |
+| unique | `input_checksum`; **`UNIQUE(revision_id)`** — one package per revision |
+| reverse FK | **None** — do not add `package_id` on revisions |
+| immutability | all fields frozen after insert |
+| delete | no B2 hard-delete; ON DELETE RESTRICT blocks accidental parent delete |
+| RLS | private; SELECT only for service_role after grants repair |
 
-**Identity ownership rule:** `input_checksum` uniqueness lives **only** on packages. Revisions may denormalise `input_checksum` as a non-unique lookup column, but must not declare a second UNIQUE constraint.
+**Identity ownership:** `input_checksum` uniqueness lives **only** on packages. Revisions may denormalise `input_checksum` non-uniquely for ops queries.
 
 ### Proposed table: `measured_boq_catalog_events`
 
 | Field | Spec |
 | --- | --- |
-| purpose | Append-only business audit of catalogue ops |
+| purpose | Append-only business audit |
 | primary key | `id uuid` |
-| business identity | event id + `(catalog_revision, event_type, created_at)` for queries |
-| required columns | `event_type`, `catalog_revision`, `input_checksum`, `content_checksum`, `actor`, `created_at`, `payload_json` |
-| optional | `correlation_id`, `reason`, `result` (`accepted`/`rejected`/`replay`) |
-| unique | none (duplicates prevented by app + idempotency keys on ops tables if needed) |
-| immutability | no UPDATE/DELETE grants (trigger or REVOKE) |
-| RLS | service_role only |
-| event types | see Audit section |
+| required | event_type, command_scope, request_id, catalog_revision, revision_id, input_checksum, content_checksum, actor_kind, actor_user_id, created_at, payload_json, result |
+| unique | **UNIQUE (command_scope, request_id)** for request idempotency |
+| immutability | no UPDATE/DELETE |
+| RLS | private; append via RPC only |
+
+Event types (selected):
+
+```text
+ingestion_accepted
+ingestion_replayed
+publication
+publication_replay
+retirement
+rollback_recorded
+rejected_transition
+```
 
 ### Active pointer
 
-[Proposed B2 design] **No active-revision table**. Multiple published revisions may coexist. Authority consumers continue to require an **exact** `catalog_revision` pin (existing loader + `assertSingleCatalogRevision`).
+[Proposed B2 design] **No active-revision table**. Multiple published revisions may coexist. Consumers pin exact `catalog_revision`.
+
+### Legacy-row compatibility
+
+```text
+Existing pre-B2 revisions are legacy rows without a package record.
+No destructive backfill or fabricated raw artifact is allowed.
+New B2 ingestion requires package provenance.
+```
+
+**Fail-closed rule:**
+
+```text
+B2 lifecycle RPCs do not operate on legacy revisions lacking package provenance,
+unless a separately authorised provenance-adoption migration supplies verified
+package identity.
+```
+
+No fake checksum or placeholder package is permitted. Outcome: `provenance_required`.
 
 ---
 
 ## Raw artifact retention
 
-### Options compared
-
-| Model | Reproducibility | Audit | Byte checksum verify | Storage | ACL | Transaction | Complexity |
-| --- | --- | --- | --- | --- | --- | ---: | ---: |
-| 1. Bytes in PostgreSQL | High | High | High | Limited | service_role only | Single TX | Low–med |
-| 2. Object storage + DB metadata | High | High | High | Scalable | Bucket policies | Split TX risk | High |
-| 3. No retention after validation | Low | Low | Only re-upload | Minimal | N/A | Simple | Low |
-
 ### Decision
 
-[Reasoned recommendation] **Model 1 — store original `manifest_text` and `snapshot_text` in PostgreSQL** on `measured_boq_catalog_packages`, with size CHECKs (e.g. each ≤ 8 MiB UTF-8; tune in B2C).
+[Reasoned recommendation] **PostgreSQL `text`** for `manifest_text` and `snapshot_text` on packages; **`jsonb`** for server-owned validation report.
 
-Rationale:
+Rejected: object storage (split TX; no catalogue bucket); no retention (fails audit/recompute).
 
-* Catalogue packages are small relative to photo media (existing storage buckets are for photos, not private rate packages).
-* Single-transaction draft insert can bind revision + entries + package + event.
-* Byte-level recompute of `input_checksum` and content checksum remains possible without external systems.
-* Access stays on the same service_role private surface as catalogue tables.
+### Hard size and entry-count constraints (B2C DoD — exact)
 
-Rejected:
+| Field | Hard limit | Enforcement |
+| --- | --- | --- |
+| `manifest_text` | `octet_length <= 1048576` (1 MiB) | DB `CHECK` + server precheck |
+| `snapshot_text` | `octet_length <= 8388608` (8 MiB) | DB `CHECK` + server precheck |
+| `validation_report` jsonb | serialized octet length ≤ 2097152 (2 MiB) | DB CHECK / RPC assert + server precheck |
+| normalized entry count | ≤ 50000 per revision | RPC precondition + DB assert before commit |
 
-* Object storage for B2 core — no existing catalogue bucket; dual-write TOCTOU; extra policies.
-* No retention — fails independent verification and ops audit for publication disputes.
+Oversized inputs → stable `payload_too_large`. No raw oversized text persisted. Logs must not contain complete artifact text.
 
-[Unresolved product policy] Long-term legal retention of licensed supplier packages may later require encrypted object storage; default remains PG text until product/legal mandates otherwise.
+Server rejects oversized inputs **before** RPC; database remains the final enforcement layer.
 
 ---
 
@@ -498,346 +488,628 @@ Rejected:
 
 ### Roles
 
-| Identity | Role | Mutability after publish |
+| Identity | Role | Mutability after ingest |
 | --- | --- | --- |
-| `inputChecksum` | Byte identity of raw MANIFEST+snapshot pair (`mboq-package-v2`) | Immutable |
-| `outputChecksum` / `content_checksum` | Canonical validated catalogue content identity | Immutable |
-| `catalogRevision` | Human/product revision label (`mboq-YYYY.MM.DD[.N]`) | Immutable string; status may change |
-| `sourceId` | Logical source identifier from MANIFEST | Immutable on package/revision |
-| `package id` | Surrogate uuid for package row | Immutable |
-| `publication identity` | `(catalog_revision, published_at, content_checksum)` via status + audit | No separate mutable pointer |
+| `inputChecksum` | Byte identity of raw MANIFEST+snapshot (`mboq-package-v2`) | Immutable |
+| `content_checksum` / outputChecksum | Label-bound canonical content identity | Immutable |
+| `catalogRevision` | Business revision label | Immutable string; status may change via lifecycle RPC only |
+| `sourceId` | Logical source from MANIFEST | Immutable |
+| package id / revision id | Surrogate uuids | Immutable |
+| publication | status + timestamps + events | lifecycle metadata only |
+
+### Package checksum preimage contract (exact B1 v2)
+
+Database must independently verify:
+
+```text
+manifestDigest = sha256(UTF-8 manifest_text)
+snapshotDigest = sha256(UTF-8 snapshot_text)
+
+outerPayload =
+  "mboq-package-v2\n" +
+  "manifest:" + manifestDigest + "\n" +
+  "snapshot:" + snapshotDigest + "\n"
+
+inputChecksum = sha256(UTF-8 outerPayload)
+```
+
+Specify:
+
+* lowercase hexadecimal encoding;
+* exact newline framing;
+* exact stored text bytes are the checksum preimage;
+* **no** JSON reserialization before hashing;
+* package `input_checksum` cannot be inserted or updated unless it matches stored artifact bytes;
+* B2C implements an immutable schema-qualified SQL helper (or trigger/RPC assertion);
+* pgTAP compares SQL results against B1 fixtures;
+* checksum fields are immutable after insert.
+
+This SQL helper is **byte integrity**, not catalogue-semantic duplication. B1 semantic authority remains TypeScript.
+
+### Content checksum wording
+
+* B1 `content_checksum` is **label-bound** because `catalogRevision` is included;
+* it is **one immutable value per revision**;
+* it is **not** a label-independent canonical-content deduplication key;
+* no global `UNIQUE(content_checksum)` is required;
+* same rate rows under a different revision label produce a **different** content checksum.
 
 ### Uniqueness
 
 | Value | Scope | Rule |
 | --- | --- | --- |
-| `input_checksum` | **Global unique on packages only** | Exact package re-import is idempotent |
-| `content_checksum` | **Unique per revision row** (label-bound by B1) | Different labels always differ; not a cross-label equality key |
-| `catalog_revision` | **Global unique** (existing) | Label reuse with different package bytes is a hard conflict |
-
-### Rates-identical, different labels (re-label myth)
-
-[Repository-confirmed] Because B1 hashes `catalogRevision` into `content_checksum`, **two labels never share `content_checksum`.**
-
-[Proposed B2 design] A “re-label” of the same rate rows is simply a **new independent package + revision**:
-
-* new `catalog_revision` → new B1 `outputChecksum` → new `content_checksum`;
-* new `input_checksum` (artifacts differ at least in MANIFEST revision fields);
-* no special “shared content” join is required or permitted.
-
-### Same revision label, different package
-
-Always **`revision_conflict`** unless `input_checksum` matches the stored package (idempotent replay).
-
-### Checksum updates
-
-Checksum fields are **never updated** after insert.
-
-[Repository-confirmed] Existing immutability trigger freezes a **hard-coded column set only on published→retired**, and allows draft→published without a general freeze list. **B2C must rewrite** `measured_boq_catalog_revision_immutable()` so that:
-
-* any status other than `draft` freezes lineage/content columns (including all B2C additive columns);
-* draft→published may change only lifecycle fields: `status`, `published_at`, `published_by`, `updated_at`;
-* published→retired may change only: `status`, `retired_at`, `retire_reason`, `updated_at`;
-* retired is fully immutable.
-
-Do **not** claim the pre-B2C trigger already freezes content at publish.
+| `input_checksum` | Global UNIQUE on packages | Exact package re-import is idempotent |
+| `content_checksum` | Per revision row | Not a cross-label equality key |
+| `catalog_revision` | Global UNIQUE (existing) | Label reuse with different package → conflict |
+| `revision_id` on packages | UNIQUE | One package per revision |
 
 ### Idempotency decision table
 
 | Existing state | Incoming package | Required result |
 | --- | --- | --- |
-| Nothing exists | Valid new package (`ok:true`, non-production under current B1) | RPC creates revision + entries + package + `ingestion_accepted` |
-| Same `input_checksum` | Same labels and digests | **Idempotent replay**: return existing ids; no mutation; `ingestion_replay` |
-| Different `input_checksum` | Same `catalog_revision` label | **`revision_conflict`** — reject |
-| Different `input_checksum` | New `catalog_revision` (even if rates look similar) | New independent draft (new content_checksum by B1) |
-| Same source and revision label | Different canonical output | **`revision_conflict`** — reject |
-| Retired revision re-imported | Exact same package (`input_checksum`) | **Idempotent replay**; do not unretire |
-| Published revision imported again | Exact same package | **Idempotent replay**; publish is no-op / `publication_replay` |
+| Nothing exists | Valid synthetic/rights_unverified package (`ok:true`) | Create revision + package + entries + `ingestion_accepted` |
+| Same `input_checksum` | Same labels and digests | **Idempotent replay**: return existing ids; no mutation; may record `ingestion_replayed` with new request_id |
+| Different `input_checksum` | Same `catalog_revision` | **`revision_conflict`** |
+| Different `input_checksum` | New `catalog_revision` | New independent draft (new content_checksum) |
+| production:true | — | Rejected by B1; not persisted |
+| Retired/published exact same package | Same input_checksum | Idempotent replay; no unretire / no re-publish storm |
 
 ---
 
-## Draft-ingestion flow
+## Draft mutability model (package-backed freeze)
 
-### Conceptual flow
+### Authoritative model
 
 ```text
-package artifacts (bytes only; no absolute paths stored)
-  → B1 runCatalogueDryRun (application/ops pure precheck)
-  → require report.ok === true (blocks production:true under current B1)
-  → apply B2 policy gates (licence class)
-  → optional expected checksum confirmation
-  → authorise ops principal (server-bound)
-  → rpc('ingest_measured_boq_catalog_draft', …)   -- single SECURITY DEFINER body
-       lock / unique input_checksum
-       if replay: return existing
-       insert revision draft + entries + package + event
-  → map typed RPC result
+Package-backed drafts are content-frozen immediately after successful ingestion.
 ```
 
+Immutable after successful ingest:
 
-### Policy matrix (aligned with current B1)
+* stored manifest bytes;
+* stored snapshot bytes;
+* input checksum;
+* content checksum;
+* revision business identity (`catalog_revision`);
+* normalized catalogue entries;
+* package/revision linkage;
+* warning/report provenance (`validation_report`).
 
-[Repository-confirmed] B1 `runCatalogueDryRun` rejects `production: true` with `PRODUCTION_BLOCKED` (`ok:false`). Therefore the B2 compose-B1 path **cannot ingest production:true packages** without a separately authorised B1 policy change.
+**No in-place catalogue-entry editing** is permitted after ingestion, even while status is `draft`.
 
-| Package class | Draft ingest | Publish | Notes |
-| --- | --- | --- | --- |
-| `ok:false` (any) | **No** | N/A | ops logs only |
-| `production:true` | **No** under current B1 | **No** | data-gate + B1 block |
-| `licence_status=synthetic`, `production:false`, `ok:true` | **Yes** | **Yes** (plumbing / non-prod) | required so post-publish `purpose:'authority'` verify works without lawful rates |
-| `licence_status=rights_unverified`, `production:false`, `ok:true` | **Yes** | **No** | technical draft only; default deny publish |
-| Future approved commercial licence | Deferred product/legal | Deferred | not implemented in B2; needs enum expansion + fail-closed RPC checks |
+Corrections require:
 
-Additional gates:
+1. a new package (new artifact bytes);
+2. a new input checksum;
+3. a new `catalogRevision` label where content or package identity changes;
+4. a new revision row.
 
-| Gate | Rule |
-| --- | --- |
-| Warnings on ok report | Persist in `report_json`; **default allow** draft and synthetic publish when `ok:true` |
-| Raw B1 report | Persist full JSON on package row |
-| Filesystem paths | **Never store** absolute paths, home dirs, or local package roots |
+Exact replay of an existing package is idempotent and **must not** mutate the existing draft.
 
-### Draft rewrite policy
+There is **no** draft-to-draft content-update command.
 
-[Proposed B2 design] For an existing **draft** with the same `catalog_revision` and **same** `input_checksum`: idempotent no-op.
-For existing **draft** with same `catalog_revision` and **different** `input_checksum`: reject (`revision_conflict`).
-Do not silently overwrite draft content under a reused label.
+Operational lifecycle commands (publish / retire / rollback-retire) mutate only transition-specific metadata defined in the freeze matrix.
 
-### CLI separation
+### Draft deletion and abandonment
 
 ```text
-scripts/catalogue-dry-run.ts     — remain read-only forever
-scripts/catalogue-persist.ts     — [Proposed] separate B2 ops entry
-application use case             — server-only; reusable by CLI and future serverFn
+B2 provides no direct hard-delete operation for package-backed drafts.
+Package, revision, entries and accepted audit events are retained.
+Abandoned drafts remain unpublished and private.
+Retention/purge is deferred to a separately authorised maintenance phase.
+Published or retired content is never deleted by B2.
+```
+
+B2 does **not** free the global `input_checksum` key by deleting drafts. Exact re-import returns the existing immutable package/revision identity.
+
+---
+
+## Server-owned B1 ingestion authority
+
+### Authoritative boundary
+
+```text
+raw manifest text + raw snapshot text
+  → server-only application use case
+  → runCatalogueDryRun executed again by trusted server code
+  → reject unless permitted by policy
+  → construct RPC parameters from the server-owned B1 result
+  → one atomic persistence RPC
+```
+
+Requirements:
+
+* no browser/client may supply or assert `ok:true`;
+* no browser/client may supply trusted policy fields;
+* no browser/client may supply trusted normalized entries;
+* no browser/client may supply trusted checksums;
+* no browser/client may supply a trusted `report_json`;
+* the operational script passes **artifact paths only** to the server-side application boundary;
+* the application boundary reads artifacts, runs B1, and constructs the persistence command;
+* the RPC is invoked only from the privileged server module;
+* local artifact paths are **never** persisted.
+
+The database RPC receives **raw artifact text** so the database can enforce package-byte identity and recompute the B1 v2 input checksum.
+
+Division of authority:
+
+* **B1 semantic authority** remains TypeScript (application use case);
+* **database** independently enforces byte/checksum integrity, structural constraints, sizes, uniqueness, grants, and lifecycle;
+* the privileged application use case is the **only** source of normalized entries and validation summary;
+* compromise of the service-role boundary remains privileged compromise, not an untrusted-client path.
+
+### Conceptual draft-ingestion flow
+
+```text
+package directory (ops only)
+  → application reads manifest_text + snapshot_text
+  → runCatalogueDryRun (server)
+  → require ok + policy class
+  → precheck sizes / entry count
+  → rpc('persist_measured_boq_catalog_draft', server-built params)
+       advisory lock on input_checksum
+       unique checks
+       insert revision → package → entries → event
+  → map typed result
 ```
 
 ---
 
 ## Publication state machine
 
-### Persistent revision states (existing SQL enum)
+### Persistent states (existing SQL enum)
 
-| State | Entry conditions | Mutability | Visibility (loader) | Actor | Outgoing |
-| --- | --- | --- | --- | --- | --- |
-| `draft` | Successful ingest | Full edit of entries (draft only) | Not readable for authority/reproduction | ops write | → `published` |
-| `published` | Publish TX success | Content frozen | authority + reproduction | ops publish | → `retired` |
-| `retired` | Retire TX success | Fully frozen | reproduction only | ops retire | **none** |
+| State | Content mutability | Loader visibility | Outgoing |
+| --- | --- | --- | --- |
+| `draft` | **None** after package-backed ingest | Not readable for authority/reproduction | → `published` via publish RPC |
+| `published` | Transition metadata only | authority + reproduction | → `retired` via retire or rollback-retire |
+| `retired` | None | reproduction only | none |
 
-### Soft states (events/results only — not SQL enums)
-
-```text
-validated   → B1 ok (precondition)
-rejected    → failed transition / validation (event only)
-superseded  → prior published retired because a newer revision published under ops policy (event + retire of prior if explicit)
-failed      → TX abort (ops log)
-```
+Soft states (`validated`, `rejected`, `failed`) are **events/results**, not SQL enums.
 
 ### Transition table
 
-| Current | Command | Preconditions | Transaction result | Audit event |
+| Current | Command | Preconditions | Result | Audit |
 | --- | --- | --- | --- | --- |
-| (none) | `ingestDraft` | B1 ok + policy | package + draft revision + entries | `ingestion_accepted` |
-| draft | `ingestDraft` same input | same checksums | no-op / return existing | `ingestion_replay` |
-| draft | `publish` | B1 re-validate; publishable rights; entry_count match; not rights_unverified/synthetic for production intent | status=published; published_at set | `publication` |
-| published | `publish` same revision | already published; checksums match | no-op | `publication_replay` |
-| published | `retire` | reason required | status=retired; retired_at set | `retirement` |
-| published | `rollbackTo(prior)` | prior published or re-publishable; not mutate content | retire current if required; ensure prior remains published | `rollback` |
-| retired | any mutate content | — | reject | `rejected_transition` |
-| published | → draft | — | **Forbidden** | `rejected_transition` |
-| retired | → published | — | **Forbidden** (use new revision or leave prior published) | `rejected_transition` |
+| (none) | `persist_measured_boq_catalog_draft` | B1 ok + policy | package + draft revision + entries | `ingestion_accepted` |
+| draft (same package) | same persist | same input_checksum | no-op / replay | `ingestion_replayed` |
+| draft | `publish_measured_boq_catalog_revision` | package provenance; not rights_unverified; synthetic ok | published | `publication` |
+| published | publish again | status already published | no-op | `publication_replay` / `already_published` |
+| published | `retire_measured_boq_catalog_revision` | reason required | retired | `retirement` |
+| published | `rollback_measured_boq_catalog_publication` | prior remains published; package provenance | retire target only | `rollback_recorded` |
+| retired | content mutate | — | reject | `rejected_transition` |
+| published → draft | — | — | **Forbidden** | `rejected_transition` |
+| retired → published | — | — | **Forbidden** | `rejected_transition` |
 
 ### Explicit decisions
 
 | Question | Decision |
 | --- | --- |
 | Published → draft? | **No** |
-| Retired republish? | **No** — create/publish a **new** revision label if content must return |
-| Publication model | Status field update + immutable content + audit event |
-| Only one published revision? | **No global single-active** — multiple published allowed; consumers pin exact revision |
-| Active scope | Product pin / estimate header — not catalogue-global |
-| Atomic replace of “current”? | Not modelled as pointer flip; optional **explicit** retire of named prior revision in same TX if operator requests supersession |
+| Retired republish? | **No** — use new package + new label workflow |
+| One published only? | **No** — multi-published exact-pin |
+| Active pointer? | **None** |
 
 ---
 
-## Atomic write transactions (mandatory model)
+## Fail-closed grants and lifecycle guard
 
-### PostgREST / supabase-js constraint
+### Grants (B2C baseline; tightened before B2E RPC enablement)
 
-[Repository-confirmed] `createServiceRoleSupabase()` is plain `@supabase/supabase-js`. It does **not** provide multi-statement `BEGIN`/`COMMIT` or `SELECT … FOR UPDATE` across sequential `.from()` calls. The repository’s only multi-row atomic write pattern is **SECURITY DEFINER RPC** (`persist_category_engine_estimate`).
+* **REVOKE** direct `INSERT`, `UPDATE`, `DELETE` on catalogue lifecycle tables from:
+  * `anon`;
+  * `authenticated`;
+  * `service_role`;
+* grant only the narrowly required `SELECT` permissions to `service_role` (for loaders / post-verify);
+* grant `EXECUTE` only on approved RPCs to `service_role`;
+* **REVOKE ALL ON FUNCTION … FROM PUBLIC**;
+* no client JWT receives lifecycle RPC execution.
 
-[Proposed B2 design — non-negotiable]
+Table writes for ingest/lifecycle occur **only** inside SECURITY DEFINER functions owned by the trusted migration/function-owner role (repository convention, same as category authority RPC ownership).
+
+### SECURITY DEFINER requirements (every lifecycle and persist RPC)
+
+* `SECURITY DEFINER`;
+* `SET search_path = ''`;
+* schema-qualified tables/functions/operators (`public.…`, `pg_catalog.…`);
+* owned by trusted migration/function-owner role;
+* derive actor context from database auth context (`auth.role()`, `auth.uid()`);
+* **accept no actor ID parameter**;
+* **no dynamic SQL**.
+
+### Transaction-local lifecycle guard
+
+GUC name:
 
 ```text
-All catalogue writes (draft ingest, publish, retire, rollback, draft purge)
-MUST execute inside a single PostgreSQL session function body:
-
-  SECURITY DEFINER RPC
-  SET search_path = ''
-  GRANT EXECUTE TO service_role ONLY
-  REVOKE FROM PUBLIC, anon, authenticated
-
-supabase-js multi-call DML is REJECTED for every B2 write path.
+app.measured_boq_catalog_lifecycle_command
 ```
 
-Application / ops CLI may only:
+Each lifecycle RPC calls:
+
+```sql
+pg_catalog.set_config(
+  'app.measured_boq_catalog_lifecycle_command',
+  '<exact-command>',
+  true
+);
+```
+
+(`true` = transaction-local; resets at transaction end.)
+
+The rewritten immutability trigger permits lifecycle mutation only when:
+
+1. `current_user` is the trusted SECURITY DEFINER function owner;
+2. the transaction-local command equals the exact permitted transition;
+3. the old and new status form the authorised transition;
+4. only the transition-specific mutable columns changed.
+
+Direct service-role DML fails even if a caller manually sets the custom GUC, because `current_user` is not the trusted function owner.
+
+### Lifecycle command values (fixed)
 
 ```text
-createServiceRoleSupabase()
-  → rpc('ingest_measured_boq_catalog_draft' | 'publish_…' | 'retire_…' | 'rollback_…', args)
-  → map typed result
+publish
+retire
+rollback-retire
 ```
 
-Optional pure revalidation may run in TypeScript **before** the RPC for fast-fail UX, but **authority checks and locks run again inside the RPC**.
+No arbitrary command text.
 
-### Publish RPC boundary (sketch of steps inside one function)
+#### `publish`
+
+* Transition: `draft → published`
+* Mutable columns only: `status`, `published_at`, `published_by_kind`, `published_by_id` (null under service_role), `updated_at` if convention requires
+* All content and identity columns unchanged
+
+#### `retire`
+
+* Transition: `published → retired`
+* Mutable columns only: `status`, `retired_at`, `retired_by_kind`, `retired_by_id` (null under service_role), `retirement_reason`, `updated_at` if required
+
+#### `rollback-retire`
+
+* Transition: `published → retired` (target only)
+* Requires prior published revision reference in the event;
+* requires rollback reason;
+* **no** active-pointer mutation;
+* does not modify prior revision.
+
+Forbidden: published→draft; retired→published; retired→draft; draft content mutation; package or entry mutation.
+
+---
+
+## Immutability freeze matrix (B2C)
+
+| Entity/state | Mutable | Immutable | Enforcer |
+| --- | --- | --- | --- |
+| Package row | none | all fields | grants + append-only trigger |
+| Draft revision (package-backed) | no content mutation | identity/content/checksums/entries | rewritten trigger + grants |
+| Published revision | transition metadata only | all content/identity | rewritten trigger + GUC |
+| Retired revision | none | all fields | rewritten trigger |
+| Entry row | none after ingestion | all entry content | grants + parent/entry triggers |
+| Event row | none | all fields | append-only grants/trigger |
+
+Function replaced:
 
 ```text
--- NON-EXECUTABLE SKETCH
-LOCK revision FOR UPDATE
-assert status = draft OR (published AND checksums match → replay)
-recompute content from stored entries OR re-validate payload args
-assert content_checksum + entry_count
-assert publishable policy (synthetic+production:false allowed; rights_unverified denied; production:true denied)
-UPDATE lifecycle columns only (status, published_at, published_by, updated_at)
-INSERT event publication
-optional: retire named prior revision under same lock set
-return revision ids + checksums
+public.measured_boq_catalog_revision_immutable()
 ```
 
-Post-RPC (application, best effort): `loadMeasuredBoqCatalogueSnapshot({ purpose: 'authority' })`.
+Replacement must occur in the **same migration transaction** as additive lifecycle columns and package constraints, and **before** any public lifecycle RPC grant is enabled.
 
-### Concurrency mechanism recommendation
+### Required pgTAP lifecycle probes (B2C / B2E)
 
-| Mechanism | Decision |
-| --- | --- |
-| SECURITY DEFINER RPC with internal `FOR UPDATE` | **Mandatory** for all write ops |
-| Unique partial index one-published | **Reject** — multi-published exact-pin model |
-| Advisory lock | Optional inside RPC for multi-revision supersession sets |
-| App multi-step PostgREST DML | **Rejected for all slices** |
-| Parent data-gate fail-closed publisher | **Mandatory for B2E DoD** — lifecycle status changes only via publisher RPCs, not ad-hoc table UPDATE |
-
-### Fail-closed service_role narrowing (B2E)
-
-[Reasoned recommendation] Align with `4c2e-production-catalogue-data-gate-plan.md` controlled publisher:
-
-* Prefer triggers or grants so lifecycle columns (`status`, `published_at`, `retired_at`) cannot be flipped by ad-hoc `service_role` UPDATE outside RPC context (e.g. require `current_setting('mboq.catalog_rpc', true)` set inside RPC).
-* B2C may land tables first; **B2E cannot merge** until lifecycle mutations are RPC-gated.
-* JWT roles remain without any catalogue DML.
-
-### Actor binding inside RPC
-
-* RPC arguments must **not** accept a free-form spoofable client actor as authoritative.
-* CLI/server sets a session GUC or passes ops principal that the RPC rebinds to `created_by` / `published_by` / `events.actor` from **server-controlled** values (env service principal id + optional reason).
-* Residual risk of superuser/raw SQL remains operational; B2F probes cover RPC path spoof rejection.
-
-### Idempotent repeated publication
-
-If status already `published` and checksums match: return success with `already_published` / `publication_replay`; no timestamp rewrite.
-
-### Stale-command detection
-
-Commands carry `expected_content_checksum` and optional `expected_status`. Mismatch → `stale_state` / `publication_conflict`.
+* direct status update as `service_role` fails;
+* direct content update as `service_role` fails;
+* manually setting the GUC as `service_role` still fails;
+* approved SECURITY DEFINER publish RPC succeeds (B2E);
+* wrong GUC command fails;
+* GUC is absent after transaction completion;
+* unauthorized transition fails;
+* changing extra columns during a lifecycle transition fails;
+* package rows cannot be updated;
+* entry rows cannot be updated or deleted after ingest;
+* audit events cannot be updated or deleted;
+* default `PUBLIC` execute is absent;
+* authenticated and anonymous roles cannot execute lifecycle RPCs.
 
 ---
 
-## Retirement
+## Exact RPC contracts
 
-| Question | Decision |
+### Phase ownership of RPCs
+
+| Phase | RPCs |
 | --- | --- |
-| Who may retire | Ops actor with service_role tooling (or future requireAdmin + RPC); not end users |
-| Retire active without replacement | **Allowed** — there is no single global active; estimates already pin revisions |
-| Reason required | **Yes** (`retire_reason` text + event payload) |
-| Reversible | **No** reverse to published; rollback uses other published revisions |
-| Retired entries queryable | **Yes** via reproduction loader |
-| Entry rows on retire | **Unchanged** — only revision status/timestamps |
-| Deletes | **None** for published/retired |
-| Draft delete | **Allowed** for abandoned drafts under retention |
-| Draft retention | Soft policy: drafts older than N days may be purged by ops job (not auto in B2); packages with only draft links may be removed with draft |
+| **B2C** | Schema, constraints, triggers, grants baseline, private integrity helpers only. **No** public persist/publish/retire/rollback RPC bodies |
+| **B2D** | `persist_measured_boq_catalog_draft` + app/CLI |
+| **B2E** | `publish_measured_boq_catalog_revision`, `retire_measured_boq_catalog_revision`, `rollback_measured_boq_catalog_publication` |
+
+Remove all “RPC stub or full body” language from B2C.
+
+### B2D — `persist_measured_boq_catalog_draft`
+
+Parameters:
+
+```text
+p_manifest_text text
+p_snapshot_text text
+p_catalog_revision text
+p_source_id text
+p_manifest_version integer
+p_normaliser_version text
+p_input_checksum text
+p_content_checksum text
+p_normalized_entries jsonb
+p_validation_report jsonb
+p_request_id uuid
+```
+
+**No** parameters for: `ok`; production/rights approval; actor ID/role; local path; publication state.
+
+Typed result:
+
+```text
+outcome text
+package_id uuid
+revision_id uuid
+input_checksum text
+content_checksum text
+request_id uuid
+idempotent_replay boolean
+```
+
+Outcomes (subset): `created`, `idempotent_replay`, `revision_conflict`, `package_conflict`, `request_conflict`, `payload_too_large`, `invalid_persistence_command`, `unauthorised`, `database_failure`.
+
+Insert order inside the RPC:
+
+1. advisory lock on input checksum (fixed namespace; tested in B2D);
+2. check existing package by input checksum;
+3. check revision by `catalog_revision`;
+4. if creating: insert revision;
+5. insert package referencing revision;
+6. insert entries;
+7. insert accepted/replay event;
+8. commit.
+
+If any step fails, entire transaction rolls back. Multiple package rows per revision are rejected by `UNIQUE(revision_id)`.
+
+### B2E — lifecycle RPCs
+
+#### `publish_measured_boq_catalog_revision`
+
+```text
+p_revision_id uuid
+p_expected_status text
+p_request_id uuid
+```
+
+#### `retire_measured_boq_catalog_revision`
+
+```text
+p_revision_id uuid
+p_expected_status text
+p_reason text
+p_request_id uuid
+```
+
+#### `rollback_measured_boq_catalog_publication`
+
+```text
+p_revision_id uuid
+p_prior_revision_id uuid
+p_expected_status text
+p_reason text
+p_request_id uuid
+```
+
+Typed lifecycle result:
+
+```text
+outcome text
+revision_id uuid
+previous_status text
+new_status text
+event_id uuid
+request_id uuid
+idempotent_replay boolean
+```
+
+Outcomes include: `published`, `retired`, `rollback_recorded`, `idempotent_replay`, `already_published`, `already_retired`, `stale_status`, `rights_not_publishable` (**not** for synthetic), `revision_not_found`, `provenance_required`, `unauthorised`, `database_failure`.
+
+### Actor-binding model
+
+* RPCs accept **no** actor-identification parameter;
+* database derives `auth.role()` and `auth.uid()`;
+* B2 RPCs granted only to `service_role`;
+* durable events record:
+  * `actor_kind = 'service_role'`;
+  * `actor_user_id = null`;
+* this is **service-principal attribution**, not human non-repudiation;
+* operational logs may record an operator identity outside durable catalogue events (secret-safe);
+* the plan does **not** claim a human actor can be proven from a shared service-role credential.
+
+Later authenticated-admin models require a separately authorised access-control change.
+
+### Search-path and function security
+
+Every SECURITY DEFINER function:
+
+```text
+SET search_path = ''
+```
+
+Schema-qualify:
+
+```text
+public.measured_boq_catalog_revisions
+public.measured_boq_catalog_entries
+public.measured_boq_catalog_packages
+public.measured_boq_catalog_events
+pg_catalog.set_config
+pg_catalog.current_setting
+```
+
+Require: no dynamic SQL; no caller-controlled identifiers; `REVOKE ALL ON FUNCTION … FROM PUBLIC`; `GRANT EXECUTE … TO service_role`; pgTAP grant matrix; function owner documented; signature changes require grant re-audit.
 
 ---
 
-## Rollback
+## Lock order and concurrency
 
-### Compared options
+### Draft persistence
 
-| Option | Verdict |
-| --- | --- |
-| 1. Ensure prior revision remains published + optionally retire current | **Primary** when target is still `published` |
-| 2. Move active pointer | **N/A** — no pointer in B2 |
-| 3. Clone prior package bytes into a **new** revision label | **Required** when target is `retired` or a new pin label is needed |
-| 4. Mutate / unretire current or prior revision | **Rejected** |
+1. acquire transaction-scoped advisory lock based on the input checksum (fixed namespace + key derivation; B2D-tested);
+2. check existing package by input checksum;
+3. check revision by `catalog_revision`;
+4. if creating, insert revision;
+5. insert package;
+6. insert entries;
+7. insert accepted event;
+8. commit.
 
-### Split operations (avoid overloaded “rollback”)
+No application-side multi-step DML.
 
-| Op | Behaviour |
-| --- | --- |
-| `retireCatalogueRevision` | published→retired only; reason required |
-| `rollbackCataloguePublication` | Retire `fromRevision` (optional) **iff** `toRevision.status = published` and `expectedToChecksum` matches; never unretires |
-| `republishAsNewRevision` | Load stored package bytes (or operator-supplied identical artifacts) for a prior revision; create **new** `catalog_revision` + new B1 digests via draft ingest RPC; then publish RPC |
+### Single-revision lifecycle
 
-Error: `rollback_target_not_published` when `toRevision` is retired/draft — operator must use `republishAsNewRevision`.
+1. `SELECT` target revision `FOR UPDATE`;
+2. verify expected status and package provenance;
+3. set transaction-local lifecycle GUC;
+4. apply transition;
+5. insert event;
+6. commit.
 
-Estimates continue to pin exact revisions; none of these ops rewrite historical estimate rows (out of scope).
+### Two-revision rollback
+
+Lock both revision rows in deterministic ascending UUID order:
+
+```text
+LEAST(target_revision_id, prior_revision_id)
+GREATEST(target_revision_id, prior_revision_id)
+```
+
+Then verify: target published; prior published; both have package provenance; distinct; expected status matches; then `rollback-retire` target only.
+
+### Request and event idempotency
+
+* `p_request_id` required for every RPC;
+* events: `UNIQUE (command_scope, request_id)`;
+* same request ID + identical command identity → original result (`idempotent_replay`);
+* same request ID + different parameters → `request_conflict`;
+* exact package replay with **new** request ID → `ingestion_replayed` event without new package/revision;
+* lost client response after commit is recoverable by retrying the same request ID.
 
 ---
 
-## Concurrency and idempotency
+## Rollback and republish clarification
 
-| Scenario | DB constraint | Lock / TX (inside RPC) | App response | Retry | Audit |
-| --- | --- | --- | --- | --- | --- |
-| Two imports same package | UNIQUE packages.`input_checksum` | unique insert race | winner creates; loser replay | safe | accepted + optional replay |
-| Same revision label, different bytes | UNIQUE `catalog_revision` | FOR UPDATE in ingest RPC | `revision_conflict` | not safe to force | `rejected_transition` |
-| Two simultaneous publishes | status checks | FOR UPDATE in publish RPC | one publish; other replay/conflict | safe if same checksum | one publication |
-| Publish vs retire race | status machine | FOR UPDATE | second sees new status | map to conflict | events ordered |
-| Rollback vs publish | status + checksums | FOR UPDATE both rows | conflict if stale | client refresh | reject |
-| Network loss after commit | unique keys | — | client retries → replay | safe | replay event |
-| Stale ops UI | expected checksum/status | — | `stale_state` | refresh | reject |
-| Duplicate events | optional `(correlation_id, event_type)` unique | inside RPC | de-dupe | safe | single durable event |
+### Rollback semantics (no active pointer)
+
+```text
+Rollback records that a published revision was withdrawn because a named,
+previously published revision remains the approved historical fallback.
+```
+
+The rollback RPC:
+
+* does **not** activate the prior revision;
+* does **not** modify the prior revision;
+* retires only the erroneous target revision;
+* requires the prior revision to remain published;
+* records both revision IDs in the rollback event;
+* requires a reason;
+* uses deterministic two-row locking;
+* performs no runtime-reader or estimate change.
+
+### Republish-as-new (workflow, not RPC)
+
+`republishAsNewRevision` is **not** a database status transition and **not** a single B2 RPC.
+
+Higher-level workflow:
+
+1. prepare a newly labelled package;
+2. rerun B1;
+3. persist a new immutable draft through B2D;
+4. publish it through B2E;
+5. optionally retire an older revision as a **separate** explicit command.
+
+Not atomic across steps. Each command is independently idempotent and audited. No optional retirement is hidden inside persist or publish RPC.
+
+---
+
+## Validation-report storage
+
+* raw manifest/snapshot: PostgreSQL `text`;
+* validation report: `jsonb`;
+* only trusted server-owned B1 result is supplied;
+* RPC does **not** accept an independent `ok` boolean;
+* database derives accepted state from RPC path and enforced fields;
+* report storage is immutable;
+* report contains no local file paths, secrets, or full duplicate artifact content;
+* warnings may be retained;
+* rejected `ok:false` packages are **not** persisted.
+
+---
+
+## Stable error taxonomy (authoritative)
+
+```text
+created
+idempotent_replay
+published
+retired
+rollback_recorded
+revision_conflict
+package_conflict
+request_conflict
+payload_too_large
+rights_not_publishable
+production_policy_rejected
+unsupported_version
+invalid_persistence_command
+already_published
+already_retired
+stale_status
+revision_not_found
+provenance_required
+unauthorised
+database_failure
+unexpected_internal_failure
+```
+
+| Outcome class | Client-safe? | Notes |
+| --- | --- | --- |
+| policy/conflict outcomes above | yes (sanitised) | no raw PG messages |
+| `rights_not_publishable` | yes | **rights_unverified** (and future unapproved commercial) — **not synthetic** |
+| `database_failure` / `unexpected_internal_failure` | limited | generic only |
 
 ---
 
 ## Access control and RLS
 
-### Posture (preserve)
+### Permissions matrix
 
-```text
-ENABLE RLS on all catalogue* tables
-REVOKE ALL FROM PUBLIC, anon, authenticated
-GRANT DML TO service_role only
-No browser policies for B2
-Immutability triggers apply even to service_role
-```
-
-### Actor types
-
-| Actor | Read draft | Create draft | Publish | Retire | Roll back | Read history (published/retired meta) |
-| --- | --- | --- | ---: | ---: | ---: | ---: |
-| End user (JWT) | no | no | no | no | no | no (no table access) |
+| Actor | Read draft | Create draft | Publish | Retire | Rollback | Read published/retired meta |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| End user JWT | no | no | no | no | no | no |
 | Admin JWT alone | no | no | no | no | no | no |
-| Ops + service_role tooling | yes | yes | yes* | yes | yes | yes |
-| Future serverFn admin + RPC | via RPC | via RPC | via RPC | via RPC | via RPC | via RPC |
-| B1 dry-run CLI | n/a | no | no | no | no | n/a |
+| Ops + service_role tooling (RPC only) | via SELECT grant | via persist RPC | via publish RPC* | via retire RPC | via rollback RPC | yes |
+| Browser | no | no | no | no | no | no |
 
-\*Publish still blocked by policy for synthetic / rights_unverified / unapproved production.
+\*Synthetic publish allowed; rights_unverified forbidden; production:true blocked at B1.
 
 ### Privileged write mechanism
 
-[Reasoned recommendation]
-
-1. **All B2 writes:** SECURITY DEFINER RPCs only (`GRANT EXECUTE TO service_role`); application/ops CLI call `rpc(...)` via `createServiceRoleSupabase()`.
-2. **Actor:** rebound inside RPC from server-controlled principal; never client-trusted free text as authority.
-3. **Lifecycle fail-closed (B2E DoD):** status/timestamp flips only via RPC context; ad-hoc table UPDATE disallowed.
-4. **Do not** grant authenticated INSERT/UPDATE on catalogue tables for B2.
-
-### Spoofing prevention
-
-* Client cannot set audit actor: RPC rebinds actor from server principal / session GUC.
-* Client cannot publish: no authenticated policies; no publish RPC grant to authenticated.
-* Residual superuser/raw SQL risk is operational; B2F probes cover RPC path spoof rejection.
+1. All writes: SECURITY DEFINER RPCs only;
+2. App/ops: `createServiceRoleSupabase()` → `rpc(...)`;
+3. Direct table DML revoked from service_role;
+4. Fail-closed GUC + trusted function owner.
 
 ---
 
 ## Runtime-reader separation
 
-B2 completion **does not** authorise:
+B2 completion does **not** authorise:
 
 ```text
 switching application default reads to “latest published”
@@ -845,129 +1117,73 @@ replacing dormant loader activation in product routes
 activating published revisions in estimate builders
 repricing existing estimates automatically
 UI catalogue selection
-cache invalidation product work for catalogue UX
+adding or changing a runtime catalogue pin
 ```
 
-### Handoff boundary (future, separately authorised)
-
-```text
-B2 closes when drafts can be ingested, published, retired, rolled back,
-audited, and verified under service_role tooling.
-
-Runtime activation remains a later programme gate (data-gate + 4C2F-class
-reader cutover) that requires:
-  - lawful published content
-  - explicit product pin policy
-  - separate implementation ticket
-```
-
-Existing `loadMeasuredBoqCatalogueSnapshot` remains the **only** read adapter; B2 may call it for post-publish verification only.
+Existing `loadMeasuredBoqCatalogueSnapshot` remains the only read adapter; B2 may call it for post-publish verification only.
 
 ---
 
-## Database invariants
+## Database invariants (enforcement layers)
 
 | Invariant | Enforced by |
 | --- | --- |
 | Revision grammar / uniqueness | DB CHECK + UNIQUE |
 | Entry identity uniqueness | DB UNIQUE |
-| Content checksum format | DB CHECK + B1 recompute |
-| Input checksum uniqueness | DB UNIQUE (proposed) |
-| Draft-only entry mutation | DB trigger + FOR SHARE |
-| Published content freeze | DB trigger |
-| Status/timestamp coupling | DB CHECK |
-| Unit / cost_type allow-list | DB CHECK + B1 validation |
-| Decimal representation | B1 normaliser + DB numeric(14,4) |
-| Production/licence publish gates | Application + optional RPC (not weak app-only long-term) |
-| One global active | **Not required** — exact pin |
-| Audit append-only | REVOKE UPDATE/DELETE on events |
-| Actor integrity | Server binding; not client body |
-| B1 remains DB-free | Architecture invariant tests |
-| CLI remains read-only | Architecture invariant tests |
+| Content checksum format + label-bound value | B1 + immutable column |
+| Input checksum uniqueness + preimage | packages UNIQUE + SQL helper |
+| Package-backed draft freeze | grants + triggers |
+| Published/retired freeze | rewritten trigger + GUC |
+| Size / entry-count caps | CHECK + RPC assert |
+| Request idempotency | UNIQUE (command_scope, request_id) |
+| One package per revision | UNIQUE(revision_id) |
+| No active pointer | absence of table + loader exact pin |
+| B1 remains DB-free | architecture invariants |
+| Dry-run remains read-only | architecture invariants |
+| No multi-call table DML | B2D automated seals |
 
 ---
 
 ## Audit and provenance
 
-### Append-only event types
+Append-only events with `request_id`, command scope, checksums, revision ids, actor_kind=`service_role`, actor_user_id=null, reason when required.
 
-```text
-ingestion_requested   (optional; ops log may suffice)
-ingestion_accepted
-ingestion_replay
-ingestion_rejected    (prefer ops log if no row created)
-publication
-publication_replay
-retirement
-rollback
-rejected_transition
-```
-
-### Event payload (no secrets / paths)
-
-```text
-actor
-timestamp
-catalog_revision
-input_checksum
-content_checksum
-reason?
-correlation_id?
-result
-policy flags (licence_status, production)
-```
-
-### Invalid validation attempts
-
-[Proposed] **Do not** insert package/revision rows for `ok:false`. Emit structured ops logs only. Optional future `ingestion_rejected` without artifacts if product requires a DB trail — default off to avoid storing attacker-controlled blobs.
+Invalid validation attempts (`ok:false`) are **not** persisted as packages/revisions; ops logs only.
 
 ---
 
-## Error contracts
+## Migration strategy (design only)
 
-| Category | Client-safe? | Notes |
-| --- | --- | --- |
-| `validation_rejected` | yes (sanitised codes) | B1 issues summarised |
-| `rights_not_publishable` | yes | rights_unverified / synthetic |
-| `production_policy_rejected` | yes | production:true blocked by data-gate |
-| `revision_conflict` | yes | label/content clash |
-| `checksum_conflict` | yes | expected vs actual |
-| `idempotent_replay` | yes | success with existing ids |
-| `publication_conflict` | yes | wrong status / concurrent |
-| `no_active_revision` | yes if used | only if a future pin API needs it; not B2 core |
-| `already_published` | yes | replay |
-| `already_retired` | yes | |
-| `unauthorised` | yes | missing ops identity |
-| `database_failure` | limited | generic message |
-| `unexpected_internal_failure` | limited | no stack to client |
+### B2C — Schema and database invariants
 
-Never surface raw PostgreSQL errors, absolute paths, or service-role material.
+**Allowed:** package + event tables; additive revision lifecycle columns; hard size constraints; checksum preimage helper; relationship constraints (`UNIQUE(revision_id)`); trigger replacement in same TX; append-only audit enforcement; RLS/grants baseline (revoke service_role DML); generated types; pgTAP schema/constraint/grant tests.
 
----
+**Prohibited:** public persistence RPC; publish/retire/rollback RPCs; application use cases; operational scripts.
 
-## Migration strategy
+### B2D — Draft persistence boundary
 
-### Ordering (design only — no execution in B2A)
+**Allowed:** `persist_measured_boq_catalog_draft`; application use case; RPC adapter; `catalogue:persist`; persistence boundary invariants; idempotency tests.
 
-1. **B2C schema + DB write surface**
-   * ADD revision columns (non-unique `input_checksum` denorm allowed).
-   * CREATE packages (UNIQUE `input_checksum`) + events.
-   * **Rewrite** `measured_boq_catalog_revision_immutable()` for additive freeze rules.
-   * CREATE SECURITY DEFINER RPCs for draft ingest (even if app CLI lands in B2D) **or** land RPC stubs + pgTAP contracts in B2C and complete bodies by B2D — **B2D cannot merge without live ingest RPC**.
-   * RLS + REVOKE/GRANT service_role; append-only events.
-   * pgTAP for immutability, privacy, unique input checksum, draft purge order.
-   * Do **not** seed rows; do **not** auto-publish.
-2. Refresh `packages/supabase` generated types (authorised script only).
-3. **B2D** app/ops draft path calling ingest RPC only (no multi-call DML).
-4. **B2E** publish/retire/rollback RPCs + fail-closed lifecycle gating + policy matrix.
-5. **B2F** combined verification (must FAIL if any multi-step PostgREST write path exists).
-6. **B2G** guarded merge.
+**Prohibited:** publication; retirement; rollback; runtime activation.
+
+### B2E — Publication lifecycle
+
+**Allowed:** publish/retire/rollback-retire RPCs; lifecycle use cases; lifecycle tests and pgTAP.
+
+**Prohibited:** draft package ingestion redesign; runtime activation; estimate integration.
+
+### B2F — Combined independent verification
+
+Read-only verification only. Hard DoD includes multi-call DML absence, purity seals, policy probes, no runtime pin.
+
+### B2G — Guarded merge and close-out
+
+Merge only after B2F PASS.
 
 ### Compatibility
 
-* Existing loader continues to work (additive columns ignored by SELECT list).
-* No destructive change to current empty production catalogue tables.
-* Rollback of migration deployment: reverse migration only if no published rows exist; otherwise expand-only forward fixes.
+* Existing loader continues (additive columns ignored by SELECT list).
+* No production seeds; no auto-publish; no fabricated package backfill.
 
 ---
 
@@ -975,92 +1191,98 @@ Never surface raw PostgreSQL errors, absolute paths, or service-role material.
 
 ### Domain / application
 
-* valid draft creation from synthetic package
-* invalid B1 report rejected (no rows)
-* idempotent exact replay
-* revision-label checksum conflict
-* same canonical output, new revision label
-* rights_unverified draft allowed; publish denied
-* synthetic publish denied
-* publication preconditions / retirement / rollback
-* stale expected checksum conflicts
+* valid synthetic draft creation;
+* invalid B1 report rejected (no rows);
+* idempotent exact replay;
+* revision-label checksum conflict;
+* rights_unverified draft allowed; publish denied;
+* synthetic publish allowed (plumbing);
+* production:true not persisted;
+* content-frozen draft (no entry edit path);
+* lifecycle transitions; stale expected status;
+* request_id replay and request_conflict.
 
 ### Database / integration
 
-* uniqueness of `input_checksum` and `catalog_revision`
-* immutable published rows
-* multi-published revisions still allowed
-* transaction rollback on mid-failure
-* concurrent publish serialisation
-* RLS: authenticated SELECT fails
-* events append-only
-* actor not client-spoofable in RPC path
+* uniqueness of input_checksum and catalog_revision;
+* UNIQUE(revision_id) on packages;
+* immutability freeze matrix pgTAP;
+* fail-closed direct service_role DML;
+* GUC spoof fails;
+* size/entry-count enforcement;
+* events append-only;
+* request idempotency uniqueness.
 
-### Architecture invariants
+### Architecture invariants (B2D hard DoD — not deferred to B2F)
 
-* B1 pure modules remain free of supabase/fs write
-* CLI dry-run remains read-only
-* write adapter not importable from browser barrels
-* publication authority server-only
-* no route→DB write static imports
-* no production seed in migrations
-* no runtime-reader activation markers
+* ops script imports application use case, not infrastructure adapter;
+* application invokes exactly one persistence RPC;
+* no `.from(...).(insert|update|delete|upsert)` on catalogue tables;
+* no route/browser imports persistence adapter;
+* no service-role module in client bundle;
+* B1 remains database-free;
+* dry-run CLI remains read-only;
+* persistence is **not** added to dry-run CLI;
+* no automatic publication after persist.
 
-### Negative probes
+Package-script invariant must be deliberately updated to permit **exactly**:
 
-* direct client publication attempt
-* entry mutation on published parent
-* delete published revision
-* publish unverified rights
-* reuse revision label with different checksum
-* second writer spoofing `created_by`
-* inventing `latest` alias
+```text
+catalogue:dry-run
+catalogue:persist
+```
 
----
+and continue to reject:
 
-## Architecture invariants (future seals)
+```text
+catalogue:publish
+catalogue:retire
+catalogue:rollback
+catalogue:seed
+catalogue:load
+```
 
-| Seal | Assertion |
-| --- | --- |
-| B1 purity | no `@supabase` / service_role / write FS in pure catalogue |
-| Dry-run CLI | no write modes; realpath containment retained |
-| Write isolation | `catalogueWrite` only under `*.server.ts` |
-| No browser service role | env invariant |
-| No active-alias | loader still rejects `latest`/`current` |
+unless a later authorised phase explicitly adds the command.
 
----
+### Operational command contract (future B2D)
 
-## Observability
+```text
+catalogue:persist
+```
 
-| Channel | Content |
-| --- | --- |
-| Structured server logs | correlation id, revision, checksums, result codes — no raw rate dumps |
-| Audit table | durable business events |
-| Metrics (future) | ingest success/fail, publish latency, conflict counts |
-| Alerting | publish failure spikes; repeated conflict storms |
-| Forbidden | secrets, local absolute paths, automatic multi-publish retries |
+* separate from `catalogue:dry-run`;
+* accepts package directory;
+* invokes server-only application boundary;
+* never table DML directly;
+* never auto-publish;
+* never persists local file paths;
+* never prints raw artifacts or secrets;
+* uses/generates request ID and displays it;
+* deterministic exit/result categories;
+* unavailable to browser/runtime code.
+
+**Not implemented in planning phases.**
 
 ---
 
 ## Threat and failure analysis
 
-| Threat / failure | Mitigation | Verification |
-| --- | --- | --- |
-| Malformed package | B1 validation gate; no persist on fail | unit + process tests |
-| Checksum substitution | recompute inside TX from stored bytes; expected checksum args | DB integration |
-| Revision-label collision | UNIQUE + conflict error | constraint tests |
-| Duplicate import | UNIQUE input_checksum + replay | concurrency tests |
-| Unauthorised publication | no auth grants; ops-only tooling; policy deny | RLS probes |
-| Privilege escalation | no authenticated catalogue DML; role trigger on profiles | existing security migrations |
-| Actor spoofing | server-bound actor; ignore client actor field | negative probes |
-| Dual publish race | FOR UPDATE | concurrent tests |
-| Partial transaction | single TX / RPC | abort tests |
-| Stale publish request | expected checksum/status | app tests |
-| Accidental deletion | immutability triggers | pgTAP |
-| Accidental production activation | no runtime cutover in B2; production publish blocked | invariants + data-gate |
-| Supplier data in synthetic path | production/licence gates | policy tests |
-| Unpublished data to clients | no auth SELECT | RLS probes |
-| Service-role secret in client | env + bundle invariants | existing CI |
+| Threat / failure | Mitigation |
+| --- | --- |
+| Malformed package | B1 gate; no persist on fail |
+| Checksum substitution | recompute preimage inside RPC from stored bytes |
+| Revision-label collision | UNIQUE + conflict |
+| Duplicate import | UNIQUE input_checksum + request idempotency |
+| Unauthorised JWT publication | no grants; no JWT EXECUTE |
+| Service-role blast radius | server-only module; table DML revoked; RPC-only; no client bundle; secret scanning; rotation policy |
+| Oversized payload DoS | server precheck + DB hard limits + entry cap; no raw payload logging; `payload_too_large` |
+| Accidental RPC grants | REVOKE PUBLIC; service_role-only; pgTAP grant matrix; signature re-audit |
+| Actor attribution limits | service-principal only; no user-ID param; ops logs separate |
+| Dual publish race | FOR UPDATE inside RPC |
+| Partial transaction | single RPC TX |
+| Accidental production activation | no runtime pin; data-gate; B1 blocks production:true |
+| Published synthetic pin by future product | residual risk documented; 4C2F/data gate; no B2 pin |
+| Direct service_role DML | grants + GUC + trusted owner check |
 
 ---
 
@@ -1068,135 +1290,131 @@ Never surface raw PostgreSQL errors, absolute paths, or service-role material.
 
 | Decision | Chosen approach | Alternatives rejected | Evidence | Consequence |
 | --- | --- | --- | --- | --- |
-| Ownership | Estimate feature infra + pure services | services DB writers; integrations package | loader ownership; pure barrel | clear import graph |
-| Table model | Reuse revisions/entries; add packages + events | greenfield tables | 4C2C foundation | additive B2C |
-| Package identity owner | packages table UNIQUE `input_checksum` | dual UNIQUE on revisions | avoid two sources of truth | single idempotency key |
-| Raw artifacts | PostgreSQL text on packages | object storage; no retention | small packages; RPC TX | size limits |
-| Content checksum | label-bound (B1 includes catalogRevision) | cross-label shared content hash | `checksum.ts` | re-label = new revision digests |
-| Revision identity | existing `catalog_revision` grammar | uuid-as-identity | migration + loader | keep mboq- label |
-| Draft model | existing `status=draft` | new SQL enums | SQL CHECK | fewer migrations |
-| Publication model | status + audit; multi published | single active pointer | loader exact pin | no latest alias |
-| One-active policy | **None** | partial unique published | no such index | estimates pin explicitly |
-| Atomic writes | **Mandatory SECURITY DEFINER RPC** | supabase-js multi-call TX | category authority RPC; no client TX API | B2D/B2E hard DoD |
-| Concurrency | `FOR UPDATE` **inside RPC** | app-level locks only | entry FOR SHARE pattern | serialised publish |
-| Fail-closed publisher | RPC-only lifecycle columns | open service_role status UPDATE | parent data-gate plan | B2E hard DoD |
-| Privileged surface | service_role EXECUTE on RPCs only | authenticated policies | foundation RLS | JWT cannot write |
-| Immutability evolution | B2C rewrite freeze trigger | claim existing trigger freezes on publish | foundation SQL column allow-list | additive columns safe |
-| Synthetic publish | allow for plumbing verify | never publish synthetic | loader authority needs published | non-prod test path |
-| production:true | block at B1 ingest | draft then deny publish only | B1 PRODUCTION_BLOCKED | no production drafts under current B1 |
-| rights_unverified | draft yes / publish no | publish with warning | B1 + data-gate | technical store only |
-| Rollback | split retire / rollback / republishAsNewRevision | unretire or mutate | immutability triggers | clone for retired targets |
-| Audit storage | events table | files only | durable ops evidence | B2C schema |
-| Invalid attempts | do not persist packages | store all rejects | avoid attacker blobs | ops logs only |
-| Runtime-reader | separated | activate on B2 merge | 4C2E-A / B1 | B2 ≠ 4C2F |
+| Ownership | Estimate feature + pure services | services DB writers | existing loader | clear graph |
+| Synthetic publish | allow for plumbing | deny synthetic publish | B1 ok synthetic; post-publish authority verify | residual reader risk documented |
+| rights_unverified | draft yes / publish no | publish with warning | B1 soft warn | hard deny at RPC |
+| production:true | block at B1 | draft then deny | PRODUCTION_BLOCKED | no production drafts |
+| Draft mutability | content-frozen after ingest | full draft edit | package lineage integrity | corrections = new package/label |
+| Hard-delete in B2 | none | free checksum by delete | audit retention | abandoned drafts retained |
+| B1 authority | server recompute | trust client ok/report | untrusted client risk | TS semantic + DB byte integrity |
+| Input checksum preimage | exact mboq-package-v2 in SQL helper | DB-only semantic revalidation | packageChecksum.ts | pgTAP vs B1 fixtures |
+| Package FK | packages.revision_id UNIQUE ON DELETE RESTRICT | reverse package_id; CASCADE delete | avoid circular FK | 1:1 package/revision |
+| Hard limits | 1MiB/8MiB/2MiB/50k | soft “e.g.” | DoS + backup size | CHECK + precheck |
+| Privileged write | RPC only; revoke service_role DML | open table DML | parent-closed publisher | category RPC pattern |
+| Lifecycle GUC | app.measured_boq_catalog_lifecycle_command + owner check | GUC alone | spoofable GUC | service_role DML fails |
+| Actor | service_role attribution | actor ID param | shared secret | not non-repudiation |
+| Active pointer | none | single active unique | loader exact pin | multi-published |
+| Rollback | retire target; prior stays published | active pointer flip | no pointer | historical fallback event |
+| Republish-as-new | multi-command workflow | single RPC | independent audit | non-atomic |
+| B2C vs B2D vs B2E | schema / draft RPC / lifecycle RPCs | stubs in B2C | phase clarity | no overlap |
+| B2D seals | automated multi-call DML ban | only B2F | early fail | CI invariant |
+| Runtime pin | forbidden in all B2 phases | activate on B2 merge | 4C2F separation | residual synthetic load risk honest |
 
 ---
 
 ## Deferred product decisions
 
-| Item | Decision owner | Information required | Why blocking for some work | Default safe behaviour |
-| --- | --- | --- | --- | --- |
-| Lawful production rates | Product + legal | Approved licence + redistribution rights | Cannot publish `production:true` | Block production publish indefinitely |
-| Expanding `licence_status` beyond synthetic/rights_unverified | Product + legal | Approved enum values | Publish gate matrix incomplete for commercial sources | Only synthetic/rights_unverified recognised; only drafts for rights_unverified |
-| Whether warnings block publish | Product | Tolerance for unit-alias warnings | Publish precondition | Allow publish when `ok:true` even with warnings |
-| In-app admin UI for catalogue | Product | UX + auth model | Not needed for ops CLI path | Ops CLI only |
-| Long-term encrypted object storage for licensed packages | Security + legal | Retention/classification | Storage model change | Keep PG bytes with size cap |
-
-These do **not** block designing or implementing **synthetic draft ingest**, schema lineage, audit, or publish plumbing with **policy deny** for non-publishable packages.
+| Item | Owner | Default safe behaviour |
+| --- | --- | --- |
+| Lawful production rates | Product + legal | Block production:true indefinitely under current B1 |
+| Commercial licence enum expansion | Product + legal | Only synthetic / rights_unverified |
+| In-app admin UI | Product | Ops CLI only |
+| Encrypted object storage | Security + legal | PG text with hard size caps |
+| Draft purge maintenance | Ops | No hard-delete in B2 |
 
 ---
 
 ## B2 execution slices
 
-### 4C2E-B2A — Persistence and Publication Planning
+### 4C2E-B2A / B2A3 — Planning (+ consistency repair)
 
-* **Objective:** this document.
-* **Files:** `docs/architecture/4c2e-b2a-catalogue-persistence-publication-plan.md` only.
-* **Exclusions:** all implementation.
-* **Next:** B2B.
+* One planning document only.
+* Next: B2B2 delta verification.
 
-### 4C2E-B2B — Independent Verification of the B2 Plan
+### 4C2E-B2B2 — Delta verification of repaired plan
 
-* **Objective:** challenge completeness, consistency, evidence fidelity.
-* **Implementation:** none.
-* **Next:** authorise B2C only on PASS.
+* Read-only; no implementation.
 
-### 4C2E-B2C — Schema and Database-Invariant Implementation
+### 4C2E-B2C — Schema and database invariants
 
-* **Objective:** additive migrations for packages/events/columns; **immutability trigger rewrite**; RLS; pgTAP; draft-ingest RPC skeleton or full body.
-* **DoD (hard):** rewritten freeze trigger covered by pgTAP for every new column; packages UNIQUE input_checksum; no seeds; no multi-call write documentation.
-* **Authorised areas:** `supabase/migrations/`, `supabase/tests/database/`, generated types refresh if approved.
-* **Exclusions:** app writers, CLI writers, production seeds, runtime activation, publish RPC lifecycle if deferred to B2E **only if** draft ingest RPC is already complete.
+* As § Migration strategy B2C.
+* Hard DoD: freeze rewrite same TX; packages UNIQUE(input_checksum)+UNIQUE(revision_id); size CHECKs; preimage helper; grants baseline; pgTAP list; **no public lifecycle/persist RPC bodies**.
 
-### 4C2E-B2D — Draft Persistence Application Boundary
+### 4C2E-B2D — Draft persistence boundary
 
-* **Objective:** server-only draft ingest composing B1; ops CLI draft mode; idempotency via **ingest RPC only**.
-* **DoD (hard):** zero multi-call PostgREST catalogue DML; synthetic draft works; production:true rejected by B1 before RPC; rights_unverified drafts allowed.
-* **Authorised areas:** estimate application/infra catalogue write modules; new persist script; tests/invariants.
-* **Exclusions:** publish/retire/rollback; dry-run CLI mutation; UI; production data.
+* `persist_measured_boq_catalog_draft` + app + `catalogue:persist` + **automated** multi-call DML seal + package-script allowlist update.
+* Hard DoD: zero catalogue table DML outside DEFINER functions; server B1 recompute; content-frozen drafts.
 
-### 4C2E-B2E — Publication, Retirement and Rollback Transactions
+### 4C2E-B2E — Publication lifecycle
 
-* **Objective:** publish/retire/rollback/republishAsNewRevision RPCs; fail-closed lifecycle; policy matrix; post-publish loader verify.
-* **DoD (hard):** parent data-gate fail-closed publisher; synthetic publish allowed; rights_unverified publish denied; retired targets require clone path; no ad-hoc status UPDATE.
-* **Exclusions:** runtime activation; builder integration; production:true lawful content without data-gate + B1 policy change.
+* publish / retire / rollback-retire RPCs + GUC fail-closed + policy matrix + post-publish loader verify.
+* Hard DoD: synthetic publish works; rights_unverified publish denied; direct status UPDATE fails; no ad-hoc DML.
 
-### 4C2E-B2F — Combined Persistence Boundary Verification
+### 4C2E-B2F — Combined independent verification
 
-* **Objective:** independent verify of B2C–E exact head; adversarial probes; purity seals.
+* Read-only; multi-call DML absence; purity; policy; residual risk honesty; no runtime pin.
 
-### 4C2E-B2G — Guarded Merge and B2 Close-out
+### 4C2E-B2G — Guarded merge and close-out
 
-* **Objective:** merge only after B2F PASS; document residual non-goals (no 4C2F, no production rates).
+* After B2F PASS only.
+
+---
+
+## Planning PR merge gate
+
+```text
+B2B2 PASS authorises only a separate guarded merge of PR #100.
+Merging PR #100 completes planning only.
+B2C remains blocked after the merge until explicitly authorised.
+No implementation phase begins automatically.
+```
 
 ---
 
 ## Definition of done
 
-### B2A done when
+### B2A.3 done when
 
-* repository-grounded current-state audit complete;
-* ownership, persistence, checksum, retention, state machine, TX, RLS, audit, migration, tests, threats, slices decided;
-* no unresolved **implementation-critical** ambiguity (product-licence remains explicitly deferred with safe defaults);
-* single planning document committed; no code/schema changes.
+* every B2B required revision resolved;
+* single-source synthetic/rights/production policy;
+* content-frozen drafts;
+* no hard-delete in B2;
+* server-owned B1 + exact preimage contract;
+* one-direction package FK;
+* hard size limits;
+* fail-closed grants + GUC + trigger matrix;
+* exact RPC contracts and phase ownership;
+* request idempotency;
+* rollback/republish clarity;
+* B2D automated seals;
+* synthetic residual risk honest;
+* no unresolved implementation-critical ambiguity.
 
 ### B2 programme done when (future)
 
-* synthetic draft ingest + publish plumbing work under policy denies for non-publishable packages;
-* B1 unchanged and pure;
-* dry-run CLI still read-only;
-* no runtime activation;
+* synthetic draft ingest + publish plumbing work under policy;
+* B1 pure and dry-run read-only;
+* no runtime pin;
 * B2F PASS + guarded merge.
-
-B2 is **not** complete at B2A.
 
 ---
 
-## Independent review findings and resolutions
+## Independent review resolutions (B2A3)
 
-Independent architecture review of draft 4C2E-B2A.1 returned **FAIL**. Findings below were resolved in **4C2E-B2A.2** plan text (this document).
-
-| # | Challenge | Severity | Resolution in 4C2E-B2A.2 |
-| --- | --- | --- | --- |
-| 1 | Non-atomic supabase-js multi-call TX | Blocker | Mandatory SECURITY DEFINER RPC for all writes; multi-call DML rejected |
-| 2 | content_checksum re-label myth | Blocker | Document B1 label-bound checksum; re-label = new digests |
-| 3 | Immutability trigger misstated | Blocker | Document real trigger; mandate B2C rewrite + freeze allow-lists |
-| 4 | Dual UNIQUE input_checksum | Major | packages sole UNIQUE owner; revision denorm non-unique |
-| 5 | Circular FKs / purge | Major | package → revision_id CASCADE; purge via draft parent delete |
-| 6 | Open service_role lifecycle | Major | B2E fail-closed RPC-only status transitions |
-| 7 | Incomplete rollback | Major | Split retire / rollback / republishAsNewRevision |
-| 8 | Synthetic vs production policy | Major | Explicit matrix; synthetic publish allowed; production:true blocked at B1 |
-| 9 | Actor spoofing | Major | RPC rebinds actor; GUC/server principal |
-| 10 | Soft phase gates | Major | Hard DoDs on B2C/B2D/B2E |
-| 11 | JWT RLS weak | N/A | Confirmed deny-by-default; not a defect |
-| 12 | Runtime activation | Minor | Separation retained |
-| 13 | Source coupling | Minor | measured-BOQ package persistence only |
-
-Rejected finding: “must introduce single active revision pointer for B2.”
-Reason: contradicts exact-pin loader contract and estimate provenance model; increases accidental activation risk.
-
-Rejected finding: “store no raw artifacts.”
-Reason: undermines checksum dispute resolution and independent verification.
+| B2B finding | Resolution in 4C2E-B2A.3 |
+| --- | --- |
+| Synthetic publish contradictions | Single policy; rights_not_publishable excludes synthetic |
+| Draft full edit vs package freeze | Content-frozen after ingest |
+| Client report trust | Server B1 recompute; no client ok/report authority |
+| Dual UNIQUE / circular package_id | packages.revision_id UNIQUE only; no reverse package_id |
+| Soft 8 MiB example | Hard 1/8/2 MiB + 50k entries |
+| Incomplete GUC fail-closed | Full grants + owner check + GUC + pgTAP probes |
+| Incomplete RPC contracts | Named params/results/outcomes; phase ownership |
+| Actor spoofing | No actor param; service_role attribution honest |
+| Soft B2D multi-call seal | Automated invariants in B2D DoD |
+| Stub vs full body in B2C | B2C schema only; B2D owns persist RPC |
+| Soft-delete freeing checksum | No hard-delete in B2 |
+| Legacy rows | provenance_required fail-closed |
 
 ---
 
@@ -1205,42 +1423,32 @@ Reason: undermines checksum dispute resolution and independent verification.
 > **Non-executable design sketches — not migrations. Do not apply.**
 
 ```sql
--- SKETCH ONLY: additive revision columns (input_checksum NOT unique here)
--- ALTER TABLE public.measured_boq_catalog_revisions
---   ADD COLUMN IF NOT EXISTS source_id text,
---   ADD COLUMN IF NOT EXISTS licence_status text,
---   ADD COLUMN IF NOT EXISTS production boolean NOT NULL DEFAULT false,
---   ADD COLUMN IF NOT EXISTS input_checksum text,  -- denormalised, non-unique
---   ADD COLUMN IF NOT EXISTS normaliser_version text,
---   ADD COLUMN IF NOT EXISTS package_id uuid,
---   ADD COLUMN IF NOT EXISTS published_by text,
---   ADD COLUMN IF NOT EXISTS retire_reason text;
-
--- SKETCH ONLY: packages table — sole UNIQUE(input_checksum)
+-- SKETCH ONLY: packages (one-direction FK)
 -- CREATE TABLE public.measured_boq_catalog_packages (
 --   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
---   revision_id uuid NOT NULL
---     REFERENCES public.measured_boq_catalog_revisions(id) ON DELETE CASCADE,
+--   revision_id uuid NOT NULL UNIQUE
+--     REFERENCES public.measured_boq_catalog_revisions(id) ON DELETE RESTRICT,
 --   input_checksum text NOT NULL UNIQUE CHECK (input_checksum ~ '^[0-9a-f]{64}$'),
 --   content_checksum text NOT NULL CHECK (content_checksum ~ '^[0-9a-f]{64}$'),
 --   catalog_revision text NOT NULL,
---   manifest_text text NOT NULL,
---   snapshot_text text NOT NULL,
---   report_json jsonb NOT NULL,
---   created_by text NOT NULL,
+--   manifest_text text NOT NULL CHECK (pg_catalog.octet_length(manifest_text) <= 1048576),
+--   snapshot_text text NOT NULL CHECK (pg_catalog.octet_length(snapshot_text) <= 8388608),
+--   validation_report jsonb NOT NULL,
 --   created_at timestamptz NOT NULL DEFAULT now()
 -- );
 
--- SKETCH ONLY: write surface
--- CREATE FUNCTION public.ingest_measured_boq_catalog_draft(...)
--- RETURNS ... LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
--- BEGIN
---   -- FOR UPDATE / insert revision+entries+package+event in ONE body
--- END; $$;
--- REVOKE ALL ON FUNCTION ... FROM PUBLIC;
--- GRANT EXECUTE ON FUNCTION ... TO service_role;
-```
+-- SKETCH ONLY: lifecycle GUC
+-- PERFORM pg_catalog.set_config(
+--   'app.measured_boq_catalog_lifecycle_command', 'publish', true);
 
+-- SKETCH ONLY: B2D RPC
+-- CREATE FUNCTION public.persist_measured_boq_catalog_draft(
+--   p_manifest_text text, p_snapshot_text text, ...
+-- ) RETURNS jsonb
+-- LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$ ... $$;
+-- REVOKE ALL ON FUNCTION public.persist_measured_boq_catalog_draft(...) FROM PUBLIC;
+-- GRANT EXECUTE ON FUNCTION public.persist_measured_boq_catalog_draft(...) TO service_role;
+```
 
 ---
 
@@ -1248,10 +1456,10 @@ Reason: undermines checksum dispute resolution and independent verification.
 
 | Item | Value |
 | --- | --- |
-| Plan version | 4C2E-B2A.2 |
+| Plan version | **4C2E-B2A.3** |
 | Base SHA | `0b382794f058b3b26b3b3e6bd9eb89b4efc42392` |
-| Authoring phase | planning only |
-| Independent review | 4C2E-B2A.1 FAIL → 4C2E-B2A.2 resolutions applied in-document |
-| Next phase | `4C2E-B2B — Independent Verification of the Catalogue Persistence and Publication Plan` |
+| Prior plan commit | `1da5d371f97ec3e7c139babacbd860f5c1334ef2` |
+| Authoring phase | planning / consistency repair only |
+| Next phase | `4C2E-B2B2 — Delta Independent Verification of the Repaired B2A Plan` |
 
-**Do not begin B2 implementation before B2B passes and a separate implementation phase is explicitly authorised.**
+**Do not begin B2 implementation before B2B2 passes and a separate implementation phase is explicitly authorised. Do not merge PR #100 before B2B2 passes.**
