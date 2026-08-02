@@ -1,0 +1,20 @@
+catalogue-sources/measured-boq/README.md
+  h_7ea6129503670a 52-56,59,67,106-115
+scripts/catalogue-dry-run.test.ts
+  h_7ea6129503670a 10-11,15,294-467
+scripts/catalogue-dry-run.ts
+  h_7ea6129503670a 12-13,200-217,219,231,234,243-249,252,256,264-291,294-295,300,302-337,342
+tests/invariants/catalogue-dry-run-boundary.test.ts
+  h_7ea6129503670a 67-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "d4e64efba40e981aca2a1fe944eb8cb3131b73e1",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
