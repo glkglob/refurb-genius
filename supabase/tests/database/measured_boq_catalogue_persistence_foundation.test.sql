@@ -1,10 +1,11 @@
--- Ticket 4C2E-B2C — measured-BOQ catalogue persistence foundation (pgTAP)
+-- Ticket 4C2E-B2C1 — measured-BOQ catalogue persistence foundation (pgTAP)
+-- Fixtures use table owner (postgres). Application roles never write catalogue rows.
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(39);
+select plan(68);
 
--- ── B1 v2 checksum helper parity (Node-verified fixture) ─────────────────
+-- ── B1 v2 checksum helper parity (owner / internal path) ─────────────────
 -- manifest = {"a":1}
 -- snapshot = {"b":2}
 -- input = c31191ce374322c4bb9a8a01227296431172c99226a19d072cdf2b6f91ee4a96
@@ -26,7 +27,44 @@ select isnt(
   'checksum changes when manifest bytes change'
 );
 
--- ── privacy: packages / events ───────────────────────────────────────────
+-- ── checksum helper: no application-role execute ─────────────────────────
+set local role anon;
+select throws_ok(
+  $$ select public.measured_boq_package_input_checksum('a','b') $$,
+  '42501',
+  null,
+  'anon cannot execute checksum helper'
+);
+reset role;
+
+set local role authenticated;
+select throws_ok(
+  $$ select public.measured_boq_package_input_checksum('a','b') $$,
+  '42501',
+  null,
+  'authenticated cannot execute checksum helper'
+);
+reset role;
+
+set local role service_role;
+select throws_ok(
+  $$ select public.measured_boq_package_input_checksum('a','b') $$,
+  '42501',
+  null,
+  'service_role cannot execute checksum helper'
+);
+reset role;
+
+select ok(
+  not has_function_privilege(
+    'service_role',
+    'public.measured_boq_package_input_checksum(text,text)',
+    'execute'
+  ),
+  'service_role lacks execute privilege on checksum helper'
+);
+
+-- ── privacy: packages / events select ────────────────────────────────────
 set local role anon;
 select throws_ok(
   $$ select count(*) from public.measured_boq_catalog_packages $$,
@@ -68,8 +106,16 @@ select lives_ok(
   $$ select count(*) from public.measured_boq_catalog_events $$,
   'service_role can select events'
 );
+select lives_ok(
+  $$ select count(*) from public.measured_boq_catalog_revisions $$,
+  'service_role can select revisions'
+);
+select lives_ok(
+  $$ select count(*) from public.measured_boq_catalog_entries $$,
+  'service_role can select entries'
+);
 
--- service_role cannot insert packages (direct DML revoked)
+-- ── direct DML revoked for service_role on all four tables ───────────────
 select throws_ok(
   $$
     insert into public.measured_boq_catalog_packages (
@@ -104,10 +150,137 @@ select throws_ok(
   null,
   'service_role cannot insert events'
 );
+
+select throws_ok(
+  $$
+    insert into public.measured_boq_catalog_revisions (
+      catalog_revision, status, schema_version, source_description, entry_count,
+      content_checksum, effective_from, created_by
+    ) values (
+      'mboq-2099.99.01', 'draft', 'mboq-catalogue-v1', 'denied', 0,
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      '2099-01-01', 'service'
+    )
+  $$,
+  '42501',
+  null,
+  'service_role cannot insert revisions'
+);
+
+select throws_ok(
+  $$
+    update public.measured_boq_catalog_revisions
+    set source_description = 'x'
+    where false
+  $$,
+  '42501',
+  null,
+  'service_role cannot update revisions'
+);
+
+select throws_ok(
+  $$ delete from public.measured_boq_catalog_revisions where false $$,
+  '42501',
+  null,
+  'service_role cannot delete revisions'
+);
+
+select throws_ok(
+  $$
+    insert into public.measured_boq_catalog_entries (
+      catalog_revision, rate_key, display_name, trade_or_domain, unit, cost_type, base_unit_rate
+    ) values (
+      'mboq-2099.99.01', 'synth.denied.m2', 'x', 'test', 'm2', 'combined', 1
+    )
+  $$,
+  '42501',
+  null,
+  'service_role cannot insert entries'
+);
+
+select throws_ok(
+  $$
+    update public.measured_boq_catalog_entries
+    set display_name = 'x'
+    where false
+  $$,
+  '42501',
+  null,
+  'service_role cannot update entries'
+);
+
+select throws_ok(
+  $$ delete from public.measured_boq_catalog_entries where false $$,
+  '42501',
+  null,
+  'service_role cannot delete entries'
+);
+reset role;
+
+-- ── anon / authenticated DML revoked on revisions / entries ──────────────
+set local role anon;
+select throws_ok(
+  $$
+    insert into public.measured_boq_catalog_revisions (
+      catalog_revision, status, schema_version, source_description, entry_count,
+      content_checksum, effective_from, created_by
+    ) values (
+      'mboq-2099.98.01', 'draft', 'mboq-catalogue-v1', 'anon', 0,
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      '2099-01-01', 'anon'
+    )
+  $$,
+  '42501',
+  null,
+  'anon cannot insert revisions'
+);
+select throws_ok(
+  $$
+    insert into public.measured_boq_catalog_entries (
+      catalog_revision, rate_key, display_name, trade_or_domain, unit, cost_type, base_unit_rate
+    ) values (
+      'mboq-2099.98.01', 'synth.anon.m2', 'x', 'test', 'm2', 'combined', 1
+    )
+  $$,
+  '42501',
+  null,
+  'anon cannot insert entries'
+);
+reset role;
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select throws_ok(
+  $$
+    insert into public.measured_boq_catalog_revisions (
+      catalog_revision, status, schema_version, source_description, entry_count,
+      content_checksum, effective_from, created_by
+    ) values (
+      'mboq-2099.97.01', 'draft', 'mboq-catalogue-v1', 'auth', 0,
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      '2099-01-01', 'auth'
+    )
+  $$,
+  '42501',
+  null,
+  'authenticated cannot insert revisions'
+);
+select throws_ok(
+  $$
+    insert into public.measured_boq_catalog_entries (
+      catalog_revision, rate_key, display_name, trade_or_domain, unit, cost_type, base_unit_rate
+    ) values (
+      'mboq-2099.97.01', 'synth.auth.m2', 'x', 'test', 'm2', 'combined', 1
+    )
+  $$,
+  '42501',
+  null,
+  'authenticated cannot insert entries'
+);
 reset role;
 
 -- ── package insert as table owner (postgres) ─────────────────────────────
--- Use a unique revision for package-backed tests
 select lives_ok(
   $$
     insert into public.measured_boq_catalog_revisions (
@@ -125,7 +298,7 @@ select lives_ok(
       'b1-test'
     )
   $$,
-  'draft revision for package-backed tests may be inserted'
+  'draft revision for package-backed tests may be inserted by owner'
 );
 
 select lives_ok(
@@ -211,7 +384,7 @@ select throws_ok(
   'package-backed content_checksum update rejected'
 );
 
--- service_role cannot publish package-backed draft (no GUC / not trusted owner)
+-- service_role cannot publish (no DML privilege; GUC spoof irrelevant)
 set local role service_role;
 select throws_ok(
   $$
@@ -219,13 +392,43 @@ select throws_ok(
     set status = 'published', published_at = now()
     where catalog_revision = 'mboq-2099.03.01'
   $$,
-  'P0001',
+  '42501',
   null,
-  'service_role cannot publish package-backed revision'
+  'service_role cannot update revisions to publish'
 );
 
--- spoofed GUC still fails as service_role
 select set_config('app.measured_boq_catalog_lifecycle_command', 'publish', true);
+select throws_ok(
+  $$
+    update public.measured_boq_catalog_revisions
+    set status = 'published', published_at = now()
+    where catalog_revision = 'mboq-2099.03.01'
+  $$,
+  '42501',
+  null,
+  'service_role with spoofed lifecycle GUC still cannot publish'
+);
+select set_config('app.measured_boq_catalog_lifecycle_command', '', true);
+reset role;
+
+-- content + status simultaneous mutation rejected even for owner with GUC
+select set_config('app.measured_boq_catalog_lifecycle_command', 'publish', true);
+select throws_ok(
+  $$
+    update public.measured_boq_catalog_revisions
+    set status = 'published',
+        published_at = now(),
+        source_description = 'simultaneous content change'
+    where catalog_revision = 'mboq-2099.03.01'
+  $$,
+  'P0001',
+  null,
+  'simultaneous content and publish mutation rejected'
+);
+select set_config('app.measured_boq_catalog_lifecycle_command', '', true);
+
+-- unknown lifecycle command rejected
+select set_config('app.measured_boq_catalog_lifecycle_command', 'explode', true);
 select throws_ok(
   $$
     update public.measured_boq_catalog_revisions
@@ -234,10 +437,9 @@ select throws_ok(
   $$,
   'P0001',
   null,
-  'service_role with spoofed lifecycle GUC still cannot publish'
+  'unknown lifecycle command rejected'
 );
 select set_config('app.measured_boq_catalog_lifecycle_command', '', true);
-reset role;
 
 -- trusted owner + correct GUC can publish package-backed
 select set_config('app.measured_boq_catalog_lifecycle_command', 'publish', true);
@@ -254,7 +456,7 @@ select lives_ok(
 );
 select set_config('app.measured_boq_catalog_lifecycle_command', '', true);
 
--- entry insert as service_role blocked on package-backed
+-- entry insert as service_role blocked by privilege
 set local role service_role;
 select throws_ok(
   $$
@@ -264,13 +466,13 @@ select throws_ok(
       'mboq-2099.03.01', 'synth.b2c.m2', 'x', 'test', 'm2', 'combined', 1
     )
   $$,
-  'P0001',
+  '42501',
   null,
-  'service_role cannot insert entries on package-backed revision'
+  'service_role cannot insert entries (privilege)'
 );
 reset role;
 
--- published package-backed entry still blocked (status not draft)
+-- published package-backed entry insert blocked (parent not draft)
 select throws_ok(
   $$
     insert into public.measured_boq_catalog_entries (
@@ -448,25 +650,6 @@ select is(
   'no active-pointer columns on catalogue tables'
 );
 
--- ── checksum function execute revoked from JWT roles ─────────────────────
-set local role anon;
-select throws_ok(
-  $$ select public.measured_boq_package_input_checksum('a','b') $$,
-  '42501',
-  null,
-  'anon cannot execute checksum helper'
-);
-reset role;
-
-set local role authenticated;
-select throws_ok(
-  $$ select public.measured_boq_package_input_checksum('a','b') $$,
-  '42501',
-  null,
-  'authenticated cannot execute checksum helper'
-);
-reset role;
-
 -- ── UNIQUE revision_id on packages ───────────────────────────────────────
 select lives_ok(
   $$
@@ -515,23 +698,161 @@ select throws_ok(
   'second package for same revision_id rejected'
 );
 
--- ── legacy draft still editable without package (foundation compatibility) ─
+-- ── legacy rows: valid + readable + no direct-write bypass ───────────────
 select lives_ok(
   $$
     insert into public.measured_boq_catalog_revisions (
-      catalog_revision, status, schema_version, source_description, entry_count,
+      id, catalog_revision, status, schema_version, source_description, entry_count,
       content_checksum, effective_from, created_by
     ) values (
+      '66666666-6666-4666-8666-666666666666',
       'mboq-2099.06.01', 'draft', 'mboq-catalogue-v1', 'legacy no package', 0,
       'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
       '2099-06-01', 'b2c-test'
-    );
+    )
+  $$,
+  'legacy draft without package remains insertable by owner'
+);
+
+select lives_ok(
+  $$
+    select id from public.measured_boq_catalog_revisions
+    where catalog_revision = 'mboq-2099.06.01'
+  $$,
+  'legacy revision remains selectable'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from public.measured_boq_catalog_packages p
+    where p.revision_id = '66666666-6666-4666-8666-666666666666'
+  ),
+  0,
+  'no package row fabricated for legacy revision'
+);
+
+select throws_ok(
+  $$
     update public.measured_boq_catalog_revisions
     set source_description = 'legacy still editable'
     where catalog_revision = 'mboq-2099.06.01'
   $$,
-  'legacy draft without package may still update content'
+  'P0001',
+  null,
+  'legacy draft content update rejected (no direct-write bypass)'
 );
+
+set local role service_role;
+select lives_ok(
+  $$
+    select catalog_revision from public.measured_boq_catalog_revisions
+    where catalog_revision = 'mboq-2099.06.01'
+  $$,
+  'service_role can select legacy revision'
+);
+select throws_ok(
+  $$
+    update public.measured_boq_catalog_revisions
+    set source_description = 'service mutate'
+    where catalog_revision = 'mboq-2099.06.01'
+  $$,
+  '42501',
+  null,
+  'service_role cannot update legacy revision'
+);
+select set_config('app.measured_boq_catalog_lifecycle_command', 'publish', true);
+select throws_ok(
+  $$
+    update public.measured_boq_catalog_revisions
+    set status = 'published', published_at = now()
+    where catalog_revision = 'mboq-2099.06.01'
+  $$,
+  '42501',
+  null,
+  'service_role cannot publish legacy revision even with GUC'
+);
+select set_config('app.measured_boq_catalog_lifecycle_command', '', true);
+reset role;
+
+-- legacy publish without GUC rejected for owner
+select throws_ok(
+  $$
+    update public.measured_boq_catalog_revisions
+    set status = 'published', published_at = now()
+    where catalog_revision = 'mboq-2099.06.01'
+  $$,
+  'P0001',
+  null,
+  'legacy publish without lifecycle GUC rejected'
+);
+
+-- legacy entry insert/update/delete by service_role fails
+select lives_ok(
+  $$
+    insert into public.measured_boq_catalog_entries (
+      catalog_revision, rate_key, display_name, trade_or_domain, unit, cost_type, base_unit_rate
+    ) values (
+      'mboq-2099.06.01', 'synth.test.item', 'legacy entry', 'test', 'm2', 'combined', 1
+    )
+  $$,
+  'owner may insert entry on legacy draft'
+);
+
+select throws_ok(
+  $$
+    update public.measured_boq_catalog_entries
+    set display_name = 'mutated'
+    where catalog_revision = 'mboq-2099.06.01' and rate_key = 'synth.test.item'
+  $$,
+  'P0001',
+  null,
+  'entry update rejected on all revisions'
+);
+
+select throws_ok(
+  $$
+    delete from public.measured_boq_catalog_entries
+    where catalog_revision = 'mboq-2099.06.01' and rate_key = 'synth.test.item'
+  $$,
+  'P0001',
+  null,
+  'entry delete rejected on all revisions'
+);
+
+set local role service_role;
+select throws_ok(
+  $$
+    insert into public.measured_boq_catalog_entries (
+      catalog_revision, rate_key, display_name, trade_or_domain, unit, cost_type, base_unit_rate
+    ) values (
+      'mboq-2099.06.01', 'synth.test.item', 'x', 'test', 'm2', 'combined', 1
+    )
+  $$,
+  '42501',
+  null,
+  'service_role cannot insert legacy entries'
+);
+select throws_ok(
+  $$
+    update public.measured_boq_catalog_entries
+    set display_name = 'x'
+    where catalog_revision = 'mboq-2099.06.01'
+  $$,
+  '42501',
+  null,
+  'service_role cannot update legacy entries'
+);
+select throws_ok(
+  $$
+    delete from public.measured_boq_catalog_entries
+    where catalog_revision = 'mboq-2099.06.01'
+  $$,
+  '42501',
+  null,
+  'service_role cannot delete legacy entries'
+);
+reset role;
 
 select * from finish();
 rollback;

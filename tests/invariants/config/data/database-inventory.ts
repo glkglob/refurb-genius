@@ -111,7 +111,7 @@ export const PUBLIC_TABLES: DbTableRecord[] = [
     tenantKey: "none (private catalogue)",
     tenantScope: "system",
     rlsSummary:
-      "RLS enabled; no authenticated/anon policies; REVOKE PUBLIC/anon/authenticated; service_role only; published/retired immutable via trigger; package-backed freeze (B2C)",
+      "RLS enabled; no authenticated/anon policies; service_role SELECT only; no direct application-role DML (RPC-only writes); content immutable; lifecycle via trusted owner + GUC only",
     rlsEvidence:
       "supabase/migrations/20260731120000_measured_boq_catalogue_foundation.sql; supabase/migrations/20260802060000_measured_boq_catalogue_persistence_foundation.sql",
     enforcementStatus: "enforced",
@@ -125,7 +125,7 @@ export const PUBLIC_TABLES: DbTableRecord[] = [
     tenantKey: "none (private catalogue)",
     tenantScope: "system",
     rlsSummary:
-      "RLS enabled; no browser access; service_role only; mutable only while parent revision is draft (package-backed entries frozen)",
+      "RLS enabled; no browser access; service_role SELECT only; no direct application-role DML; entries immutable after insert; trusted-owner insert only while parent draft",
     rlsEvidence:
       "supabase/migrations/20260731120000_measured_boq_catalogue_foundation.sql; supabase/migrations/20260802060000_measured_boq_catalogue_persistence_foundation.sql",
     enforcementStatus: "enforced",

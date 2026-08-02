@@ -1,15 +1,15 @@
--- Ticket 4C2E-B2C — Measured-BOQ catalogue persistence foundation
+-- Ticket 4C2E-B2C / B2C1 — Measured-BOQ catalogue persistence foundation
 --
 -- Adds:
 --   - measured_boq_catalog_packages (1:1 with revision, raw artifacts + input checksum)
 --   - measured_boq_catalog_events (append-only audit / request idempotency)
 --   - additive revision provenance/lifecycle columns (nullable for legacy rows)
 --   - B1 v2 package input-checksum SQL helper + package checksum enforcement
---   - rewritten revision immutability trigger + package-backed freeze
---   - entry freeze when package provenance exists
+--   - rewritten revision immutability trigger (all rows; lifecycle via trusted owner + GUC)
+--   - entry immutability (no application-role write; UPDATE/DELETE always blocked)
 --   - package/event immutability triggers
---   - fail-closed grants (service_role SELECT only on packages/events;
---     lifecycle status transitions require trusted owner + GUC)
+--   - fail-closed grants: service_role SELECT only on all four catalogue tables;
+--     no direct application-role INSERT/UPDATE/DELETE (RPC-only writes later)
 --
 -- Does NOT:
 --   - create public persist/publish/retire/rollback RPCs or stubs
@@ -17,6 +17,7 @@
 --   - create an active-revision pointer
 --   - change runtime readers or estimate integration
 --   - grant JWT access to catalogue tables
+--   - leave a legacy direct-write bypass for pre-package rows
 
 -- ────────────────────────────────────────────────────────────────────
 -- 0. Extensions (digest for B1 v2 preimage)
@@ -350,8 +351,8 @@ COMMENT ON FUNCTION public.measured_boq_package_input_checksum(text, text) IS
 REVOKE ALL ON FUNCTION public.measured_boq_package_input_checksum(text, text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.measured_boq_package_input_checksum(text, text) FROM anon;
 REVOKE ALL ON FUNCTION public.measured_boq_package_input_checksum(text, text) FROM authenticated;
--- service_role may execute for future DEFINER body composition / diagnostics (not a public app API)
-GRANT EXECUTE ON FUNCTION public.measured_boq_package_input_checksum(text, text) TO service_role;
+REVOKE ALL ON FUNCTION public.measured_boq_package_input_checksum(text, text) FROM service_role;
+-- No application-role EXECUTE. Future SECURITY DEFINER RPCs invoke via function ownership.
 
 -- ────────────────────────────────────────────────────────────────────
 -- 5. Trusted-owner helper for lifecycle GUC enforcement
@@ -390,6 +391,8 @@ $$;
 REVOKE ALL ON FUNCTION public.measured_boq_catalog_is_trusted_lifecycle_owner() FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.measured_boq_catalog_is_trusted_lifecycle_owner() FROM anon;
 REVOKE ALL ON FUNCTION public.measured_boq_catalog_is_trusted_lifecycle_owner() FROM authenticated;
+REVOKE ALL ON FUNCTION public.measured_boq_catalog_is_trusted_lifecycle_owner() FROM service_role;
+-- Internal helper only; invoked by triggers under function ownership.
 
 -- ────────────────────────────────────────────────────────────────────
 -- 6. Package checksum enforcement + immutability
@@ -493,7 +496,6 @@ LANGUAGE plpgsql
 SET search_path = ''
 AS $$
 DECLARE
-  v_has_package boolean := false;
   v_cmd text;
   v_trusted boolean;
 BEGIN
@@ -503,8 +505,7 @@ BEGIN
         USING ERRCODE = 'P0001',
               DETAIL = 'Published and retired catalogue revisions cannot be deleted';
     END IF;
-    -- Package-backed drafts cannot be hard-deleted in B2 (ON DELETE RESTRICT on packages
-    -- already blocks delete when a package exists; also block explicitly).
+    -- Package-backed drafts cannot be hard-deleted in B2 (ON DELETE RESTRICT + explicit block).
     IF EXISTS (
       SELECT 1
       FROM public.measured_boq_catalog_packages p
@@ -517,13 +518,6 @@ BEGIN
     RETURN OLD;
   END IF;
 
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.measured_boq_catalog_packages p
-    WHERE p.revision_id = OLD.id
-  )
-  INTO v_has_package;
-
   v_trusted := public.measured_boq_catalog_is_trusted_lifecycle_owner();
   BEGIN
     v_cmd := pg_catalog.current_setting('app.measured_boq_catalog_lifecycle_command', true);
@@ -535,7 +529,7 @@ BEGIN
     v_cmd := NULL;
   END IF;
 
-  -- Identity columns never change
+  -- Identity columns never change (every row, legacy and package-backed).
   IF NEW.id IS DISTINCT FROM OLD.id
     OR NEW.catalog_revision IS DISTINCT FROM OLD.catalog_revision
     OR NEW.created_at IS DISTINCT FROM OLD.created_at
@@ -546,39 +540,49 @@ BEGIN
             DETAIL = 'Revision identity columns cannot change';
   END IF;
 
+  -- Content / provenance always immutable after insert (no legacy content-edit bypass).
+  IF NEW.schema_version IS DISTINCT FROM OLD.schema_version
+    OR NEW.currency IS DISTINCT FROM OLD.currency
+    OR NEW.vat_basis IS DISTINCT FROM OLD.vat_basis
+    OR NEW.regional_basis IS DISTINCT FROM OLD.regional_basis
+    OR NEW.source_description IS DISTINCT FROM OLD.source_description
+    OR NEW.entry_count IS DISTINCT FROM OLD.entry_count
+    OR NEW.content_checksum IS DISTINCT FROM OLD.content_checksum
+    OR NEW.effective_from IS DISTINCT FROM OLD.effective_from
+    OR NEW.release_notes IS DISTINCT FROM OLD.release_notes
+    OR NEW.source_id IS DISTINCT FROM OLD.source_id
+    OR NEW.licence_status IS DISTINCT FROM OLD.licence_status
+    OR NEW.production IS DISTINCT FROM OLD.production
+    OR NEW.input_checksum IS DISTINCT FROM OLD.input_checksum
+    OR NEW.normaliser_version IS DISTINCT FROM OLD.normaliser_version
+  THEN
+    RAISE EXCEPTION 'CATALOG_REVISION_IMMUTABLE'
+      USING ERRCODE = 'P0001',
+            DETAIL = 'Revision content and provenance cannot change after insert';
+  END IF;
+
   IF OLD.status = 'retired' THEN
     RAISE EXCEPTION 'CATALOG_REVISION_IMMUTABLE'
       USING ERRCODE = 'P0001',
             DETAIL = 'Retired catalogue revisions cannot be modified';
   END IF;
 
-  -- Package-backed: content/provenance frozen always (lifecycle metadata via GUC only)
-  IF v_has_package THEN
-    IF NEW.schema_version IS DISTINCT FROM OLD.schema_version
-      OR NEW.currency IS DISTINCT FROM OLD.currency
-      OR NEW.vat_basis IS DISTINCT FROM OLD.vat_basis
-      OR NEW.regional_basis IS DISTINCT FROM OLD.regional_basis
-      OR NEW.source_description IS DISTINCT FROM OLD.source_description
-      OR NEW.entry_count IS DISTINCT FROM OLD.entry_count
-      OR NEW.content_checksum IS DISTINCT FROM OLD.content_checksum
-      OR NEW.effective_from IS DISTINCT FROM OLD.effective_from
-      OR NEW.release_notes IS DISTINCT FROM OLD.release_notes
-      OR NEW.source_id IS DISTINCT FROM OLD.source_id
-      OR NEW.licence_status IS DISTINCT FROM OLD.licence_status
-      OR NEW.production IS DISTINCT FROM OLD.production
-      OR NEW.input_checksum IS DISTINCT FROM OLD.input_checksum
-      OR NEW.normaliser_version IS DISTINCT FROM OLD.normaliser_version
-    THEN
-      RAISE EXCEPTION 'CATALOG_REVISION_IMMUTABLE'
-        USING ERRCODE = 'P0001',
-              DETAIL = 'Package-backed revision content/provenance cannot change';
-    END IF;
-  END IF;
-
   IF OLD.status = 'draft' THEN
     IF NEW.status = 'draft' THEN
-      -- Legacy drafts (no package): full content edit allowed (pre-B2 path / foundation tests).
-      -- Package-backed drafts: only no-op content (already enforced above).
+      -- Only no-op / updated_at-only updates allowed; no content or lifecycle change.
+      IF NEW.status IS DISTINCT FROM OLD.status
+        OR NEW.published_at IS DISTINCT FROM OLD.published_at
+        OR NEW.published_by_kind IS DISTINCT FROM OLD.published_by_kind
+        OR NEW.published_by_id IS DISTINCT FROM OLD.published_by_id
+        OR NEW.retired_at IS DISTINCT FROM OLD.retired_at
+        OR NEW.retired_by_kind IS DISTINCT FROM OLD.retired_by_kind
+        OR NEW.retired_by_id IS DISTINCT FROM OLD.retired_by_id
+        OR NEW.retirement_reason IS DISTINCT FROM OLD.retirement_reason
+      THEN
+        RAISE EXCEPTION 'CATALOG_REVISION_IMMUTABLE'
+          USING ERRCODE = 'P0001',
+                DETAIL = 'Draft lifecycle metadata cannot change without a trusted lifecycle command';
+      END IF;
       RETURN NEW;
     END IF;
 
@@ -587,34 +591,21 @@ BEGIN
         RAISE EXCEPTION 'CATALOG_PUBLISH_REQUIRES_PUBLISHED_AT'
           USING ERRCODE = '22023';
       END IF;
-      IF NEW.retired_at IS NOT NULL THEN
+      IF NEW.retired_at IS NOT NULL
+        OR NEW.retired_by_kind IS DISTINCT FROM OLD.retired_by_kind
+        OR NEW.retired_by_id IS DISTINCT FROM OLD.retired_by_id
+        OR NEW.retirement_reason IS DISTINCT FROM OLD.retirement_reason
+      THEN
         RAISE EXCEPTION 'CATALOG_PUBLISH_INVALID_RETIRED_AT'
-          USING ERRCODE = '22023';
+          USING ERRCODE = '22023',
+                DETAIL = 'Retirement fields cannot change on publish';
       END IF;
 
-      -- Package-backed publish requires trusted owner + lifecycle GUC.
-      -- Legacy (no package) retains prior service_role publish behaviour for foundation tests.
-      IF v_has_package THEN
-        IF NOT v_trusted OR v_cmd IS DISTINCT FROM 'publish' THEN
-          RAISE EXCEPTION 'CATALOG_LIFECYCLE_FORBIDDEN'
-            USING ERRCODE = 'P0001',
-                  DETAIL = 'Package-backed publish requires trusted lifecycle owner and command=publish';
-        END IF;
-        -- Only lifecycle metadata may change on publish
-        IF NEW.published_at IS NOT DISTINCT FROM OLD.published_at
-          AND NEW.status = OLD.status
-        THEN
-          NULL; -- still allow if only metadata
-        END IF;
-        IF NEW.retired_by_kind IS DISTINCT FROM OLD.retired_by_kind
-          OR NEW.retired_by_id IS DISTINCT FROM OLD.retired_by_id
-          OR NEW.retirement_reason IS DISTINCT FROM OLD.retirement_reason
-          OR NEW.retired_at IS DISTINCT FROM OLD.retired_at
-        THEN
-          RAISE EXCEPTION 'CATALOG_REVISION_IMMUTABLE'
-            USING ERRCODE = 'P0001',
-                  DETAIL = 'Retirement fields cannot change on publish';
-        END IF;
+      -- All rows (legacy and package-backed): trusted owner + exact GUC required.
+      IF NOT v_trusted OR v_cmd IS DISTINCT FROM 'publish' THEN
+        RAISE EXCEPTION 'CATALOG_LIFECYCLE_FORBIDDEN'
+          USING ERRCODE = 'P0001',
+                DETAIL = 'Publish requires trusted lifecycle owner and command=publish';
       END IF;
 
       RETURN NEW;
@@ -632,41 +623,19 @@ BEGIN
           USING ERRCODE = '22023';
       END IF;
 
-      -- Package-backed retire requires trusted owner + exact lifecycle GUC.
-      -- Legacy (no package) retains prior service_role retire behaviour for foundation tests.
-      IF v_has_package THEN
-        IF (
-          NOT v_trusted
-          OR (
-            v_cmd IS DISTINCT FROM 'retire'
-            AND v_cmd IS DISTINCT FROM 'rollback-retire'
-          )
-        ) THEN
-          RAISE EXCEPTION 'CATALOG_LIFECYCLE_FORBIDDEN'
-            USING ERRCODE = 'P0001',
-                  DETAIL = 'Package-backed retire requires trusted lifecycle owner and command=retire|rollback-retire';
-        END IF;
+      IF NOT v_trusted
+        OR (
+          v_cmd IS DISTINCT FROM 'retire'
+          AND v_cmd IS DISTINCT FROM 'rollback-retire'
+        )
+      THEN
+        RAISE EXCEPTION 'CATALOG_LIFECYCLE_FORBIDDEN'
+          USING ERRCODE = 'P0001',
+                DETAIL = 'Retire requires trusted lifecycle owner and command=retire|rollback-retire';
       END IF;
 
-      IF NEW.catalog_revision IS DISTINCT FROM OLD.catalog_revision
-        OR NEW.schema_version IS DISTINCT FROM OLD.schema_version
-        OR NEW.currency IS DISTINCT FROM OLD.currency
-        OR NEW.vat_basis IS DISTINCT FROM OLD.vat_basis
-        OR NEW.regional_basis IS DISTINCT FROM OLD.regional_basis
-        OR NEW.source_description IS DISTINCT FROM OLD.source_description
-        OR NEW.entry_count IS DISTINCT FROM OLD.entry_count
-        OR NEW.content_checksum IS DISTINCT FROM OLD.content_checksum
-        OR NEW.effective_from IS DISTINCT FROM OLD.effective_from
-        OR NEW.published_at IS DISTINCT FROM OLD.published_at
-        OR NEW.created_by IS DISTINCT FROM OLD.created_by
-        OR NEW.release_notes IS DISTINCT FROM OLD.release_notes
-        OR NEW.created_at IS DISTINCT FROM OLD.created_at
-        OR NEW.id IS DISTINCT FROM OLD.id
-        OR NEW.source_id IS DISTINCT FROM OLD.source_id
-        OR NEW.licence_status IS DISTINCT FROM OLD.licence_status
-        OR NEW.production IS DISTINCT FROM OLD.production
-        OR NEW.input_checksum IS DISTINCT FROM OLD.input_checksum
-        OR NEW.normaliser_version IS DISTINCT FROM OLD.normaliser_version
+      -- Publication attribution and published_at frozen on retire.
+      IF NEW.published_at IS DISTINCT FROM OLD.published_at
         OR NEW.published_by_kind IS DISTINCT FROM OLD.published_by_kind
         OR NEW.published_by_id IS DISTINCT FROM OLD.published_by_id
       THEN
@@ -696,7 +665,7 @@ CREATE TRIGGER measured_boq_catalog_revisions_immutable
   EXECUTE FUNCTION public.measured_boq_catalog_revision_immutable();
 
 -- ────────────────────────────────────────────────────────────────────
--- 9. Entry freeze when package provenance exists
+-- 9. Entry immutability (all rows; no application-role write path)
 -- ────────────────────────────────────────────────────────────────────
 
 CREATE OR REPLACE FUNCTION public.measured_boq_catalog_entry_parent_draft_only()
@@ -704,66 +673,29 @@ RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = ''
 AS $$
-DECLARE
-  v_old text;
-  v_new text;
-  v_first text;
-  v_second text;
-  v_rev text;
-  v_has_package boolean;
 BEGIN
-  IF TG_OP = 'INSERT' THEN
-    PERFORM public.measured_boq_catalog_assert_parent_draft(NEW.catalog_revision);
-    v_rev := NEW.catalog_revision;
-  ELSIF TG_OP = 'DELETE' THEN
-    PERFORM public.measured_boq_catalog_assert_parent_draft(OLD.catalog_revision);
-    v_rev := OLD.catalog_revision;
-  ELSE
-    v_old := OLD.catalog_revision;
-    v_new := NEW.catalog_revision;
-    IF v_old IS NOT DISTINCT FROM v_new THEN
-      PERFORM public.measured_boq_catalog_assert_parent_draft(v_new);
-    ELSE
-      IF v_old < v_new THEN
-        v_first := v_old;
-        v_second := v_new;
-      ELSE
-        v_first := v_new;
-        v_second := v_old;
-      END IF;
-      PERFORM public.measured_boq_catalog_assert_parent_draft(v_first);
-      PERFORM public.measured_boq_catalog_assert_parent_draft(v_second);
-    END IF;
-    v_rev := v_new;
-  END IF;
-
-  -- Package-backed revisions: freeze entries after package attachment.
-  -- Trusted ingest (B2D DEFINER as table owner) may INSERT entries after package
-  -- in the same transaction; service_role cannot.
-  SELECT EXISTS (
-    SELECT 1
-    FROM public.measured_boq_catalog_packages p
-    JOIN public.measured_boq_catalog_revisions r ON r.id = p.revision_id
-    WHERE r.catalog_revision = v_rev
-  )
-  INTO v_has_package;
-
-  IF v_has_package THEN
-    IF TG_OP IN ('UPDATE', 'DELETE') THEN
-      RAISE EXCEPTION 'CATALOG_ENTRY_IMMUTABLE'
-        USING ERRCODE = 'P0001',
-              DETAIL = 'Package-backed catalogue entries cannot be updated or deleted';
-    END IF;
-    IF TG_OP = 'INSERT' AND NOT public.measured_boq_catalog_is_trusted_lifecycle_owner() THEN
-      RAISE EXCEPTION 'CATALOG_ENTRY_IMMUTABLE'
-        USING ERRCODE = 'P0001',
-              DETAIL = 'Package-backed entry insert requires trusted ingest owner';
-    END IF;
+  -- UPDATE and DELETE are always forbidden after B2C1 (no legacy draft mutation path).
+  IF TG_OP = 'UPDATE' THEN
+    RAISE EXCEPTION 'CATALOG_ENTRY_IMMUTABLE'
+      USING ERRCODE = 'P0001',
+            DETAIL = 'Catalogue entries cannot be updated';
   END IF;
 
   IF TG_OP = 'DELETE' THEN
-    RETURN OLD;
+    RAISE EXCEPTION 'CATALOG_ENTRY_IMMUTABLE'
+      USING ERRCODE = 'P0001',
+            DETAIL = 'Catalogue entries cannot be deleted';
   END IF;
+
+  -- INSERT: parent must be draft; only trusted function owner (future DEFINER / test owner).
+  PERFORM public.measured_boq_catalog_assert_parent_draft(NEW.catalog_revision);
+
+  IF NOT public.measured_boq_catalog_is_trusted_lifecycle_owner() THEN
+    RAISE EXCEPTION 'CATALOG_ENTRY_IMMUTABLE'
+      USING ERRCODE = 'P0001',
+            DETAIL = 'Catalogue entry insert requires trusted ingest owner';
+  END IF;
+
   RETURN NEW;
 END;
 $$;
@@ -771,13 +703,15 @@ $$;
 -- Trigger already exists; function body replaced in place.
 
 -- ────────────────────────────────────────────────────────────────────
--- 10. Privileges and RLS
+-- 10. Privileges and RLS (RPC-only writes; service_role SELECT only)
 -- ────────────────────────────────────────────────────────────────────
 
 ALTER TABLE public.measured_boq_catalog_packages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.measured_boq_catalog_events ENABLE ROW LEVEL SECURITY;
 
--- Packages / events: no JWT access; service_role SELECT only (no direct DML)
+-- All four catalogue tables: no JWT access; service_role SELECT only; no direct DML.
+-- Future B2D/B2E SECURITY DEFINER RPCs provide narrow write authority.
+
 REVOKE ALL ON TABLE public.measured_boq_catalog_packages FROM PUBLIC;
 REVOKE ALL ON TABLE public.measured_boq_catalog_packages FROM anon;
 REVOKE ALL ON TABLE public.measured_boq_catalog_packages FROM authenticated;
@@ -790,19 +724,16 @@ REVOKE ALL ON TABLE public.measured_boq_catalog_events FROM authenticated;
 REVOKE ALL ON TABLE public.measured_boq_catalog_events FROM service_role;
 GRANT SELECT ON TABLE public.measured_boq_catalog_events TO service_role;
 
--- Revisions / entries: retain service_role DML for legacy foundation tests and
--- pre-package draft paths. Lifecycle status transitions for package-backed rows
--- and all retire transitions require trusted owner + GUC (service_role fails).
--- Full REVOKE of service_role DML on revisions/entries lands with B2D when
--- persist RPC exists and foundation tests are updated.
 REVOKE ALL ON TABLE public.measured_boq_catalog_revisions FROM PUBLIC;
 REVOKE ALL ON TABLE public.measured_boq_catalog_revisions FROM anon;
 REVOKE ALL ON TABLE public.measured_boq_catalog_revisions FROM authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.measured_boq_catalog_revisions TO service_role;
+REVOKE ALL ON TABLE public.measured_boq_catalog_revisions FROM service_role;
+GRANT SELECT ON TABLE public.measured_boq_catalog_revisions TO service_role;
 
 REVOKE ALL ON TABLE public.measured_boq_catalog_entries FROM PUBLIC;
 REVOKE ALL ON TABLE public.measured_boq_catalog_entries FROM anon;
 REVOKE ALL ON TABLE public.measured_boq_catalog_entries FROM authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.measured_boq_catalog_entries TO service_role;
+REVOKE ALL ON TABLE public.measured_boq_catalog_entries FROM service_role;
+GRANT SELECT ON TABLE public.measured_boq_catalog_entries TO service_role;
 
--- No authenticated/anon policies on packages/events (service_role bypasses RLS for SELECT).
+-- No authenticated/anon policies on catalogue tables (service_role bypasses RLS for SELECT).

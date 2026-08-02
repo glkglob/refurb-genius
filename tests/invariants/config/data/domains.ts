@@ -92,10 +92,10 @@ export const DATA_DOMAINS: DataDomain[] = [
     ],
     sourceOfTruth: "public.estimates (+ children + private idempotency + private catalogue)",
     persistenceLayer:
-      "Category authority: serverFn + service_role RPC; drafts: browser repository; catalogue: service_role only",
+      "Category authority: serverFn + service_role RPC; drafts: browser repository; catalogue: service_role SELECT + future DEFINER RPCs only",
     tenantScope: "mixed",
     lifecycle:
-      "Draft/none rows via browser RLS; category-engine rows via private RPC; measured catalogue immutable when published; package-backed freeze (B2C)",
+      "Draft/none rows via browser RLS; category-engine rows via private RPC; measured catalogue content immutable; lifecycle via trusted owner + GUC (B2C1)",
     maturity: "live",
     enforcementStatus: "enforced",
     persistenceKind: "persistent",
