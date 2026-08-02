@@ -6,7 +6,6 @@ import {
   B1_LICENCE_STATUSES,
   canonicalizeBaseUnitRate,
   computePackageArtifactChecksum,
-  computePackageArtifactChecksumV1Retired,
   numberToExactDecimalText,
   normaliseCatalogueSnapshot,
   parseCatalogueManifest,
@@ -29,6 +28,23 @@ import {
 
 function nodeSha256(message: string): string {
   return createHash("sha256").update(message, "utf8").digest("hex");
+}
+
+/**
+ * Test-local reconstruction of the retired v1 delimiter framing.
+ * Not exported. Exists only to prove the historical collision pair and that
+ * active v2 resolves it. Must never re-enter production modules or barrels.
+ */
+function computeRetiredV1ChecksumForRegression(manifestText: string, snapshotText: string): string {
+  const payload =
+    "mboq-package-v1\n" +
+    "MANIFEST.json\n" +
+    manifestText +
+    "\n" +
+    "snapshot.json\n" +
+    snapshotText +
+    "\n";
+  return sha256Hex(payload);
 }
 
 describe("parseCatalogueManifest", () => {
@@ -419,15 +435,15 @@ describe("package artifact checksum (v2 injective framing)", () => {
     );
   });
 
-  it("v2 resolves the v1 delimiter collision pair to different digests", () => {
+  it("v2 resolves the retired historical v1 delimiter collision pair to different digests", () => {
     const sep = "\nsnapshot.json\n";
     const mA = "X";
     const sA = "Y" + sep + "Z";
     const mB = "X" + sep + "Y";
     const sB = "Z";
-    // Document retired v1 ambiguity for regression context.
-    expect(computePackageArtifactChecksumV1Retired(mA, sA)).toBe(
-      computePackageArtifactChecksumV1Retired(mB, sB),
+    // Retired framing reconstructed only in this test helper — not production API.
+    expect(computeRetiredV1ChecksumForRegression(mA, sA)).toBe(
+      computeRetiredV1ChecksumForRegression(mB, sB),
     );
     expect(computePackageArtifactChecksum(mA, sA)).not.toBe(computePackageArtifactChecksum(mB, sB));
   });
@@ -744,5 +760,14 @@ describe("B1B purity surface", () => {
     expect(typeof parseCatalogueManifest).toBe("function");
     expect(typeof normaliseCatalogueSnapshot).toBe("function");
     expect(typeof canonicalizeBaseUnitRate).toBe("function");
+  });
+
+  it("catalogue public barrel exposes only active v2 package-checksum API", async () => {
+    const publicApi = await import("./index");
+    expect("computePackageArtifactChecksum" in publicApi).toBe(true);
+    expect("PACKAGE_ARTIFACT_DOMAIN" in publicApi).toBe(true);
+    expect("computePackageArtifactChecksumV1Retired" in publicApi).toBe(false);
+    expect("PACKAGE_ARTIFACT_DOMAIN_V1_RETIRED" in publicApi).toBe(false);
+    expect("computeRetiredV1ChecksumForRegression" in publicApi).toBe(false);
   });
 });

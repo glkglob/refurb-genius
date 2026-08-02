@@ -6,7 +6,8 @@
  * Framing v2 is injective over the pair of UTF-8 artifact strings: each
  * artifact is hashed independently, then the ordered pair of digests is hashed
  * under a versioned domain separator. Delimiter text inside either JSON body
- * cannot recreate another pair's preimage (unlike the retired v1 concatenation).
+ * cannot recreate another pair's preimage (unlike the retired v1 concatenation
+ * that lived only in historical B1B builds and is reconstructed solely in tests).
  */
 
 import { sha256Hex } from "./sha256";
@@ -16,13 +17,6 @@ import { sha256Hex } from "./sha256";
  * Changing this value invalidates all prior inputChecksum values.
  */
 export const PACKAGE_ARTIFACT_DOMAIN = "mboq-package-v2\n";
-
-/**
- * Retired ambiguous framing label (v1 delimiter concatenation).
- * Not accepted as equivalent to v2. Documented so historical collision
- * reproductions remain identifiable.
- */
-export const PACKAGE_ARTIFACT_DOMAIN_V1_RETIRED = "mboq-package-v1\n";
 
 /**
  * Compute SHA-256 (lowercase hex) of raw package artifacts.
@@ -51,25 +45,6 @@ export function computePackageArtifactChecksum(manifestText: string, snapshotTex
     "\n" +
     "snapshot:" +
     snapshotDigest +
-    "\n";
-  return sha256Hex(payload);
-}
-
-/**
- * Retired v1 framing — for regression tests only. Produces the ambiguous
- * preimage used before B1B3. Must not be used for production inputChecksum.
- */
-export function computePackageArtifactChecksumV1Retired(
-  manifestText: string,
-  snapshotText: string,
-): string {
-  const payload =
-    PACKAGE_ARTIFACT_DOMAIN_V1_RETIRED +
-    "MANIFEST.json\n" +
-    manifestText +
-    "\n" +
-    "snapshot.json\n" +
-    snapshotText +
     "\n";
   return sha256Hex(payload);
 }
