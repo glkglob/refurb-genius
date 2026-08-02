@@ -1,5 +1,5 @@
 /**
- * Canonical floorplan table-write primitives (AO-1H1 / P1B3).
+ * Canonical floorplan table-write primitives (AO-1H1 / P1B3 / P1B3R).
  *
  * Owns direct inserts/deletes for floorplan_models, floorplan_annotations,
  * and floorplan_measurements. Does NOT coordinate Auth, Storage, React Query,
@@ -10,17 +10,17 @@
  * - annotations: model_id, annotation_type, data
  * - measurements: model_id, measurement_type, value, unit
  *
- * Dual-baseline typing (P1B3):
+ * Dual-baseline typing (P1B3 / P1B3R):
  * Tracked generated Insert shapes still require obsolete columns (storage_path,
  * uploaded_by, file_type, project_id on children, points, …). Canonical Insert
  * shapes reject those columns. A single runtime payload cannot be TablesInsert
  * under both baselines without a double assertion.
  *
- * Solution: erase the Database generic by assigning the typed browser client to
- * SupabaseClient (default). Domain Canonical*Insert types re-introduce
- * field-level safety without type assertions or obsolete columns.
+ * Solution (P1B3R Option A): assign the typed browser client to a minimal local
+ * structural write surface (from/insert/select/single/delete/eq only). Domain
+ * Canonical*Insert types re-introduce field-level safety without package-level
+ * SupabaseClient re-exports, vendor imports, or type assertions.
  */
-import type { SupabaseClient } from "@repo/supabase";
 import { supabase } from "@/platform/supabase/browser";
 import {
   FLOORPLAN_ANNOTATION_TYPE_ROOM_TAG,
@@ -91,11 +91,31 @@ type CanonicalFloorplanMeasurementInsert = {
   unit: string;
 };
 
+type FloorplanWriteError = { message: string } | null;
+
 /**
- * Dual-baseline write client: assign typed Database client to default
- * SupabaseClient so canonical payloads typecheck under both baselines.
+ * Minimal dual-baseline write surface for floorplan tables only.
+ * Covers exactly: from → insert → select → single, insert await, delete → eq.
+ * Does not recreate the full Supabase client API.
  */
-function floorplanWriteClient(): SupabaseClient {
+type FloorplanWriteClient = {
+  from(table: string): {
+    insert(values: object): {
+      select(columns?: string): {
+        single(): PromiseLike<{ data: unknown; error: FloorplanWriteError }>;
+      };
+    } & PromiseLike<{ error: FloorplanWriteError }>;
+    delete(): {
+      eq(column: string, value: string): PromiseLike<{ error: FloorplanWriteError }>;
+    };
+  };
+};
+
+/**
+ * Dual-baseline write client via structural assignability (no assertion,
+ * no package SupabaseClient export, no direct vendor import).
+ */
+function floorplanWriteClient(): FloorplanWriteClient {
   return supabase;
 }
 

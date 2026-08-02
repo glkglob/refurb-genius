@@ -300,5 +300,13 @@ describe("floorplanWrite", () => {
       expect(src).not.toMatch(/created_by\s*:/);
       expect(src).not.toMatch(/points\s*:/);
     });
+
+    it("uses a local structural write client without package SupabaseClient export or vendor import", () => {
+      const src = readFileSync(join(__dirname, "floorplanWrite.ts"), "utf8");
+      expect(src).toMatch(/type FloorplanWriteClient/);
+      expect(src).not.toMatch(/from ["']@supabase\/supabase-js["']/);
+      expect(src).not.toMatch(/import type \{[^}]*SupabaseClient/);
+      expect(src).not.toMatch(/from ["']@repo\/supabase["']/);
+    });
   });
 });
