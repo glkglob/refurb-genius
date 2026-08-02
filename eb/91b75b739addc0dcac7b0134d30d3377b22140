@@ -1,0 +1,50 @@
+packages/supabase/src/index.ts
+  h_7ea6129503670a 15-16
+src/components/floorplan/FloorplanScene.tsx
+  h_7ea6129503670a 5,9-13,16-18,33,46-47,50,54,69,120,124
+src/components/floorplan/FloorplanViewer.tsx
+  h_7ea6129503670a 27,153,342,459
+src/features/floorplan/domain/floorplan-annotation.test.ts
+  h_7ea6129503670a 1-164
+src/features/floorplan/domain/floorplan-annotation.ts
+  h_7ea6129503670a 1-195
+src/features/floorplan/domain/floorplan-json.ts
+  h_7ea6129503670a 1-58
+src/features/floorplan/domain/floorplan-measurement.test.ts
+  h_7ea6129503670a 1-84
+src/features/floorplan/domain/floorplan-measurement.ts
+  h_7ea6129503670a 1-69
+src/features/floorplan/domain/floorplan-model.test.ts
+  h_7ea6129503670a 1-103
+src/features/floorplan/domain/floorplan-model.ts
+  h_7ea6129503670a 1-122
+src/features/floorplan/domain/index.ts
+  h_7ea6129503670a 1-43
+src/features/floorplan/index.ts
+  h_7ea6129503670a 2,6,34-36,38-49
+src/features/floorplan/infrastructure/floorplanWrite.test.ts
+  h_7ea6129503670a 2,5-6,56-59,68-69,72,74-78,81,87,93-94,96,98-100,102-104,107-114,127,155,167-168,170-176,178-180,184,195-199,230,241-242,248-260,288-303
+src/features/floorplan/infrastructure/floorplanWrite.ts
+  h_7ea6129503670a 2,7-21,23,25-35,37-38,44-50,56-59,64-89,94-116,119,124-125,127,129-131,134,141,149-152,157,163,165-171,174,183-186,191-193,198-202,204,206,209,218-221
+src/features/floorplan/infrastructure/index.ts
+  h_7ea6129503670a 2
+src/features/floorplan/presentation/hooks/useFloorplanViewerMutations.test.ts
+  h_7ea6129503670a 2,104-105,107-108,110-112,168,228,245,249,286,322,352-355,397,417-418,421,423-425
+src/features/floorplan/presentation/hooks/useFloorplanViewerMutations.ts
+  h_7ea6129503670a 2,26,35,58-59,61,70,109,132-134,158,186-187,249
+src/lib/floorplan.ts
+  h_7ea6129503670a 3-7,15,110,113-115,120-136
+src/lib/queries/floorplans.ts
+  h_7ea6129503670a 4-12,30,33,46,58,71-72,84,100,112,128,142-144,167-169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "eb91b75b739addc0dcac7b0134d30d3377b22140",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
