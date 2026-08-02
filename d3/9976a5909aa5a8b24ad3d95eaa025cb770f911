@@ -1,0 +1,22 @@
+scripts/verify-database-types-compatibility.test.mjs
+  h_7ea6129503670a 153-155,159-172
+src/core/dealCopilot/presentation/hooks/useSendDealChatMessage.test.ts
+  h_7ea6129503670a 22,41-42,47-48,145,149,158-160,171-202
+src/core/dealCopilot/presentation/hooks/useSendDealChatMessage.ts
+  h_7ea6129503670a 27-33,67,74-76,79
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.test.ts
+  h_7ea6129503670a 41-43,58-150
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts
+  h_7ea6129503670a 11,26-40,53-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "d39976a5909aa5a8b24ad3d95eaa025cb770f911",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
