@@ -131,7 +131,7 @@ test("injected formatter failure restores tracked file", () => {
   assert.equal(gitStatus(), statusBefore);
 });
 
-test("full harness: INCOMPATIBLE baseline, restore, 84 diagnostics when Supabase up", () => {
+test("full harness: progressive INCOMPATIBLE or terminal COMPATIBLE, restore when Supabase up", () => {
   const statusProbe = spawnSync("pnpm", ["exec", "supabase", "status"], {
     cwd: ROOT,
     encoding: "utf8",
@@ -151,25 +151,33 @@ test("full harness: INCOMPATIBLE baseline, restore, 84 diagnostics when Supabase
   );
 
   // Sequential P1B* slices reduce diagnostics from the original 84 baseline.
-  // Assert incompatibility + monotonic upper bound, not a frozen error count.
+  // Terminal COMPATIBLE (exit 0, 0 diagnostics) is valid after P1B4 application
+  // compatibility; progressive INCOMPATIBLE remains valid mid-sequence.
   const res = runHarness({});
   const out = `${res.stdout}${res.stderr}`;
-  assert.equal(res.status, 2, `expected INCOMPATIBLE exit 2\n${out}`);
-  assert.match(out, /Status: INCOMPATIBLE/);
   const diagMatch = out.match(/DiagnosticCount: (\d+)/);
   const fileMatch = out.match(/AffectedFileCount: (\d+)/);
   assert.ok(diagMatch, "DiagnosticCount missing from harness output");
   assert.ok(fileMatch, "AffectedFileCount missing from harness output");
   const diagCount = Number(diagMatch[1]);
   const fileCount = Number(fileMatch[1]);
-  assert.ok(
-    diagCount > 0 && diagCount <= 84,
-    `diagnostic count ${diagCount} outside progressive baseline (1..84)`,
-  );
-  assert.ok(
-    fileCount > 0 && fileCount <= 22,
-    `affected file count ${fileCount} outside progressive baseline (1..22)`,
-  );
+
+  if (res.status === 0) {
+    assert.match(out, /Status: COMPATIBLE/);
+    assert.equal(diagCount, 0, `COMPATIBLE requires DiagnosticCount 0, got ${diagCount}`);
+    assert.equal(fileCount, 0, `COMPATIBLE requires AffectedFileCount 0, got ${fileCount}`);
+  } else {
+    assert.equal(res.status, 2, `expected INCOMPATIBLE exit 2 or COMPATIBLE exit 0\n${out}`);
+    assert.match(out, /Status: INCOMPATIBLE/);
+    assert.ok(
+      diagCount > 0 && diagCount <= 84,
+      `diagnostic count ${diagCount} outside progressive baseline (1..84)`,
+    );
+    assert.ok(
+      fileCount > 0 && fileCount <= 22,
+      `affected file count ${fileCount} outside progressive baseline (1..22)`,
+    );
+  }
   assert.match(
     out,
     /GeneratedFormattedChecksum: 84c292ccbbfb9236282326c165bf29a27ae720a4eb063b492b7a30fb0a8611a8/,

@@ -178,7 +178,7 @@ export function MessagingInbox({ projectId }: MessagingInboxProps) {
                             isMine ? "bg-primary text-primary-foreground" : "bg-muted"
                           }`}
                         >
-                          {msg.body}
+                          {msg.content}
                           <div
                             className={`text-[10px] mt-1 opacity-70 ${isMine ? "text-right" : ""}`}
                           >

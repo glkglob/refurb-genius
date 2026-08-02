@@ -77,7 +77,7 @@ const quotesData: (typeof QUOTE_OWNER)[] = [];
 const messagesData: Array<{
   id: string;
   sender_id: string;
-  body: string;
+  content: string;
   created_at: string;
 }> = [];
 
