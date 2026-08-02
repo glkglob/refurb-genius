@@ -1,0 +1,22 @@
+supabase/migrations/20260802060000_measured_boq_catalogue_persistence_foundation.sql
+  h_7ea6129503670a 1,8-9,11-12,20,354-355,394-395,508,532,543-558,561,564-567,572-585,594-598,600-601,604-608,626-634,637-638,668,677-681,684-687,690-696,698,706,712-714,730-731,736-737,739
+supabase/tests/database/measured_boq_catalogue_foundation.test.sql
+  h_7ea6129503670a 5,83-145,153-154,174,180-182,198,203-205,370-383,388,391,393,447-458,465,467
+supabase/tests/database/measured_boq_catalogue_persistence_foundation.test.sql
+  h_7ea6129503670a 1-2,6,8,30-67,109-116,118,153-280,301,387,395,397,407,414-443,459,469,471,475,701,705,708,712-736,741-773,775-855
+tests/invariants/config/data/database-inventory.ts
+  h_7ea6129503670a 114,128
+tests/invariants/config/data/domains.ts
+  h_7ea6129503670a 95,98
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "f5b5489febb152b905e7831c066e424f5ef8b98d",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
