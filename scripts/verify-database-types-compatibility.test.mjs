@@ -159,11 +159,13 @@ test("full harness: progressive INCOMPATIBLE or terminal COMPATIBLE, restore whe
 
   const statusBefore = gitStatus();
   const hashBefore = sha256File(TRACKED);
-  // Expected tracked checksum at B0 authorisation (f5b5489)
+  // Expected tracked checksum after P1B6 canonical full-file adoption.
+  // Complete generate --local --schema public, then prettier with project
+  // .prettierrc (printWidth 100). Differs from bare-default prettier output.
   assert.equal(
     hashBefore,
-    "e283eab4697c8a5e19ef98b0e3cd86362a3d5ea2c6b1bf6b6d8a67cd3a1e08b9",
-    "tracked types checksum drifted from authorised baseline",
+    "f7eca55bb06144ed7bfcc7f5dd27af1ad7d9f2a24d4191134566f5e092adebf8",
+    "tracked types checksum drifted from canonical baseline",
   );
 
   // Sequential P1B* slices reduce diagnostics from the original 84 baseline.

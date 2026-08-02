@@ -1,11 +1,6 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5";
-  };
   public: {
     Tables: {
       analysis_jobs: {
@@ -55,6 +50,7 @@ export type Database = {
           content: string;
           created_at: string;
           id: string;
+          image_urls: string[];
           metadata: Json;
           role: string;
           structured_output: Json | null;
@@ -64,6 +60,7 @@ export type Database = {
           content: string;
           created_at?: string;
           id?: string;
+          image_urls?: string[];
           metadata?: Json;
           role: string;
           structured_output?: Json | null;
@@ -73,6 +70,7 @@ export type Database = {
           content?: string;
           created_at?: string;
           id?: string;
+          image_urls?: string[];
           metadata?: Json;
           role?: string;
           structured_output?: Json | null;
@@ -177,122 +175,6 @@ export type Database = {
           },
         ];
       };
-      estimate_items: {
-        Row: {
-          base_unit_rate: number | null;
-          catalog_revision: string | null;
-          category: string;
-          created_at: string;
-          description: string | null;
-          display_order: number | null;
-          estimate_id: string;
-          id: string;
-          is_ai_suggested: boolean | null;
-          labour: number | null;
-          materials: number | null;
-          name: string | null;
-          notes: string | null;
-          project_id: string | null;
-          quantity: number;
-          rate_key: string | null;
-          rate_source: string | null;
-          regional_multiplier: number | null;
-          resolved_unit_rate: number | null;
-          room_id: string | null;
-          total_cost: number;
-          unit: string;
-          unit_cost: number;
-          updated_at: string;
-          user_id: string;
-          weeks: number | null;
-        };
-        Insert: {
-          base_unit_rate?: number | null;
-          catalog_revision?: string | null;
-          category: string;
-          created_at?: string;
-          description?: string | null;
-          display_order?: number | null;
-          estimate_id: string;
-          id?: string;
-          is_ai_suggested?: boolean | null;
-          labour?: number | null;
-          materials?: number | null;
-          name?: string | null;
-          notes?: string | null;
-          project_id?: string | null;
-          quantity?: number;
-          rate_key?: string | null;
-          rate_source?: string | null;
-          regional_multiplier?: number | null;
-          resolved_unit_rate?: number | null;
-          room_id?: string | null;
-          total_cost?: number;
-          unit?: string;
-          unit_cost?: number;
-          updated_at?: string;
-          user_id: string;
-          weeks?: number | null;
-        };
-        Update: {
-          base_unit_rate?: number | null;
-          catalog_revision?: string | null;
-          category?: string;
-          created_at?: string;
-          description?: string | null;
-          display_order?: number | null;
-          estimate_id?: string;
-          id?: string;
-          is_ai_suggested?: boolean | null;
-          labour?: number | null;
-          materials?: number | null;
-          name?: string | null;
-          notes?: string | null;
-          project_id?: string | null;
-          quantity?: number;
-          rate_key?: string | null;
-          rate_source?: string | null;
-          regional_multiplier?: number | null;
-          resolved_unit_rate?: number | null;
-          room_id?: string | null;
-          total_cost?: number;
-          unit?: string;
-          unit_cost?: number;
-          updated_at?: string;
-          user_id?: string;
-          weeks?: number | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "estimate_items_catalog_entry_fkey";
-            columns: ["catalog_revision", "rate_key"];
-            isOneToOne: false;
-            referencedRelation: "measured_boq_catalog_entries";
-            referencedColumns: ["catalog_revision", "rate_key"];
-          },
-          {
-            foreignKeyName: "estimate_items_estimate_id_fkey";
-            columns: ["estimate_id"];
-            isOneToOne: false;
-            referencedRelation: "estimates";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "estimate_items_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "estimate_items_room_id_fkey";
-            columns: ["room_id"];
-            isOneToOne: false;
-            referencedRelation: "estimate_rooms";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       estimate_authority_idempotency: {
         Row: {
           completed_at: string | null;
@@ -340,6 +222,442 @@ export type Database = {
             columns: ["resulting_estimate_id"];
             isOneToOne: false;
             referencedRelation: "estimates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      estimate_items: {
+        Row: {
+          base_unit_rate: number | null;
+          catalog_revision: string | null;
+          category: string;
+          created_at: string | null;
+          display_order: number | null;
+          estimate_id: string;
+          id: string;
+          is_ai_suggested: boolean | null;
+          labour: number;
+          materials: number;
+          name: string;
+          notes: string | null;
+          quantity: number | null;
+          rate_key: string | null;
+          rate_source: string | null;
+          regional_multiplier: number | null;
+          resolved_unit_rate: number | null;
+          room_id: string | null;
+          total_cost: number;
+          unit: string | null;
+          unit_cost: number | null;
+          user_id: string;
+          weeks: number;
+        };
+        Insert: {
+          base_unit_rate?: number | null;
+          catalog_revision?: string | null;
+          category: string;
+          created_at?: string | null;
+          display_order?: number | null;
+          estimate_id: string;
+          id?: string;
+          is_ai_suggested?: boolean | null;
+          labour?: number;
+          materials?: number;
+          name?: string;
+          notes?: string | null;
+          quantity?: number | null;
+          rate_key?: string | null;
+          rate_source?: string | null;
+          regional_multiplier?: number | null;
+          resolved_unit_rate?: number | null;
+          room_id?: string | null;
+          total_cost?: number;
+          unit?: string | null;
+          unit_cost?: number | null;
+          user_id: string;
+          weeks?: number;
+        };
+        Update: {
+          base_unit_rate?: number | null;
+          catalog_revision?: string | null;
+          category?: string;
+          created_at?: string | null;
+          display_order?: number | null;
+          estimate_id?: string;
+          id?: string;
+          is_ai_suggested?: boolean | null;
+          labour?: number;
+          materials?: number;
+          name?: string;
+          notes?: string | null;
+          quantity?: number | null;
+          rate_key?: string | null;
+          rate_source?: string | null;
+          regional_multiplier?: number | null;
+          resolved_unit_rate?: number | null;
+          room_id?: string | null;
+          total_cost?: number;
+          unit?: string | null;
+          unit_cost?: number | null;
+          user_id?: string;
+          weeks?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "estimate_items_catalog_entry_fkey";
+            columns: ["catalog_revision", "rate_key"];
+            isOneToOne: false;
+            referencedRelation: "measured_boq_catalog_entries";
+            referencedColumns: ["catalog_revision", "rate_key"];
+          },
+          {
+            foreignKeyName: "estimate_items_estimate_id_fkey";
+            columns: ["estimate_id"];
+            isOneToOne: false;
+            referencedRelation: "estimates";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "estimate_items_room_id_fkey";
+            columns: ["room_id"];
+            isOneToOne: false;
+            referencedRelation: "estimate_rooms";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      estimate_rooms: {
+        Row: {
+          area_sqm: number | null;
+          created_at: string | null;
+          display_order: number | null;
+          estimate_id: string;
+          id: string;
+          name: string;
+          subtotal: number | null;
+        };
+        Insert: {
+          area_sqm?: number | null;
+          created_at?: string | null;
+          display_order?: number | null;
+          estimate_id: string;
+          id?: string;
+          name: string;
+          subtotal?: number | null;
+        };
+        Update: {
+          area_sqm?: number | null;
+          created_at?: string | null;
+          display_order?: number | null;
+          estimate_id?: string;
+          id?: string;
+          name?: string;
+          subtotal?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "estimate_rooms_estimate_id_fkey";
+            columns: ["estimate_id"];
+            isOneToOne: false;
+            referencedRelation: "estimates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      estimates: {
+        Row: {
+          ai_generated: boolean | null;
+          catalog_revision: string | null;
+          condition_level: string;
+          contingency: number;
+          created_at: string;
+          finish_level: string;
+          high_total: number;
+          id: string;
+          labour_total: number;
+          low_total: number;
+          materials_total: number;
+          mid_total: number;
+          notes: string | null;
+          pricing_authority: string;
+          pricing_policy_version: string | null;
+          project_id: string;
+          region: string;
+          status: string | null;
+          subtotal: number;
+          timeline_weeks: number;
+          title: string;
+          updated_at: string | null;
+          user_id: string;
+          vat_amount: number;
+          vat_rate: number | null;
+        };
+        Insert: {
+          ai_generated?: boolean | null;
+          catalog_revision?: string | null;
+          condition_level: string;
+          contingency?: number;
+          created_at?: string;
+          finish_level: string;
+          high_total?: number;
+          id?: string;
+          labour_total?: number;
+          low_total?: number;
+          materials_total?: number;
+          mid_total?: number;
+          notes?: string | null;
+          pricing_authority?: string;
+          pricing_policy_version?: string | null;
+          project_id: string;
+          region: string;
+          status?: string | null;
+          subtotal?: number;
+          timeline_weeks?: number;
+          title?: string;
+          updated_at?: string | null;
+          user_id: string;
+          vat_amount?: number;
+          vat_rate?: number | null;
+        };
+        Update: {
+          ai_generated?: boolean | null;
+          catalog_revision?: string | null;
+          condition_level?: string;
+          contingency?: number;
+          created_at?: string;
+          finish_level?: string;
+          high_total?: number;
+          id?: string;
+          labour_total?: number;
+          low_total?: number;
+          materials_total?: number;
+          mid_total?: number;
+          notes?: string | null;
+          pricing_authority?: string;
+          pricing_policy_version?: string | null;
+          project_id?: string;
+          region?: string;
+          status?: string | null;
+          subtotal?: number;
+          timeline_weeks?: number;
+          title?: string;
+          updated_at?: string | null;
+          user_id?: string;
+          vat_amount?: number;
+          vat_rate?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "estimates_catalog_revision_fkey";
+            columns: ["catalog_revision"];
+            isOneToOne: false;
+            referencedRelation: "measured_boq_catalog_revisions";
+            referencedColumns: ["catalog_revision"];
+          },
+          {
+            foreignKeyName: "estimates_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      feasibility_studies: {
+        Row: {
+          created_at: string;
+          current_snapshot_version: number;
+          id: string;
+          last_computed_at: string;
+          project_id: string;
+          status: string;
+          title: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          current_snapshot_version?: number;
+          id?: string;
+          last_computed_at?: string;
+          project_id: string;
+          status?: string;
+          title?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          current_snapshot_version?: number;
+          id?: string;
+          last_computed_at?: string;
+          project_id?: string;
+          status?: string;
+          title?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "feasibility_studies_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      floorplan_annotations: {
+        Row: {
+          annotation_type: string;
+          created_at: string;
+          data: Json;
+          id: string;
+          model_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          annotation_type: string;
+          created_at?: string;
+          data?: Json;
+          id?: string;
+          model_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          annotation_type?: string;
+          created_at?: string;
+          data?: Json;
+          id?: string;
+          model_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "floorplan_annotations_model_id_fkey";
+            columns: ["model_id"];
+            isOneToOne: false;
+            referencedRelation: "floorplan_models";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      floorplan_measurements: {
+        Row: {
+          created_at: string;
+          id: string;
+          measurement_type: string;
+          model_id: string;
+          unit: string;
+          updated_at: string;
+          value: number;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          measurement_type: string;
+          model_id: string;
+          unit?: string;
+          updated_at?: string;
+          value: number;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          measurement_type?: string;
+          model_id?: string;
+          unit?: string;
+          updated_at?: string;
+          value?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "floorplan_measurements_model_id_fkey";
+            columns: ["model_id"];
+            isOneToOne: false;
+            referencedRelation: "floorplan_models";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      floorplan_models: {
+        Row: {
+          created_at: string;
+          id: string;
+          metadata: Json | null;
+          model_url: string | null;
+          name: string;
+          project_id: string;
+          status: string;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          metadata?: Json | null;
+          model_url?: string | null;
+          name?: string;
+          project_id: string;
+          status?: string;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          metadata?: Json | null;
+          model_url?: string | null;
+          name?: string;
+          project_id?: string;
+          status?: string;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "floorplan_models_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      investor_leads: {
+        Row: {
+          created_at: string;
+          email: string;
+          gallery_project_id: string;
+          id: string;
+          message: string | null;
+          name: string;
+          phone: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          email: string;
+          gallery_project_id: string;
+          id?: string;
+          message?: string | null;
+          name: string;
+          phone?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          email?: string;
+          gallery_project_id?: string;
+          id?: string;
+          message?: string | null;
+          name?: string;
+          phone?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "investor_leads_gallery_project_id_fkey";
+            columns: ["gallery_project_id"];
+            isOneToOne: false;
+            referencedRelation: "public_gallery_projects";
             referencedColumns: ["id"];
           },
         ];
@@ -644,397 +962,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      estimate_rooms: {
-        Row: {
-          area_sqm: number | null;
-          created_at: string | null;
-          display_order: number | null;
-          estimate_id: string;
-          id: string;
-          name: string;
-          subtotal: number | null;
-        };
-        Insert: {
-          area_sqm?: number | null;
-          created_at?: string | null;
-          display_order?: number | null;
-          estimate_id: string;
-          id?: string;
-          name: string;
-          subtotal?: number | null;
-        };
-        Update: {
-          area_sqm?: number | null;
-          created_at?: string | null;
-          display_order?: number | null;
-          estimate_id?: string;
-          id?: string;
-          name?: string;
-          subtotal?: number | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "estimate_rooms_estimate_id_fkey";
-            columns: ["estimate_id"];
-            isOneToOne: false;
-            referencedRelation: "estimates";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      estimates: {
-        Row: {
-          ai_generated: boolean | null;
-          catalog_revision: string | null;
-          condition_level: string | null;
-          contingency: number | null;
-          contingency_percent: number;
-          created_at: string;
-          finish_level: string | null;
-          high_total: number | null;
-          id: string;
-          labour_total: number | null;
-          low_total: number | null;
-          materials_total: number | null;
-          mid_total: number | null;
-          notes: string | null;
-          pricing_authority: string;
-          pricing_policy_version: string | null;
-          project_id: string;
-          region: string | null;
-          roi_percent: number | null;
-          status: string | null;
-          subtotal: number | null;
-          summary: string | null;
-          timeline_weeks: number | null;
-          title: string | null;
-          total_cost: number;
-          updated_at: string;
-          user_id: string;
-          vat: number | null;
-          vat_amount: number | null;
-          vat_rate: number | null;
-        };
-        Insert: {
-          ai_generated?: boolean | null;
-          catalog_revision?: string | null;
-          condition_level?: string | null;
-          contingency?: number | null;
-          contingency_percent?: number;
-          created_at?: string;
-          finish_level?: string | null;
-          high_total?: number | null;
-          id?: string;
-          labour_total?: number | null;
-          low_total?: number | null;
-          materials_total?: number | null;
-          mid_total?: number | null;
-          notes?: string | null;
-          pricing_authority?: string;
-          pricing_policy_version?: string | null;
-          project_id: string;
-          region?: string | null;
-          roi_percent?: number | null;
-          status?: string | null;
-          subtotal?: number | null;
-          summary?: string | null;
-          timeline_weeks?: number | null;
-          title?: string | null;
-          total_cost?: number;
-          updated_at?: string;
-          user_id: string;
-          vat?: number | null;
-          vat_amount?: number | null;
-          vat_rate?: number | null;
-        };
-        Update: {
-          ai_generated?: boolean | null;
-          catalog_revision?: string | null;
-          condition_level?: string | null;
-          contingency?: number | null;
-          contingency_percent?: number;
-          created_at?: string;
-          finish_level?: string | null;
-          high_total?: number | null;
-          id?: string;
-          labour_total?: number | null;
-          low_total?: number | null;
-          materials_total?: number | null;
-          mid_total?: number | null;
-          notes?: string | null;
-          pricing_authority?: string;
-          pricing_policy_version?: string | null;
-          project_id?: string;
-          region?: string | null;
-          roi_percent?: number | null;
-          status?: string | null;
-          subtotal?: number | null;
-          summary?: string | null;
-          timeline_weeks?: number | null;
-          title?: string | null;
-          total_cost?: number;
-          updated_at?: string;
-          user_id?: string;
-          vat?: number | null;
-          vat_amount?: number | null;
-          vat_rate?: number | null;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "estimates_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      feasibility_studies: {
-        Row: {
-          created_at: string;
-          current_snapshot_version: number;
-          id: string;
-          last_computed_at: string;
-          project_id: string;
-          status: string;
-          title: string | null;
-          updated_at: string;
-          user_id: string;
-        };
-        Insert: {
-          created_at?: string;
-          current_snapshot_version?: number;
-          id?: string;
-          last_computed_at?: string;
-          project_id: string;
-          status?: string;
-          title?: string | null;
-          updated_at?: string;
-          user_id: string;
-        };
-        Update: {
-          created_at?: string;
-          current_snapshot_version?: number;
-          id?: string;
-          last_computed_at?: string;
-          project_id?: string;
-          status?: string;
-          title?: string | null;
-          updated_at?: string;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "feasibility_studies_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      floorplan_annotations: {
-        Row: {
-          created_at: string;
-          created_by: string;
-          id: string;
-          label: string;
-          model_id: string;
-          normal: Json | null;
-          notes: string | null;
-          position: Json;
-          project_id: string;
-          room_id: string | null;
-          updated_at: string;
-        };
-        Insert: {
-          created_at?: string;
-          created_by: string;
-          id?: string;
-          label: string;
-          model_id: string;
-          normal?: Json | null;
-          notes?: string | null;
-          position: Json;
-          project_id: string;
-          room_id?: string | null;
-          updated_at?: string;
-        };
-        Update: {
-          created_at?: string;
-          created_by?: string;
-          id?: string;
-          label?: string;
-          model_id?: string;
-          normal?: Json | null;
-          notes?: string | null;
-          position?: Json;
-          project_id?: string;
-          room_id?: string | null;
-          updated_at?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "floorplan_annotations_model_id_fkey";
-            columns: ["model_id"];
-            isOneToOne: false;
-            referencedRelation: "floorplan_models";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "floorplan_annotations_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      floorplan_measurements: {
-        Row: {
-          created_at: string;
-          created_by: string;
-          id: string;
-          label: string | null;
-          measurement_type: string;
-          model_id: string;
-          points: Json;
-          project_id: string;
-          unit: string;
-          updated_at: string;
-          value: number;
-        };
-        Insert: {
-          created_at?: string;
-          created_by: string;
-          id?: string;
-          label?: string | null;
-          measurement_type: string;
-          model_id: string;
-          points: Json;
-          project_id: string;
-          unit?: string;
-          updated_at?: string;
-          value: number;
-        };
-        Update: {
-          created_at?: string;
-          created_by?: string;
-          id?: string;
-          label?: string | null;
-          measurement_type?: string;
-          model_id?: string;
-          points?: Json;
-          project_id?: string;
-          unit?: string;
-          updated_at?: string;
-          value?: number;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "floorplan_measurements_model_id_fkey";
-            columns: ["model_id"];
-            isOneToOne: false;
-            referencedRelation: "floorplan_models";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "floorplan_measurements_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      floorplan_models: {
-        Row: {
-          created_at: string;
-          file_type: string;
-          id: string;
-          is_active: boolean;
-          metadata: Json;
-          name: string;
-          project_id: string;
-          storage_path: string;
-          updated_at: string;
-          uploaded_by: string;
-        };
-        Insert: {
-          created_at?: string;
-          file_type: string;
-          id?: string;
-          is_active?: boolean;
-          metadata?: Json;
-          name: string;
-          project_id: string;
-          storage_path: string;
-          updated_at?: string;
-          uploaded_by: string;
-        };
-        Update: {
-          created_at?: string;
-          file_type?: string;
-          id?: string;
-          is_active?: boolean;
-          metadata?: Json;
-          name?: string;
-          project_id?: string;
-          storage_path?: string;
-          updated_at?: string;
-          uploaded_by?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "floorplan_models_project_id_fkey";
-            columns: ["project_id"];
-            isOneToOne: false;
-            referencedRelation: "projects";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-      investor_leads: {
-        Row: {
-          created_at: string;
-          email: string;
-          gallery_project_id: string | null;
-          id: string;
-          message: string | null;
-          name: string;
-          phone: string | null;
-          source: string;
-        };
-        Insert: {
-          created_at?: string;
-          email: string;
-          gallery_project_id?: string | null;
-          id?: string;
-          message?: string | null;
-          name: string;
-          phone?: string | null;
-          source?: string;
-        };
-        Update: {
-          created_at?: string;
-          email?: string;
-          gallery_project_id?: string | null;
-          id?: string;
-          message?: string | null;
-          name?: string;
-          phone?: string | null;
-          source?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: "investor_leads_gallery_project_id_fkey";
-            columns: ["gallery_project_id"];
-            isOneToOne: false;
-            referencedRelation: "public_gallery_projects";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
       opportunity_photos: {
         Row: {
           id: string;
@@ -1078,60 +1005,46 @@ export type Database = {
       };
       photo_analysis_results: {
         Row: {
-          category: string | null;
-          condition_report: string | null;
-          confidence_score: number | null;
-          cost_suggestions: Json;
+          analysis_data: Json;
+          confidence: number | null;
           created_at: string;
-          created_by: string | null;
-          detected_defects: Json;
-          editable_notes: string | null;
           id: string;
-          material_estimates: Json;
           photo_id: string | null;
           project_id: string;
-          room_id: string | null;
-          severity: string | null;
-          synced_to_estimate: boolean;
+          source: string;
           updated_at: string;
+          user_id: string;
         };
         Insert: {
-          category?: string | null;
-          condition_report?: string | null;
-          confidence_score?: number | null;
-          cost_suggestions?: Json;
+          analysis_data?: Json;
+          confidence?: number | null;
           created_at?: string;
-          created_by?: string | null;
-          detected_defects?: Json;
-          editable_notes?: string | null;
           id?: string;
-          material_estimates?: Json;
           photo_id?: string | null;
           project_id: string;
-          room_id?: string | null;
-          severity?: string | null;
-          synced_to_estimate?: boolean;
+          source?: string;
           updated_at?: string;
+          user_id: string;
         };
         Update: {
-          category?: string | null;
-          condition_report?: string | null;
-          confidence_score?: number | null;
-          cost_suggestions?: Json;
+          analysis_data?: Json;
+          confidence?: number | null;
           created_at?: string;
-          created_by?: string | null;
-          detected_defects?: Json;
-          editable_notes?: string | null;
           id?: string;
-          material_estimates?: Json;
           photo_id?: string | null;
           project_id?: string;
-          room_id?: string | null;
-          severity?: string | null;
-          synced_to_estimate?: boolean;
+          source?: string;
           updated_at?: string;
+          user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "photo_analysis_results_photo_id_fkey";
+            columns: ["photo_id"];
+            isOneToOne: false;
+            referencedRelation: "photos";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "photo_analysis_results_project_id_fkey";
             columns: ["project_id"];
@@ -1143,45 +1056,30 @@ export type Database = {
       };
       photos: {
         Row: {
-          content_type: string | null;
-          created_at: string;
-          filename: string | null;
           id: string;
           name: string;
           project_id: string;
-          room_label: string | null;
-          size: number | null;
-          size_bytes: number | null;
+          size: number;
           storage_path: string;
           uploaded_at: string;
           url: string;
           user_id: string;
         };
         Insert: {
-          content_type?: string | null;
-          created_at?: string;
-          filename?: string | null;
           id?: string;
-          name?: string;
+          name: string;
           project_id: string;
-          room_label?: string | null;
-          size?: number | null;
-          size_bytes?: number | null;
+          size?: number;
           storage_path: string;
           uploaded_at?: string;
-          url?: string;
+          url: string;
           user_id: string;
         };
         Update: {
-          content_type?: string | null;
-          created_at?: string;
-          filename?: string | null;
           id?: string;
           name?: string;
           project_id?: string;
-          room_label?: string | null;
-          size?: number | null;
-          size_bytes?: number | null;
+          size?: number;
           storage_path?: string;
           uploaded_at?: string;
           url?: string;
@@ -1200,33 +1098,36 @@ export type Database = {
       pitch_deck_exports: {
         Row: {
           created_at: string;
-          created_by: string;
+          export_url: string | null;
+          file_size_bytes: number | null;
+          format: string;
           id: string;
-          metadata: Json;
           project_id: string;
-          share_token: string | null;
-          status: string;
-          storage_path: string | null;
+          title: string | null;
+          updated_at: string;
+          user_id: string;
         };
         Insert: {
           created_at?: string;
-          created_by: string;
+          export_url?: string | null;
+          file_size_bytes?: number | null;
+          format?: string;
           id?: string;
-          metadata?: Json;
           project_id: string;
-          share_token?: string | null;
-          status?: string;
-          storage_path?: string | null;
+          title?: string | null;
+          updated_at?: string;
+          user_id: string;
         };
         Update: {
           created_at?: string;
-          created_by?: string;
+          export_url?: string | null;
+          file_size_bytes?: number | null;
+          format?: string;
           id?: string;
-          metadata?: Json;
           project_id?: string;
-          share_token?: string | null;
-          status?: string;
-          storage_path?: string | null;
+          title?: string | null;
+          updated_at?: string;
+          user_id?: string;
         };
         Relationships: [
           {
@@ -1240,170 +1141,134 @@ export type Database = {
       };
       profiles: {
         Row: {
-          avatar_url: string | null;
+          company: string | null;
           created_at: string;
+          default_region: string | null;
           email: string | null;
           full_name: string | null;
           id: string;
           role: string;
-          updated_at: string;
         };
         Insert: {
-          avatar_url?: string | null;
+          company?: string | null;
           created_at?: string;
+          default_region?: string | null;
           email?: string | null;
           full_name?: string | null;
           id: string;
           role?: string;
-          updated_at?: string;
         };
         Update: {
-          avatar_url?: string | null;
+          company?: string | null;
           created_at?: string;
+          default_region?: string | null;
           email?: string | null;
           full_name?: string | null;
           id?: string;
           role?: string;
-          updated_at?: string;
         };
         Relationships: [];
       };
       projects: {
         Row: {
           address: string;
-          analysis_done: boolean | null;
-          bathrooms: number | null;
-          bedrooms: number | null;
+          analysis_done: boolean;
+          bathrooms: number;
+          bedrooms: number;
           created_at: string;
-          estimate_done: boolean | null;
-          estimated_gdv: number | null;
+          estimate_done: boolean;
+          estimated_gdv: number;
           id: string;
           name: string;
-          notes: string | null;
-          photos_done: boolean | null;
-          postcode: string | null;
-          property_type: string | null;
-          purchase_price: number | null;
-          region: string | null;
-          report_done: boolean | null;
-          size: number | null;
-          size_sqm: number | null;
+          notes: string;
+          photos_done: boolean;
+          postcode: string;
+          property_type: string;
+          purchase_price: number;
+          region: string;
+          report_done: boolean;
+          size_sqm: number;
           status: string;
-          target_margin: number | null;
-          updated_at: string;
           user_id: string;
         };
         Insert: {
           address?: string;
-          analysis_done?: boolean | null;
-          bathrooms?: number | null;
-          bedrooms?: number | null;
+          analysis_done?: boolean;
+          bathrooms?: number;
+          bedrooms?: number;
           created_at?: string;
-          estimate_done?: boolean | null;
-          estimated_gdv?: number | null;
+          estimate_done?: boolean;
+          estimated_gdv?: number;
           id?: string;
           name: string;
-          notes?: string | null;
-          photos_done?: boolean | null;
-          postcode?: string | null;
-          property_type?: string | null;
-          purchase_price?: number | null;
-          region?: string | null;
-          report_done?: boolean | null;
-          size?: number | null;
-          size_sqm?: number | null;
+          notes?: string;
+          photos_done?: boolean;
+          postcode?: string;
+          property_type: string;
+          purchase_price?: number;
+          region: string;
+          report_done?: boolean;
+          size_sqm?: number;
           status?: string;
-          target_margin?: number | null;
-          updated_at?: string;
           user_id: string;
         };
         Update: {
           address?: string;
-          analysis_done?: boolean | null;
-          bathrooms?: number | null;
-          bedrooms?: number | null;
+          analysis_done?: boolean;
+          bathrooms?: number;
+          bedrooms?: number;
           created_at?: string;
-          estimate_done?: boolean | null;
-          estimated_gdv?: number | null;
+          estimate_done?: boolean;
+          estimated_gdv?: number;
           id?: string;
           name?: string;
-          notes?: string | null;
-          photos_done?: boolean | null;
-          postcode?: string | null;
-          property_type?: string | null;
-          purchase_price?: number | null;
-          region?: string | null;
-          report_done?: boolean | null;
-          size?: number | null;
-          size_sqm?: number | null;
+          notes?: string;
+          photos_done?: boolean;
+          postcode?: string;
+          property_type?: string;
+          purchase_price?: number;
+          region?: string;
+          report_done?: boolean;
+          size_sqm?: number;
           status?: string;
-          target_margin?: number | null;
-          updated_at?: string;
           user_id?: string;
         };
         Relationships: [];
       };
       public_gallery_projects: {
         Row: {
-          budget: number | null;
           cover_image_url: string | null;
           created_at: string;
-          created_by: string;
           description: string | null;
           featured: boolean;
           id: string;
           is_public: boolean;
-          is_published: boolean;
-          location: string | null;
           project_id: string;
-          published_at: string | null;
-          roi: number | null;
-          slug: string;
-          style: string | null;
-          summary: string | null;
-          title: string;
+          title: string | null;
           updated_at: string;
           view_count: number;
         };
         Insert: {
-          budget?: number | null;
           cover_image_url?: string | null;
           created_at?: string;
-          created_by: string;
           description?: string | null;
           featured?: boolean;
           id?: string;
           is_public?: boolean;
-          is_published?: boolean;
-          location?: string | null;
           project_id: string;
-          published_at?: string | null;
-          roi?: number | null;
-          slug: string;
-          style?: string | null;
-          summary?: string | null;
-          title: string;
+          title?: string | null;
           updated_at?: string;
           view_count?: number;
         };
         Update: {
-          budget?: number | null;
           cover_image_url?: string | null;
           created_at?: string;
-          created_by?: string;
           description?: string | null;
           featured?: boolean;
           id?: string;
           is_public?: boolean;
-          is_published?: boolean;
-          location?: string | null;
           project_id?: string;
-          published_at?: string | null;
-          roi?: number | null;
-          slug?: string;
-          style?: string | null;
-          summary?: string | null;
-          title?: string;
+          title?: string | null;
           updated_at?: string;
           view_count?: number;
         };
@@ -1421,10 +1286,10 @@ export type Database = {
         Row: {
           created_at: string;
           id: string;
-          message: string;
+          message: string | null;
           project_id: string;
+          proposed_price: number | null;
           status: string;
-          title: string;
           tradesperson_id: string;
           updated_at: string;
           user_id: string;
@@ -1432,10 +1297,10 @@ export type Database = {
         Insert: {
           created_at?: string;
           id?: string;
-          message: string;
+          message?: string | null;
           project_id: string;
+          proposed_price?: number | null;
           status?: string;
-          title: string;
           tradesperson_id: string;
           updated_at?: string;
           user_id: string;
@@ -1443,10 +1308,10 @@ export type Database = {
         Update: {
           created_at?: string;
           id?: string;
-          message?: string;
+          message?: string | null;
           project_id?: string;
+          proposed_price?: number | null;
           status?: string;
-          title?: string;
           tradesperson_id?: string;
           updated_at?: string;
           user_id?: string;
@@ -1471,48 +1336,29 @@ export type Database = {
       redesign_concepts: {
         Row: {
           created_at: string;
-          description: string | null;
           id: string;
-          image_url: string | null;
-          photo_id: string | null;
+          payload: Json;
           project_id: string;
-          style: string | null;
-          title: string;
-          updated_at: string;
+          style: string;
           user_id: string;
         };
         Insert: {
           created_at?: string;
-          description?: string | null;
           id?: string;
-          image_url?: string | null;
-          photo_id?: string | null;
+          payload: Json;
           project_id: string;
-          style?: string | null;
-          title: string;
-          updated_at?: string;
+          style: string;
           user_id: string;
         };
         Update: {
           created_at?: string;
-          description?: string | null;
           id?: string;
-          image_url?: string | null;
-          photo_id?: string | null;
+          payload?: Json;
           project_id?: string;
-          style?: string | null;
-          title?: string;
-          updated_at?: string;
+          style?: string;
           user_id?: string;
         };
         Relationships: [
-          {
-            foreignKeyName: "redesign_concepts_photo_id_fkey";
-            columns: ["photo_id"];
-            isOneToOne: false;
-            referencedRelation: "photos";
-            referencedColumns: ["id"];
-          },
           {
             foreignKeyName: "redesign_concepts_project_id_fkey";
             columns: ["project_id"];
@@ -1533,12 +1379,12 @@ export type Database = {
           photo_name: string;
           photo_url: string;
           project_id: string;
-          recommended_works: string[];
+          recommended_works: Json;
           refurbishment_level: string;
           room_type: string;
-          source: string | null;
+          source: string;
           user_id: string;
-          visible_issues: string[];
+          visible_issues: Json;
         };
         Insert: {
           ai_summary?: string;
@@ -1550,12 +1396,12 @@ export type Database = {
           photo_name: string;
           photo_url: string;
           project_id: string;
-          recommended_works?: string[];
+          recommended_works?: Json;
           refurbishment_level: string;
           room_type: string;
-          source?: string | null;
+          source?: string;
           user_id: string;
-          visible_issues?: string[];
+          visible_issues?: Json;
         };
         Update: {
           ai_summary?: string;
@@ -1567,12 +1413,12 @@ export type Database = {
           photo_name?: string;
           photo_url?: string;
           project_id?: string;
-          recommended_works?: string[];
+          recommended_works?: Json;
           refurbishment_level?: string;
           room_type?: string;
-          source?: string | null;
+          source?: string;
           user_id?: string;
-          visible_issues?: string[];
+          visible_issues?: Json;
         };
         Relationships: [
           {
@@ -1918,30 +1764,24 @@ export type Database = {
       };
       trade_messages: {
         Row: {
-          body: string;
+          content: string;
           created_at: string;
           id: string;
           quote_request_id: string;
-          read_at: string | null;
-          recipient_id: string;
           sender_id: string;
         };
         Insert: {
-          body: string;
+          content: string;
           created_at?: string;
           id?: string;
           quote_request_id: string;
-          read_at?: string | null;
-          recipient_id: string;
           sender_id: string;
         };
         Update: {
-          body?: string;
+          content?: string;
           created_at?: string;
           id?: string;
           quote_request_id?: string;
-          read_at?: string | null;
-          recipient_id?: string;
           sender_id?: string;
         };
         Relationships: [
@@ -2113,64 +1953,49 @@ export type Database = {
       };
       tradespeople: {
         Row: {
-          availability: string;
           bio: string | null;
           business_name: string;
           contact_name: string;
           created_at: string;
           email: string | null;
           id: string;
-          is_verified: boolean;
-          location: string | null;
+          insurance_status: string;
           phone: string | null;
           postcode: string | null;
-          rating: number;
-          review_count: number;
-          specialties: string[];
-          trade_type: string;
+          rating: number | null;
+          review_count: number | null;
           updated_at: string;
-          user_id: string | null;
-          website: string | null;
+          user_id: string;
         };
         Insert: {
-          availability?: string;
           bio?: string | null;
           business_name: string;
           contact_name: string;
           created_at?: string;
           email?: string | null;
           id?: string;
-          is_verified?: boolean;
-          location?: string | null;
+          insurance_status?: string;
           phone?: string | null;
           postcode?: string | null;
-          rating?: number;
-          review_count?: number;
-          specialties?: string[];
-          trade_type: string;
+          rating?: number | null;
+          review_count?: number | null;
           updated_at?: string;
-          user_id?: string | null;
-          website?: string | null;
+          user_id: string;
         };
         Update: {
-          availability?: string;
           bio?: string | null;
           business_name?: string;
           contact_name?: string;
           created_at?: string;
           email?: string | null;
           id?: string;
-          is_verified?: boolean;
-          location?: string | null;
+          insurance_status?: string;
           phone?: string | null;
           postcode?: string | null;
-          rating?: number;
-          review_count?: number;
-          specialties?: string[];
-          trade_type?: string;
+          rating?: number | null;
+          review_count?: number | null;
           updated_at?: string;
-          user_id?: string | null;
-          website?: string | null;
+          user_id?: string;
         };
         Relationships: [];
       };
@@ -2179,15 +2004,11 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      generate_pkce_pair: {
-        Args: never;
-        Returns: {
-          code_challenge: string;
-          code_verifier: string;
-        }[];
-      };
       is_admin: { Args: never; Returns: boolean };
-      is_project_owner: { Args: { p_project_id: string }; Returns: boolean };
+      measured_boq_catalog_assert_parent_draft: {
+        Args: { p_revision: string };
+        Returns: undefined;
+      };
       measured_boq_catalog_is_trusted_lifecycle_owner: {
         Args: never;
         Returns: boolean;
@@ -2227,6 +2048,7 @@ export type Database = {
           id: string;
           owner_user_id: string;
           study_id: string;
+          visibility: string;
         }[];
       };
       uuid_v7: { Args: never; Returns: string };
