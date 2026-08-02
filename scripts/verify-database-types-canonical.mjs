@@ -19,7 +19,7 @@
  *
  * Optional env (tests / controlled probes only):
  *   VERIFY_DB_TYPES_CANONICAL_INJECT_GEN=fail|empty|partial
- *   VERIFY_DB_TYPES_CANONICAL_INJECT_FORMAT=fail
+ *   VERIFY_DB_TYPES_CANONICAL_INJECT_FORMAT=fail|bare
  *   VERIFY_DB_TYPES_CANONICAL_INJECT_CLEANUP=fail
  */
 
@@ -189,8 +189,23 @@ export type Database = {
  * @param {string} filePath
  */
 function formatGenerated(filePath) {
-  if (process.env.VERIFY_DB_TYPES_CANONICAL_INJECT_FORMAT === "fail") {
+  const inject = process.env.VERIFY_DB_TYPES_CANONICAL_INJECT_FORMAT;
+  if (inject === "fail") {
     fail("injected formatter failure");
+  }
+  // Non-authoritative bare prettier — must not match project-formatted tracked file.
+  if (inject === "bare") {
+    const bare = spawnSync("pnpm", ["exec", "prettier", "--write", filePath], {
+      cwd: ROOT,
+      encoding: "utf8",
+      env: process.env,
+    });
+    if (bare.status !== 0) {
+      fail(
+        `bare prettier formatting failed (exit ${bare.status}): ${bare.stderr || bare.stdout || "no output"}`,
+      );
+    }
+    return;
   }
   const res = spawnSync(
     "pnpm",

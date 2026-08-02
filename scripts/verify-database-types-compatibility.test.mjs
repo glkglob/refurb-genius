@@ -131,15 +131,30 @@ test("injected formatter failure restores tracked file", () => {
   assert.equal(gitStatus(), statusBefore);
 });
 
+/** Authoritative tracked checksum after P1B6 adoption (project Prettier config). */
+const CANONICAL_TRACKED_CHECKSUM =
+  "f7eca55bb06144ed7bfcc7f5dd27af1ad7d9f2a24d4191134566f5e092adebf8";
+/** Non-authoritative bare Prettier (defaults only; external temp path). */
+const BARE_FORMATTED_CHECKSUM = "84c292ccbbfb9236282326c165bf29a27ae720a4eb063b492b7a30fb0a8611a8";
+
 /**
  * Shared post-condition for successful generation+typecheck outcomes
  * (COMPATIBLE or INCOMPATIBLE). HARNESS_ERROR paths restore separately.
+ * Generated formatted checksum must equal the tracked canonical bytes.
  */
 function assertSuccessfulRunCleanup(out, hashBefore, statusBefore) {
-  assert.match(
-    out,
-    /GeneratedFormattedChecksum: 84c292ccbbfb9236282326c165bf29a27ae720a4eb063b492b7a30fb0a8611a8/,
+  assert.match(out, new RegExp(`GeneratedFormattedChecksum: ${CANONICAL_TRACKED_CHECKSUM}`));
+  assert.match(out, /FormatterCommand:.*--config/);
+  // Compatibility harness and full-file gate must converge on one checksum.
+  const genMatch = out.match(/GeneratedFormattedChecksum: ([0-9a-f]{64})/);
+  const trackedBeforeMatch = out.match(/TrackedChecksumBefore: ([0-9a-f]{64})/);
+  assert.ok(genMatch && trackedBeforeMatch, "checksum fields missing from harness output");
+  assert.equal(
+    genMatch[1],
+    trackedBeforeMatch[1],
+    "generated formatted checksum must equal tracked checksum",
   );
+  assert.equal(genMatch[1], hashBefore);
   assert.match(out, /TrackedChecksumRestored: true/);
   assert.match(out, /WorkingTreeRestored: true/);
   assert.match(out, /TemporaryResourcesCleaned: true/);
@@ -159,12 +174,11 @@ test("full harness: progressive INCOMPATIBLE or terminal COMPATIBLE, restore whe
 
   const statusBefore = gitStatus();
   const hashBefore = sha256File(TRACKED);
-  // Expected tracked checksum after P1B6 canonical full-file adoption.
-  // Complete generate --local --schema public, then prettier with project
-  // .prettierrc (printWidth 100). Differs from bare-default prettier output.
+  // P1B6R: tracked file uses project .prettierrc (explicit or repo-discovered).
+  // Bare prettier on external temp paths is NOT canonical.
   assert.equal(
     hashBefore,
-    "f7eca55bb06144ed7bfcc7f5dd27af1ad7d9f2a24d4191134566f5e092adebf8",
+    CANONICAL_TRACKED_CHECKSUM,
     "tracked types checksum drifted from canonical baseline",
   );
 
@@ -252,6 +266,42 @@ test("injected typecheck ok path yields COMPATIBLE without leaving dirt", () => 
   assert.equal(Number(diagMatch[1]), 0);
   assert.equal(Number(fileMatch[1]), 0);
   assertSuccessfulRunCleanup(out, hashBefore, statusBefore);
+});
+
+test("bare (non-authoritative) formatter produces checksum disagreement with tracked", () => {
+  const statusProbe = spawnSync("pnpm", ["exec", "supabase", "status"], {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  if (statusProbe.status !== 0) {
+    console.log("skip bare-formatter inject: local Supabase unavailable");
+    return;
+  }
+
+  const statusBefore = gitStatus();
+  const hashBefore = sha256File(TRACKED);
+  assert.equal(hashBefore, CANONICAL_TRACKED_CHECKSUM);
+
+  const res = runHarness({
+    VERIFY_DB_TYPES_COMPAT_INJECT_FORMAT: "bare",
+    VERIFY_DB_TYPES_COMPAT_INJECT_TYPECHECK: "ok",
+  });
+  const out = `${res.stdout}${res.stderr}`;
+  // Typecheck may still pass (whitespace-only); contract requires checksum equality.
+  const genMatch = out.match(/GeneratedFormattedChecksum: ([0-9a-f]{64})/);
+  assert.ok(genMatch, "GeneratedFormattedChecksum missing");
+  assert.equal(
+    genMatch[1],
+    BARE_FORMATTED_CHECKSUM,
+    "bare inject must produce historical bare-prettier checksum",
+  );
+  assert.notEqual(
+    genMatch[1],
+    hashBefore,
+    "bare formatter must disagree with tracked canonical checksum",
+  );
+  assert.equal(sha256File(TRACKED), hashBefore, "tracked file must be restored");
+  assert.equal(gitStatus(), statusBefore);
 });
 
 test("injected typecheck fail path yields INCOMPATIBLE with non-zero diagnostics", () => {

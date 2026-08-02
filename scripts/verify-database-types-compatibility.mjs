@@ -20,7 +20,7 @@
  *
  * Optional env (tests / controlled probes only):
  *   VERIFY_DB_TYPES_COMPAT_INJECT_GEN=fail|empty
- *   VERIFY_DB_TYPES_COMPAT_INJECT_FORMAT=fail
+ *   VERIFY_DB_TYPES_COMPAT_INJECT_FORMAT=fail|bare
  *   VERIFY_DB_TYPES_COMPAT_INJECT_TYPECHECK=fail|ok
  *   VERIFY_DB_TYPES_COMPAT_ALLOW_DIRTY=1  (allow unrelated dirty files; tracked types must still be clean)
  */
@@ -49,6 +49,15 @@ const EXIT = {
   HARNESS_ERROR: 1,
   INCOMPATIBLE: 2,
 };
+
+/** Same generation + formatter contract as the full-file canonical verifier. */
+const CANONICAL_COMMAND =
+  "SUPABASE_DB_PASSWORD=postgres pnpm exec supabase gen types typescript --local --schema public";
+// Always pass project .prettierrc — formatting temp paths outside the repo
+// otherwise falls back to Prettier defaults (printWidth 80) and drifts from
+// in-repo / eslint-plugin-prettier output (printWidth 100).
+const PRETTIER_CONFIG = join(ROOT, ".prettierrc");
+const FORMATTER_COMMAND = "pnpm exec prettier --write --config <repo>/.prettierrc <generated-file>";
 
 const CANONICAL_GEN_ARGS = [
   "exec",
@@ -220,17 +229,37 @@ function generateCanonical(outPath) {
 }
 
 /**
+ * Authoritative project-config formatter (shared contract with full-file verifier).
  * @param {string} filePath
  */
 function formatGenerated(filePath) {
-  if (process.env.VERIFY_DB_TYPES_COMPAT_INJECT_FORMAT === "fail") {
+  const inject = process.env.VERIFY_DB_TYPES_COMPAT_INJECT_FORMAT;
+  if (inject === "fail") {
     harnessError("injected formatter failure");
   }
-  const res = spawnSync("pnpm", ["exec", "prettier", "--write", filePath], {
-    cwd: ROOT,
-    encoding: "utf8",
-    env: process.env,
-  });
+  // Non-authoritative bare prettier (defaults only) — tests prove checksum drift.
+  if (inject === "bare") {
+    const bare = spawnSync("pnpm", ["exec", "prettier", "--write", filePath], {
+      cwd: ROOT,
+      encoding: "utf8",
+      env: process.env,
+    });
+    if (bare.status !== 0) {
+      harnessError(
+        `bare prettier formatting failed (exit ${bare.status}): ${bare.stderr || bare.stdout || "no output"}`,
+      );
+    }
+    return;
+  }
+  const res = spawnSync(
+    "pnpm",
+    ["exec", "prettier", "--write", "--config", PRETTIER_CONFIG, filePath],
+    {
+      cwd: ROOT,
+      encoding: "utf8",
+      env: process.env,
+    },
+  );
   if (res.status !== 0) {
     harnessError(
       `prettier formatting failed (exit ${res.status}): ${res.stderr || res.stdout || "no output"}`,
@@ -314,9 +343,8 @@ export function runCompatibilityCheck(opts = {}) {
   const summary = {
     Status: "HARNESS_ERROR",
     RepositoryHEAD: head,
-    CanonicalCommand:
-      "SUPABASE_DB_PASSWORD=postgres pnpm exec supabase gen types typescript --local --schema public",
-    FormatterCommand: "pnpm exec prettier --write <generated-file>",
+    CanonicalCommand: CANONICAL_COMMAND,
+    FormatterCommand: FORMATTER_COMMAND,
     TypecheckCommand: "pnpm typecheck",
     TrackedTypeFile: TRACKED_REL,
     TrackedChecksumBefore: trackedChecksumBefore,

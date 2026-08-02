@@ -164,6 +164,31 @@ test("partial or catalogue-only generated surface fails complete-file verificati
   assert.equal(gitStatus(), statusBefore);
 });
 
+test("bare (non-authoritative) formatter drift fails against project-formatted tracked file", () => {
+  const statusProbe = spawnSync("pnpm", ["exec", "supabase", "status"], {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  if (statusProbe.status !== 0) {
+    console.log("skip bare-formatter drift: local Supabase unavailable");
+    return;
+  }
+
+  const original = readFileSync(TRACKED);
+  const originalHash = sha256(original);
+  const statusBefore = gitStatus();
+
+  // Option A: tracked file uses project config; bare inject yields different bytes.
+  const res = runVerifier({ VERIFY_DB_TYPES_CANONICAL_INJECT_FORMAT: "bare" });
+  assert.notEqual(res.status, 0, "bare formatter must not pass complete-file gate");
+  const combined = `${res.stdout}${res.stderr}`;
+  assert.match(combined, /DRIFT|ByteEquality: false|!= generated/i);
+  assert.match(combined, /FormatterCommand:.*--config/);
+
+  assert.equal(sha256(readFileSync(TRACKED)), originalHash);
+  assert.equal(gitStatus(), statusBefore);
+});
+
 test("tracked file restored after mutation probes and working-tree preserved", () => {
   const statusBefore = gitStatus();
   const original = readFileSync(TRACKED);

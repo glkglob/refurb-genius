@@ -37,6 +37,7 @@
     "supabase:reset": "supabase db reset",
     "supabase:test:db": "supabase test db",
     "supabase:types": "SUPABASE_DB_PASSWORD=postgres supabase gen types typescript --local --schema public",
+    "supabase:types:canonical": "bash -c 'set -euo pipefail; SUPABASE_DB_PASSWORD=postgres pnpm exec supabase gen types typescript --local --schema public > packages/supabase/src/database.types.ts; pnpm exec prettier --write --config .prettierrc packages/supabase/src/database.types.ts'",
     "supabase:lint": "supabase db lint"
   },
   "pnpm": {
