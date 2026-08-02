@@ -615,7 +615,7 @@ select throws_ok(
   'manifest over 1 MiB rejected'
 );
 
--- ── no public lifecycle RPCs ─────────────────────────────────────────────
+-- ── lifecycle RPCs remain absent; B2D may add persist only ───────────────
 select is(
   (
     select count(*)::integer
@@ -623,14 +623,13 @@ select is(
     join pg_catalog.pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
       and p.proname in (
-        'persist_measured_boq_catalog_draft',
         'publish_measured_boq_catalog_revision',
         'retire_measured_boq_catalog_revision',
         'rollback_measured_boq_catalog_publication'
       )
   ),
   0,
-  'no public persist/publish/retire/rollback RPCs exist'
+  'no public publish/retire/rollback RPCs exist'
 );
 
 -- ── no active pointer ────────────────────────────────────────────────────

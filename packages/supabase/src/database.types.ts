@@ -2040,6 +2040,22 @@ export type Database = {
         };
         Returns: Json;
       };
+      persist_measured_boq_catalog_draft: {
+        Args: {
+          p_catalog_revision: string;
+          p_content_checksum: string;
+          p_input_checksum: string;
+          p_manifest_text: string;
+          p_manifest_version: number;
+          p_normaliser_version: string;
+          p_normalized_entries: Json;
+          p_request_id: string;
+          p_snapshot_text: string;
+          p_source_id: string;
+          p_validation_report: Json;
+        };
+        Returns: Json;
+      };
       resolve_share_link: {
         Args: { p_token: string };
         Returns: {
