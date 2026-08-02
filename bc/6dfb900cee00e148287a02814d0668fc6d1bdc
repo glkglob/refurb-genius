@@ -1,0 +1,16 @@
+src/lib/photo-analysis-write.test.ts
+  h_7ea6129503670a 4,8-10,23-46,87,122-162,183,197-207
+src/lib/photo-analysis-write.ts
+  h_7ea6129503670a 2,11,25-27,29,35-59,69-79,84-92,94,100-101,104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "bc6dfb900cee00e148287a02814d0668fc6d1bdc",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
