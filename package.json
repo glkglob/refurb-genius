@@ -14,6 +14,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "admin:bootstrap": "tsx scripts/bootstrap-admin.ts",
+    "catalogue:dry-run": "tsx scripts/catalogue-dry-run.ts",
     "test:invariants": "TSX_TSCONFIG_PATH=./tsconfig.json tsx --test tests/invariants/*.test.ts",
     "test:ui": "vitest run",
     "test:ui:watch": "vitest",

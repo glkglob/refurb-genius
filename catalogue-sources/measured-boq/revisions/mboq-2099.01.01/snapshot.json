@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "mboq-catalogue-v1",
+  "catalogRevision": "mboq-2099.01.01",
+  "currency": "GBP",
+  "vatBasis": "exclusive",
+  "regionalBasis": "uk-region-multipliers-v1",
+  "effectiveFrom": "2099-01-01",
+  "sourceDescription": "SYNTHETIC EXAMPLE PACKAGE — fictional rates for dry-run tooling only. Not production or commercial data.",
+  "production": false,
+  "status": "draft",
+  "entries": [
+    {
+      "rateKey": "synth.wall.paint.m2",
+      "displayName": "SYNTHETIC wall paint",
+      "tradeOrDomain": "test-decoration",
+      "unit": "sqm",
+      "costType": "materials",
+      "baseUnitRate": "12.5000",
+      "sourceReference": "synthetic-example",
+      "status": "active"
+    },
+    {
+      "rateKey": "synth.skirting.m",
+      "displayName": "SYNTHETIC skirting board",
+      "tradeOrDomain": "test-joinery",
+      "unit": "lm",
+      "costType": "labour",
+      "baseUnitRate": "8",
+      "sourceReference": "synthetic-example",
+      "status": "active"
+    },
+    {
+      "rateKey": "synth.socket.item",
+      "displayName": "SYNTHETIC electrical socket",
+      "tradeOrDomain": "test-electrical",
+      "unit": "each",
+      "costType": "combined",
+      "baseUnitRate": "25.5",
+      "sourceReference": "synthetic-example",
+      "status": "active"
+    },
+    {
+      "rateKey": "synth.labour.hr",
+      "displayName": "SYNTHETIC labour hour",
+      "tradeOrDomain": "test-labour",
+      "unit": "hours",
+      "costType": "labour",
+      "baseUnitRate": "40",
+      "sourceReference": "synthetic-example",
+      "status": "active"
+    },
+    {
+      "rateKey": "synth.crew.day",
+      "displayName": "SYNTHETIC crew day",
+      "tradeOrDomain": "test-labour",
+      "unit": "day",
+      "costType": "labour",
+      "baseUnitRate": "320",
+      "sourceReference": "synthetic-example",
+      "status": "active"
+    },
+    {
+      "rateKey": "synth.old.paint.m2",
+      "displayName": "SYNTHETIC deprecated paint",
+      "tradeOrDomain": "test-decoration",
+      "unit": "m²",
+      "costType": "combined",
+      "baseUnitRate": "9.9999",
+      "sourceReference": "synthetic-example",
+      "status": "deprecated",
+      "replacementRateKey": "synth.wall.paint.m2"
+    }
+  ]
+}

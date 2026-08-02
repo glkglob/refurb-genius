@@ -21,6 +21,8 @@ export default defineConfig({
       "packages/services/src/uk-region/**/*.{test,spec}.{ts,tsx}",
       "packages/services/src/pricing/pricingEngine.test.ts",
       "packages/services/src/measured-boq/**/*.{test,spec}.{ts,tsx}",
+      // 4C2E-B1C catalogue dry-run CLI smoke tests (process-level)
+      "scripts/**/*.{test,spec}.{ts,tsx}",
     ],
     exclude: ["tests/invariants/**/*.test.{ts,tsx}"],
     coverage: {
