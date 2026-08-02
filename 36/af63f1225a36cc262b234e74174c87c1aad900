@@ -1,0 +1,26 @@
+packages/supabase/src/database.types.ts
+  h_7ea6129503670a 412-556,567-570,572-573,577-579,582,596-599,601-602,606-608,611,625-628,630-631,635-637,640,2191-2198
+supabase/migrations/20260802060000_measured_boq_catalogue_persistence_foundation.sql
+  h_7ea6129503670a 1-808
+supabase/tests/database/measured_boq_catalogue_persistence_foundation.test.sql
+  h_7ea6129503670a 1-537
+tests/invariants/config/data/database-inventory.ts
+  h_7ea6129503670a 114-116,128-160
+tests/invariants/config/data/domains.ts
+  h_7ea6129503670a 90-91,98,105
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 70
+tests/invariants/data-architecture-registry.invariant.test.ts
+  h_7ea6129503670a 292
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "36af63f1225a36cc262b234e74174c87c1aad900",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
