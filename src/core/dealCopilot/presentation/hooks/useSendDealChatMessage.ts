@@ -24,6 +24,13 @@ export interface UseSendDealChatMessageOptions {
   onOptimisticClearDraft?: () => void;
 }
 
+/**
+ * Migration-built deal_messages includes image_urls text[] NOT NULL.
+ * Tracked generated types omit the column until full canonical adoption (B6).
+ * Intersection keeps both typecheck surfaces valid without handwritten gen edits.
+ */
+export type DealMessageCacheRow = DealMessageRow & { image_urls: string[] };
+
 type SendResult = {
   userMessage: DealMessageRow;
   assistantMessage: DealMessageRow;
@@ -57,15 +64,19 @@ export function useSendDealChatMessage(options: UseSendDealChatMessageOptions) {
       const key = dealChatKeys.messages(threadId);
       await queryClient.cancelQueries({ queryKey: key });
       const prev = queryClient.getQueryData<DealMessageRow[]>(key) ?? [];
-      const optimistic: DealMessageRow = {
+      const optimistic: DealMessageCacheRow = {
         id: `opt-${Date.now()}`,
         thread_id: threadId,
         role: "user",
         content,
         structured_output: null,
         metadata: {},
+        // Canonical deal_messages.image_urls is NOT NULL text[] (default '{}').
+        // Text-only optimistic rows must supply an empty array, never undefined.
+        image_urls: [],
         created_at: new Date().toISOString(),
       };
+      // Cache is typed as DealMessageRow[]; migration field is additive.
       queryClient.setQueryData<DealMessageRow[]>(key, [...prev, optimistic]);
       clearDraftRef.current?.();
       return { prev };
