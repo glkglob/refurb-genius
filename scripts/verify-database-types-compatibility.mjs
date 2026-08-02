@@ -152,14 +152,27 @@ function trackedFileDirty(status) {
 }
 
 /**
+ * Explicit typed failure for the compatibility harness.
+ * Avoids mutating plain Error with ad-hoc properties under suppression.
+ */
+export class DatabaseTypesHarnessError extends Error {
+  /**
+   * @param {string} message
+   */
+  constructor(message) {
+    super(message);
+    this.name = "DatabaseTypesHarnessError";
+    /** @type {"HARNESS_ERROR"} */
+    this.harnessCode = "HARNESS_ERROR";
+  }
+}
+
+/**
  * @param {string} message
  * @returns {never}
  */
 function harnessError(message) {
-  const err = new Error(message);
-  // @ts-expect-error attach code
-  err.harnessCode = "HARNESS_ERROR";
-  throw err;
+  throw new DatabaseTypesHarnessError(message);
 }
 
 function assertTools() {

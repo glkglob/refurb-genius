@@ -70,14 +70,27 @@ export function sha256File(filePath) {
 }
 
 /**
+ * Explicit typed failure for the full-file canonical verifier.
+ * Avoids mutating plain Error with ad-hoc properties under suppression.
+ */
+export class CanonicalVerifyError extends Error {
+  /**
+   * @param {string} message
+   */
+  constructor(message) {
+    super(message);
+    this.name = "CanonicalVerifyError";
+    /** @type {"CANONICAL_VERIFY_ERROR"} */
+    this.canonicalCode = "CANONICAL_VERIFY_ERROR";
+  }
+}
+
+/**
  * @param {string} message
  * @returns {never}
  */
 function fail(message) {
-  const err = new Error(message);
-  // @ts-expect-error attach code for tests
-  err.canonicalCode = "CANONICAL_VERIFY_ERROR";
-  throw err;
+  throw new CanonicalVerifyError(message);
 }
 
 function assertTools() {

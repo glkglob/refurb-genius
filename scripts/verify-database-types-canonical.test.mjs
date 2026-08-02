@@ -11,12 +11,28 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync, execFileSync } from "node:child_process";
 import test from "node:test";
-import { sha256File } from "./verify-database-types-canonical.mjs";
+import { CanonicalVerifyError, sha256File } from "./verify-database-types-canonical.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPT = join(ROOT, "scripts/verify-database-types-canonical.mjs");
 const TRACKED = join(ROOT, "packages/supabase/src/database.types.ts");
 const TRACKED_REL = "packages/supabase/src/database.types.ts";
+
+test("CanonicalVerifyError preserves message, name, code, and stack without suppression", () => {
+  const err = new CanonicalVerifyError("typed probe");
+  assert.equal(err.message, "typed probe");
+  assert.equal(err.name, "CanonicalVerifyError");
+  assert.equal(err.canonicalCode, "CANONICAL_VERIFY_ERROR");
+  assert.ok(err.stack && err.stack.includes("CanonicalVerifyError"));
+  assert.ok(err instanceof Error);
+  assert.ok(err instanceof CanonicalVerifyError);
+});
+
+test("production canonical verifier source has no TypeScript suppressions", () => {
+  const src = readFileSync(SCRIPT, "utf8");
+  assert.doesNotMatch(src, /@ts-expect-error|@ts-ignore|ts-nocheck|eslint-disable/);
+  assert.doesNotMatch(src, /\bas any\b|as unknown as|unknown as/);
+});
 
 function sha256(buf) {
   return createHash("sha256").update(buf).digest("hex");
