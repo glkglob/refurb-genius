@@ -1,0 +1,44 @@
+package.json
+  h_7ea6129503670a 18
+packages/services/src/measured-boq/catalogue/manifestTypes.ts
+  h_7ea6129503670a 128-132
+packages/services/src/measured-boq/catalogue/runCatalogueDryRun.ts
+  h_7ea6129503670a 265-268
+packages/supabase/src/database.types.ts
+  h_7ea6129503670a 2043-2058
+scripts/catalogue-persist.ts
+  h_7ea6129503670a 1-308
+scripts/verify-database-types-compatibility.test.mjs
+  h_7ea6129503670a 154,156,158
+src/features/estimate/application/measuredBoq/persistMeasuredBoqCatalogueDraft.server.test.ts
+  h_7ea6129503670a 1-75
+src/features/estimate/application/measuredBoq/persistMeasuredBoqCatalogueDraft.server.ts
+  h_7ea6129503670a 1-331
+src/features/estimate/infrastructure/catalogue/measuredBoqCataloguePersistence.repository.server.test.ts
+  h_7ea6129503670a 1-32
+src/features/estimate/infrastructure/catalogue/measuredBoqCataloguePersistence.repository.server.ts
+  h_7ea6129503670a 1-189
+supabase/migrations/20260802233000_persist_measured_boq_catalog_draft.sql
+  h_7ea6129503670a 1-531
+supabase/tests/database/measured_boq_catalogue_persistence_foundation.test.sql
+  h_7ea6129503670a 618,632
+supabase/tests/database/persist_measured_boq_catalog_draft.test.sql
+  h_7ea6129503670a 1-342
+tests/invariants/catalogue-dry-run-boundary.test.ts
+  h_7ea6129503670a 35,39,41-44,47-48
+tests/invariants/catalogue-persist-boundary.test.ts
+  h_7ea6129503670a 1-64
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "5f83c0bc86675a7cebc81c175d937ab75ee2c66c",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
