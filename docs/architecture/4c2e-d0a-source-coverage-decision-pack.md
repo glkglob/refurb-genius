@@ -505,7 +505,7 @@ Long-lived rates older than 365 days: **blocking** unless an explicit SME/Produc
 
 **Status: PROPOSED — PRODUCT AND SME SIGN-OFF REQUIRED**
 
-Canonical units for catalogue: `m2` | `m` | `item` | `hr` | `day`.  
+Canonical units for catalogue: `m2` | `m` | `item` | `hr` | `day`.
 Cost types: `labour` | `materials` | `combined`.
 
 | Domain | Definition | Included work (examples) | Excluded work (examples) | Overlap | Safety/compliance | Expected units | Expected cost types | Product owner | SME owner | Pilot | Production |
