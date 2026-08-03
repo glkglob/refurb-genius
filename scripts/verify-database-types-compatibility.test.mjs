@@ -151,11 +151,11 @@ test("injected formatter failure restores tracked file", () => {
   assert.equal(gitStatus(), statusBefore);
 });
 
-/** Authoritative tracked checksum after B2D RPC adoption (project Prettier config). */
+/** Authoritative tracked checksum after B2E lifecycle RPC adoption (project Prettier config). */
 const CANONICAL_TRACKED_CHECKSUM =
-  "f2254b274e9e23d51640e5c2da6ce82c135910d1c559f1cb90f0e68e6249fceb";
+  "83d0e2c3311e3a66e94fbe0553d0132d53096c7a920eee84572d05331c4c6ff6";
 /** Non-authoritative bare Prettier (defaults only; external temp path). */
-const BARE_FORMATTED_CHECKSUM = "33f6cfd19fed52b8206c346d44804ad19ac2fa7837bf338d5c6312a8754a858f";
+const BARE_FORMATTED_CHECKSUM = "60a1c8303fd19724ec3e7993e84a5352e555b36f9245d8909f356b81506d3f9f";
 
 /**
  * Shared post-condition for successful generation+typecheck outcomes

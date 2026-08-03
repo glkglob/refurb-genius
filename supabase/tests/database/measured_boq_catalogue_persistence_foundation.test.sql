@@ -615,21 +615,16 @@ select throws_ok(
   'manifest over 1 MiB rejected'
 );
 
--- ── lifecycle RPCs remain absent; B2D may add persist only ───────────────
-select is(
+-- ── B2E may add the exact lifecycle trio; no extra activation RPCs ───────
+select ok(
   (
     select count(*)::integer
     from pg_catalog.pg_proc p
     join pg_catalog.pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public'
-      and p.proname in (
-        'publish_measured_boq_catalog_revision',
-        'retire_measured_boq_catalog_revision',
-        'rollback_measured_boq_catalog_publication'
-      )
-  ),
-  0,
-  'no public publish/retire/rollback RPCs exist'
+      and p.proname ~ '(activate|republish|set_active).*measured_boq'
+  ) = 0,
+  'no active-pointer or republish RPCs exist'
 );
 
 -- ── no active pointer ────────────────────────────────────────────────────

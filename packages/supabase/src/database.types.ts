@@ -2013,6 +2013,18 @@ export type Database = {
         Args: never;
         Returns: boolean;
       };
+      measured_boq_catalog_lifecycle_result: {
+        Args: {
+          p_event_id: string;
+          p_idempotent_replay: boolean;
+          p_new_status: string;
+          p_outcome: string;
+          p_previous_status: string;
+          p_request_id: string;
+          p_revision_id: string;
+        };
+        Returns: Json;
+      };
       measured_boq_package_input_checksum: {
         Args: { p_manifest_text: string; p_snapshot_text: string };
         Returns: string;
@@ -2056,6 +2068,14 @@ export type Database = {
         };
         Returns: Json;
       };
+      publish_measured_boq_catalog_revision: {
+        Args: {
+          p_expected_status: string;
+          p_request_id: string;
+          p_revision_id: string;
+        };
+        Returns: Json;
+      };
       resolve_share_link: {
         Args: { p_token: string };
         Returns: {
@@ -2066,6 +2086,25 @@ export type Database = {
           study_id: string;
           visibility: string;
         }[];
+      };
+      retire_measured_boq_catalog_revision: {
+        Args: {
+          p_expected_status: string;
+          p_reason: string;
+          p_request_id: string;
+          p_revision_id: string;
+        };
+        Returns: Json;
+      };
+      rollback_measured_boq_catalog_publication: {
+        Args: {
+          p_expected_status: string;
+          p_prior_revision_id: string;
+          p_reason: string;
+          p_request_id: string;
+          p_revision_id: string;
+        };
+        Returns: Json;
       };
       uuid_v7: { Args: never; Returns: string };
     };

@@ -299,21 +299,23 @@ SELECT ok(
   'JWT roles still have no catalogue table access'
 );
 
--- ── no lifecycle RPCs ───────────────────────────────────────────────
-SELECT is(
+-- ── B2D does not invent extra lifecycle command surfaces ────────────
+-- B2E owns the three authorised lifecycle RPCs; B2D only adds persist.
+SELECT ok(
   (
     SELECT count(*)::int
     FROM pg_proc p
     JOIN pg_namespace n ON n.oid = p.pronamespace
     WHERE n.nspname = 'public'
-      AND p.proname IN (
+      AND p.proname ~ 'measured_boq_catalog'
+      AND p.proname ~ '(publish|retire|rollback|activate|republish|set_active)'
+      AND p.proname NOT IN (
         'publish_measured_boq_catalog_revision',
         'retire_measured_boq_catalog_revision',
         'rollback_measured_boq_catalog_publication'
       )
-  ),
-  0,
-  'no lifecycle RPCs introduced by B2D'
+  ) = 0,
+  'no unauthorised lifecycle/activation RPCs beyond B2E trio'
 );
 
 -- ── checksum helper still private ───────────────────────────────────

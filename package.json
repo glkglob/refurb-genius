@@ -41,7 +41,9 @@
     "supabase:types:canonical": "bash -c 'set -euo pipefail; SUPABASE_DB_PASSWORD=postgres pnpm exec supabase gen types typescript --local --schema public > packages/supabase/src/database.types.ts; pnpm exec prettier --write --config .prettierrc packages/supabase/src/database.types.ts'",
     "supabase:lint": "supabase db lint",
     "verify:b2d:persistence-concurrency": "node scripts/verify-b2d-persistence-concurrency.mjs",
-    "verify:b2d:persistence-concurrency:test": "node --test scripts/verify-b2d-persistence-concurrency.test.mjs"
+    "verify:b2d:persistence-concurrency:test": "node --test scripts/verify-b2d-persistence-concurrency.test.mjs",
+    "verify:b2e:lifecycle-concurrency": "node scripts/verify-b2e-lifecycle-concurrency.mjs",
+    "verify:b2e:lifecycle-concurrency:test": "node --test scripts/verify-b2e-lifecycle-concurrency.test.mjs"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
