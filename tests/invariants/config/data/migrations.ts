@@ -70,6 +70,7 @@ export const MIGRATION_FILENAMES = [
   "20260802060000_measured_boq_catalogue_persistence_foundation.sql",
   "20260802233000_persist_measured_boq_catalog_draft.sql",
   "20260803010000_measured_boq_catalogue_lifecycle_rpc.sql",
+  "20260803120000_measured_boq_catalogue_lifecycle_request_identity_repair.sql",
 ] as const;
 
 export const MIGRATION_TIMESTAMP_PATTERN = /^\d{14}_[\w-]+\.sql$/;

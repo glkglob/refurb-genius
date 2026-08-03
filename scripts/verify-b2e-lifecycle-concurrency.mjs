@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 /**
- * 4C2E-B2E — Multi-session concurrency verifier for catalogue lifecycle RPCs.
+ * 4C2E-B2E / B2E1 — Multi-session concurrency verifier for catalogue lifecycle RPCs.
  *
- * Uses independent local psql processes (distinct backend PIDs), row-lock
- * waits via pg_locks / pg_stat_activity, and bounded timeouts.
+ * Uses independent local psql processes (distinct backend PIDs), row-lock and
+ * request-identity advisory waits via pg_locks / pg_stat_activity, and bounded
+ * timeouts.
+ *
+ * B2E1 adds: cross-revision request-ID races, genuine opposite-order rollback,
+ * and cross-pair rollback same request_id conflicts.
  *
  * Local Supabase only. Non-zero exit on any unmet concurrency condition.
  */
@@ -28,6 +32,18 @@ const LABELS = {
   independentA: "mboq-2099.11.07",
   independentB: "mboq-2099.11.08",
   rightsUnverified: "mboq-2099.11.09",
+  // B2E1 cross-revision request identity
+  crossPubA: "mboq-2099.11.10",
+  crossPubB: "mboq-2099.11.11",
+  crossRetA: "mboq-2099.11.12",
+  crossRetB: "mboq-2099.11.13",
+  crossRbTargetA: "mboq-2099.11.14",
+  crossRbPriorA: "mboq-2099.11.15",
+  crossRbTargetB: "mboq-2099.11.16",
+  crossRbPriorB: "mboq-2099.11.17",
+  // Opposite semantic argument order (distinct request IDs)
+  revOrderA: "mboq-2099.11.18",
+  revOrderB: "mboq-2099.11.19",
 };
 
 function nowIso() {
@@ -306,10 +322,27 @@ function withTimeout(promise, ms, onTimeout) {
   });
 }
 
-async function waitForLockWait(dbUrl, applicationNames, timeoutMs = WAIT_TIMEOUT_MS) {
+async function waitForLockWait(
+  dbUrl,
+  applicationNames,
+  timeoutMs = WAIT_TIMEOUT_MS,
+  { preferAdvisory = false } = {},
+) {
   const names = applicationNames.map(sqlLiteral).join(",");
   const started = Date.now();
   while (Date.now() - started < timeoutMs) {
+    if (preferAdvisory) {
+      const adv = psqlSync(
+        dbUrl,
+        `SELECT count(*)::int
+         FROM pg_catalog.pg_stat_activity a
+         JOIN pg_catalog.pg_locks l ON l.pid = a.pid
+         WHERE a.application_name IN (${names})
+           AND NOT l.granted
+           AND l.locktype = 'advisory';`,
+      );
+      if (Number(adv) > 0) return true;
+    }
     const waiting = psqlSync(
       dbUrl,
       `SELECT count(*)::int
@@ -320,7 +353,6 @@ async function waitForLockWait(dbUrl, applicationNames, timeoutMs = WAIT_TIMEOUT
          AND l.locktype = 'relation';`,
     );
     if (Number(waiting) > 0) return true;
-    // Also accept transactionid / tuple waits common for FOR UPDATE
     const anyWait = psqlSync(
       dbUrl,
       `SELECT count(*)::int
@@ -358,6 +390,7 @@ async function runContendedPair({
   callerA,
   callerB,
   requireWait = true,
+  preferAdvisory = false,
 }) {
   const holderPath = join(workDir, `${name}-holder.sql`);
   const aPath = join(workDir, `${name}-a.sql`);
@@ -376,10 +409,12 @@ async function runContendedPair({
   await sleep(400);
   let sawWait = false;
   if (requireWait) {
-    sawWait = await waitForLockWait(dbUrl, [
-      `b2e-caller-${callerA.tag}`,
-      `b2e-caller-${callerB.tag}`,
-    ]);
+    sawWait = await waitForLockWait(
+      dbUrl,
+      [`b2e-caller-${callerA.tag}`, `b2e-caller-${callerB.tag}`],
+      WAIT_TIMEOUT_MS,
+      { preferAdvisory: Boolean(preferAdvisory) },
+    );
   }
 
   // Release holder by terminating it (rollback open TX).
@@ -455,6 +490,22 @@ COMMIT;
 `;
 }
 
+function holderRequestIdentitySql(commandScope, requestId) {
+  // Matches migration: hashtextextended('measured-boq-lifecycle-request:' || scope || ':' || uuid, 0)
+  return `
+BEGIN;
+SELECT set_config('application_name', 'b2e-holder', false);
+SELECT pg_catalog.pg_advisory_xact_lock(
+  pg_catalog.hashtextextended(
+    'measured-boq-lifecycle-request:' || ${sqlLiteral(commandScope)} || ':' || ${sqlLiteral(requestId)},
+    0
+  )
+);
+SELECT pg_sleep(30);
+COMMIT;
+`;
+}
+
 function holderLockTwoSql(id1, id2) {
   const first = id1 < id2 ? id1 : id2;
   const second = id1 < id2 ? id2 : id1;
@@ -503,6 +554,16 @@ async function main() {
         "e1111111-1111-4111-8111-111111111109",
         "rights_unverified",
       ],
+      [LABELS.crossPubA, "src-cpa", "e1111111-1111-4111-8111-111111111110"],
+      [LABELS.crossPubB, "src-cpb", "e1111111-1111-4111-8111-111111111111"],
+      [LABELS.crossRetA, "src-cra", "e1111111-1111-4111-8111-111111111112"],
+      [LABELS.crossRetB, "src-crb", "e1111111-1111-4111-8111-111111111113"],
+      [LABELS.crossRbTargetA, "src-rta", "e1111111-1111-4111-8111-111111111114"],
+      [LABELS.crossRbPriorA, "src-rpa", "e1111111-1111-4111-8111-111111111115"],
+      [LABELS.crossRbTargetB, "src-rtb", "e1111111-1111-4111-8111-111111111116"],
+      [LABELS.crossRbPriorB, "src-rpb", "e1111111-1111-4111-8111-111111111117"],
+      [LABELS.revOrderA, "src-roa", "e1111111-1111-4111-8111-111111111118"],
+      [LABELS.revOrderB, "src-rob", "e1111111-1111-4111-8111-111111111119"],
     ];
     for (const [label, src, req, licence] of seeds) {
       persistDraft(dbUrl, label, src, req, licence || "synthetic");
@@ -518,6 +579,14 @@ async function main() {
       [LABELS.rollbackPrior]: "e2111111-1111-4111-8111-111111111204",
       [LABELS.independentA]: "e2111111-1111-4111-8111-111111111205",
       [LABELS.independentB]: "e2111111-1111-4111-8111-111111111206",
+      [LABELS.crossRetA]: "e2111111-1111-4111-8111-111111111207",
+      [LABELS.crossRetB]: "e2111111-1111-4111-8111-111111111208",
+      [LABELS.crossRbTargetA]: "e2111111-1111-4111-8111-111111111209",
+      [LABELS.crossRbPriorA]: "e2111111-1111-4111-8111-11111111120a",
+      [LABELS.crossRbTargetB]: "e2111111-1111-4111-8111-11111111120b",
+      [LABELS.crossRbPriorB]: "e2111111-1111-4111-8111-11111111120c",
+      [LABELS.revOrderA]: "e2111111-1111-4111-8111-11111111120d",
+      [LABELS.revOrderB]: "e2111111-1111-4111-8111-11111111120e",
     };
     for (const [label, req] of Object.entries(seedPublishRequests)) {
       const res = publishSync(dbUrl, ids[label], req);
@@ -739,7 +808,7 @@ async function main() {
           sql: buildLifecycleSql({
             fn: "public.rollback_measured_boq_catalog_publication",
             args: [
-              // reversed argument order — lock order must still be ascending UUID
+              // Same semantic argument order; exact request replay (not opposite-order probe).
               `${sqlLiteral(target)}::uuid`,
               `${sqlLiteral(prior)}::uuid`,
               sqlLiteral("published"),
@@ -866,6 +935,270 @@ async function main() {
         outcomes: held.outcomes,
         pids: [held.a.backendPid, held.b.backendPid],
         sawWait: held.sawWait,
+      };
+    }
+
+    // 8) B2E1 cross-revision publish same request ID
+    {
+      const revA = ids[LABELS.crossPubA];
+      const revB = ids[LABELS.crossPubB];
+      const req = "f1111111-1111-4111-8111-111111111301";
+      const held = await runContendedPair({
+        dbUrl,
+        workDir,
+        name: "cross_publish_request_conflict",
+        holderSql: holderRequestIdentitySql("publish", req),
+        preferAdvisory: true,
+        callerA: {
+          tag: "xpub-a",
+          sql: buildLifecycleSql({
+            fn: "public.publish_measured_boq_catalog_revision",
+            args: [`${sqlLiteral(revA)}::uuid`, sqlLiteral("draft"), `${sqlLiteral(req)}::uuid`],
+            tag: "xpub-a",
+          }),
+        },
+        callerB: {
+          tag: "xpub-b",
+          sql: buildLifecycleSql({
+            fn: "public.publish_measured_boq_catalog_revision",
+            args: [`${sqlLiteral(revB)}::uuid`, sqlLiteral("draft"), `${sqlLiteral(req)}::uuid`],
+            tag: "xpub-b",
+          }),
+        },
+      });
+      const set = new Set(held.outcomes);
+      if (!(set.has("published") && set.has("request_conflict"))) {
+        fail("cross_publish_request_conflict unexpected outcomes", { outcomes: held.outcomes });
+      }
+      if (held.outcomes.includes("database_failure")) {
+        fail("cross_publish_request_conflict must not return database_failure");
+      }
+      const stA = statusFor(dbUrl, LABELS.crossPubA);
+      const stB = statusFor(dbUrl, LABELS.crossPubB);
+      const publishedCount = [stA, stB].filter((s) => s === "published").length;
+      const draftCount = [stA, stB].filter((s) => s === "draft").length;
+      if (publishedCount !== 1 || draftCount !== 1) {
+        fail("cross_publish_request_conflict final statuses", { stA, stB });
+      }
+      const pubEvents = Number(
+        psqlSync(
+          dbUrl,
+          `SELECT count(*)::int FROM public.measured_boq_catalog_events
+           WHERE request_id = ${sqlLiteral(req)} AND command_scope = 'publish';`,
+        ),
+      );
+      if (pubEvents !== 1) {
+        fail("cross_publish_request_conflict event count", { pubEvents });
+      }
+      report.Scenarios.cross_publish_request_conflict = {
+        outcomes: held.outcomes,
+        pids: [held.a.backendPid, held.b.backendPid],
+        sawWait: held.sawWait,
+        statuses: { A: stA, B: stB },
+      };
+    }
+
+    // 9) B2E1 cross-revision retire same request ID
+    {
+      const revA = ids[LABELS.crossRetA];
+      const revB = ids[LABELS.crossRetB];
+      const req = "f1111111-1111-4111-8111-111111111302";
+      const held = await runContendedPair({
+        dbUrl,
+        workDir,
+        name: "cross_retire_request_conflict",
+        holderSql: holderRequestIdentitySql("retire", req),
+        preferAdvisory: true,
+        callerA: {
+          tag: "xret-a",
+          sql: buildLifecycleSql({
+            fn: "public.retire_measured_boq_catalog_revision",
+            args: [
+              `${sqlLiteral(revA)}::uuid`,
+              sqlLiteral("published"),
+              sqlLiteral("reason-a"),
+              `${sqlLiteral(req)}::uuid`,
+            ],
+            tag: "xret-a",
+          }),
+        },
+        callerB: {
+          tag: "xret-b",
+          sql: buildLifecycleSql({
+            fn: "public.retire_measured_boq_catalog_revision",
+            args: [
+              `${sqlLiteral(revB)}::uuid`,
+              sqlLiteral("published"),
+              sqlLiteral("reason-b"),
+              `${sqlLiteral(req)}::uuid`,
+            ],
+            tag: "xret-b",
+          }),
+        },
+      });
+      const set = new Set(held.outcomes);
+      if (!(set.has("retired") && set.has("request_conflict"))) {
+        fail("cross_retire_request_conflict unexpected outcomes", { outcomes: held.outcomes });
+      }
+      if (held.outcomes.includes("database_failure")) {
+        fail("cross_retire_request_conflict must not return database_failure");
+      }
+      const stA = statusFor(dbUrl, LABELS.crossRetA);
+      const stB = statusFor(dbUrl, LABELS.crossRetB);
+      const retiredCount = [stA, stB].filter((s) => s === "retired").length;
+      const publishedCount = [stA, stB].filter((s) => s === "published").length;
+      if (retiredCount !== 1 || publishedCount !== 1) {
+        fail("cross_retire_request_conflict final statuses", { stA, stB });
+      }
+      report.Scenarios.cross_retire_request_conflict = {
+        outcomes: held.outcomes,
+        pids: [held.a.backendPid, held.b.backendPid],
+        sawWait: held.sawWait,
+        statuses: { A: stA, B: stB },
+      };
+    }
+
+    // 10) B2E1 cross-pair rollback same request ID
+    {
+      const tA = ids[LABELS.crossRbTargetA];
+      const pA = ids[LABELS.crossRbPriorA];
+      const tB = ids[LABELS.crossRbTargetB];
+      const pB = ids[LABELS.crossRbPriorB];
+      const req = "f1111111-1111-4111-8111-111111111303";
+      const held = await runContendedPair({
+        dbUrl,
+        workDir,
+        name: "cross_rollback_request_conflict",
+        holderSql: holderRequestIdentitySql("rollback_retire", req),
+        preferAdvisory: true,
+        callerA: {
+          tag: "xrb-a",
+          sql: buildLifecycleSql({
+            fn: "public.rollback_measured_boq_catalog_publication",
+            args: [
+              `${sqlLiteral(tA)}::uuid`,
+              `${sqlLiteral(pA)}::uuid`,
+              sqlLiteral("published"),
+              sqlLiteral("rollback pair A"),
+              `${sqlLiteral(req)}::uuid`,
+            ],
+            tag: "xrb-a",
+          }),
+        },
+        callerB: {
+          tag: "xrb-b",
+          sql: buildLifecycleSql({
+            fn: "public.rollback_measured_boq_catalog_publication",
+            args: [
+              `${sqlLiteral(tB)}::uuid`,
+              `${sqlLiteral(pB)}::uuid`,
+              sqlLiteral("published"),
+              sqlLiteral("rollback pair B"),
+              `${sqlLiteral(req)}::uuid`,
+            ],
+            tag: "xrb-b",
+          }),
+        },
+      });
+      const set = new Set(held.outcomes);
+      if (!(set.has("rollback_recorded") && set.has("request_conflict"))) {
+        fail("cross_rollback_request_conflict unexpected outcomes", { outcomes: held.outcomes });
+      }
+      if (held.outcomes.includes("database_failure")) {
+        fail("cross_rollback_request_conflict must not return database_failure");
+      }
+      const stTA = statusFor(dbUrl, LABELS.crossRbTargetA);
+      const stTB = statusFor(dbUrl, LABELS.crossRbTargetB);
+      const stPA = statusFor(dbUrl, LABELS.crossRbPriorA);
+      const stPB = statusFor(dbUrl, LABELS.crossRbPriorB);
+      const retiredTargets = [stTA, stTB].filter((s) => s === "retired").length;
+      if (retiredTargets !== 1) {
+        fail("cross_rollback_request_conflict expected one retired target", { stTA, stTB });
+      }
+      if (stPA !== "published" || stPB !== "published") {
+        fail("cross_rollback_request_conflict priors must remain published", { stPA, stPB });
+      }
+      report.Scenarios.cross_rollback_request_conflict = {
+        outcomes: held.outcomes,
+        pids: [held.a.backendPid, held.b.backendPid],
+        sawWait: held.sawWait,
+        statuses: { targetA: stTA, targetB: stTB, priorA: stPA, priorB: stPB },
+      };
+    }
+
+    // 11) B2E1 genuine opposite-order rollback (distinct request IDs; no deadlock)
+    {
+      const revA = ids[LABELS.revOrderA];
+      const revB = ids[LABELS.revOrderB];
+      const reqA = "f1111111-1111-4111-8111-111111111304";
+      const reqB = "f1111111-1111-4111-8111-111111111305";
+      // Hold both rows so both callers queue, then release to exercise ascending locks.
+      const held = await runContendedPair({
+        dbUrl,
+        workDir,
+        name: "opposite_order_rollback",
+        holderSql: holderLockTwoSql(revA, revB),
+        callerA: {
+          tag: "opp-a",
+          sql: buildLifecycleSql({
+            fn: "public.rollback_measured_boq_catalog_publication",
+            args: [
+              // target=A prior=B
+              `${sqlLiteral(revA)}::uuid`,
+              `${sqlLiteral(revB)}::uuid`,
+              sqlLiteral("published"),
+              sqlLiteral("opp A"),
+              `${sqlLiteral(reqA)}::uuid`,
+            ],
+            tag: "opp-a",
+          }),
+        },
+        callerB: {
+          tag: "opp-b",
+          sql: buildLifecycleSql({
+            fn: "public.rollback_measured_boq_catalog_publication",
+            args: [
+              // target=B prior=A — opposite semantic argument order
+              `${sqlLiteral(revB)}::uuid`,
+              `${sqlLiteral(revA)}::uuid`,
+              sqlLiteral("published"),
+              sqlLiteral("opp B"),
+              `${sqlLiteral(reqB)}::uuid`,
+            ],
+            tag: "opp-b",
+          }),
+        },
+      });
+      if (held.outcomes.includes("database_failure")) {
+        fail("opposite_order_rollback must not database_failure/deadlock", {
+          outcomes: held.outcomes,
+        });
+      }
+      // One succeeds; the other sees prior retired → stale_status (or already if racing).
+      const set = new Set(held.outcomes);
+      if (!set.has("rollback_recorded")) {
+        fail("opposite_order_rollback missing winner", { outcomes: held.outcomes });
+      }
+      if (!(set.has("stale_status") || set.has("already_retired") || set.has("request_conflict"))) {
+        // second may get stale_status because prior is no longer published
+        fail("opposite_order_rollback missing stable loser outcome", { outcomes: held.outcomes });
+      }
+      const stA = statusFor(dbUrl, LABELS.revOrderA);
+      const stB = statusFor(dbUrl, LABELS.revOrderB);
+      const retired = [stA, stB].filter((s) => s === "retired").length;
+      const published = [stA, stB].filter((s) => s === "published").length;
+      if (retired !== 1 || published !== 1) {
+        fail("opposite_order_rollback expected one retired one published", { stA, stB });
+      }
+      report.Scenarios.opposite_order_rollback = {
+        outcomes: held.outcomes,
+        pids: [held.a.backendPid, held.b.backendPid],
+        sawWait: held.sawWait,
+        args: {
+          callerA: { target: LABELS.revOrderA, prior: LABELS.revOrderB, requestId: reqA },
+          callerB: { target: LABELS.revOrderB, prior: LABELS.revOrderA, requestId: reqB },
+        },
+        statuses: { A: stA, B: stB },
       };
     }
 

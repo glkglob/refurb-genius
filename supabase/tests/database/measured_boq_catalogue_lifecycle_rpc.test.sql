@@ -1,7 +1,7 @@
 -- 4C2E-B2E — publish / retire / rollback-retire lifecycle RPC boundary tests
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(62);
+SELECT plan(77);
 
 -- ── function contracts ──────────────────────────────────────────────
 SELECT has_function(
@@ -774,6 +774,260 @@ SELECT ok(
   AND NOT has_table_privilege('anon', 'public.measured_boq_catalog_revisions', 'SELECT')
   AND NOT has_table_privilege('authenticated', 'public.measured_boq_catalog_revisions', 'SELECT'),
   'SELECT matrix preserved for revisions'
+);
+
+-- ════════════════════════════════════════════════════════════════════
+-- B2E1 — provenance-before-already-state + request-identity contract
+-- ════════════════════════════════════════════════════════════════════
+
+-- package-less published → provenance_required (not already_published)
+SET session_replication_role = replica;
+INSERT INTO public.measured_boq_catalog_revisions (
+  catalog_revision, status, schema_version, currency, vat_basis, regional_basis,
+  source_description, entry_count, content_checksum, effective_from, created_by,
+  published_at, published_by_kind
+) VALUES (
+  'mboq-2099.03.30', 'published', '1', 'GBP', 'exclusive', 'uk-region-multipliers-v1',
+  'LEGACY PUBLISHED NO PACKAGE', 0,
+  'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+  '2099-03-30'::date, 'legacy-test',
+  now(), 'service_role'
+);
+SET session_replication_role = DEFAULT;
+
+SELECT is(
+  (
+    SELECT public.publish_measured_boq_catalog_revision(
+      (SELECT id FROM public.measured_boq_catalog_revisions WHERE catalog_revision = 'mboq-2099.03.30'),
+      'draft',
+      'e2111111-1111-4111-8111-111111111301'::uuid
+    ) ->> 'outcome'
+  ),
+  'provenance_required',
+  'B2E1 package-less published returns provenance_required'
+);
+
+SELECT is(
+  (
+    SELECT count(*)::int FROM public.measured_boq_catalog_events
+    WHERE request_id = 'e2111111-1111-4111-8111-111111111301'
+  ),
+  0,
+  'B2E1 package-less published writes no publication_replay event'
+);
+
+-- package-less retired → provenance_required on retire
+SET session_replication_role = replica;
+INSERT INTO public.measured_boq_catalog_revisions (
+  catalog_revision, status, schema_version, currency, vat_basis, regional_basis,
+  source_description, entry_count, content_checksum, effective_from, created_by,
+  published_at, published_by_kind, retired_at, retired_by_kind, retirement_reason
+) VALUES (
+  'mboq-2099.03.31', 'retired', '1', 'GBP', 'exclusive', 'uk-region-multipliers-v1',
+  'LEGACY RETIRED NO PACKAGE', 0,
+  'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
+  '2099-03-31'::date, 'legacy-test',
+  now(), 'service_role', now(), 'service_role', 'legacy retire'
+);
+SET session_replication_role = DEFAULT;
+
+SELECT is(
+  (
+    SELECT public.retire_measured_boq_catalog_revision(
+      (SELECT id FROM public.measured_boq_catalog_revisions WHERE catalog_revision = 'mboq-2099.03.31'),
+      'published',
+      'try retire',
+      'e2111111-1111-4111-8111-111111111302'::uuid
+    ) ->> 'outcome'
+  ),
+  'provenance_required',
+  'B2E1 package-less retired returns provenance_required'
+);
+
+-- package-less draft already covered by mboq-2099.03.28 provenance_required publish
+
+-- production package-backed already-published → production_policy_rejected
+-- Use rights fixture path: create synthetic draft, publish, then flip production via replica.
+SELECT is(
+  (
+    SELECT (public.persist_measured_boq_catalog_draft(
+      $m${"manifestVersion":"1","catalogRevision":"mboq-2099.04.01","source":{"id":"src-prod-pub","name":"S","version":"1","effectiveDate":"2099-04-01","licenceReference":"syn","licenceStatus":"synthetic"},"transformation":{"schemaVersion":"1","normaliserVersion":"1"},"package":{"snapshotPath":"snapshot.json","production":false}}$m$,
+      $s${"schemaVersion":"1","catalogRevision":"mboq-2099.04.01","currency":"GBP","vatBasis":"exclusive","regionalBasis":"uk-region-multipliers-v1","effectiveFrom":"2099-04-01","sourceDescription":"SYNTHETIC THEN PRODUCTION","entryCount":1,"production":false,"entries":[{"rateKey":"paint.wall.m2","displayName":"Paint walls","description":null,"tradeOrDomain":"decor","unit":"m2","costType":"labour","baseUnitRate":17.5,"currency":"GBP","vatBasis":"exclusive","sourceReference":"synthetic","status":"active","replacementRateKey":null}]}$s$,
+      'mboq-2099.04.01', 'src-prod-pub', 1, '1',
+      public.measured_boq_package_input_checksum(
+        $m${"manifestVersion":"1","catalogRevision":"mboq-2099.04.01","source":{"id":"src-prod-pub","name":"S","version":"1","effectiveDate":"2099-04-01","licenceReference":"syn","licenceStatus":"synthetic"},"transformation":{"schemaVersion":"1","normaliserVersion":"1"},"package":{"snapshotPath":"snapshot.json","production":false}}$m$,
+        $s${"schemaVersion":"1","catalogRevision":"mboq-2099.04.01","currency":"GBP","vatBasis":"exclusive","regionalBasis":"uk-region-multipliers-v1","effectiveFrom":"2099-04-01","sourceDescription":"SYNTHETIC THEN PRODUCTION","entryCount":1,"production":false,"entries":[{"rateKey":"paint.wall.m2","displayName":"Paint walls","description":null,"tradeOrDomain":"decor","unit":"m2","costType":"labour","baseUnitRate":17.5,"currency":"GBP","vatBasis":"exclusive","sourceReference":"synthetic","status":"active","replacementRateKey":null}]}$s$
+      ),
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      $j$[{"rate_key":"paint.wall.m2","display_name":"Paint walls","description":null,"trade_or_domain":"decor","unit":"m2","cost_type":"labour","base_unit_rate":17.5,"currency":"GBP","vat_basis":"exclusive","source_reference":"synthetic","status":"active","replacement_rate_key":null}]$j$::jsonb,
+      $r${"tool":"catalogue-persist","ok":true,"licenceStatus":"synthetic","production":false,"schemaVersion":"1","effectiveFrom":"2099-04-01","sourceDescription":"SYNTHETIC THEN PRODUCTION","createdBy":"persist_measured_boq_catalog_draft"}$r$::jsonb,
+      'a1111111-1111-4111-8111-111111111132'::uuid
+    ) ->> 'outcome')
+  ),
+  'created',
+  'B2E1 production-policy fixture draft created'
+);
+
+SELECT is(
+  (
+    SELECT public.publish_measured_boq_catalog_revision(
+      (SELECT id FROM public.measured_boq_catalog_revisions WHERE catalog_revision = 'mboq-2099.04.01'),
+      'draft',
+      'b1111111-1111-4111-8111-111111111132'::uuid
+    ) ->> 'outcome'
+  ),
+  'published',
+  'B2E1 production-policy fixture publishes first'
+);
+
+SET session_replication_role = replica;
+UPDATE public.measured_boq_catalog_revisions SET production = true WHERE catalog_revision = 'mboq-2099.04.01';
+UPDATE public.measured_boq_catalog_packages SET production = true WHERE catalog_revision = 'mboq-2099.04.01';
+SET session_replication_role = DEFAULT;
+
+SELECT is(
+  (
+    SELECT public.publish_measured_boq_catalog_revision(
+      (SELECT id FROM public.measured_boq_catalog_revisions WHERE catalog_revision = 'mboq-2099.04.01'),
+      'draft',
+      'b1111111-1111-4111-8111-111111111133'::uuid
+    ) ->> 'outcome'
+  ),
+  'production_policy_rejected',
+  'B2E1 production already-published returns production_policy_rejected'
+);
+
+-- rights_unverified package-backed published → rights_not_publishable
+-- Flip licence on published package-backed synthetic (restore production first)
+SET session_replication_role = replica;
+UPDATE public.measured_boq_catalog_revisions
+SET production = false, licence_status = 'rights_unverified'
+WHERE catalog_revision = 'mboq-2099.04.01';
+UPDATE public.measured_boq_catalog_packages
+SET production = false, licence_status = 'rights_unverified'
+WHERE catalog_revision = 'mboq-2099.04.01';
+SET session_replication_role = DEFAULT;
+
+SELECT is(
+  (
+    SELECT public.publish_measured_boq_catalog_revision(
+      (SELECT id FROM public.measured_boq_catalog_revisions WHERE catalog_revision = 'mboq-2099.04.01'),
+      'draft',
+      'b1111111-1111-4111-8111-111111111134'::uuid
+    ) ->> 'outcome'
+  ),
+  'rights_not_publishable',
+  'B2E1 rights-unverified already-published returns rights_not_publishable'
+);
+
+-- package-less published retire → provenance_required
+SELECT is(
+  (
+    SELECT public.retire_measured_boq_catalog_revision(
+      (SELECT id FROM public.measured_boq_catalog_revisions WHERE catalog_revision = 'mboq-2099.03.30'),
+      'published',
+      'retire legacy',
+      'e2111111-1111-4111-8111-111111111303'::uuid
+    ) ->> 'outcome'
+  ),
+  'provenance_required',
+  'B2E1 package-less published retire returns provenance_required'
+);
+
+-- package-less target rollback → provenance_required (prior package-backed published B)
+SELECT is(
+  (
+    SELECT public.rollback_measured_boq_catalog_publication(
+      (SELECT id FROM public.measured_boq_catalog_revisions WHERE catalog_revision = 'mboq-2099.03.30'),
+      (SELECT id FROM public.measured_boq_catalog_revisions WHERE catalog_revision = 'mboq-2099.03.02'),
+      'published',
+      'rollback legacy',
+      'e2111111-1111-4111-8111-111111111304'::uuid
+    ) ->> 'outcome'
+  ),
+  'provenance_required',
+  'B2E1 package-less rollback target returns provenance_required'
+);
+
+-- sequential cross-target request conflict (publish)
+SELECT is(
+  (
+    SELECT public.persist_measured_boq_catalog_draft(
+      $m${"manifestVersion":"1","catalogRevision":"mboq-2099.04.02","source":{"id":"src-x","name":"S","version":"1","effectiveDate":"2099-04-02","licenceReference":"syn","licenceStatus":"synthetic"},"transformation":{"schemaVersion":"1","normaliserVersion":"1"},"package":{"snapshotPath":"snapshot.json","production":false}}$m$,
+      $s${"schemaVersion":"1","catalogRevision":"mboq-2099.04.02","currency":"GBP","vatBasis":"exclusive","regionalBasis":"uk-region-multipliers-v1","effectiveFrom":"2099-04-02","sourceDescription":"CROSS TARGET A","entryCount":1,"production":false,"entries":[{"rateKey":"paint.wall.m2","displayName":"Paint walls","description":null,"tradeOrDomain":"decor","unit":"m2","costType":"labour","baseUnitRate":18.5,"currency":"GBP","vatBasis":"exclusive","sourceReference":"synthetic","status":"active","replacementRateKey":null}]}$s$,
+      'mboq-2099.04.02', 'src-x', 1, '1',
+      public.measured_boq_package_input_checksum(
+        $m${"manifestVersion":"1","catalogRevision":"mboq-2099.04.02","source":{"id":"src-x","name":"S","version":"1","effectiveDate":"2099-04-02","licenceReference":"syn","licenceStatus":"synthetic"},"transformation":{"schemaVersion":"1","normaliserVersion":"1"},"package":{"snapshotPath":"snapshot.json","production":false}}$m$,
+        $s${"schemaVersion":"1","catalogRevision":"mboq-2099.04.02","currency":"GBP","vatBasis":"exclusive","regionalBasis":"uk-region-multipliers-v1","effectiveFrom":"2099-04-02","sourceDescription":"CROSS TARGET A","entryCount":1,"production":false,"entries":[{"rateKey":"paint.wall.m2","displayName":"Paint walls","description":null,"tradeOrDomain":"decor","unit":"m2","costType":"labour","baseUnitRate":18.5,"currency":"GBP","vatBasis":"exclusive","sourceReference":"synthetic","status":"active","replacementRateKey":null}]}$s$
+      ),
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      $j$[{"rate_key":"paint.wall.m2","display_name":"Paint walls","description":null,"trade_or_domain":"decor","unit":"m2","cost_type":"labour","base_unit_rate":18.5,"currency":"GBP","vat_basis":"exclusive","source_reference":"synthetic","status":"active","replacement_rate_key":null}]$j$::jsonb,
+      $r${"tool":"catalogue-persist","ok":true,"licenceStatus":"synthetic","production":false,"schemaVersion":"1","effectiveFrom":"2099-04-02","sourceDescription":"CROSS TARGET A","createdBy":"persist_measured_boq_catalog_draft"}$r$::jsonb,
+      'a1111111-1111-4111-8111-111111111133'::uuid
+    ) ->> 'outcome'
+  ),
+  'created',
+  'B2E1 cross-target draft A created'
+);
+
+SELECT is(
+  (
+    SELECT public.persist_measured_boq_catalog_draft(
+      $m${"manifestVersion":"1","catalogRevision":"mboq-2099.04.03","source":{"id":"src-y","name":"S","version":"1","effectiveDate":"2099-04-03","licenceReference":"syn","licenceStatus":"synthetic"},"transformation":{"schemaVersion":"1","normaliserVersion":"1"},"package":{"snapshotPath":"snapshot.json","production":false}}$m$,
+      $s${"schemaVersion":"1","catalogRevision":"mboq-2099.04.03","currency":"GBP","vatBasis":"exclusive","regionalBasis":"uk-region-multipliers-v1","effectiveFrom":"2099-04-03","sourceDescription":"CROSS TARGET B","entryCount":1,"production":false,"entries":[{"rateKey":"paint.wall.m2","displayName":"Paint walls","description":null,"tradeOrDomain":"decor","unit":"m2","costType":"labour","baseUnitRate":19.5,"currency":"GBP","vatBasis":"exclusive","sourceReference":"synthetic","status":"active","replacementRateKey":null}]}$s$,
+      'mboq-2099.04.03', 'src-y', 1, '1',
+      public.measured_boq_package_input_checksum(
+        $m${"manifestVersion":"1","catalogRevision":"mboq-2099.04.03","source":{"id":"src-y","name":"S","version":"1","effectiveDate":"2099-04-03","licenceReference":"syn","licenceStatus":"synthetic"},"transformation":{"schemaVersion":"1","normaliserVersion":"1"},"package":{"snapshotPath":"snapshot.json","production":false}}$m$,
+        $s${"schemaVersion":"1","catalogRevision":"mboq-2099.04.03","currency":"GBP","vatBasis":"exclusive","regionalBasis":"uk-region-multipliers-v1","effectiveFrom":"2099-04-03","sourceDescription":"CROSS TARGET B","entryCount":1,"production":false,"entries":[{"rateKey":"paint.wall.m2","displayName":"Paint walls","description":null,"tradeOrDomain":"decor","unit":"m2","costType":"labour","baseUnitRate":19.5,"currency":"GBP","vatBasis":"exclusive","sourceReference":"synthetic","status":"active","replacementRateKey":null}]}$s$
+      ),
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      $j$[{"rate_key":"paint.wall.m2","display_name":"Paint walls","description":null,"trade_or_domain":"decor","unit":"m2","cost_type":"labour","base_unit_rate":19.5,"currency":"GBP","vat_basis":"exclusive","source_reference":"synthetic","status":"active","replacement_rate_key":null}]$j$::jsonb,
+      $r${"tool":"catalogue-persist","ok":true,"licenceStatus":"synthetic","production":false,"schemaVersion":"1","effectiveFrom":"2099-04-03","sourceDescription":"CROSS TARGET B","createdBy":"persist_measured_boq_catalog_draft"}$r$::jsonb,
+      'a1111111-1111-4111-8111-111111111134'::uuid
+    ) ->> 'outcome'
+  ),
+  'created',
+  'B2E1 cross-target draft B created'
+);
+
+SELECT is(
+  (
+    SELECT public.publish_measured_boq_catalog_revision(
+      (SELECT id FROM public.measured_boq_catalog_revisions WHERE catalog_revision = 'mboq-2099.04.02'),
+      'draft',
+      'e2111111-1111-4111-8111-111111111399'::uuid
+    ) ->> 'outcome'
+  ),
+  'published',
+  'B2E1 first publish with shared request wins'
+);
+
+SELECT is(
+  (
+    SELECT public.publish_measured_boq_catalog_revision(
+      (SELECT id FROM public.measured_boq_catalog_revisions WHERE catalog_revision = 'mboq-2099.04.03'),
+      'draft',
+      'e2111111-1111-4111-8111-111111111399'::uuid
+    ) ->> 'outcome'
+  ),
+  'request_conflict',
+  'B2E1 second publish different target same request is request_conflict'
+);
+
+SELECT is(
+  (SELECT status FROM public.measured_boq_catalog_revisions WHERE catalog_revision = 'mboq-2099.04.03'),
+  'draft',
+  'B2E1 losing publish target remains draft'
+);
+
+SELECT is(
+  (
+    SELECT count(*)::int FROM public.measured_boq_catalog_events
+    WHERE request_id = 'e2111111-1111-4111-8111-111111111399'
+      AND command_scope = 'publish'
+  ),
+  1,
+  'B2E1 one publication event for shared request'
 );
 
 SELECT * FROM finish();

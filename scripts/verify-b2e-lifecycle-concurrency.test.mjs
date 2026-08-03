@@ -39,6 +39,22 @@ describe("verify-b2e-lifecycle-concurrency", () => {
     assert.match(src, /concurrent_rollback/);
     assert.match(src, /independent_lifecycle/);
     assert.match(src, /rights_policy/);
+    // B2E1
+    assert.match(src, /cross_publish_request_conflict/);
+    assert.match(src, /cross_retire_request_conflict/);
+    assert.match(src, /cross_rollback_request_conflict/);
+    assert.match(src, /opposite_order_rollback/);
+    assert.match(src, /holderRequestIdentitySql/);
+    assert.match(src, /preferAdvisory/);
+    assert.match(src, /measured-boq-lifecycle-request:/);
+  });
+
+  it("exercises genuine opposite semantic rollback argument order", () => {
+    assert.match(src, /target=B prior=A — opposite semantic argument order/);
+    assert.doesNotMatch(
+      src,
+      /reversed argument order — lock order must still be ascending UUID[\s\S]*sqlLiteral\(target\)[\s\S]*sqlLiteral\(prior\)[\s\S]*sqlLiteral\(target\)[\s\S]*sqlLiteral\(prior\)/,
+    );
   });
 
   it("cleans fixtures and leaves no residual rows", () => {
