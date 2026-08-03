@@ -8,7 +8,7 @@ import { supabase } from "@/platform/supabase/browser";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { fetchProjectPhotosList } from "@/lib/queries/projects";
-import type { Tables } from "@repo/supabase";
+import type { Json, Tables } from "@repo/supabase";
 import { buildMockRoomAnalyses, type AnalysisSource, type RoomAnalysis } from "../../domain";
 import type { RoomAnalysisRepository as RoomAnalysisRepositoryPort } from "../../application/ports";
 
@@ -23,6 +23,21 @@ function isAnalysisSource(value: unknown): value is AnalysisSource {
   return typeof value === "string" && VALID_SOURCES.has(value);
 }
 
+/**
+ * Map migration-built jsonb columns (generated as Json) to domain string[].
+ *
+ * Rule:
+ * - null / undefined / non-array → []
+ * - array → keep only string elements (drop numbers, objects, nested arrays)
+ *
+ * Keeps raw Json at the infrastructure boundary; presentation never sees Json.
+ */
+export function jsonToStringArray(value: Json | null | undefined): string[] {
+  if (value == null) return [];
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string");
+}
+
 const cache = new Map<string, RoomAnalysis[]>();
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
@@ -35,8 +50,8 @@ function rowToAnalysis(r: Tables<"room_analyses">): RoomAnalysis {
     room_type: r.room_type as RoomAnalysis["room_type"],
     condition_level: r.condition_level as RoomAnalysis["condition_level"],
     refurbishment_level: r.refurbishment_level as RoomAnalysis["refurbishment_level"],
-    visible_issues: r.visible_issues ?? [],
-    recommended_works: r.recommended_works ?? [],
+    visible_issues: jsonToStringArray(r.visible_issues),
+    recommended_works: jsonToStringArray(r.recommended_works),
     ai_summary: r.ai_summary ?? "",
     confidence_score: Number(r.confidence_score ?? 0),
     source: isAnalysisSource(r.source) ? r.source : "persisted",

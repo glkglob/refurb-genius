@@ -1,8 +1,9 @@
 /**
- * Floorplan feature public API (AO-1H1 / AO-1H2).
+ * Floorplan feature public API (AO-1H1 / AO-1H2 / P1B3).
  *
  * Components import presentation hooks and pure mappers from here.
  * Table-write primitives are available via infrastructure re-export for tests.
+ * Domain models and parsers are available via ./domain.
  */
 export {
   useFloorplanViewerMutations,
@@ -30,6 +31,19 @@ export {
   createFloorplanMeasurement,
   deleteFloorplanMeasurement,
   type FloorplanModelRow,
-  type FloorplanAnnotationRow,
-  type FloorplanMeasurementRow,
+  type CreateFloorplanModelRecordInput,
+  type CreateFloorplanAnnotationInput,
+  type CreateFloorplanMeasurementInput,
 } from "./infrastructure";
+
+export {
+  type FloorplanModelApp,
+  type FloorplanAnnotationApp,
+  type FloorplanMeasurementApp,
+  type FloorplanModelStatus,
+  mapFloorplanModelRow,
+  mapFloorplanAnnotationRow,
+  mapFloorplanMeasurementRow,
+  parseFloorplanAnnotationData,
+  serializeFloorplanAnnotationData,
+} from "./domain";

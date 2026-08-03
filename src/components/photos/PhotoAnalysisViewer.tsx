@@ -46,12 +46,26 @@ interface ParsedAnalysis {
 
 function rowToParsed(a?: PhotoAnalysisResultRow): ParsedAnalysis {
   if (!a) return {};
+  // a is PhotoAnalysisAppModel — content already parsed at the query boundary
   return {
     room: a.category ?? undefined,
     condition_report: a.condition_report ?? undefined,
-    defects: (a.detected_defects as unknown as ParsedDefect[]) ?? [],
-    material_estimates: a.material_estimates as ParsedAnalysis["material_estimates"],
-    cost_suggestions: a.cost_suggestions as ParsedAnalysis["cost_suggestions"],
+    defects: a.detected_defects.map((d) => ({
+      description: d.description,
+      severity: (d.severity === "high" || d.severity === "medium" || d.severity === "low"
+        ? d.severity
+        : "low") as ParsedDefect["severity"],
+      category: d.category,
+      estimated_cost: d.estimated_cost,
+    })),
+    material_estimates: a.material_estimates,
+    cost_suggestions: a.cost_suggestions
+      ? {
+          low: a.cost_suggestions.low,
+          mid: a.cost_suggestions.mid ?? 0,
+          high: a.cost_suggestions.high,
+        }
+      : undefined,
     category: a.category ?? undefined,
     confidence: a.confidence_score ?? undefined,
   };

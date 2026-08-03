@@ -125,4 +125,9 @@ export type RunCatalogueDryRunResult = {
   report: CatalogueDryRunReport;
   /** Present only when catalogue validation succeeded. */
   contentChecksum?: string;
+  /**
+   * Present only when catalogue validation succeeded.
+   * Server-owned validated snapshot for trusted persistence (B2D).
+   */
+  validatedSnapshot?: import("./types").MeasuredBoqCatalogueValidatedSnapshot;
 };

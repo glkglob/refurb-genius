@@ -8,19 +8,7 @@ import { MapPin, TrendingUp, Ruler, Home, ArrowRight } from "lucide-react";
 import type { PublicGalleryProjectRow } from "@/lib/queries/gallery";
 
 interface ProjectCardProps {
-  gallery: PublicGalleryProjectRow & {
-    project?: {
-      address?: string;
-      postcode?: string;
-      region?: string;
-      property_type?: string;
-      bedrooms?: number | null;
-      bathrooms?: number | null;
-      size_sqm?: number | null;
-      purchase_price?: number | null;
-      estimated_gdv?: number | null;
-    };
-  };
+  gallery: PublicGalleryProjectRow;
 }
 
 export function ProjectCard({ gallery }: ProjectCardProps) {

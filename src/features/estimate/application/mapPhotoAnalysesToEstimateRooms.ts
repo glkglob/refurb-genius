@@ -47,16 +47,27 @@ type ParsedAnalysis = {
 };
 
 /**
- * Parse analysis row with Apply-to-Estimate semantics (matches viewer rowToParsed):
+ * Parse analysis app model with Apply-to-Estimate semantics (matches viewer rowToParsed):
  * room and category both seed from analysis.category.
+ * Content is already domain-typed (analysis_data mapped at the query boundary).
  */
 function parseAnalysis(a: PhotoAnalysisResultRow): ParsedAnalysis {
   return {
     room: a.category ?? undefined,
     category: a.category ?? undefined,
-    defects: (a.detected_defects as unknown as ParsedDefect[]) ?? [],
-    material_estimates: a.material_estimates as unknown as ParsedMaterial[] | undefined,
-    cost_suggestions: a.cost_suggestions as ParsedAnalysis["cost_suggestions"],
+    defects: a.detected_defects.map((d) => ({
+      description: d.description,
+      severity: d.severity,
+      category: d.category,
+      estimated_cost: d.estimated_cost,
+    })),
+    material_estimates: a.material_estimates.map((m) => ({
+      name: m.name,
+      quantity: m.quantity,
+      unit: m.unit,
+      cost_per_unit: m.cost_per_unit,
+    })),
+    cost_suggestions: a.cost_suggestions ?? undefined,
   };
 }
 

@@ -1,11 +1,18 @@
 import { queryOptions } from "@tanstack/react-query";
 import { supabase } from "@/platform/supabase/browser";
 import { logger } from "@/lib/logger";
-import type { Tables } from "@repo/supabase";
-import type { PhotoAnalysisResult } from "@repo/types";
 import { projectKeys } from "./projects";
+import {
+  mapPhotoAnalysisRow,
+  type PhotoAnalysisAppModel,
+  type PhotoAnalysisDbRowLike,
+} from "@repo/types";
 
-export type PhotoAnalysisResultRow = Tables<"photo_analysis_results">;
+/**
+ * Application-facing photo analysis row (content parsed from analysis_data).
+ * Not the raw generated Tables<"photo_analysis_results"> shape.
+ */
+export type PhotoAnalysisResultRow = PhotoAnalysisAppModel;
 
 /**
  * Photo analysis query keys (tied to project + optional photo).
@@ -19,6 +26,9 @@ export const photoAnalysisKeys = {
 /**
  * All analysis results for a project (used in Photos & AI tab, reports).
  * More volatile after bulk upload + AI trigger.
+ *
+ * Maps each DB row through the authoritative photo-analysis parser so
+ * consumers never see raw analysis_data Json.
  */
 export const photoAnalysisByProjectQueryOptions = (projectId: string) =>
   queryOptions<PhotoAnalysisResultRow[]>({
@@ -37,7 +47,9 @@ export const photoAnalysisByProjectQueryOptions = (projectId: string) =>
         });
         throw new Error(error.message);
       }
-      return (data ?? []) as PhotoAnalysisResultRow[];
+      return (data ?? []).map((row) =>
+        mapPhotoAnalysisRow(row as unknown as PhotoAnalysisDbRowLike),
+      );
     },
     enabled: !!projectId,
     staleTime: 20 * 1000, // 20s - analysis is produced async after upload
@@ -66,7 +78,8 @@ export const photoAnalysisByPhotoQueryOptions = (photoId: string) =>
         });
         throw new Error(error.message);
       }
-      return (data as PhotoAnalysisResultRow | null) ?? null;
+      if (!data) return null;
+      return mapPhotoAnalysisRow(data as unknown as PhotoAnalysisDbRowLike);
     },
     enabled: !!photoId,
     staleTime: 30 * 1000,

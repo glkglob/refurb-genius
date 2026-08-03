@@ -2,7 +2,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(57);
+select plan(65);
 
 -- ── fixtures ──────────────────────────────────────────────────────────────
 do $$
@@ -80,7 +80,69 @@ select lives_ok(
   'service_role can read entries'
 );
 
--- ── draft revision + entries ──────────────────────────────────────────────
+-- B2C1: direct catalogue DML revoked from service_role (RPC-only writes)
+select throws_ok(
+  $$
+    insert into public.measured_boq_catalog_revisions (
+      catalog_revision, status, schema_version, source_description, entry_count,
+      content_checksum, effective_from, created_by
+    ) values (
+      'mboq-2099.99.99', 'draft', 'mboq-catalogue-v1', 'denied', 0,
+      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      '2099-01-01', 'service'
+    )
+  $$,
+  '42501',
+  null,
+  'service_role cannot insert revisions'
+);
+select throws_ok(
+  $$
+    update public.measured_boq_catalog_revisions
+    set source_description = 'x'
+    where false
+  $$,
+  '42501',
+  null,
+  'service_role cannot update revisions'
+);
+select throws_ok(
+  $$ delete from public.measured_boq_catalog_revisions where false $$,
+  '42501',
+  null,
+  'service_role cannot delete revisions'
+);
+select throws_ok(
+  $$
+    insert into public.measured_boq_catalog_entries (
+      catalog_revision, rate_key, display_name, trade_or_domain, unit, cost_type, base_unit_rate
+    ) values (
+      'mboq-2099.99.99', 'synth.denied.m2', 'x', 'test', 'm2', 'combined', 1
+    )
+  $$,
+  '42501',
+  null,
+  'service_role cannot insert entries'
+);
+select throws_ok(
+  $$
+    update public.measured_boq_catalog_entries
+    set display_name = 'x'
+    where false
+  $$,
+  '42501',
+  null,
+  'service_role cannot update entries'
+);
+select throws_ok(
+  $$ delete from public.measured_boq_catalog_entries where false $$,
+  '42501',
+  null,
+  'service_role cannot delete entries'
+);
+reset role;
+
+-- ── draft revision + entries (trusted test owner; no application-role DML) ─
 select lives_ok(
   $$
     insert into public.measured_boq_catalog_revisions (
@@ -88,8 +150,8 @@ select lives_ok(
       source_description, entry_count, content_checksum, effective_from, created_by
     ) values (
       'mboq-2099.01.01', 'draft', 'mboq-catalogue-v1', 'GBP', 'exclusive', 'uk-region-multipliers-v1',
-      'SYNTHETIC TEST FIXTURE — not production', 0,
-      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      'SYNTHETIC TEST FIXTURE — not production', 1,
+      '1111111111111111111111111111111111111111111111111111111111111111',
       '2099-01-01', 'test-publisher'
     )
   $$,
@@ -109,13 +171,15 @@ select lives_ok(
   'draft revision may receive entries'
 );
 
-select lives_ok(
+select throws_ok(
   $$
     update public.measured_boq_catalog_entries
     set base_unit_rate = 11.0000
     where catalog_revision = 'mboq-2099.01.01' and rate_key = 'synth.paint.m2'
   $$,
-  'draft entry may be updated'
+  'P0001',
+  null,
+  'draft entry update rejected (entries immutable after insert)'
 );
 
 select lives_ok(
@@ -131,12 +195,14 @@ select lives_ok(
   'second draft entry allowed'
 );
 
-select lives_ok(
+select throws_ok(
   $$
     delete from public.measured_boq_catalog_entries
     where catalog_revision = 'mboq-2099.01.01' and rate_key = 'synth.tile.m2'
   $$,
-  'draft entry may be deleted'
+  'P0001',
+  null,
+  'draft entry delete rejected (entries immutable after insert)'
 );
 
 -- constraints
@@ -301,18 +367,30 @@ select throws_ok(
   'non-exclusive VAT rejected'
 );
 
--- publish
+-- publish requires trusted owner + transaction-local lifecycle GUC
+select throws_ok(
+  $$
+    update public.measured_boq_catalog_revisions
+    set status = 'published',
+        published_at = now()
+    where catalog_revision = 'mboq-2099.01.01'
+  $$,
+  'P0001',
+  null,
+  'publish without lifecycle GUC rejected'
+);
+
+select set_config('app.measured_boq_catalog_lifecycle_command', 'publish', true);
 select lives_ok(
   $$
     update public.measured_boq_catalog_revisions
     set status = 'published',
-        published_at = now(),
-        entry_count = 1,
-        content_checksum = '1111111111111111111111111111111111111111111111111111111111111111'
+        published_at = now()
     where catalog_revision = 'mboq-2099.01.01'
   $$,
-  'draft may transition to published'
+  'draft may transition to published with trusted lifecycle command'
 );
+select set_config('app.measured_boq_catalog_lifecycle_command', '', true);
 
 select throws_ok(
   $$
@@ -366,14 +444,27 @@ select throws_ok(
   'published entry delete rejected'
 );
 
+select throws_ok(
+  $$
+    update public.measured_boq_catalog_revisions
+    set status = 'retired', retired_at = now()
+    where catalog_revision = 'mboq-2099.01.01'
+  $$,
+  'P0001',
+  null,
+  'retire without lifecycle GUC rejected'
+);
+
+select set_config('app.measured_boq_catalog_lifecycle_command', 'retire', true);
 select lives_ok(
   $$
     update public.measured_boq_catalog_revisions
     set status = 'retired', retired_at = now()
     where catalog_revision = 'mboq-2099.01.01'
   $$,
-  'published may transition to retired only'
+  'published may transition to retired with trusted lifecycle command'
 );
+select set_config('app.measured_boq_catalog_lifecycle_command', '', true);
 
 select throws_ok(
   $$

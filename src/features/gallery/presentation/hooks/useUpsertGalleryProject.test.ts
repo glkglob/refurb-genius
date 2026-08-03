@@ -41,20 +41,11 @@ const USER = { id: "user-1", email: "a@b.com" };
 const previousRow: PublicGalleryProjectRow = {
   id: "gal-existing",
   project_id: PROJECT_A,
-  created_by: USER.id,
-  slug: PROJECT_A,
   is_public: false,
-  is_published: false,
   featured: false,
   title: "Previous Title",
   description: "Previous desc",
-  summary: null,
   cover_image_url: "https://example.com/old.jpg",
-  location: null,
-  style: null,
-  budget: null,
-  roi: null,
-  published_at: null,
   view_count: 5,
   created_at: "2026-01-01T00:00:00.000Z",
   updated_at: "2026-01-01T00:00:00.000Z",
@@ -233,16 +224,15 @@ describe("useUpsertGalleryProject", () => {
       expect(optimistic).toMatchObject({
         id: "",
         project_id: PROJECT_A,
-        created_by: USER.id,
-        slug: PROJECT_A,
         is_public: true,
-        is_published: false,
         featured: false,
         title: "Untitled Project",
         description: null,
         cover_image_url: null,
         view_count: 0,
       });
+      expect(optimistic).not.toHaveProperty("created_by");
+      expect(optimistic).not.toHaveProperty("slug");
     });
 
     await act(async () => {

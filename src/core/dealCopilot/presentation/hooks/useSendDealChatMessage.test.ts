@@ -19,7 +19,7 @@ vi.mock("@/lib/analytics", () => ({
   trackEvent: (...args: unknown[]) => trackEvent(...args),
 }));
 
-import { useSendDealChatMessage } from "./useSendDealChatMessage";
+import { useSendDealChatMessage, type DealMessageCacheRow } from "./useSendDealChatMessage";
 
 const OPP = "opp-1";
 const THREAD = "thread-1";
@@ -38,12 +38,14 @@ function createQc() {
 }
 
 function makeRow(
-  partial: Partial<DealMessageRow> & Pick<DealMessageRow, "id" | "role" | "content">,
-): DealMessageRow {
+  partial: Partial<DealMessageCacheRow> & Pick<DealMessageCacheRow, "id" | "role" | "content">,
+): DealMessageCacheRow {
   return {
     thread_id: THREAD,
     structured_output: null,
     metadata: {},
+    // Required by migration-built deal_messages.image_urls (text[] NOT NULL).
+    image_urls: [],
     created_at: "2026-01-01T00:00:00.000Z",
     ...partial,
   };
@@ -140,11 +142,11 @@ describe("useSendDealChatMessage", () => {
     });
 
     await waitFor(() => {
-      const data = qc.getQueryData<DealMessageRow[]>(dealChatKeys.messages(THREAD));
+      const data = qc.getQueryData<DealMessageCacheRow[]>(dealChatKeys.messages(THREAD));
       expect(data).toHaveLength(2);
     });
 
-    const data = qc.getQueryData<DealMessageRow[]>(dealChatKeys.messages(THREAD))!;
+    const data = qc.getQueryData<DealMessageCacheRow[]>(dealChatKeys.messages(THREAD))!;
     expect(data[0]).toEqual(existing);
     const optimistic = data[1]!;
     expect(optimistic.id.startsWith("opt-")).toBe(true);
@@ -153,6 +155,9 @@ describe("useSendDealChatMessage", () => {
     expect(optimistic.content).toBe("New message");
     expect(optimistic.structured_output).toBeNull();
     expect(optimistic.metadata).toEqual({});
+    expect(optimistic.image_urls).toEqual([]);
+    expect(Array.isArray(optimistic.image_urls)).toBe(true);
+    expect(optimistic.image_urls).not.toBeUndefined();
     expect(typeof optimistic.created_at).toBe("string");
 
     await act(async () => {
@@ -161,6 +166,38 @@ describe("useSendDealChatMessage", () => {
         assistantMessage: makeRow({ id: "a1", role: "assistant", content: "Reply" }),
       });
     });
+  });
+
+  it("preserves supplied image_urls on fixture/server-shaped rows exactly", async () => {
+    const qc = createQc();
+    const urls = ["https://cdn.example/a.png", "https://cdn.example/b.png"];
+    const userMessage = makeRow({
+      id: "u-img",
+      role: "user",
+      content: "with images",
+      image_urls: urls,
+    });
+    const assistantMessage = makeRow({
+      id: "a-img",
+      role: "assistant",
+      content: "ok",
+      image_urls: [],
+    });
+    sendMessageServerFn.mockResolvedValue({ userMessage, assistantMessage });
+
+    const { result } = renderHook(
+      () => useSendDealChatMessage({ opportunityId: OPP, threadId: THREAD }),
+      { wrapper: createWrapper(qc) },
+    );
+
+    await act(async () => {
+      await result.current.mutateAsync("with images");
+    });
+
+    const data = qc.getQueryData<DealMessageCacheRow[]>(dealChatKeys.messages(THREAD))!;
+    const user = data.find((m) => m.id === "u-img");
+    expect(user?.image_urls).toEqual(urls);
+    expect(user?.image_urls).toHaveLength(2);
   });
 
   it("treats absent cache as empty array for optimistic append", async () => {

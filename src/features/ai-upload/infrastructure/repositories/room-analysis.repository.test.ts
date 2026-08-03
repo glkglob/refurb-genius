@@ -38,7 +38,9 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { SupabaseRoomAnalysisRepository } from "./room-analysis.repository";
+import { jsonToStringArray, SupabaseRoomAnalysisRepository } from "./room-analysis.repository";
+import type { Json, Tables } from "@repo/supabase";
+import type { RoomAnalysis } from "../../domain";
 
 function makePhoto(overrides: Partial<ProjectPhoto> = {}): ProjectPhoto {
   return {
@@ -52,6 +54,99 @@ function makePhoto(overrides: Partial<ProjectPhoto> = {}): ProjectPhoto {
     ...overrides,
   };
 }
+
+describe("jsonToStringArray (canonical Json → domain string[])", () => {
+  it("maps valid JSON string arrays to string[]", () => {
+    expect(jsonToStringArray(["damp", "mould"] as Json)).toEqual(["damp", "mould"]);
+  });
+
+  it("maps empty arrays to []", () => {
+    expect(jsonToStringArray([] as Json)).toEqual([]);
+  });
+
+  it("maps null and non-array JSON to []", () => {
+    expect(jsonToStringArray(null)).toEqual([]);
+    expect(jsonToStringArray(undefined)).toEqual([]);
+    expect(jsonToStringArray("oops" as Json)).toEqual([]);
+    expect(jsonToStringArray(42 as Json)).toEqual([]);
+    expect(jsonToStringArray({ a: 1 } as Json)).toEqual([]);
+  });
+
+  it("retains only string elements from mixed arrays", () => {
+    expect(jsonToStringArray(["ok", 1, null, "two", { x: 1 }, true] as Json)).toEqual([
+      "ok",
+      "two",
+    ]);
+  });
+});
+
+describe("row mapping keeps Json behind repository boundary", () => {
+  it("maps multiple room_analyses rows including jsonb list fields", async () => {
+    // Fixture rows use migration-shaped jsonb values. Cast through unknown because
+    // the tracked generated types still declare these columns as string[] until B6.
+    const rows = [
+      {
+        id: "r1",
+        project_id: "proj-1",
+        user_id: "u1",
+        photo_id: null,
+        photo_url: "https://u/1",
+        photo_name: "1.jpg",
+        room_type: "Kitchen",
+        condition_level: "Dated",
+        refurbishment_level: "Light",
+        visible_issues: ["crack"],
+        recommended_works: ["paint"],
+        ai_summary: "s1",
+        confidence_score: 0.9,
+        created_at: "2024-01-01T00:00:00Z",
+        source: "persisted",
+      },
+      {
+        id: "r2",
+        project_id: "proj-1",
+        user_id: "u1",
+        photo_id: null,
+        photo_url: "https://u/2",
+        photo_name: "2.jpg",
+        room_type: "Bathroom",
+        condition_level: "Good",
+        refurbishment_level: "None",
+        visible_issues: null,
+        recommended_works: ["tile", 3, "grout"],
+        ai_summary: "s2",
+        confidence_score: 0.5,
+        created_at: "2024-01-02T00:00:00Z",
+        source: "ai",
+      },
+    ] as unknown as Tables<"room_analyses">[];
+
+    // Exercise mapper via the same private path used by loadFromSupabase:
+    // re-import module and call through load with mocked select chain.
+    const { supabase } = await import("@/platform/supabase/browser");
+    const from = vi.mocked(supabase.from);
+    from.mockReturnValueOnce({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: rows, error: null }),
+      delete: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockResolvedValue({ error: null }),
+    } as never);
+
+    const repo = new SupabaseRoomAnalysisRepository();
+    const loaded = await repo.load("proj-1");
+    expect(loaded).toHaveLength(2);
+    const first = loaded![0] as RoomAnalysis;
+    const second = loaded![1] as RoomAnalysis;
+    expect(first.visible_issues).toEqual(["crack"]);
+    expect(first.recommended_works).toEqual(["paint"]);
+    expect(second.visible_issues).toEqual([]);
+    expect(second.recommended_works).toEqual(["tile", "grout"]);
+    // Domain objects expose string[], not raw Json bags
+    expect(Array.isArray(first.visible_issues)).toBe(true);
+    expect(first.visible_issues.every((x) => typeof x === "string")).toBe(true);
+  });
+});
 
 describe("SupabaseRoomAnalysisRepository.runMock (C5-2)", () => {
   beforeEach(() => {

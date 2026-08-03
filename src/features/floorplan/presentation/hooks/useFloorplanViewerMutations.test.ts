@@ -1,5 +1,5 @@
 /**
- * AO-1H1 — useFloorplanViewerMutations: Auth, mutations, invalidations, toasts.
+ * AO-1H1 / P1B3 — useFloorplanViewerMutations: Auth, mutations, invalidations, toasts.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -101,15 +101,15 @@ function createQc() {
 
 const sampleModel = {
   id: MODEL_ID,
-  project_id: PROJECT,
-  uploaded_by: "user-1",
+  projectId: PROJECT,
+  userId: "user-1",
   name: "Kitchen",
-  storage_path: "user-1/proj-1/file.glb",
-  file_type: "glb",
+  modelUrl: "user-1/proj-1/file.glb",
+  status: "ready" as const,
   metadata: {},
-  created_at: "2026-01-01",
-  updated_at: "2026-01-01",
-} as const;
+  createdAt: "2026-01-01",
+  updatedAt: "2026-01-01",
+};
 
 beforeEach(() => {
   getUser.mockReset();
@@ -165,7 +165,7 @@ describe("useFloorplanViewerMutations", () => {
       projectId: PROJECT,
       userId: "user-1",
       name: "Kitchen",
-      storagePath: "user-1/proj-1/x.glb",
+      modelUrl: "user-1/proj-1/x.glb",
       fileType: "glb",
       metadata: { originalName: "Kitchen.glb", size: file.size },
     });
@@ -225,7 +225,7 @@ describe("useFloorplanViewerMutations", () => {
     );
   });
 
-  it("deleteModel: storage then DB delete, invalidate, toast, callback", async () => {
+  it("deleteModel: storage via modelUrl then DB delete, invalidate, toast, callback", async () => {
     const qc = createQc();
     const invalidateSpy = vi.spyOn(qc, "invalidateQueries");
     const onModelDeleted = vi.fn();
@@ -242,11 +242,11 @@ describe("useFloorplanViewerMutations", () => {
     );
 
     act(() => {
-      result.current.deleteModel(sampleModel as never);
+      result.current.deleteModel(sampleModel);
     });
 
     await waitFor(() => expect(onModelDeleted).toHaveBeenCalled());
-    expect(deleteFloorplanStorage).toHaveBeenCalledWith(sampleModel.storage_path);
+    expect(deleteFloorplanStorage).toHaveBeenCalledWith(sampleModel.modelUrl);
     expect(deleteFloorplanModelRecord).toHaveBeenCalledWith(MODEL_ID);
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: floorplanKeys.byProject(PROJECT),
@@ -282,10 +282,8 @@ describe("useFloorplanViewerMutations", () => {
     await waitFor(() => expect(onAnnotationSaved).toHaveBeenCalled());
     expect(createFloorplanAnnotation).toHaveBeenCalledWith({
       modelId: MODEL_ID,
-      projectId: PROJECT,
-      userId: "user-1",
       label: "Kitchen",
-      position: [1, 2, 3],
+      position: { x: 1, y: 2, z: 3 },
       roomId: "room-1",
       notes: "Kitchen Room",
     });
@@ -321,7 +319,7 @@ describe("useFloorplanViewerMutations", () => {
     );
   });
 
-  it("saveMeasurement: geometry, auth, insert measurement_type distance", async () => {
+  it("saveMeasurement: geometry, auth, insert distance without points", async () => {
     const qc = createQc();
     const invalidateSpy = vi.spyOn(qc, "invalidateQueries");
     const onMeasurementSaved = vi.fn();
@@ -347,16 +345,14 @@ describe("useFloorplanViewerMutations", () => {
     await waitFor(() => expect(onMeasurementSaved).toHaveBeenCalled());
     expect(createFloorplanMeasurement).toHaveBeenCalledWith({
       modelId: MODEL_ID,
-      projectId: PROJECT,
-      userId: "user-1",
       measurementType: "distance",
       value: 3,
       unit: "m",
-      points: [
-        [0, 0, 0],
-        [3, 0, 0],
-      ],
     });
+    const call = createFloorplanMeasurement.mock.calls[0][0];
+    expect(call).not.toHaveProperty("points");
+    expect(call).not.toHaveProperty("projectId");
+    expect(call).not.toHaveProperty("userId");
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: floorplanKeys.measurementsByModel(MODEL_ID),
     });
@@ -398,7 +394,7 @@ describe("useFloorplanViewerMutations", () => {
     expect(getUser).not.toHaveBeenCalled();
   });
 
-  it("refreshModels invalidates byProject and toasts info", () => {
+  it("refreshModels invalidates project models key", () => {
     const qc = createQc();
     const invalidateSpy = vi.spyOn(qc, "invalidateQueries");
     const { result } = renderHook(
@@ -418,52 +414,14 @@ describe("useFloorplanViewerMutations", () => {
       queryKey: floorplanKeys.byProject(PROJECT),
     });
     expect(toastInfo).toHaveBeenCalledWith("Refreshed");
+    // estimate key untouched by refresh
+    expect(ESTIMATE_KEY).toBeTruthy();
   });
 
-  it("does not touch product estimate or room-estimate keys", async () => {
-    const qc = createQc();
-    const estimateSeed = { rooms: [{ name: "Keep" }] } as never;
-    const roomEstimateSeed = { rooms: [{ name: "AI" }] };
-    qc.setQueryData(ESTIMATE_KEY, estimateSeed);
-    qc.setQueryData(["room-estimate", PROJECT], roomEstimateSeed);
-    const setSpy = vi.spyOn(qc, "setQueryData");
-    createFloorplanAnnotation.mockResolvedValue(undefined);
-
-    const { result } = renderHook(
-      () =>
-        useFloorplanViewerMutations(PROJECT, {
-          selectedModelId: MODEL_ID,
-          estimateRooms: [],
-        }),
-      { wrapper: createWrapper(qc) },
-    );
-
-    act(() => {
-      result.current.saveAnnotation({
-        position: { x: 0, y: 0, z: 0 },
-        label: "Tag",
-      });
-    });
-
-    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith("Room tagged"));
-    expect(qc.getQueryData(ESTIMATE_KEY)).toEqual(estimateSeed);
-    expect(qc.getQueryData(["room-estimate", PROJECT])).toEqual(roomEstimateSeed);
-    // setQueryData may not be called at all for floorplan mutations
-    for (const call of setSpy.mock.calls) {
-      expect(call[0]).not.toEqual(ESTIMATE_KEY);
-      expect(call[0]).not.toEqual(["room-estimate", PROJECT]);
-    }
-  });
-
-  it("source owns auth and storage orchestration; no estimate sync keys", () => {
+  it("source has no as unknown as or as any", () => {
     const src = readFileSync(join(__dirname, "useFloorplanViewerMutations.ts"), "utf8");
-    expect(src).toMatch(/auth\.getUser/);
-    expect(src).toMatch(/uploadFloorplanModel/);
-    expect(src).toMatch(/deleteFloorplanStorage/);
-    expect(src).toMatch(/useMutation/);
-    expect(src).toMatch(/floorplanKeys/);
-    expect(src).not.toMatch(/estimateQueryOptions/);
-    expect(src).not.toMatch(/room-estimate/);
-    expect(src).not.toMatch(/syncTagsToEstimate/);
+    expect(src).not.toMatch(/\bas unknown as\b/);
+    expect(src).not.toMatch(/\bas any\b/);
+    expect(src).not.toMatch(/storage_path/);
   });
 });

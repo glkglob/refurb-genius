@@ -11,6 +11,7 @@ import {
   photoAnalysisByProjectQueryOptions,
   type PhotoAnalysisResultRow,
 } from "@/lib/queries/photo-analysis";
+import { parsePhotoAnalysisContent } from "@repo/types";
 import type { Json } from "@repo/supabase/database.types";
 
 export interface UpdatePhotoAnalysisResultMutationInput {
@@ -41,6 +42,9 @@ type OptimisticCtx = {
 /**
  * Mutation hook for saving edited analysis fields for a project.
  * Pass the same projectId used for photoAnalysisByProjectQueryOptions.
+ *
+ * Persistence writes analysis_data + confidence (canonical columns).
+ * Optimistic cache patches the application model fields only.
  */
 export function useUpdatePhotoAnalysisResult(projectId: string) {
   const queryClient = useQueryClient();
@@ -68,16 +72,25 @@ export function useUpdatePhotoAnalysisResult(projectId: string) {
       const key = photoAnalysisByProjectQueryOptions(projectId).queryKey;
       await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData<PhotoAnalysisResultRow[]>(key);
+      // Parse optimistic content through the same guards as the DB mapper
+      const optimisticJson: Json = {
+        category: newData.category ?? null,
+        condition_report: newData.condition_report ?? null,
+        detected_defects: (newData.defects ?? []) as Json,
+        material_estimates: (newData.material_estimates ?? []) as Json,
+        cost_suggestions: (newData.cost_suggestions ?? {}) as Json,
+      };
+      const parsed = parsePhotoAnalysisContent(optimisticJson);
       queryClient.setQueryData<PhotoAnalysisResultRow[]>(key, (old = []) =>
         old.map((a) =>
           a.id === id
             ? {
                 ...a,
-                category: newData.category ?? null,
-                condition_report: newData.condition_report ?? null,
-                detected_defects: (newData.defects ?? []) as unknown as Json,
-                material_estimates: (newData.material_estimates ?? []) as unknown as Json,
-                cost_suggestions: (newData.cost_suggestions ?? {}) as unknown as Json,
+                category: parsed.category,
+                condition_report: parsed.condition_report,
+                detected_defects: parsed.detected_defects,
+                material_estimates: parsed.material_estimates,
+                cost_suggestions: parsed.cost_suggestions,
                 confidence_score: newData.confidence ?? null,
               }
             : a,

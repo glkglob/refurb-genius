@@ -15,7 +15,46 @@ type TradepersonRow = Tables<"tradespeople">;
 type TradeSpecialtyRow = Tables<"trade_specialties">;
 type TradeFavoriteRow = Tables<"trade_favorites">;
 type QuoteRequestRow = Tables<"quote_requests">;
-type TradeMessageRow = Tables<"trade_messages">;
+
+/**
+ * Stable trade message application row (P1B4).
+ * Canonical column is `content`; historical tracked column was `body`.
+ */
+export type TradeMessageRow = {
+  id: string;
+  quote_request_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Map dual-baseline trade_messages row → application model.
+ * Prefers canonical `content`; falls back to historical `body`.
+ */
+export function mapTradeMessageRow(row: unknown): TradeMessageRow {
+  const r = isRecord(row) ? row : {};
+  const content =
+    (typeof r.content === "string" ? r.content : null) ??
+    (typeof r.body === "string" ? r.body : "") ??
+    "";
+  return {
+    id: typeof r.id === "string" ? r.id : "",
+    quote_request_id: typeof r.quote_request_id === "string" ? r.quote_request_id : "",
+    sender_id: typeof r.sender_id === "string" ? r.sender_id : "",
+    content,
+    created_at: typeof r.created_at === "string" ? r.created_at : "",
+  };
+}
+
+export function mapTradeMessageRows(rows: unknown): TradeMessageRow[] {
+  if (!Array.isArray(rows)) return [];
+  return rows.map(mapTradeMessageRow);
+}
 
 /**
  * Marketplace query keys.
@@ -210,7 +249,7 @@ export const tradeMessagesQueryOptions = (quoteRequestId: string) =>
         });
         throw new Error(error.message);
       }
-      return (data ?? []) as TradeMessageRow[];
+      return mapTradeMessageRows(data ?? []);
     },
     enabled: !!quoteRequestId,
     staleTime: 15 * 1000, // chatty

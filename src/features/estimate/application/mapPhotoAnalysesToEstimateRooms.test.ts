@@ -3,13 +3,14 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { PhotoAnalysisResultRow } from "@/lib/queries/photo-analysis";
+import { createPhotoAnalysisAppModel } from "@repo/types";
 import { mapPhotoAnalysesToEstimateRooms } from "./mapPhotoAnalysesToEstimateRooms";
 
 function analysis(
   id: string,
   overrides: Partial<PhotoAnalysisResultRow> = {},
 ): PhotoAnalysisResultRow {
-  return {
+  return createPhotoAnalysisAppModel({
     id,
     project_id: "proj-1",
     photo_id: `photo-${id}`,
@@ -17,17 +18,10 @@ function analysis(
     condition_report: null,
     detected_defects: [],
     material_estimates: [],
-    cost_suggestions: {},
+    cost_suggestions: null,
     confidence_score: 0.8,
-    created_at: "2026-01-01T00:00:00.000Z",
-    updated_at: "2026-01-01T00:00:00.000Z",
-    created_by: null,
-    editable_notes: null,
-    room_id: null,
-    severity: null,
-    synced_to_estimate: false,
     ...overrides,
-  } as PhotoAnalysisResultRow;
+  });
 }
 
 describe("mapPhotoAnalysesToEstimateRooms", () => {
@@ -159,7 +153,7 @@ describe("mapPhotoAnalysesToEstimateRooms", () => {
       analysis("a3", {
         category: "Y",
         detected_defects: [{ description: "D" }],
-        cost_suggestions: {},
+        cost_suggestions: null,
       }),
     ]);
     expect(withDefault[0]?.items[0]?.unit_cost).toBe(150);

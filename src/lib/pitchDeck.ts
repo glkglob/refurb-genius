@@ -252,12 +252,13 @@ export async function generatePitchDeckPDF(
     y += 5;
     doc.setFontSize(9);
     analyses.slice(0, 3).forEach((a, i) => {
+      // a is PhotoAnalysisAppModel (content from analysis_data via query mapper)
       const room = a.category || "General";
       // confidence_score may be stored as a 0-1 fraction or a 0-100 percent.
       const rawConf = a.confidence_score ?? 0.8;
       const conf = Math.round(rawConf > 1 ? rawConf : rawConf * 100);
       doc.text(
-        `  ${i + 1}. ${room} (${conf}% conf) - ${((a.detected_defects as unknown[]) || []).length} issues noted`,
+        `  ${i + 1}. ${room} (${conf}% conf) - ${(a.detected_defects || []).length} issues noted`,
         margin + 3,
         y,
       );
@@ -359,20 +360,47 @@ export async function savePitchDeckToSupabase(
     throw uploadErr;
   }
 
-  const { data: record, error: dbErr } = await supabase
+  // Canonical pitch_deck_exports (migration 20260605123000):
+  // project_id, user_id, title, export_url, format, file_size_bytes.
+  // export_url stores the private Storage object path (same pattern as floorplan model_url).
+  // Dual-baseline: structural write surface avoids TablesInsert drift (tracked still
+  // has created_by/storage_path/metadata).
+  type CanonicalPitchDeckInsert = {
+    project_id: string;
+    user_id: string;
+    title: string;
+    export_url: string;
+    format: string;
+    file_size_bytes: number;
+  };
+
+  type WriteError = { message: string } | null;
+  type PitchDeckWriteClient = {
+    from(table: string): {
+      insert(values: object): {
+        select(columns?: string): {
+          single(): PromiseLike<{ data: unknown; error: WriteError }>;
+        };
+      };
+    };
+  };
+
+  const insertRow: CanonicalPitchDeckInsert = {
+    project_id: projectId,
+    user_id: userId,
+    title: filename.replace(/\.pdf$/i, ""),
+    export_url: path,
+    format: "pdf",
+    file_size_bytes: blob.size,
+  };
+
+  function pitchDeckWriteClient(): PitchDeckWriteClient {
+    return supabase;
+  }
+
+  const { data: record, error: dbErr } = await pitchDeckWriteClient()
     .from("pitch_deck_exports")
-    // Live prod schema: created_by/storage_path/metadata (the committed migration's
-    // user_id/export_url/title columns were replaced out-of-band — see memory note).
-    .insert({
-      project_id: projectId,
-      created_by: userId,
-      storage_path: path,
-      metadata: {
-        title: filename.replace(".pdf", ""),
-        format: "pdf",
-        file_size_bytes: blob.size,
-      },
-    })
+    .insert(insertRow)
     .select()
     .single();
 
@@ -386,5 +414,9 @@ export async function savePitchDeckToSupabase(
     throw dbErr;
   }
 
-  return { record, storagePath: path };
+  void pageCount;
+  return {
+    record: record && typeof record === "object" ? (record as Record<string, unknown>) : null,
+    storagePath: path,
+  };
 }

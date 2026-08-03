@@ -300,7 +300,7 @@ describe("marketplace-write", () => {
   });
 
   describe("sendTradeMessage", () => {
-    it("inserts into trade_messages with exact payload using body", async () => {
+    it("inserts canonical trade_messages payload (content; no body/recipient_id)", async () => {
       await sendTradeMessage({
         quoteRequestId: "quote-1",
         senderId: "user-a",
@@ -312,20 +312,20 @@ describe("marketplace-write", () => {
       expect(messageInsertMock).toHaveBeenCalledWith({
         quote_request_id: "quote-1",
         sender_id: "user-a",
-        recipient_id: "user-b",
-        body: "Hello there",
+        content: "Hello there",
       });
       const payload = messageInsertMock.mock.calls[0][0] as Record<string, unknown>;
-      expect(payload).not.toHaveProperty("content");
+      expect(payload).not.toHaveProperty("body");
+      expect(payload).not.toHaveProperty("recipient_id");
       expect(payload).not.toHaveProperty("project_id");
       expect(payload).not.toHaveProperty("read_at");
       expect(payload).not.toHaveProperty("created_at");
       expect(Object.keys(payload).sort()).toEqual(
-        ["body", "quote_request_id", "recipient_id", "sender_id"].sort(),
+        ["content", "quote_request_id", "sender_id"].sort(),
       );
     });
 
-    it("trims body before insert", async () => {
+    it("trims body and maps to content before insert", async () => {
       await sendTradeMessage({
         quoteRequestId: "quote-1",
         senderId: "user-a",
@@ -335,7 +335,7 @@ describe("marketplace-write", () => {
 
       expect(messageInsertMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          body: "Hello",
+          content: "Hello",
         }),
       );
     });

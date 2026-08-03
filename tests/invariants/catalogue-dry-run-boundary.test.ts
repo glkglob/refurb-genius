@@ -32,17 +32,20 @@ describe("catalogue dry-run CLI boundary (4C2E-B1C)", () => {
     assert.equal(exists(CLI), true);
   });
 
-  it("only catalogue:dry-run package entry exists for catalogue tooling", () => {
+  it("only catalogue:dry-run and catalogue:persist package entries exist for catalogue tooling", () => {
     const pkg = JSON.parse(read(PACKAGE_JSON)) as { scripts?: Record<string, string> };
     const scripts = pkg.scripts ?? {};
     assert.equal(scripts["catalogue:dry-run"], "tsx scripts/catalogue-dry-run.ts");
+    assert.equal(scripts["catalogue:persist"], "tsx scripts/catalogue-persist.ts");
 
-    const catalogueScriptKeys = Object.keys(scripts).filter((k) => /catalogue|catalog/i.test(k));
-    assert.deepEqual(catalogueScriptKeys, ["catalogue:dry-run"]);
+    const catalogueScriptKeys = Object.keys(scripts)
+      .filter((k) => /catalogue|catalog/i.test(k))
+      .sort();
+    assert.deepEqual(catalogueScriptKeys, ["catalogue:dry-run", "catalogue:persist"]);
 
     for (const [key, value] of Object.entries(scripts)) {
-      assert.doesNotMatch(key, /catalogue:(import|publish|upsert|retire|write)/i);
-      assert.doesNotMatch(value, /catalogue-(import|publish|upsert|retire)/i);
+      assert.doesNotMatch(key, /catalogue:(import|publish|upsert|retire|write|activate|rollback)/i);
+      assert.doesNotMatch(value, /catalogue-(import|publish|upsert|retire|activate|rollback)/i);
     }
   });
 

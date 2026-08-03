@@ -11,6 +11,7 @@ import {
   photoAnalysisByProjectQueryOptions,
   type PhotoAnalysisResultRow,
 } from "@/lib/queries/photo-analysis";
+import { createPhotoAnalysisAppModel } from "@repo/types";
 import { estimateQueryOptions } from "@/lib/queries/projects";
 
 const updatePhotoAnalysisResult = vi.fn();
@@ -42,7 +43,7 @@ function seedAnalyses(qc: QueryClient, rows: PhotoAnalysisResultRow[]) {
 }
 
 function row(id: string, overrides: Partial<PhotoAnalysisResultRow> = {}): PhotoAnalysisResultRow {
-  return {
+  return createPhotoAnalysisAppModel({
     id,
     project_id: PROJECT,
     photo_id: `photo-${id}`,
@@ -50,17 +51,10 @@ function row(id: string, overrides: Partial<PhotoAnalysisResultRow> = {}): Photo
     condition_report: "Before",
     detected_defects: [],
     material_estimates: [],
-    cost_suggestions: {},
+    cost_suggestions: null,
     confidence_score: 0.5,
-    created_at: "2026-01-01T00:00:00.000Z",
-    updated_at: "2026-01-01T00:00:00.000Z",
-    created_by: null,
-    editable_notes: null,
-    room_id: null,
-    severity: null,
-    synced_to_estimate: false,
     ...overrides,
-  } as PhotoAnalysisResultRow;
+  });
 }
 
 beforeEach(() => {

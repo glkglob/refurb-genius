@@ -163,17 +163,43 @@ export async function createQuoteRequest(input: CreateQuoteRequestInput): Promis
 export interface SendTradeMessageInput {
   quoteRequestId: string;
   senderId: string;
+  /**
+   * Application-layer counterparty identity (from quote request resolution).
+   * Not a trade_messages column — recipient is implied by quote_request_id RLS.
+   */
   recipientId: string;
+  /** Application message text; persisted as canonical `content`. */
   body: string;
 }
 
+/** Canonical insert payload for public.trade_messages. */
+type CanonicalTradeMessageInsert = {
+  quote_request_id: string;
+  sender_id: string;
+  content: string;
+};
+
+type WriteError = { message: string } | null;
+
 /**
- * Insert a marketplace trade message.
+ * Minimal dual-baseline write surface for trade_messages insert.
+ */
+type MarketplaceMessageWriteClient = {
+  from(table: string): {
+    insert(values: object): PromiseLike<{ error: WriteError }>;
+  };
+};
+
+function marketplaceMessageWriteClient(): MarketplaceMessageWriteClient {
+  return supabase;
+}
+
+/**
+ * Insert a marketplace trade message (P1B4).
  *
- * Preserves current MessagingInbox payload semantics:
- * - body field (not legacy foundation `content`)
- * - no .select() / no returned row
- * - sender/recipient equality is not client-rejected
+ * Canonical columns: quote_request_id, sender_id, content.
+ * Application still accepts body + recipientId; body maps to content and
+ * recipientId is validated but not persisted (derived via quote_request).
  *
  * Does not resolve participants, Auth, React Query, or Realtime.
  */
@@ -183,12 +209,13 @@ export async function sendTradeMessage(input: SendTradeMessageInput): Promise<vo
   const recipientId = requireNonEmpty(input.recipientId, "recipientId");
   const body = requireNonEmpty(input.body, "body");
 
-  const { error } = await supabase.from("trade_messages").insert({
+  const row: CanonicalTradeMessageInsert = {
     quote_request_id: quoteRequestId,
     sender_id: senderId,
-    recipient_id: recipientId,
-    body,
-  });
+    content: body,
+  };
+
+  const { error } = await marketplaceMessageWriteClient().from("trade_messages").insert(row);
 
   if (error) {
     logger.error("[marketplace-write] sendTradeMessage failed", {

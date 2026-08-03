@@ -262,5 +262,9 @@ export function runCatalogueDryRun(input: RunCatalogueDryRunInput): RunCatalogue
   return {
     report,
     contentChecksum: outputChecksum,
+    validatedSnapshot: {
+      ...validated.snapshot,
+      contentChecksum: validated.contentChecksum,
+    },
   };
 }

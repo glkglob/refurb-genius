@@ -29,6 +29,9 @@ const EXPECTED_ITEM_PROVENANCE = {
   resolved_unit_rate: "number | null",
 };
 
+// B2C1 additive revision provenance/lifecycle columns (migration
+// 20260802060000_measured_boq_catalogue_persistence_foundation.sql) are
+// required. Legacy-nullable columns remain nullable; production defaults false.
 const EXPECTED_REVISION_ROW = {
   catalog_revision: "string",
   content_checksum: "string",
@@ -38,12 +41,22 @@ const EXPECTED_REVISION_ROW = {
   effective_from: "string",
   entry_count: "number",
   id: "string",
+  input_checksum: "string | null",
+  licence_status: "string | null",
+  normaliser_version: "string | null",
+  production: "boolean",
   published_at: "string | null",
+  published_by_id: "string | null",
+  published_by_kind: "string | null",
   regional_basis: "string",
   release_notes: "string | null",
   retired_at: "string | null",
+  retired_by_id: "string | null",
+  retired_by_kind: "string | null",
+  retirement_reason: "string | null",
   schema_version: "string",
   source_description: "string",
+  source_id: "string | null",
   status: "string",
   updated_at: "string",
   vat_basis: "string",

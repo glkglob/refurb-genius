@@ -116,7 +116,24 @@ export type {
   QuoteRequestWithMessages,
   QuoteStatus,
 } from "./marketplace";
-export type { PhotoAnalysisResult } from "./photo-analysis";
+export type {
+  PhotoAnalysisResult,
+  PhotoAnalysisAppModel,
+  PhotoAnalysisContent,
+  PhotoAnalysisDefect,
+  PhotoAnalysisMaterial,
+  PhotoAnalysisCostSuggestions,
+  PhotoAnalysisDbRowLike,
+  PhotoAnalysisJson,
+} from "./photo-analysis";
+export {
+  parsePhotoAnalysisContent,
+  serializePhotoAnalysisContent,
+  mapPhotoAnalysisRow,
+  createPhotoAnalysisAppModel,
+  EMPTY_PHOTO_ANALYSIS_CONTENT,
+} from "./photo-analysis";
+
 export type { PitchDeckExport } from "./pitch-deck";
 export type {
   PublicGalleryProject,

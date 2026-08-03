@@ -35,8 +35,21 @@ describe("gallery queries", () => {
     expect(opts.queryKey).toContain("test-id");
   });
 
-  it("public queryFn calls supabase with is_public filter", async () => {
-    const mockData = [{ id: "1", is_public: true }];
+  it("public queryFn calls supabase with is_public filter and maps rows", async () => {
+    const mockData = [
+      {
+        id: "1",
+        project_id: "p1",
+        is_public: true,
+        featured: false,
+        title: "T",
+        description: null,
+        cover_image_url: null,
+        view_count: 2,
+        created_at: "c",
+        updated_at: "u",
+      },
+    ];
     const fromMock = vi.mocked(supabase.from);
     fromMock.mockReturnValue({
       select: vi.fn().mockReturnThis(),
@@ -49,6 +62,19 @@ describe("gallery queries", () => {
     const result = await (opts.queryFn as () => Promise<unknown>)();
 
     expect(fromMock).toHaveBeenCalledWith("public_gallery_projects");
-    expect(result).toEqual(mockData);
+    expect(result).toEqual([
+      {
+        id: "1",
+        project_id: "p1",
+        is_public: true,
+        featured: false,
+        title: "T",
+        description: null,
+        cover_image_url: null,
+        view_count: 2,
+        created_at: "c",
+        updated_at: "u",
+      },
+    ]);
   });
 });

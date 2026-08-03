@@ -1,5 +1,5 @@
 /**
- * Presentation-safe gallery upsert mutation (AO-1M3).
+ * Presentation-safe gallery upsert mutation (AO-1M3 / P1B4).
  *
  * Owns:
  * - auth.getUser gate
@@ -9,8 +9,7 @@
  * - mutation logging
  *
  * Persistence: galleryRepository.upsertGalleryProject (infrastructure).
- * Toasts remain component-owned (PublishToGallery mutate callbacks).
- * Cover upload and gallery reads remain outside this hook.
+ * Optimistic objects use the stable PublicGalleryProjectRow application model.
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { auth } from "@/lib/auth";
@@ -32,11 +31,6 @@ export interface UpsertGalleryProjectInput {
  * Upserts a row into `public_gallery_projects` keyed on `project_id`
  * (unique). RLS (`public_gallery_projects_owner_manage`) permits this for
  * the project owner only.
- *
- * Includes an optimistic update against `galleryKeys.byProject(projectId)`
- * so toggles (is_public / featured) feel instant, with rollback on error
- * and a final invalidation to reconcile with the server (view_count, id,
- * timestamps, etc.).
  */
 export function useUpsertGalleryProject(projectId: string) {
   const queryClient = useQueryClient();
@@ -57,30 +51,20 @@ export function useUpsertGalleryProject(projectId: string) {
       const previous = queryClient.getQueryData<PublicGalleryProjectRow | null>(queryKey);
 
       const now = new Date().toISOString();
-      const user = auth.getUser();
       const fallback: PublicGalleryProjectRow = {
         id: previous?.id ?? "",
         project_id: projectId,
-        created_by: user?.id ?? "",
-        slug: previous?.slug ?? projectId,
         is_public: false,
-        is_published: false,
         featured: false,
         title: previous?.title ?? "Untitled Project",
         description: null,
-        summary: null,
         cover_image_url: null,
-        location: null,
-        style: null,
-        budget: null,
-        roi: null,
-        published_at: null,
         view_count: 0,
         created_at: previous?.created_at ?? now,
         updated_at: now,
       };
 
-      const merged = {
+      const merged: PublicGalleryProjectRow = {
         ...(previous ?? fallback),
         ...input,
         title: input.title ?? previous?.title ?? fallback.title,
