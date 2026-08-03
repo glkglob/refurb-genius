@@ -1,0 +1,14 @@
+docs/architecture/4c2e-d0a-source-coverage-decision-pack.md
+  h_7ea6129503670a 1-823
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "129a84cac3edca0b73de5e1612c4c1a183bb6656",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
