@@ -1,0 +1,22 @@
+scripts/verify-b2e-lifecycle-concurrency.mjs
+  h_7ea6129503670a 3,5-10,35-46,325-330,334-345,393,412-417,493-508,557-566,582-589,811,941-1204
+scripts/verify-b2e-lifecycle-concurrency.test.mjs
+  h_7ea6129503670a 42-57
+supabase/migrations/20260803120000_measured_boq_catalogue_lifecycle_request_identity_repair.sql
+  h_7ea6129503670a 1-820
+supabase/tests/database/measured_boq_catalogue_lifecycle_rpc.test.sql
+  h_7ea6129503670a 4,779-1032
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "b878a49eb4a741bd88de4ab651fcd3efd81c5895",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
