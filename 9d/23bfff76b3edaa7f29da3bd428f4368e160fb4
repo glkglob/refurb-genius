@@ -1,0 +1,24 @@
+scripts/verify-b2d-persistence-concurrency.mjs
+  h_7ea6129503670a 3,7-12,32-33,35-36,193-233,421-424,436-437,443-458,743,747-748,798,801-803,809-916,1118-1134,1137,1150-1152
+scripts/verify-b2d-persistence-concurrency.test.mjs
+  h_7ea6129503670a 2,33-36,40-61,63,73,76,83,85
+supabase/migrations/20260803140000_persist_measured_boq_catalogue_request_identity_repair.sql
+  h_7ea6129503670a 1-600
+supabase/tests/database/persist_measured_boq_catalog_draft.test.sql
+  h_7ea6129503670a 1,4,137,159-234,419-499
+tests/invariants/catalogue-persist-request-identity.invariant.test.ts
+  h_7ea6129503670a 1-110
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "9d23bfff76b3edaa7f29da3bd428f4368e160fb4",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
