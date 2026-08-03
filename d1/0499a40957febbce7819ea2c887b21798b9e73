@@ -1,0 +1,50 @@
+package.json
+  h_7ea6129503670a 44-46
+packages/supabase/src/database.types.ts
+  h_7ea6129503670a 2016-2027,2071-2078,2090-2108
+scripts/verify-b2e-lifecycle-concurrency.mjs
+  h_7ea6129503670a 1-907
+scripts/verify-b2e-lifecycle-concurrency.test.mjs
+  h_7ea6129503670a 1-53
+scripts/verify-database-types-compatibility.test.mjs
+  h_7ea6129503670a 154,156,158
+src/features/estimate/application/measuredBoq/publishMeasuredBoqCatalogueRevision.server.test.ts
+  h_7ea6129503670a 1-85
+src/features/estimate/application/measuredBoq/publishMeasuredBoqCatalogueRevision.server.ts
+  h_7ea6129503670a 1-192
+src/features/estimate/application/measuredBoq/retireMeasuredBoqCatalogueRevision.server.test.ts
+  h_7ea6129503670a 1-88
+src/features/estimate/application/measuredBoq/retireMeasuredBoqCatalogueRevision.server.ts
+  h_7ea6129503670a 1-184
+src/features/estimate/application/measuredBoq/rollbackMeasuredBoqCataloguePublication.server.test.ts
+  h_7ea6129503670a 1-93
+src/features/estimate/application/measuredBoq/rollbackMeasuredBoqCataloguePublication.server.ts
+  h_7ea6129503670a 1-203
+src/features/estimate/infrastructure/catalogue/measuredBoqCatalogueLifecycle.repository.server.test.ts
+  h_7ea6129503670a 1-46
+src/features/estimate/infrastructure/catalogue/measuredBoqCatalogueLifecycle.repository.server.ts
+  h_7ea6129503670a 1-200
+supabase/migrations/20260803010000_measured_boq_catalogue_lifecycle_rpc.sql
+  h_7ea6129503670a 1-778
+supabase/tests/database/measured_boq_catalogue_lifecycle_rpc.test.sql
+  h_7ea6129503670a 1-780
+supabase/tests/database/measured_boq_catalogue_persistence_foundation.test.sql
+  h_7ea6129503670a 618-619,625-627
+supabase/tests/database/persist_measured_boq_catalog_draft.test.sql
+  h_7ea6129503670a 302-304,310-312,317-318
+tests/invariants/catalogue-lifecycle-boundary.test.ts
+  h_7ea6129503670a 1-134
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "d10499a40957febbce7819ea2c887b21798b9e73",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
