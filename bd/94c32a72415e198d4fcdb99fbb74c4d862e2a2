@@ -1,0 +1,14 @@
+docs/architecture/4c2e-d0-production-catalogue-publication-readiness-plan.md
+  h_7ea6129503670a 1-988
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "bd94c32a72415e198d4fcdb99fbb74c4d862e2a2",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
