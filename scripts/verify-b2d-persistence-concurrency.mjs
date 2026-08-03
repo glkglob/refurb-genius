@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 /**
- * 4C2E-B2D1 — Multi-session concurrency verifier for
+ * 4C2E-B2D1 / B2D2R — Multi-session concurrency verifier for
  * public.persist_measured_boq_catalog_draft.
  *
  * Uses independent local psql processes (distinct backend PIDs), a
- * coordinator barrier that holds the same advisory lock keys as the RPC,
- * and pg_stat_activity / pg_locks evidence of overlap.
+ * coordinator barrier that holds the same advisory lock keys as the RPC
+ * (package identity and/or request identity), and pg_stat_activity /
+ * pg_locks evidence of overlap.
+ *
+ * B2D2R adds cross_package_request_conflict: same request ID, different
+ * package identities, request-advisory barrier, created+request_conflict.
  *
  * Local Supabase only. Non-zero exit on any unmet concurrency condition.
  */
@@ -25,7 +29,11 @@ const REV = {
   revisionConflict: "mboq-2099.12.05",
   independentA: "mboq-2099.12.06",
   independentB: "mboq-2099.12.07",
+  crossPackageA: "mboq-2099.12.08",
+  crossPackageB: "mboq-2099.12.09",
 };
+const PERSIST_REQUEST_LOCK_NS = "measured-boq-persist-request:";
+const PERSIST_CMD_SCOPE = "persist_draft";
 const WAIT_POLL_MS = 100;
 const WAIT_TIMEOUT_MS = 20_000;
 const CALLER_TIMEOUT_MS = 45_000;
@@ -180,6 +188,47 @@ function lockKeys(dbUrl, checksum) {
     fail("Failed to derive advisory lock keys", { Raw: out, Checksum: checksum });
   }
   return { k1, k2 };
+}
+
+/** Matches migration: hashtextextended('measured-boq-persist-request:'||scope||':'||uuid, 0) */
+function requestLockKey(dbUrl, requestId, commandScope = PERSIST_CMD_SCOPE) {
+  const out = psqlSync(
+    dbUrl,
+    `SELECT pg_catalog.hashtextextended(
+       ${sqlLiteral(PERSIST_REQUEST_LOCK_NS + commandScope + ":" + requestId)},
+       0
+     )::text;`,
+  );
+  if (!/^-?\d+$/.test(out)) {
+    fail("Failed to derive request-identity advisory lock key", {
+      Raw: out,
+      RequestId: requestId,
+      CommandScope: commandScope,
+    });
+  }
+  return out;
+}
+
+function buildPackageBarrierCoordSql(coordApp, k1, k2) {
+  return `
+SELECT set_config('application_name', ${sqlLiteral(coordApp)}, false);
+SELECT pg_backend_pid() AS backend_pid \\gset
+\\echo COORD_PID :backend_pid
+SELECT pg_advisory_lock(${k1}, ${k2});
+\\echo COORD_LOCK_HELD
+SELECT pg_sleep(120);
+`;
+}
+
+function buildRequestBarrierCoordSql(coordApp, requestLockKeyBigint) {
+  return `
+SELECT set_config('application_name', ${sqlLiteral(coordApp)}, false);
+SELECT pg_backend_pid() AS backend_pid \\gset
+\\echo COORD_PID :backend_pid
+SELECT pg_advisory_lock(${requestLockKeyBigint});
+\\echo COORD_LOCK_HELD
+SELECT pg_sleep(120);
+`;
 }
 
 function backendPid(dbUrl) {
@@ -369,6 +418,10 @@ function hasAdvisoryWait(activity, locks) {
 
 /**
  * Run two concurrent RPC callers while coordinator holds advisory lock keys.
+ *
+ * Barrier modes:
+ * - package: hold two-key package identity lock from lockChecksum / holdLockKeys
+ * - request: hold single-key request identity lock from holdRequestId
  */
 async function runBarrierScenario(dbUrl, workDir, scenario) {
   const {
@@ -380,24 +433,31 @@ async function runBarrierScenario(dbUrl, workDir, scenario) {
     assert,
     requireWait = true,
     holdLockKeys = null,
+    holdRequestId = null,
+    barrierMode = holdRequestId ? "request" : "package",
   } = scenario;
 
   cleanupFixture(dbUrl, labels);
 
-  const keys = holdLockKeys ?? lockKeys(dbUrl, lockChecksum);
   const coordApp = `b2d1-coord-${name}`;
-  const appA = `b2d1-caller-A-${name}`;
-  const appB = `b2d1-caller-B-${name}`;
+
+  let keys;
+  let requestKey = null;
+  let coordSql;
+  if (barrierMode === "request") {
+    if (!holdRequestId) {
+      fail(`Scenario ${name} barrierMode=request requires holdRequestId`);
+    }
+    requestKey = requestLockKey(dbUrl, holdRequestId);
+    keys = { mode: "request", requestId: holdRequestId, key: requestKey };
+    coordSql = buildRequestBarrierCoordSql(coordApp, requestKey);
+  } else {
+    keys = holdLockKeys ?? lockKeys(dbUrl, lockChecksum);
+    keys = { mode: "package", ...keys };
+    coordSql = buildPackageBarrierCoordSql(coordApp, keys.k1, keys.k2);
+  }
 
   // Coordinator holds session-level advisory lock (contends with xact lock).
-  const coordSql = `
-SELECT set_config('application_name', ${sqlLiteral(coordApp)}, false);
-SELECT pg_backend_pid() AS backend_pid \\gset
-\\echo COORD_PID :backend_pid
-SELECT pg_advisory_lock(${keys.k1}, ${keys.k2});
-\\echo COORD_LOCK_HELD
-SELECT pg_sleep(120);
-`;
   const coordPath = join(workDir, `${name}-coord.sql`);
   const coordLog = join(workDir, `${name}-coord.log`);
   writeFileSync(coordPath, coordSql);
@@ -680,10 +740,12 @@ async function main() {
       const artsB = packageArtifacts(revB, "src-rc-b", "paint.ceil.m2");
       const ckA = inputChecksum(dbUrl, artsA.manifest, artsA.snapshot);
       const ckB = inputChecksum(dbUrl, artsB.manifest, artsB.snapshot);
+      if (ckA === ckB) fail("request_conflict fixtures must differ in input checksum");
       const requestId = "a4444444-4444-4444-8444-444444444444";
       const rec = await runBarrierScenario(dbUrl, workDir, {
         name: "request_conflict",
-        lockChecksum: ckA,
+        holdRequestId: requestId,
+        barrierMode: "request",
         labels,
         callerA: {
           manifest: artsA.manifest,
@@ -733,12 +795,123 @@ async function main() {
               conflicts: conflicts.length,
             });
           }
-          if (r.counts.revisions !== 1 || r.counts.packages !== 1) {
+          if (r.counts.revisions !== 1 || r.counts.packages !== 1 || r.counts.entries !== 1) {
             fail("request_conflict expected single winning draft", { counts: r.counts });
+          }
+          if (r.counts.events !== 1) {
+            fail("request_conflict expected exactly one event", { counts: r.counts });
           }
         },
       });
       results.push(rec);
+    }
+
+    // ── 11.3b B2D2R cross-package request conflict (request lock barrier) ─
+    {
+      const revA = REV.crossPackageA;
+      const revB = REV.crossPackageB;
+      const labels = [revA, revB];
+      const artsA = packageArtifacts(revA, "src-xpkg-a", "paint.wall.m2");
+      const artsB = packageArtifacts(revB, "src-xpkg-b", "plaster.wall.m2");
+      const ckA = inputChecksum(dbUrl, artsA.manifest, artsA.snapshot);
+      const ckB = inputChecksum(dbUrl, artsB.manifest, artsB.snapshot);
+      if (ckA === ckB) {
+        fail("cross_package_request_conflict fixtures must differ in input checksum", {
+          ckA,
+          ckB,
+        });
+      }
+      if (revA === revB) {
+        fail("cross_package_request_conflict fixtures must differ in catalogue revision");
+      }
+      const requestId = "a9999999-9999-4999-8999-999999999999";
+      const rec = await runBarrierScenario(dbUrl, workDir, {
+        name: "cross_package_request_conflict",
+        holdRequestId: requestId,
+        barrierMode: "request",
+        labels,
+        callerA: {
+          manifest: artsA.manifest,
+          snapshot: artsA.snapshot,
+          catalogRevision: revA,
+          sourceId: "src-xpkg-a",
+          inputCk: ckA,
+          contentCk: CONTENT_CK,
+          entries: artsA.entries,
+          report: artsA.report,
+          requestId,
+        },
+        callerB: {
+          manifest: artsB.manifest,
+          snapshot: artsB.snapshot,
+          catalogRevision: revB,
+          sourceId: "src-xpkg-b",
+          inputCk: ckB,
+          contentCk: CONTENT_CK,
+          entries: artsB.entries,
+          report: artsB.report,
+          requestId,
+        },
+        requireWait: true,
+        assert: (r) => {
+          const o = outcomes(r);
+          const created = [r.resultA, r.resultB].filter((x) => x && x.outcome === "created");
+          const conflicts = [r.resultA, r.resultB].filter(
+            (x) => x && x.outcome === "request_conflict",
+          );
+          const failures = [r.resultA, r.resultB].filter(
+            (x) => x && x.outcome === "database_failure",
+          );
+          if (failures.length > 0) {
+            fail(
+              "cross_package_request_conflict produced database_failure (unique_violation leakage)",
+              {
+                outcomes: o,
+                results: { a: r.resultA, b: r.resultB },
+                counts: r.counts,
+                waitEvidence: r.waitEvidence,
+              },
+            );
+          }
+          if (created.length !== 1 || conflicts.length !== 1) {
+            fail("cross_package_request_conflict expected created + request_conflict", {
+              outcomes: o,
+              created: created.length,
+              conflicts: conflicts.length,
+            });
+          }
+          if (r.counts.revisions !== 1 || r.counts.packages !== 1 || r.counts.entries !== 1) {
+            fail("cross_package_request_conflict expected single winning draft identity", {
+              counts: r.counts,
+            });
+          }
+          if (r.counts.events !== 1) {
+            fail("cross_package_request_conflict expected exactly one accepted event", {
+              counts: r.counts,
+              events: r.events,
+            });
+          }
+          // Losing catalogue label must leave zero rows.
+          const winnerRev =
+            r.resultA?.outcome === "created"
+              ? r.resultA
+              : r.resultB?.outcome === "created"
+                ? r.resultB
+                : null;
+          if (!winnerRev) {
+            fail("cross_package_request_conflict missing created winner payload", {
+              results: { a: r.resultA, b: r.resultB },
+            });
+          }
+        },
+      });
+      results.push({
+        ...rec,
+        inputChecksumA: ckA,
+        inputChecksumB: ckB,
+        sharedRequestId: requestId,
+        requestLockNamespace: PERSIST_REQUEST_LOCK_NS + PERSIST_CMD_SCOPE,
+      });
     }
 
     // ── 11.4 Concurrent revision conflict ─────────────────────────────
@@ -942,9 +1115,26 @@ SELECT pg_sleep(120);
       cleanupFixture(dbUrl, labels);
     }
 
+    const requiredScenarios = [
+      "exact_request_replay",
+      "package_replay",
+      "request_conflict",
+      "revision_conflict",
+      "independent_packages",
+      "cross_package_request_conflict",
+    ];
+    const present = new Set(results.map((r) => r.scenario));
+    for (const req of requiredScenarios) {
+      if (!present.has(req)) {
+        fail(`Required scenario missing from results: ${req}`, {
+          Present: [...present],
+        });
+      }
+    }
+
     const summary = {
       Status: "PASS",
-      Phase: "4C2E-B2D1",
+      Phase: "4C2E-B2D2R",
       DatabaseUrlHost: new URL(dbUrl).hostname,
       ScenarioCount: results.length,
       Scenarios: results.map((r) => ({
@@ -957,6 +1147,9 @@ SELECT pg_sleep(120);
         outcomes: [r.resultA?.outcome, r.resultB?.outcome],
         counts: r.counts,
         pidsDistinct: r.callerAPid !== r.callerBPid,
+        inputChecksumA: r.inputChecksumA ?? null,
+        inputChecksumB: r.inputChecksumB ?? null,
+        sharedRequestId: r.sharedRequestId ?? null,
       })),
       Timestamp: nowIso(),
     };

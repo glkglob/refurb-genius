@@ -1,7 +1,7 @@
--- 4C2E-B2D — persist_measured_boq_catalog_draft boundary tests
+-- 4C2E-B2D / B2D2R — persist_measured_boq_catalog_draft boundary tests
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(27);
+SELECT plan(40);
 
 -- ── grants ──────────────────────────────────────────────────────────
 SELECT ok(
@@ -134,7 +134,7 @@ SELECT is(
   'exact replay creates no second package'
 );
 
--- ── request conflict ────────────────────────────────────────────────
+-- ── request conflict (same package bytes, different source_id) ──────
 SELECT is(
   (
     SELECT (public.persist_measured_boq_catalog_draft(
@@ -154,6 +154,82 @@ SELECT is(
   ),
   'request_conflict',
   'same request_id with different payload is request_conflict'
+);
+
+-- ── B2D2R: sequential cross-package request conflict ────────────────
+-- Same request ID, different revision label / source / raw artifacts /
+-- input checksum. First creates; second must request_conflict with no
+-- losing rows (not database_failure).
+CREATE TEMP TABLE _b2d_payload_b AS
+SELECT
+  $m${"manifestVersion":"1","catalogRevision":"mboq-2099.02.99","source":{"id":"src-b","name":"S","version":"1","effectiveDate":"2099-02-01","licenceReference":"syn","licenceStatus":"synthetic"},"transformation":{"schemaVersion":"1","normaliserVersion":"1"},"package":{"snapshotPath":"snapshot.json","production":false}}$m$ AS manifest_text,
+  $s${"schemaVersion":"1","catalogRevision":"mboq-2099.02.99","currency":"GBP","vatBasis":"exclusive","regionalBasis":"uk-region-multipliers-v1","effectiveFrom":"2099-02-01","sourceDescription":"SYNTHETIC TEST FIXTURE B — not production","entryCount":1,"production":false,"entries":[{"rateKey":"paint.ceil.m2","displayName":"Paint ceiling","description":null,"tradeOrDomain":"decor","unit":"m2","costType":"labour","baseUnitRate":14.0,"currency":"GBP","vatBasis":"exclusive","sourceReference":"synthetic","status":"active","replacementRateKey":null}]}$s$ AS snapshot_text,
+  public.measured_boq_package_input_checksum(
+    $m${"manifestVersion":"1","catalogRevision":"mboq-2099.02.99","source":{"id":"src-b","name":"S","version":"1","effectiveDate":"2099-02-01","licenceReference":"syn","licenceStatus":"synthetic"},"transformation":{"schemaVersion":"1","normaliserVersion":"1"},"package":{"snapshotPath":"snapshot.json","production":false}}$m$,
+    $s${"schemaVersion":"1","catalogRevision":"mboq-2099.02.99","currency":"GBP","vatBasis":"exclusive","regionalBasis":"uk-region-multipliers-v1","effectiveFrom":"2099-02-01","sourceDescription":"SYNTHETIC TEST FIXTURE B — not production","entryCount":1,"production":false,"entries":[{"rateKey":"paint.ceil.m2","displayName":"Paint ceiling","description":null,"tradeOrDomain":"decor","unit":"m2","costType":"labour","baseUnitRate":14.0,"currency":"GBP","vatBasis":"exclusive","sourceReference":"synthetic","status":"active","replacementRateKey":null}]}$s$
+  ) AS input_ck,
+  'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'::text AS content_ck,
+  $j$[{"rate_key":"paint.ceil.m2","display_name":"Paint ceiling","description":null,"trade_or_domain":"decor","unit":"m2","cost_type":"labour","base_unit_rate":14.0,"currency":"GBP","vat_basis":"exclusive","source_reference":"synthetic","status":"active","replacement_rate_key":null}]$j$::jsonb AS entries,
+  $r${"tool":"catalogue-persist","ok":true,"licenceStatus":"synthetic","production":false,"schemaVersion":"1","effectiveFrom":"2099-02-01","sourceDescription":"SYNTHETIC TEST FIXTURE B — not production","createdBy":"persist_measured_boq_catalog_draft"}$r$::jsonb AS report;
+
+SELECT ok(
+  (SELECT input_ck FROM _b2d_payload) IS DISTINCT FROM (SELECT input_ck FROM _b2d_payload_b),
+  'B2D2R cross-package fixtures use distinct input checksums'
+);
+
+SELECT is(
+  (
+    SELECT (public.persist_measured_boq_catalog_draft(
+      b.manifest_text,
+      b.snapshot_text,
+      'mboq-2099.02.99',
+      'src-b',
+      1,
+      '1',
+      b.input_ck,
+      b.content_ck,
+      b.entries,
+      b.report,
+      '11111111-1111-1111-1111-111111111111'::uuid
+    ) ->> 'outcome')
+    FROM _b2d_payload_b b
+  ),
+  'request_conflict',
+  'B2D2R sequential same request different package is request_conflict'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.measured_boq_catalog_revisions WHERE catalog_revision = 'mboq-2099.02.99'),
+  0,
+  'B2D2R losing cross-package request leaves no revision rows'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.measured_boq_catalog_packages WHERE catalog_revision = 'mboq-2099.02.99'),
+  0,
+  'B2D2R losing cross-package request leaves no package rows'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.measured_boq_catalog_entries WHERE catalog_revision = 'mboq-2099.02.99'),
+  0,
+  'B2D2R losing cross-package request leaves no entry rows'
+);
+
+SELECT is(
+  (
+    SELECT count(*)::int
+    FROM public.measured_boq_catalog_events
+    WHERE request_id = '11111111-1111-1111-1111-111111111111'
+  ),
+  1,
+  'B2D2R request_conflict preserves exactly one accepted request event'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.measured_boq_catalog_revisions WHERE catalog_revision = 'mboq-2099.02.01'),
+  1,
+  'B2D2R winner revision remains exactly one'
 );
 
 -- ── package replay with new request id ──────────────────────────────
@@ -338,6 +414,87 @@ SELECT is(
 SELECT ok(
   (SELECT actor_user_id IS NULL FROM public.measured_boq_catalog_events WHERE request_id = '11111111-1111-1111-1111-111111111111'),
   'accepted event actor_user_id is null'
+);
+
+-- ── B2D2R: request lock presence, package lock, and ordering ────────
+SELECT ok(
+  (
+    SELECT position(
+      'measured-boq-persist-request:'
+      IN pg_get_functiondef(
+        'public.persist_measured_boq_catalog_draft(text,text,text,text,integer,text,text,text,jsonb,jsonb,uuid)'::regprocedure
+      )
+    ) > 0
+  ),
+  'persist RPC body contains request-identity advisory lock namespace'
+);
+
+SELECT ok(
+  (
+    SELECT position(
+      'persist_draft'
+      IN pg_get_functiondef(
+        'public.persist_measured_boq_catalog_draft(text,text,text,text,integer,text,text,text,jsonb,jsonb,uuid)'::regprocedure
+      )
+    ) > 0
+  ),
+  'persist RPC lock material includes command scope persist_draft'
+);
+
+SELECT ok(
+  (
+    SELECT position(
+      'pg_advisory_xact_lock'
+      IN pg_get_functiondef(
+        'public.persist_measured_boq_catalog_draft(text,text,text,text,integer,text,text,text,jsonb,jsonb,uuid)'::regprocedure
+      )
+    ) > 0
+  ),
+  'persist RPC uses transaction-scoped advisory locks'
+);
+
+SELECT ok(
+  (
+    WITH def AS (
+      SELECT pg_get_functiondef(
+        'public.persist_measured_boq_catalog_draft(text,text,text,text,integer,text,text,text,jsonb,jsonb,uuid)'::regprocedure
+      ) AS body
+    )
+    SELECT
+      -- Compare acquisition call sites only (v_lock_k1 also appears in DECLARE).
+      position('measured-boq-persist-request:' IN body)
+        < position('pg_advisory_xact_lock(v_lock_k1, v_lock_k2)' IN body)
+      AND position('pg_advisory_xact_lock(v_lock_k1, v_lock_k2)' IN body)
+        < position('FROM public.measured_boq_catalog_events e' IN body)
+    FROM def
+  ),
+  'request lock precedes package lock and event lookup in function body'
+);
+
+-- ── B2D2R: signature, owner, SECURITY DEFINER, empty search_path ────
+SELECT ok(
+  (
+    SELECT p.prosecdef
+      AND pg_get_userbyid(p.proowner) = 'postgres'
+      AND coalesce(p.proconfig, array[]::text[]) @> array['search_path=""']
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'persist_measured_boq_catalog_draft'
+  ),
+  'persist RPC remains SECURITY DEFINER, postgres-owned, empty search_path'
+);
+
+SELECT is(
+  (
+    SELECT pg_get_function_identity_arguments(p.oid)
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'persist_measured_boq_catalog_draft'
+  ),
+  'p_manifest_text text, p_snapshot_text text, p_catalog_revision text, p_source_id text, p_manifest_version integer, p_normaliser_version text, p_input_checksum text, p_content_checksum text, p_normalized_entries jsonb, p_validation_report jsonb, p_request_id uuid',
+  'persist RPC public signature is unchanged'
 );
 
 SELECT * FROM finish();
