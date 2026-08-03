@@ -1,0 +1,20 @@
+package.json
+  h_7ea6129503670a 42-44
+scripts/catalogue-persist.test.ts
+  h_7ea6129503670a 1-252
+scripts/verify-b2d-persistence-concurrency.mjs
+  h_7ea6129503670a 1-986
+scripts/verify-b2d-persistence-concurrency.test.mjs
+  h_7ea6129503670a 1-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "d5531c82f9480f9b1bb7ab25d82977c19c2f6061",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
