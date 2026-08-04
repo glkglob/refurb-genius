@@ -1,0 +1,22 @@
+docs/operations/app-functional-surface-register.json
+  h_7ea6129503670a 4,47-48,50,54,59,63-64,963-982,3107,3110-3132,3136,3139-3179,4767,4773,4783-5042,5838,5841-5859
+docs/operations/app-functional-surface-register.md
+  h_7ea6129503670a 4,21-22,24,32,37,103,322-325,374-386,463
+scripts/build-functional-surface-register.mjs
+  h_7ea6129503670a 3,14,558-574,1712,1715,1718-1746,1748-1761,2595,2598-2732,3184,3188-3205
+scripts/validate-functional-surface-register.mjs
+  h_7ea6129503670a 350-351,358-360,363-365,367-429,439,446,452,457-464
+tests/invariants/functional-surface-register.invariant.test.ts
+  h_7ea6129503670a 7-8,18,31-151,154,159-162,182-183,188,203-261,263,275,279,294-325
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "f06810bb47cb3fe61a997b29d6ff2c97cd80e536",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
