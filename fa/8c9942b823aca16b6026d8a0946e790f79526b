@@ -1,0 +1,20 @@
+docs/operations/app-functional-surface-register.json
+  h_7ea6129503670a 1-1709
+docs/operations/app-functional-surface-register.md
+  h_7ea6129503670a 1-436
+scripts/validate-functional-surface-register.mjs
+  h_7ea6129503670a 1-138
+tests/invariants/functional-surface-register.invariant.test.ts
+  h_7ea6129503670a 1-60
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "fa8c9942b823aca16b6026d8a0946e790f79526b",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
