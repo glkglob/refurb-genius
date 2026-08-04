@@ -1,7 +1,7 @@
 # Application Functional Surface Register
 
 **Programme:** P0-APP — Full Application Operational Readiness
-**Phase:** P0-APP-AR — Functional Surface Inventory Repair and Completeness Enforcement
+**Phase:** P0-APP-AR2 — Functional Surface Inventory Repair and Completeness Enforcement
 **Branch:** `audit/p0-app-operational-baseline`
 **Baseline main SHA:** `b2041176bfbcc9aea83cffd69da8161884638deb`
 **Inventory date:** 2026-08-04
@@ -18,10 +18,10 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 | Metric | Count |
 | --- | ---: |
 | Routes | 34 |
-| Controls | 178 |
-| Backend operations | 35 |
+| Controls | 182 |
+| Backend operations | 48 |
 | External integrations | 15 |
-| **Total surfaces** | **262** |
+| **Total surfaces** | **279** |
 
 ### Status totals
 
@@ -29,12 +29,12 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 | --- | ---: |
 | WORKING | 0 |
 | BROKEN | 7 |
-| PARTIAL | 9 |
+| PARTIAL | 10 |
 | INACCESSIBLE | 0 |
 | BLOCKED_CONFIGURATION | 1 |
 | BLOCKED_EXTERNAL | 0 |
 | INTENTIONALLY_HIDDEN | 1 |
-| NOT_TESTED | 244 |
+| NOT_TESTED | 260 |
 
 ## Routes
 
@@ -100,6 +100,7 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 | `ctrl.auth.terms-link` | Terms link | `/auth` | NOT_TESTED | P2 | — |
 | `ctrl.auth.privacy-link` | Privacy link | `/auth` | NOT_TESTED | P2 | — |
 | `ctrl.auth.forgot-password` | Forgot password request | `/auth` | NOT_TESTED | P1 | — |
+| `ctrl.auth.magic-link` | Continue with magic link | `/auth` | PARTIAL | P0 | — |
 | `ctrl.auth.reset-submit` | Password reset mode submit | `/auth` | NOT_TESTED | P1 | — |
 | `ctrl.auth.show-password` | Toggle password visibility | `/auth` | NOT_TESTED | P3 | — |
 | `ctrl.auth.show-confirm-password` | Toggle confirm password visibility | `/auth` | NOT_TESTED | P3 | — |
@@ -318,7 +319,10 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 | `ctrl.analyze.open-study` | Open study dashboard link | `/analyze` | NOT_TESTED | P1 | — |
 | `ctrl.studies.filter-project` | Project filter input/datalist | `/studies` | NOT_TESTED | P1 | — |
 | `ctrl.studies.open` | Open study | `/studies` | NOT_TESTED | P0 | — |
-| `ctrl.studies.create-actions` | Create/regenerate study actions | `/studies` | NOT_TESTED | P0 | — |
+| `ctrl.studies.list.duplicate` | Duplicate (per-card) | `/studies` | NOT_TESTED | P1 | — |
+| `ctrl.studies.list.export` | Export (per-card) | `/studies` | NOT_TESTED | P0 | — |
+| `ctrl.studies.list.share` | Share (per-card) | `/studies` | NOT_TESTED | P0 | — |
+| `ctrl.studies.list.archive` | Delete (archive per-card) | `/studies` | NOT_TESTED | P0 | — |
 | `ctrl.studies.detail.queue-export` | Queue export | `/studies/$id` | NOT_TESTED | P1 | — |
 | `ctrl.studies.detail.export-pdf` | Export PDF | `/studies/$id` | NOT_TESTED | P0 | — |
 | `ctrl.studies.detail.back` | Back to studies | `/studies/$id` | NOT_TESTED | P2 | — |
@@ -367,6 +371,19 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 | `be.export.pdf` | PDF export pipeline | `src/features/export` | NOT_TESTED | P0 |
 | `be.export.queue` | queue feasibility export | `src/features/export` | NOT_TESTED | P1 |
 | `be.feasibility.repository` | supabaseFeasibilityRepository | `src/features/feasibility/infrastructure/repositories/feasibility.repository.ts` | NOT_TESTED | P0 |
+| `be.studies.queue-export` | feasibilityService.queueExport | `src/features/feasibility/application/feasibilityService.ts` | NOT_TESTED | P0 |
+| `be.studies.share` | feasibilityService.share | `src/features/feasibility/application/feasibilityService.ts` | NOT_TESTED | P0 |
+| `be.studies.archive` | feasibilityService.archive | `src/features/feasibility/application/feasibilityService.ts` | NOT_TESTED | P0 |
+| `be.studies.duplicate` | feasibilityService.duplicate | `src/features/feasibility/application/feasibilityService.ts` | NOT_TESTED | P1 |
+| `be.trades.job.create` | createTradesJob | `src/features/trades/infrastructure/repositories/tradesJobStore.ts` | NOT_TESTED | P1 |
+| `be.trades.job.update` | updateTradesJob | `src/features/trades/infrastructure/repositories/tradesJobStore.ts` | NOT_TESTED | P1 |
+| `be.trades.job.delete` | deleteTradesJob | `src/features/trades/infrastructure/repositories/tradesJobStore.ts` | NOT_TESTED | P2 |
+| `be.trades.interest.create` | createTradesJobInterest | `src/features/trades/infrastructure/repositories/tradesJobInterestStore.ts` | NOT_TESTED | P1 |
+| `be.trades.interest.update` | updateTradesJobInterestStatus | `src/features/trades/infrastructure/repositories/tradesJobInterestStore.ts` | NOT_TESTED | P1 |
+| `be.trades.profile.upsert` | upsertCurrentUserTradeProfile | `src/features/trades/infrastructure/repositories/tradeProfileStore.ts` | NOT_TESTED | P1 |
+| `be.marketplace.quote.create` | createQuoteRequest | `src/lib/marketplace-write.ts` | NOT_TESTED | P1 |
+| `be.marketplace.message.send` | sendTradeMessage | `src/lib/marketplace-write.ts` | NOT_TESTED | P1 |
+| `be.marketplace.favorite.toggle` | addTradeFavorite / removeTradeFavorite via useToggleTradeFavorite | `src/lib/marketplace-write.ts` | NOT_TESTED | P2 |
 | `be.sharing.create` | ShareLink create | `src/features/sharing/infrastructure/shareLink.repository.ts` | NOT_TESTED | P1 |
 | `be.sharing.list` | ShareLink listByStudy | `src/features/sharing/infrastructure/shareLink.repository.ts` | NOT_TESTED | P1 |
 | `be.sharing.revoke` | ShareLink revoke | `src/features/sharing/infrastructure/shareLink.repository.ts` | NOT_TESTED | P1 |
@@ -443,4 +460,4 @@ pnpm exec tsx --test tests/invariants/functional-surface-register.invariant.test
 
 ---
 
-Generated 2026-08-04 by `scripts/build-functional-surface-register.mjs` from inventory phase P0-APP-AR.
+Generated 2026-08-04 by `scripts/build-functional-surface-register.mjs` from inventory phase P0-APP-AR2.

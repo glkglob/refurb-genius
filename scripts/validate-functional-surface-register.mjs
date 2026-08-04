@@ -347,19 +347,86 @@ function main() {
     }
   }
 
-  // Known required P0 controls
-  const required = doc.knownRequiredControls ?? [
+  // Mandatory inventory set (P0-APP-AR2 + prior P0 controls)
+  const mandatoryControls = [
     "ctrl.analyze.photo.take",
     "ctrl.analyze.photo.library",
     "ctrl.analyze.photo.camera-input",
     "ctrl.analyze.project-select",
     "ctrl.auth.signin-submit",
     "ctrl.auth.signup-submit",
+    "ctrl.auth.oauth.google",
+    "ctrl.auth.magic-link",
+    "ctrl.auth.signout",
     "ctrl.settings.save",
     "ctrl.admin.gate",
+    "ctrl.studies.list.export",
+    "ctrl.studies.list.share",
+    "ctrl.studies.list.archive",
   ];
-  for (const id of required) {
-    if (!ids.has(id)) fail(`required surface missing: ${id}`);
+  const mandatoryBackend = [
+    "be.trades.job.create",
+    "be.trades.job.update",
+    "be.trades.job.delete",
+    "be.trades.interest.create",
+    "be.trades.interest.update",
+    "be.trades.profile.upsert",
+    "be.marketplace.quote.create",
+    "be.marketplace.message.send",
+    "be.marketplace.favorite.toggle",
+    "be.studies.queue-export",
+    "be.studies.share",
+    "be.studies.archive",
+  ];
+
+  const requiredControls = [
+    ...new Set([...(doc.knownRequiredControls ?? []), ...mandatoryControls]),
+  ];
+  const requiredBackend = [
+    ...new Set([...(doc.knownRequiredBackendOperations ?? []), ...mandatoryBackend]),
+  ];
+
+  for (const id of requiredControls) {
+    if (!ids.has(id)) fail(`required control surface missing: ${id}`);
+  }
+  for (const id of requiredBackend) {
+    if (!ids.has(id)) fail(`required backend surface missing: ${id}`);
+  }
+
+  // Semantic assertions for AR2 material surfaces
+  const byId = Object.fromEntries(doc.surfaces.map((s) => [s.surfaceId, s]));
+
+  const magic = byId["ctrl.auth.magic-link"];
+  if (magic) {
+    if (magic.kind !== "control") fail("ctrl.auth.magic-link must be kind control");
+    if (magic.route !== "/auth") fail("ctrl.auth.magic-link must be route /auth");
+    if (magic.status === "WORKING") fail("ctrl.auth.magic-link must not be WORKING");
+  }
+
+  for (const id of [
+    "ctrl.studies.list.export",
+    "ctrl.studies.list.share",
+    "ctrl.studies.list.archive",
+  ]) {
+    const s = byId[id];
+    if (!s) continue;
+    if (s.kind !== "control") fail(`${id} must be kind control`);
+    if (s.route !== "/studies") fail(`${id} must be route /studies`);
+    if (s.status === "WORKING") fail(`${id} must not be WORKING`);
+  }
+
+  // Generic create-actions must not replace independent list mutations
+  if (ids.has("ctrl.studies.create-actions")) {
+    fail(
+      "ctrl.studies.create-actions must not exist; use distinct list export/share/archive/duplicate records",
+    );
+  }
+
+  for (const id of mandatoryBackend) {
+    const s = byId[id];
+    if (!s) continue;
+    if (s.kind !== "backend") fail(`${id} must be kind backend`);
+    if (s.status === "WORKING") fail(`${id} must not be WORKING`);
   }
 
   // Known photo defects must be BROKEN
@@ -369,22 +436,30 @@ function main() {
     "ctrl.analyze.photo.camera-input",
     "ctrl.analyze.project-select",
   ]) {
-    const s = doc.surfaces.find((x) => x.surfaceId === id);
+    const s = byId[id];
     if (!s) continue;
     if (s.status !== "BROKEN") fail(`${id} must be BROKEN on main baseline inventory`);
     if (s.severity !== "P0") fail(`${id} must be severity P0`);
   }
 
   // Settings false-success must be BROKEN
-  const settingsSave = doc.surfaces.find((x) => x.surfaceId === "ctrl.settings.save");
+  const settingsSave = byId["ctrl.settings.save"];
   if (!settingsSave || settingsSave.status !== "BROKEN") {
     fail("ctrl.settings.save must be BROKEN (false-success profile save)");
   }
 
   // Admin route must not be INTENTIONALLY_HIDDEN (reachable URL)
-  const adminRoute = doc.surfaces.find((x) => x.surfaceId === "route.admin");
+  const adminRoute = byId["route.admin"];
   if (adminRoute?.status === "INTENTIONALLY_HIDDEN") {
     fail("route.admin must not be INTENTIONALLY_HIDDEN (route is URL-reachable)");
+  }
+
+  // Raised floors after AR2 material completion
+  if (kindCounts.control < 180) {
+    fail(`control count ${kindCounts.control} below AR2 completeness floor 180`);
+  }
+  if (kindCounts.backend < 45) {
+    fail(`backend count ${kindCounts.backend} below AR2 completeness floor 45`);
   }
 
   // Markdown consistency with JSON counts

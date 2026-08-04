@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * P0-APP-AR: Build canonical functional surface register JSON + Markdown.
+ * P0-APP-AR2: Build canonical functional surface register JSON + Markdown.
  * Product behaviour is not modified. JSON is canonical; MD is generated.
  */
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
 
 const BASELINE = "b2041176bfbcc9aea83cffd69da8161884638deb";
-const PHASE = "P0-APP-AR";
+const PHASE = "P0-APP-AR2";
 const DATE = "2026-08-04";
 
 const ALLOWED_STATUS = [
@@ -554,6 +554,23 @@ ctrl({
   operation: "password reset email",
   persistence: "auth email",
   severity: "P1",
+});
+ctrl({
+  surfaceId: "ctrl.auth.magic-link",
+  area: "authentication",
+  route: "/auth",
+  control: "Continue with magic link",
+  sourcePath: AUTH_SRC,
+  role: "public",
+  operation: "handleMagicLink → useAuthEmailAccess.sendMagicLink → sendMagicLinkEmail",
+  persistence: "Supabase Auth OTP email + callback session",
+  expectedResult: "Magic link email sent; user completes sign-in via /auth/callback",
+  actualResult: "Unit tests for useAuthEmailAccess and AuthExperience magic-link; E2E not verified",
+  status: "PARTIAL",
+  severity: "P0",
+  testReference: "src/features/auth/presentation/hooks/useAuthEmailAccess.test.ts",
+  notes:
+    "Visible label alternates to 'Sending magic link...' while loading; requires non-empty email",
 });
 ctrl({
   surfaceId: "ctrl.auth.reset-submit",
@@ -1692,15 +1709,56 @@ ctrl({
   severity: "P0",
 });
 ctrl({
-  surfaceId: "ctrl.studies.create-actions",
+  surfaceId: "ctrl.studies.list.duplicate",
   area: "studies",
   route: "/studies",
-  control: "Create/regenerate study actions",
+  control: "Duplicate (per-card)",
   sourcePath: "src/routes/_authed/studies.tsx",
   role: "authenticated",
-  operation: "study mutations",
-  persistence: "feasibility studies",
+  operation: "duplicateStudy.mutate → useDuplicateFeasibilityStudy → feasibilityService.duplicate",
+  persistence: "feasibility studies (new snapshot)",
+  expectedResult: "Study snapshot duplicated; list invalidates",
+  severity: "P1",
+  notes: "Replaces prior generic ctrl.studies.create-actions; independent of export/share/archive",
+});
+ctrl({
+  surfaceId: "ctrl.studies.list.export",
+  area: "studies",
+  route: "/studies",
+  control: "Export (per-card)",
+  sourcePath: "src/routes/_authed/studies.tsx",
+  role: "authenticated",
+  operation: "queueExport.mutate → useQueueFeasibilityExport → feasibilityService.queueExport",
+  persistence: "export queue / study_exports",
+  expectedResult: "Investor export generation queued for study snapshot",
   severity: "P0",
+  notes: "title=Queue investor export generation; disabled while queueExport.isPending",
+});
+ctrl({
+  surfaceId: "ctrl.studies.list.share",
+  area: "studies",
+  route: "/studies",
+  control: "Share (per-card)",
+  sourcePath: "src/routes/_authed/studies.tsx",
+  role: "authenticated",
+  operation: "shareStudy.mutate → useShareFeasibilityStudy → feasibilityService.share",
+  persistence: "feasibility study share state",
+  expectedResult: "Study marked shared; list invalidates",
+  severity: "P0",
+  notes: "title=Generate secure share link; distinct from share_links detail controls",
+});
+ctrl({
+  surfaceId: "ctrl.studies.list.archive",
+  area: "studies",
+  route: "/studies",
+  control: "Delete (archive per-card)",
+  sourcePath: "src/routes/_authed/studies.tsx",
+  role: "authenticated",
+  operation: "archiveStudy.mutate → useArchiveFeasibilityStudy → feasibilityService.archive",
+  persistence: "feasibility study archived status",
+  expectedResult: "Study snapshot archived; list invalidates",
+  severity: "P0",
+  notes: "Visible label Delete; title=Archive this study snapshot",
 });
 ctrl({
   surfaceId: "ctrl.studies.detail.queue-export",
@@ -2534,9 +2592,144 @@ be({
   area: "backend",
   control: "supabaseFeasibilityRepository",
   sourcePath: "src/features/feasibility/infrastructure/repositories/feasibility.repository.ts",
-  operation: "study read/write",
+  operation: "study read/write foundation",
   persistence: "feasibility studies",
   severity: "P0",
+  notes: "Generic repository; independently failing mutations listed as be.studies.*",
+});
+be({
+  surfaceId: "be.studies.queue-export",
+  area: "backend",
+  control: "feasibilityService.queueExport",
+  sourcePath: "src/features/feasibility/application/feasibilityService.ts",
+  operation: "queue study export job",
+  persistence: "export queue / study_exports",
+  severity: "P0",
+  notes: "Reached from ctrl.studies.list.export and useQueueFeasibilityExport",
+});
+be({
+  surfaceId: "be.studies.share",
+  area: "backend",
+  control: "feasibilityService.share",
+  sourcePath: "src/features/feasibility/application/feasibilityService.ts",
+  operation: "share feasibility study snapshot",
+  persistence: "feasibility studies share status",
+  severity: "P0",
+  notes: "Reached from ctrl.studies.list.share; not share_links token CRUD",
+});
+be({
+  surfaceId: "be.studies.archive",
+  area: "backend",
+  control: "feasibilityService.archive",
+  sourcePath: "src/features/feasibility/application/feasibilityService.ts",
+  operation: "archive feasibility study snapshot",
+  persistence: "feasibility studies archived status",
+  severity: "P0",
+  notes: "Reached from ctrl.studies.list.archive (UI label Delete)",
+});
+be({
+  surfaceId: "be.studies.duplicate",
+  area: "backend",
+  control: "feasibilityService.duplicate",
+  sourcePath: "src/features/feasibility/application/feasibilityService.ts",
+  operation: "duplicate feasibility study snapshot",
+  persistence: "feasibility studies insert copy",
+  severity: "P1",
+  notes: "Reached from ctrl.studies.list.duplicate",
+});
+be({
+  surfaceId: "be.trades.job.create",
+  area: "backend",
+  control: "createTradesJob",
+  sourcePath: "src/features/trades/infrastructure/repositories/tradesJobStore.ts",
+  operation: "create trades job row",
+  persistence: "trades_jobs insert",
+  severity: "P1",
+  notes: "Reached from /trades/new submit (ctrl.trades.new.submit)",
+});
+be({
+  surfaceId: "be.trades.job.update",
+  area: "backend",
+  control: "updateTradesJob",
+  sourcePath: "src/features/trades/infrastructure/repositories/tradesJobStore.ts",
+  operation: "update trades job fields/status",
+  persistence: "trades_jobs update",
+  severity: "P1",
+  notes: "Reached from job edit form and dashboard close (status closed)",
+});
+be({
+  surfaceId: "be.trades.job.delete",
+  area: "backend",
+  control: "deleteTradesJob",
+  sourcePath: "src/features/trades/infrastructure/repositories/tradesJobStore.ts",
+  operation: "delete trades job row",
+  persistence: "trades_jobs delete",
+  severity: "P2",
+  notes:
+    "Exported production store API; no UI caller found in routes (close uses update). Inventory retained for store surface.",
+});
+be({
+  surfaceId: "be.trades.interest.create",
+  area: "backend",
+  control: "createTradesJobInterest",
+  sourcePath: "src/features/trades/infrastructure/repositories/tradesJobInterestStore.ts",
+  operation: "create job interest",
+  persistence: "trades_job_interests insert",
+  severity: "P1",
+  notes: "Reached from /trades/$jobId interest submit",
+});
+be({
+  surfaceId: "be.trades.interest.update",
+  area: "backend",
+  control: "updateTradesJobInterestStatus",
+  sourcePath: "src/features/trades/infrastructure/repositories/tradesJobInterestStore.ts",
+  operation: "accept/reject interest status",
+  persistence: "trades_job_interests status update",
+  severity: "P1",
+  notes: "Reached from owner Accept/Reject on job detail",
+});
+be({
+  surfaceId: "be.trades.profile.upsert",
+  area: "backend",
+  control: "upsertCurrentUserTradeProfile",
+  sourcePath: "src/features/trades/infrastructure/repositories/tradeProfileStore.ts",
+  operation: "upsert trade profile",
+  persistence: "trade_profiles upsert",
+  severity: "P1",
+  notes: "Reached from /trades/profile submit",
+});
+be({
+  surfaceId: "be.marketplace.quote.create",
+  area: "backend",
+  control: "createQuoteRequest",
+  sourcePath: "src/lib/marketplace-write.ts",
+  operation: "create quote request",
+  persistence: "quote_requests insert",
+  severity: "P1",
+  notes: "Reached via useCreateQuoteRequest / QuoteRequestDialog submit",
+  testReference: "src/features/marketplace/presentation/hooks/useCreateQuoteRequest.test.ts",
+});
+be({
+  surfaceId: "be.marketplace.message.send",
+  area: "backend",
+  control: "sendTradeMessage",
+  sourcePath: "src/lib/marketplace-write.ts",
+  operation: "send trade marketplace message",
+  persistence: "trade_messages insert",
+  severity: "P1",
+  notes: "Reached via useSendTradeMessage / MessagingInbox",
+  testReference: "src/features/marketplace/presentation/hooks/useSendTradeMessage.test.ts",
+});
+be({
+  surfaceId: "be.marketplace.favorite.toggle",
+  area: "backend",
+  control: "addTradeFavorite / removeTradeFavorite via useToggleTradeFavorite",
+  sourcePath: "src/lib/marketplace-write.ts",
+  operation: "toggle trade favorite",
+  persistence: "trade_favorites insert/delete",
+  severity: "P2",
+  notes: "Hook owns optimistic cache; persistence in marketplace-write",
+  testReference: "src/features/marketplace/presentation/hooks/useToggleTradeFavorite.test.ts",
 });
 be({
   surfaceId: "be.sharing.create",
@@ -2988,9 +3181,28 @@ const doc = {
     "ctrl.auth.signin-submit",
     "ctrl.auth.signup-submit",
     "ctrl.auth.oauth.google",
+    "ctrl.auth.magic-link",
     "ctrl.auth.signout",
     "ctrl.settings.save",
     "ctrl.admin.gate",
+    "ctrl.studies.list.export",
+    "ctrl.studies.list.share",
+    "ctrl.studies.list.archive",
+    "ctrl.studies.list.duplicate",
+  ],
+  knownRequiredBackendOperations: [
+    "be.trades.job.create",
+    "be.trades.job.update",
+    "be.trades.job.delete",
+    "be.trades.interest.create",
+    "be.trades.interest.update",
+    "be.trades.profile.upsert",
+    "be.marketplace.quote.create",
+    "be.marketplace.message.send",
+    "be.marketplace.favorite.toggle",
+    "be.studies.queue-export",
+    "be.studies.share",
+    "be.studies.archive",
   ],
   pausedWork: ["4C2E evidence-vault", "catalogue-publication", "D1 implementation"],
 };
