@@ -1,0 +1,37 @@
+{
+  "meta": {
+    "description": "Explicit allowlist for elements not auto-reconciled as production page routes or not required as individual surface rows.",
+    "phase": "P0-APP-AR",
+    "reviewDate": "2026-08-04"
+  },
+  "routeSourceAllowlist": [
+    {
+      "sourcePath": "src/routes/__root.tsx",
+      "reason": "Root layout, document head, error boundary — not a navigable page route",
+      "owner": "platform",
+      "reviewDate": "2026-08-04"
+    },
+    {
+      "sourcePath": "src/routes/_authed.tsx",
+      "reason": "Authenticated layout pathless layout with beforeLoad auth gate — not a page fullPath",
+      "owner": "auth",
+      "reviewDate": "2026-08-04"
+    }
+  ],
+  "generatedFileAllowlist": [
+    {
+      "sourcePath": "src/routeTree.gen.ts",
+      "reason": "TanStack Router generated route tree — used as reconciliation source, not a product surface",
+      "owner": "platform",
+      "reviewDate": "2026-08-04"
+    }
+  ],
+  "controlDiscoveryNotes": [
+    {
+      "sourcePath": "n/a",
+      "reason": "Controls are inventoried by static inspection of routes and production-visible shared components; no full TSX AST walker is claimed. Validator enforces route completeness, source existence, IDs, counts, statuses, and known P0 controls — not exhaustive AST control discovery.",
+      "owner": "operations",
+      "reviewDate": "2026-08-04"
+    }
+  ]
+}

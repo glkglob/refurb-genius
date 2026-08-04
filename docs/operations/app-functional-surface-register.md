@@ -1,436 +1,446 @@
 # Application Functional Surface Register
 
-**Programme:** P0-APP — Full Application Operational Readiness and Remediation  
-**Phase:** P0-APP-A — Complete Functional Surface Inventory  
-**Branch:** `audit/p0-app-operational-baseline`  
-**Baseline main SHA:** `b2041176bfbcc9aea83cffd69da8161884638deb`  
-**Inventory date:** 2026-08-04  
-**Inventory method:** Static code inspection of `src/routes/**`, shared layout/nav components, feature presentation hooks, and server functions. Runtime browser verification is **not** complete in this phase.
-
-> **Controlling principle:** A feature is not operational because its page renders. Statuses below that are not backed by runtime or automated evidence remain `NOT_TESTED` or are limited to code-confirmed defects.
+**Programme:** P0-APP — Full Application Operational Readiness
+**Phase:** P0-APP-AR — Functional Surface Inventory Repair and Completeness Enforcement
+**Branch:** `audit/p0-app-operational-baseline`
+**Baseline main SHA:** `b2041176bfbcc9aea83cffd69da8161884638deb`
+**Inventory date:** 2026-08-04
+**Canonical data:** JSON (this Markdown is generated from JSON)
+**Method:** Static inspection + `routeTree.gen.ts` reconciliation. Perfect AST discovery is **not** claimed.
 
 Machine-readable twin: [`app-functional-surface-register.json`](./app-functional-surface-register.json).
+Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functional-surface-exceptions.json).
 
----
+> No surface is marked `WORKING`. Runtime verification is incomplete.
 
-## 1. Scope and exclusions
+## Counts
 
-### In scope
+| Metric | Count |
+| --- | ---: |
+| Routes | 34 |
+| Controls | 178 |
+| Backend operations | 35 |
+| External integrations | 15 |
+| **Total surfaces** | **262** |
 
-- All production routes under `src/routes/**`
-- Production navigation (Sidebar, Navbar, PlatformNavButtons, Footer, MobileTopBar)
-- Production-visible interactive controls on those routes and their primary feature components
-- Server functions / persistence adapters that back those surfaces
-- External integrations referenced by production paths
+### Status totals
 
-### Explicitly paused / out of scope for this programme body of work
+| Status | Count |
+| --- | ---: |
+| WORKING | 0 |
+| BROKEN | 7 |
+| PARTIAL | 9 |
+| INACCESSIBLE | 0 |
+| BLOCKED_CONFIGURATION | 1 |
+| BLOCKED_EXTERNAL | 0 |
+| INTENTIONALLY_HIDDEN | 1 |
+| NOT_TESTED | 244 |
 
-- 4C2E evidence-vault authoring
-- Catalogue publication / D1 implementation
-- Production catalogue data activation
-- Merging outstanding unreviewed repair PRs without independent verification
+## Routes
 
-### Related outstanding repair (not on main)
-
-| Item | Detail |
-| --- | --- |
-| Draft PR #104 | `fix/p0-property-photo-capture-upload` @ `fe407ccc…` — photo capture/upload repair, **not merged** into main |
-| Main photo state | Main still contains the P0 photo defects listed below |
-
----
-
-## 2. Status vocabulary
-
-| Status | Meaning |
-| --- | --- |
-| `WORKING` | Runtime or automated evidence that the control completes its intended outcome |
-| `BROKEN` | Confirmed defective behaviour (code and/or runtime) |
-| `PARTIAL` | Some path works; known gaps, missing feedback, or incomplete persistence |
-| `INACCESSIBLE` | Present but cannot be used (role, entitlement, overlay, silent disable) |
-| `BLOCKED_CONFIGURATION` | Requires missing/invalid app configuration |
-| `BLOCKED_EXTERNAL` | Depends on external provider/sandbox not verified |
-| `INTENTIONALLY_HIDDEN` | Hidden or removed because not ready / role-gated |
-| `NOT_TESTED` | Inventoried; no runtime verification yet |
-
-**Severity:** `P0` core journey / auth / data safety · `P1` major production feature · `P2` secondary · `P3` cosmetic.
-
-No production-visible control may remain `NOT_TESTED` at **programme close**. At end of P0-APP-A many correctly remain `NOT_TESTED`.
-
----
-
-## 3. Route inventory summary
-
-**Route source files (product routes):** 36 file routes under `src/routes` (excluding `__root` layout plumbing and pure test files).
-
-| Path | Source | Auth | Role / entitlement | Primary ops | Nav entry | Tests | Status notes |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `/` | `index.tsx` | Public | — | Marketing CTAs | Logo, public | None dedicated | `NOT_TESTED` |
-| `/auth` | `auth.tsx` | Public | — | AuthExperience (signin/signup/OAuth/reset) | Navbar | `AuthExperience.test.tsx` + hooks | `PARTIAL` — unit coverage; E2E `NOT_TESTED` |
-| `/auth/callback` | `auth_.callback.tsx` | Public | — | OAuth/magic-link completion | Provider redirect | `useAuthCallbackCompletion.test.ts` | `NOT_TESTED` runtime |
-| `/oauth/consent` | `oauth.consent.tsx` | Public | — | Consent copy + sign-in links | OAuth flow | None | `NOT_TESTED` |
-| `/privacy` | `privacy.tsx` | Public | — | Static content + mailto | Footer | None | `NOT_TESTED` |
-| `/terms` | `terms.tsx` | Public | — | Static content | Footer | None | `NOT_TESTED` |
-| `/support` | `support.tsx` | Public | — | FAQ + mailto; some “coming soon” copy | Footer/settings | None | `PARTIAL` — export help says coming soon |
-| `/gallery` | `gallery.tsx` | Public | — | List published projects | Public/marketing | gallery hooks tests | `NOT_TESTED` runtime |
-| `/gallery/$slug` | `gallery.$slug.tsx` | Public | — | Detail + contact anchor | Gallery list | None | `NOT_TESTED` |
-| `/trades` | `trades.tsx` | Public (+ auth CTAs) | — | Job list, filters, post-job CTAs | Sidebar/Navbar | None route-level | `PARTIAL` — “coming soon” badge while marketplace functional |
-| `/trades/$jobId` | `trades_.$jobId.tsx` | Mixed | Owner vs visitor | Detail, interest, accept/reject | Trades list | None | `NOT_TESTED` |
-| `/_authed/*` layout | `_authed.tsx` | **Required** | Authenticated user via `getCurrentUserServerFn` | Redirect to `/auth` | — | Layout comment/docs | Auth gate `NOT_TESTED` E2E |
-| `/dashboard` | `_authed/dashboard.tsx` | Auth | — | Projects, jobs, onboarding goal | Sidebar | `dashboard.test.tsx` (goal only) | `NOT_TESTED` full UI |
-| `/analyze` | `_authed/analyze.tsx` | Auth | — | Guided feasibility + photos + export | Sidebar “New Study” | None on main for route | **P0 BROKEN photos** (see §5) |
-| `/studies` | `_authed/studies.tsx` | Auth | — | Study list / project filter | Sidebar | None | `NOT_TESTED` |
-| `/studies/$id` | `_authed/studies.$id.tsx` | Auth | Owner (RLS) | Study detail, share links, export | Studies list | None | `NOT_TESTED` |
-| `/projects/new` | `_authed/projects.new.tsx` | Auth | — | Create project (`createProjectServerFn`) | Dashboard CTAs | None | `NOT_TESTED` |
-| `/projects/$id` | `_authed/projects.$id.index.tsx` | Auth | Owner | Detail, stages, publish gallery | Project links | None | `NOT_TESTED` |
-| `/projects/$id/upload` | `_authed/projects.$id.upload.tsx` | Auth | Owner | Dedicated photo upload | Project pipeline | photo-upload ops docs | Camera single-file OK; full runtime `NOT_TESTED` |
-| `/projects/$id/analysis` | `_authed/projects.$id.analysis.tsx` | Auth | Owner | Vision analysis + stage | Pipeline | None | `NOT_TESTED` / AI may be `BLOCKED_EXTERNAL` |
-| `/projects/$id/scope` | `_authed/projects.$id.scope.tsx` | Auth | Owner | Scope analysis | Pipeline | None | `NOT_TESTED` |
-| `/projects/$id/estimate` | `_authed/projects.$id.estimate.tsx` | Auth | Owner | Estimate + live ROI | Pipeline | estimate hooks | `NOT_TESTED` full page |
-| `/projects/$id/report` | `_authed/projects.$id.report.tsx` | Auth | Owner | Report / export / PDF | Pipeline | export hooks | `NOT_TESTED` |
-| `/estimate/instant` | `_authed/estimate.instant.tsx` | Auth | — | L1/L2 instant estimate | Dashboard cards | `L1EstimateForm.test.tsx` | Form unit tests; E2E `NOT_TESTED` |
-| `/settings` | `_authed/settings.tsx` | Auth | — | Preferences, delete account | Sidebar | None | **P1 PARTIAL/BROKEN** name not server-persisted |
-| `/admin` | `_authed/admin.tsx` | Auth | **Admin** (`RequireAdmin`) | Platform stats, users, projects | Not in main nav | `admin.test.tsx` | `NOT_TESTED` access probes |
-| `/marketplace` | `_authed/marketplace.tsx` | Auth | — | Tradeperson directory + quote dialog | Platform nav / deep links | marketplace hooks | `NOT_TESTED` |
-| `/deal-copilot` | `_authed/deal-copilot/index.tsx` | Auth | — | Opportunity list | Sidebar | None | `NOT_TESTED` |
-| `/deal-copilot/new` | `_authed/deal-copilot/new.tsx` | Auth | — | `DealIntakeForm` + analyze | Copilot CTA | analyze hook tests | `NOT_TESTED` |
-| `/deal-copilot/$opportunityId` | `.../$opportunityId.tsx` | Auth | Owner | Opportunity detail | List | None | `NOT_TESTED` |
-| `/deal-copilot/$opportunityId/edit` | `.../edit.tsx` | Auth | Owner | Edit opportunity | Detail | update hook tests | `NOT_TESTED` |
-| `/trades/new` | `_authed/trades_.new.tsx` | Auth | — | Post job | Nav / trades | None | `NOT_TESTED` |
-| `/trades/$jobId/edit` | `_authed/trades_.$jobId_.edit.tsx` | Auth | Owner | Edit job | Job detail | None | `NOT_TESTED` |
-| `/trades/profile` | `_authed/trades_.profile.tsx` | Auth | — | Trade profile form | Trades | None | `NOT_TESTED` |
-
-**Layout / shell (not URL routes):** `__root.tsx` (error boundary, analytics, meta), `AppLayout`, `Sidebar`, `Navbar`, `Footer`, `MobileTopBar`, `PlatformNavButtons`, `RequireAuth`, `RequireAdmin`.
-
----
-
-## 4. Navigation entry points
-
-| Control | Component | Destinations | Status |
-| --- | --- | --- | --- |
-| Sidebar items | `Sidebar.tsx` | `/dashboard`, `/analyze`, `/studies`, `/deal-copilot`, `/trades`, `/settings` | Structure OK; runtime `NOT_TESTED` |
-| Sidebar logout | `Sidebar.tsx` | Sign-out → `/` | Hook unit tests; E2E `NOT_TESTED` |
-| Navbar links | `Navbar.tsx` | Dashboard, Deal Copilot, Trades, Post Job, Auth | `NOT_TESTED` |
-| Platform nav | `PlatformNavButtons.tsx` | Dashboard, Deal Copilot, Trades, Post Job | `NOT_TESTED` |
-| Footer legal | `Footer.tsx` | `/privacy`, `/terms` | `NOT_TESTED` |
-| Mobile logo | `MobileTopBar.tsx` | `/` | Unit test exists |
-| Landing CTAs | `index.tsx` | Auth, workflow anchors | `NOT_TESTED` |
-
-**Note:** `/admin`, `/estimate/instant`, `/marketplace`, `/gallery` are production routes but **not** primary Sidebar items. Instant estimate and gallery appear via dashboard/public CTAs.
-
----
-
-## 5. Confirmed defects (code inspection on main)
-
-These are **confirmed causes**, not mere suspicions.
-
-### P0 — Property photo capture on guided study (`/analyze`)
-
-| surfaceId | Defect | Evidence |
-| --- | --- | --- |
-| `ctrl.analyze.photo.take` | Take Photo / Library disabled when no project | `analyze.tsx` passes `isLoading={!selectedProject \|\| uploadPhotos.isPending}` into `PhotoUploadZone` |
-| `ctrl.analyze.photo.camera-input` | Camera input allows `multiple` (should be single + `capture="environment"` only) | `PhotoUploadZone.tsx` lines 128–133: `capture="environment"` **and** `multiple` |
-| `ctrl.analyze.project-select` | Free-text + datalist project ID (unresolved free text possible) | `analyze.tsx` `Input` + `datalist` writing raw string to search params |
-| `ctrl.analyze.upload-selected` | Upload disabled without project (correct) but no clear project-required message on zone | Silent disable pattern |
-| Partial batch / error UX on analyze | Clears selection only on success; limited visible error formatting on route | Code path thinner than dedicated upload page |
-
-**Contrast:** `/projects/$id/upload` camera input is single-file (no `multiple`) with library multi — closer to required semantics.
-
-**Repair branch (unmerged):** draft PR #104 addresses analyze + PhotoUploadZone. Until merged and verified, main remains **BROKEN** for this P0.
-
-### P1 — Settings profile save
-
-| surfaceId | Defect |
-| --- | --- |
-| `ctrl.settings.save` | “Save changes” only writes **default region** to `localStorage`. Full name is editable in UI but **not** persisted to profile/server. Email is read-only. Toast “Preferences saved” is **misleading** for name. |
-
-### P1 / P2 — Marketplace messaging
-
-| surfaceId | Defect |
-| --- | --- |
-| `route.trades.banner` | Public `/trades` shows “Trades Marketplace — **coming soon**” while post-job / list / interest flows are implemented — presents unfinished framing on a live surface. |
-
-### P2 — Support incomplete capability
-
-| surfaceId | Defect |
-| --- | --- |
-| `route.support.export-help` | FAQ states export/screenshot feature “coming soon” for some workflows. |
-
-### Payment / Pro gating
-
-| surfaceId | Notes |
-| --- | --- |
-| `int.payment.checkout` | Platform payments adapter includes **mock** `createCheckout` returning `mock-checkout`. No production checkout route found. |
-| `int.payment.pro-access` | `hasProAccess` is email-domain / `VITE_ENABLE_PRO_FEATURES` flag based — not Stripe entitlement. Export path gates on this. |
-
-### Deal Copilot AI
-
-| surfaceId | Notes |
-| --- | --- |
-| `int.openai.deal-chat` | Server adapter requires `OPENAI_API_KEY`; without it responses are blocked / placeholder messaging. Status `BLOCKED_CONFIGURATION` or `BLOCKED_EXTERNAL` until staging verified. |
-
----
-
-## 6. Interactive control inventory (primary production surfaces)
-
-Statuses: majority `NOT_TESTED` pending P0-APP-C/D/E. Only code-confirmed issues use `BROKEN`/`PARTIAL`.
-
-### 6.1 Authentication
-
-| ID | Control | Route | Operation | Status | Sev |
+| surfaceId | route | authClass | sourcePath | status | severity |
 | --- | --- | --- | --- | --- | --- |
-| `ctrl.auth.signin-email` | Sign in submit | `/auth` | Supabase password | `NOT_TESTED` | P0 |
-| `ctrl.auth.signup-email` | Sign up submit | `/auth` | Supabase signup | `NOT_TESTED` | P0 |
-| `ctrl.auth.oauth-google` | Google OAuth | `/auth` | OAuth redirect | `NOT_TESTED` | P0 |
-| `ctrl.auth.reset-password` | Reset password | `/auth` | Email reset | `NOT_TESTED` | P1 |
-| `ctrl.auth.signout` | Log out | Sidebar | `useSignOut` | `NOT_TESTED` | P0 |
-| `ctrl.auth.callback` | Callback complete | `/auth/callback` | Session exchange | `NOT_TESTED` | P0 |
+| `route.public.home` | `/` | public | `src/routes/index.tsx` | NOT_TESTED | P1 |
+| `route.auth` | `/auth` | public | `src/routes/auth.tsx` | PARTIAL | P0 |
+| `route.auth.callback` | `/auth/callback` | public | `src/routes/auth_.callback.tsx` | NOT_TESTED | P0 |
+| `route.oauth.consent` | `/oauth/consent` | public | `src/routes/oauth.consent.tsx` | NOT_TESTED | P2 |
+| `route.privacy` | `/privacy` | public | `src/routes/privacy.tsx` | NOT_TESTED | P2 |
+| `route.terms` | `/terms` | public | `src/routes/terms.tsx` | NOT_TESTED | P2 |
+| `route.support` | `/support` | public | `src/routes/support.tsx` | PARTIAL | P2 |
+| `route.gallery.list` | `/gallery` | public | `src/routes/gallery.tsx` | NOT_TESTED | P1 |
+| `route.gallery.detail` | `/gallery/$slug` | public | `src/routes/gallery.$slug.tsx` | NOT_TESTED | P1 |
+| `route.trades.public` | `/trades` | public | `src/routes/trades.tsx` | PARTIAL | P1 |
+| `route.trades.job-detail` | `/trades/$jobId` | public | `src/routes/trades_.$jobId.tsx` | NOT_TESTED | P1 |
+| `route.dashboard` | `/dashboard` | authenticated | `src/routes/_authed/dashboard.tsx` | NOT_TESTED | P0 |
+| `route.analyze` | `/analyze` | authenticated | `src/routes/_authed/analyze.tsx` | BROKEN | P0 |
+| `route.studies.list` | `/studies` | authenticated | `src/routes/_authed/studies.tsx` | NOT_TESTED | P0 |
+| `route.studies.detail` | `/studies/$id` | authenticated | `src/routes/_authed/studies.$id.tsx` | NOT_TESTED | P0 |
+| `route.projects.new` | `/projects/new` | authenticated | `src/routes/_authed/projects.new.tsx` | NOT_TESTED | P0 |
+| `route.projects.detail` | `/projects/$id` | authenticated | `src/routes/_authed/projects.$id.index.tsx` | NOT_TESTED | P0 |
+| `route.projects.upload` | `/projects/$id/upload` | authenticated | `src/routes/_authed/projects.$id.upload.tsx` | PARTIAL | P0 |
+| `route.projects.analysis` | `/projects/$id/analysis` | authenticated | `src/routes/_authed/projects.$id.analysis.tsx` | NOT_TESTED | P0 |
+| `route.projects.scope` | `/projects/$id/scope` | authenticated | `src/routes/_authed/projects.$id.scope.tsx` | NOT_TESTED | P0 |
+| `route.projects.estimate` | `/projects/$id/estimate` | authenticated | `src/routes/_authed/projects.$id.estimate.tsx` | NOT_TESTED | P0 |
+| `route.projects.report` | `/projects/$id/report` | authenticated | `src/routes/_authed/projects.$id.report.tsx` | NOT_TESTED | P0 |
+| `route.estimate.instant` | `/estimate/instant` | authenticated | `src/routes/_authed/estimate.instant.tsx` | PARTIAL | P0 |
+| `route.settings` | `/settings` | authenticated | `src/routes/_authed/settings.tsx` | BROKEN | P1 |
+| `route.admin` | `/admin` | admin | `src/routes/_authed/admin.tsx` | NOT_TESTED | P1 |
+| `route.marketplace` | `/marketplace` | authenticated | `src/routes/_authed/marketplace.tsx` | NOT_TESTED | P1 |
+| `route.deal-copilot.index` | `/deal-copilot` | authenticated | `src/routes/_authed/deal-copilot/index.tsx` | NOT_TESTED | P1 |
+| `route.deal-copilot.new` | `/deal-copilot/new` | authenticated | `src/routes/_authed/deal-copilot/new.tsx` | NOT_TESTED | P1 |
+| `route.deal-copilot.detail` | `/deal-copilot/$opportunityId` | authenticated | `src/routes/_authed/deal-copilot/$opportunityId.tsx` | NOT_TESTED | P1 |
+| `route.deal-copilot.edit` | `/deal-copilot/$opportunityId/edit` | authenticated | `src/routes/_authed/deal-copilot/$opportunityId.edit.tsx` | NOT_TESTED | P1 |
+| `route.trades.new` | `/trades/new` | authenticated | `src/routes/_authed/trades_.new.tsx` | NOT_TESTED | P1 |
+| `route.trades.edit` | `/trades/$jobId/edit` | authenticated | `src/routes/_authed/trades_.$jobId_.edit.tsx` | NOT_TESTED | P1 |
+| `route.trades.profile` | `/trades/profile` | authenticated | `src/routes/_authed/trades_.profile.tsx` | NOT_TESTED | P1 |
+| `route.authed.layout-gate` | `/_authed` | authenticated | `src/routes/_authed.tsx` | NOT_TESTED | P0 |
 
-### 6.2 Dashboard
+## Controls (by area)
 
-| ID | Control | Status | Sev |
-| --- | --- | --- | --- |
-| `ctrl.dashboard.onboarding-goal` | Goal select | Unit-tested hydrate/apply | P2 |
-| `ctrl.dashboard.dismiss-onboarding` | Dismiss card | `NOT_TESTED` | P3 |
-| `ctrl.dashboard.start-study` | Link → `/analyze` | `NOT_TESTED` | P0 |
-| `ctrl.dashboard.create-project` | Link → `/projects/new` | `NOT_TESTED` | P0 |
-| `ctrl.dashboard.project-card` | Open project | `NOT_TESTED` | P0 |
-| `ctrl.dashboard.job-close` | Close job | `NOT_TESTED` | P1 |
+### administration
 
-### 6.3 Projects
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.admin.gate` | RequireAdmin access gate | `/admin` | NOT_TESTED | P0 | — |
+| `ctrl.admin.stats-view` | Platform stats cards | `/admin` | NOT_TESTED | P1 | — |
+| `ctrl.admin.projects-view` | Recent projects list | `/admin` | NOT_TESTED | P1 | — |
+| `ctrl.admin.users-view` | Users list | `/admin` | NOT_TESTED | P1 | — |
+| `ctrl.admin.ai-metrics` | AIMetricsDashboard | `/admin` | NOT_TESTED | P2 | — |
 
-| ID | Control | Status | Sev |
-| --- | --- | --- | --- |
-| `ctrl.projects.new.submit` | Create project form | `NOT_TESTED` | P0 |
-| `ctrl.projects.new.cancel` | Cancel → dashboard | `NOT_TESTED` | P2 |
-| `ctrl.projects.detail.tabs` | Stage links upload/analysis/estimate/report | `NOT_TESTED` | P0 |
-| `ctrl.projects.detail.publish-gallery` | PublishToGallery | `NOT_TESTED` | P1 |
-| `ctrl.projects.stage-set` | Stage mutations | Hook tests partial | P1 |
+### authentication
 
-### 6.4 Photos
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.auth.mode.signin` | Mode switch: Sign in | `/auth` | NOT_TESTED | P0 | — |
+| `ctrl.auth.mode.signup` | Mode switch: Sign up | `/auth` | NOT_TESTED | P0 | — |
+| `ctrl.auth.header-mode-toggle` | Header Sign in/Sign up toggle | `/auth` | NOT_TESTED | P2 | — |
+| `ctrl.auth.signin-submit` | Sign in form submit | `/auth` | NOT_TESTED | P0 | — |
+| `ctrl.auth.signup-submit` | Sign up form submit | `/auth` | NOT_TESTED | P0 | — |
+| `ctrl.auth.terms-checkbox` | Terms consent checkbox | `/auth` | NOT_TESTED | P1 | — |
+| `ctrl.auth.terms-link` | Terms link | `/auth` | NOT_TESTED | P2 | — |
+| `ctrl.auth.privacy-link` | Privacy link | `/auth` | NOT_TESTED | P2 | — |
+| `ctrl.auth.forgot-password` | Forgot password request | `/auth` | NOT_TESTED | P1 | — |
+| `ctrl.auth.reset-submit` | Password reset mode submit | `/auth` | NOT_TESTED | P1 | — |
+| `ctrl.auth.show-password` | Toggle password visibility | `/auth` | NOT_TESTED | P3 | — |
+| `ctrl.auth.show-confirm-password` | Toggle confirm password visibility | `/auth` | NOT_TESTED | P3 | — |
+| `ctrl.auth.oauth.google` | Continue with Google | `/auth` | NOT_TESTED | P0 | — |
+| `ctrl.auth.oauth.apple` | Continue with Apple | `/auth` | NOT_TESTED | P0 | — |
+| `ctrl.auth.oauth.github` | Continue with GitHub | `/auth` | NOT_TESTED | P0 | — |
+| `ctrl.auth.callback.recovery` | Callback error recovery link to /auth | `/auth/callback` | NOT_TESTED | P1 | — |
+| `ctrl.auth.signout` | Sidebar logout | `*` | NOT_TESTED | P0 | — |
+| `ctrl.oauth.consent.signin` | Consent page Sign in | `/oauth/consent` | NOT_TESTED | P2 | — |
+| `ctrl.oauth.consent.home` | Consent page Home | `/oauth/consent` | NOT_TESTED | P3 | — |
 
-| ID | Control | Route | Status | Sev |
+### dashboard
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.dashboard.onboarding-goal` | Onboarding goal select | `/dashboard` | PARTIAL | P2 | e2e-onboarding |
+| `ctrl.dashboard.onboarding-dismiss` | Dismiss onboarding card | `/dashboard` | NOT_TESTED | P3 | — |
+| `ctrl.dashboard.start-study` | Start first study | `/dashboard` | NOT_TESTED | P0 | — |
+| `ctrl.dashboard.create-project` | Create project CTA | `/dashboard` | NOT_TESTED | P0 | — |
+| `ctrl.dashboard.empty-create-project` | Empty projects Create project | `/dashboard` | NOT_TESTED | P0 | — |
+| `ctrl.dashboard.quick.instant-estimate` | Quick action Instant Estimate | `/dashboard` | NOT_TESTED | P0 | — |
+| `ctrl.dashboard.quick.post-job` | Quick action Post a Trades Job | `/dashboard` | NOT_TESTED | P1 | — |
+| `ctrl.dashboard.quick.studies` | Quick action Saved Studies | `/dashboard` | NOT_TESTED | P0 | — |
+| `ctrl.dashboard.quick.create-project` | Quick action Create Project | `/dashboard` | NOT_TESTED | P0 | — |
+| `ctrl.dashboard.section.post-job` | My trades + Post new job | `/dashboard` | NOT_TESTED | P1 | — |
+| `ctrl.dashboard.job.view` | Job row View | `/dashboard` | NOT_TESTED | P1 | — |
+| `ctrl.dashboard.job.edit` | Job row Edit | `/dashboard` | NOT_TESTED | P1 | — |
+| `ctrl.dashboard.job.close` | Job row Close job | `/dashboard` | NOT_TESTED | P1 | — |
+| `ctrl.dashboard.interest.view-job` | Interest View job | `/dashboard` | NOT_TESTED | P2 | — |
+| `ctrl.dashboard.project.open` | Project card open | `/dashboard` | NOT_TESTED | P0 | — |
+| `ctrl.dashboard.roi-cta` | Run Full ROI Analysis card | `/dashboard` | NOT_TESTED | P1 | — |
+
+### deal-copilot
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.deal.list.new` | New deal analysis | `/deal-copilot` | NOT_TESTED | P1 | — |
+| `ctrl.deal.list.open` | Open opportunity | `/deal-copilot` | NOT_TESTED | P1 | — |
+| `ctrl.deal.new.submit` | DealIntakeForm submit/analyze | `/deal-copilot/new` | NOT_TESTED | P1 | — |
+| `ctrl.deal.detail.edit` | Edit opportunity | `/deal-copilot/$opportunityId` | NOT_TESTED | P1 | — |
+| `ctrl.deal.detail.back` | Back to list | `/deal-copilot/$opportunityId` | NOT_TESTED | P2 | — |
+| `ctrl.deal.detail.listing-url` | Open listing URL | `/deal-copilot/$opportunityId` | NOT_TESTED | P2 | — |
+| `ctrl.deal.chat.new-thread` | Create chat thread | `/deal-copilot/$opportunityId` | NOT_TESTED | P1 | — |
+| `ctrl.deal.chat.send` | Send chat message | `/deal-copilot/$opportunityId` | NOT_TESTED | P1 | — |
+| `ctrl.deal.chat.mic` | Mic toggle (speech) | `/deal-copilot/$opportunityId` | NOT_TESTED | P3 | — |
+| `ctrl.deal.edit.submit` | Save opportunity edit | `/deal-copilot/$opportunityId/edit` | NOT_TESTED | P1 | — |
+| `ctrl.deal.edit.status` | Status select | `/deal-copilot/$opportunityId/edit` | NOT_TESTED | P2 | — |
+| `ctrl.deal.edit.cancel` | Back/cancel to detail | `/deal-copilot/$opportunityId/edit` | NOT_TESTED | P2 | — |
+| `ctrl.deal.feedback.send` | DealCopilotFeedback send | `/deal-copilot/*` | NOT_TESTED | P3 | — |
+
+### estimate
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.estimate.region` | Region select | `/projects/$id/estimate` | NOT_TESTED | P1 | — |
+| `ctrl.estimate.condition` | Condition select | `/projects/$id/estimate` | NOT_TESTED | P1 | — |
+| `ctrl.estimate.category-checkbox` | Category checkboxes | `/projects/$id/estimate` | NOT_TESTED | P1 | — |
+| `ctrl.estimate.generate-save` | Generate/save estimate actions | `/projects/$id/estimate` | NOT_TESTED | P0 | — |
+| `ctrl.estimate.continue-report` | Continue to report | `/projects/$id/estimate` | NOT_TESTED | P0 | — |
+| `ctrl.estimate.instant.l1-submit` | L1EstimateForm submit | `/estimate/instant` | PARTIAL | P0 | e2e-instant-estimate |
+| `ctrl.estimate.instant.l2-fields` | L2 detail fields | `/estimate/instant` | NOT_TESTED | P1 | — |
+
+### export
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.analyze.queue-export` | Queue Investor Export | `/analyze` | NOT_TESTED | P1 | — |
+| `ctrl.analyze.export-report` | Export feasibility report | `/analyze` | NOT_TESTED | P1 | — |
+| `ctrl.report.print` | Print report | `/projects/$id/report` | NOT_TESTED | P2 | — |
+| `ctrl.report.export-pdf` | Export PDF | `/projects/$id/report` | NOT_TESTED | P0 | — |
+| `ctrl.report.back-project` | Back to project | `/projects/$id/report` | NOT_TESTED | P2 | — |
+
+### feasibility
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.analyze.project-select` | Project free-text + datalist | `/analyze` | BROKEN | P0 | free-text-project-id |
+| `ctrl.analyze.run-full` | Run Full Analysis | `/analyze` | NOT_TESTED | P0 | — |
+| `ctrl.analyze.stage.click` | Guided stage checklist item click | `/analyze` | NOT_TESTED | P0 | — |
+| `ctrl.analyze.retry-stage` | Retry stage | `/analyze` | NOT_TESTED | P0 | — |
+| `ctrl.analyze.continue-stage` | Continue from last success | `/analyze` | NOT_TESTED | P0 | — |
+| `ctrl.analysis.retry-weak` | Retry weak analyses | `/projects/$id/analysis` | NOT_TESTED | P1 | — |
+| `ctrl.analysis.continue-estimate` | Continue to estimate | `/projects/$id/analysis` | NOT_TESTED | P0 | — |
+| `ctrl.scope.generate` | Generate/save scope analysis | `/projects/$id/scope` | NOT_TESTED | P0 | — |
+| `ctrl.scope.continue-estimate` | Continue to estimate from scope | `/projects/$id/scope` | NOT_TESTED | P0 | — |
+
+### gallery
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.projects.detail.publish-file` | PublishToGallery file input | `/projects/$id` | NOT_TESTED | P2 | — |
+| `ctrl.gallery.list.open` | Open gallery project | `/gallery` | NOT_TESTED | P1 | — |
+| `ctrl.gallery.list.filter` | Gallery filter/control buttons | `/gallery` | NOT_TESTED | P2 | — |
+| `ctrl.gallery.detail.back` | Back to gallery | `/gallery/$slug` | NOT_TESTED | P2 | — |
+| `ctrl.gallery.detail.contact` | Contact Owner anchor | `/gallery/$slug` | NOT_TESTED | P2 | — |
+| `ctrl.gallery.detail.lead-submit` | Investor lead submit | `/gallery/$slug` | NOT_TESTED | P1 | — |
+
+### marketplace
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.marketplace.search` | Search tradepersons | `/marketplace` | NOT_TESTED | P2 | — |
+| `ctrl.marketplace.filter-specialty` | Specialty filter | `/marketplace` | NOT_TESTED | P2 | — |
+| `ctrl.marketplace.filter-postcode` | Postcode filter | `/marketplace` | NOT_TESTED | P2 | — |
+| `ctrl.marketplace.favorite` | Toggle favorite tradeperson | `/marketplace` | NOT_TESTED | P2 | — |
+| `ctrl.marketplace.quote-open` | Open quote request dialog | `/marketplace` | NOT_TESTED | P1 | — |
+| `ctrl.marketplace.quote-submit` | Submit quote request | `/marketplace` | NOT_TESTED | P1 | — |
+| `ctrl.marketplace.quote-cancel` | Cancel quote dialog | `/marketplace` | NOT_TESTED | P2 | — |
+| `ctrl.marketplace.message-send` | MessagingInbox send | `/marketplace` | NOT_TESTED | P1 | — |
+
+### navigation
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.nav.sidebar.dashboard` | Sidebar → Dashboard | `*` | NOT_TESTED | P0 | — |
+| `ctrl.nav.sidebar.analyze` | Sidebar → New Study | `*` | NOT_TESTED | P0 | — |
+| `ctrl.nav.sidebar.studies` | Sidebar → Studies | `*` | NOT_TESTED | P0 | — |
+| `ctrl.nav.sidebar.deal-copilot` | Sidebar → Deal Copilot | `*` | NOT_TESTED | P1 | — |
+| `ctrl.nav.sidebar.trades` | Sidebar → Trades | `*` | NOT_TESTED | P1 | — |
+| `ctrl.nav.sidebar.settings` | Sidebar → Settings | `*` | NOT_TESTED | P1 | — |
+| `ctrl.nav.sidebar.admin-absent` | Admin link in primary Sidebar | `*` | INTENTIONALLY_HIDDEN | P2 | — |
+| `ctrl.nav.navbar.dashboard` | Navbar Dashboard | `public` | NOT_TESTED | P1 | — |
+| `ctrl.nav.navbar.deal-copilot` | Navbar Deal Copilot | `public` | NOT_TESTED | P1 | — |
+| `ctrl.nav.navbar.trades` | Navbar Trades | `public` | NOT_TESTED | P1 | — |
+| `ctrl.nav.navbar.post-job` | Navbar Post Job | `public` | NOT_TESTED | P1 | — |
+| `ctrl.nav.navbar.signin` | Navbar Sign in | `public` | NOT_TESTED | P0 | — |
+| `ctrl.nav.navbar.signup` | Navbar Get started free | `public` | NOT_TESTED | P0 | — |
+| `ctrl.nav.navbar.mobile-menu` | Mobile hamburger toggle | `public` | NOT_TESTED | P2 | — |
+| `ctrl.nav.footer.privacy` | Footer Data Privacy | `*` | NOT_TESTED | P2 | — |
+| `ctrl.nav.footer.terms` | Footer Terms | `*` | NOT_TESTED | P2 | — |
+| `ctrl.nav.mobile-topbar.home` | Mobile top bar logo home | `*` | NOT_TESTED | P2 | — |
+| `ctrl.nav.theme-toggle` | ThemeToggle | `*` | NOT_TESTED | P3 | — |
+| `ctrl.nav.platform.dashboard` | PlatformNav Dashboard | `*` | NOT_TESTED | P2 | — |
+| `ctrl.nav.platform.deal-copilot` | PlatformNav Deal Copilot | `*` | NOT_TESTED | P2 | — |
+| `ctrl.nav.platform.trades` | PlatformNav Trades | `*` | NOT_TESTED | P2 | — |
+| `ctrl.nav.platform.post-job` | PlatformNav Post Job | `*` | NOT_TESTED | P2 | — |
+
+### photos
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.analyze.photo.take` | Take Photo | `/analyze` | BROKEN | P0 | isLoading-gated-on-project |
+| `ctrl.analyze.photo.library` | Upload from Library | `/analyze` | BROKEN | P0 | isLoading-gated-on-project |
+| `ctrl.analyze.photo.camera-input` | Hidden camera input | `/analyze` | BROKEN | P0 | camera-multiple-attribute |
+| `ctrl.analyze.photo.library-input` | Hidden library input | `/analyze` | NOT_TESTED | P0 | — |
+| `ctrl.analyze.photo.remove` | Remove selected photo | `/analyze` | NOT_TESTED | P1 | — |
+| `ctrl.analyze.photo.clear` | Clear selection | `/analyze` | NOT_TESTED | P1 | — |
+| `ctrl.analyze.upload-selected` | Upload Selected | `/analyze` | PARTIAL | P0 | analyze-upload-ux |
+| `ctrl.upload.camera` | Take Photo | `/projects/$id/upload` | NOT_TESTED | P0 | — |
+| `ctrl.upload.library` | Choose Files | `/projects/$id/upload` | NOT_TESTED | P0 | — |
+| `ctrl.upload.camera-input` | Hidden camera input | `/projects/$id/upload` | NOT_TESTED | P0 | — |
+| `ctrl.upload.library-input` | Hidden library input | `/projects/$id/upload` | NOT_TESTED | P0 | — |
+| `ctrl.upload.remove-photo` | Remove uploaded photo | `/projects/$id/upload` | NOT_TESTED | P1 | — |
+| `ctrl.upload.retry` | Retry failed upload items | `/projects/$id/upload` | NOT_TESTED | P1 | — |
+| `ctrl.upload.run-analysis` | Run AI Analysis | `/projects/$id/upload` | NOT_TESTED | P0 | — |
+
+### projects
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.projects.new.submit` | Create & continue | `/projects/new` | NOT_TESTED | P0 | — |
+| `ctrl.projects.new.cancel` | Cancel | `/projects/new` | NOT_TESTED | P2 | — |
+| `ctrl.projects.new.region` | Region select | `/projects/new` | NOT_TESTED | P2 | — |
+| `ctrl.projects.new.property-type` | Property type select | `/projects/new` | NOT_TESTED | P2 | — |
+| `ctrl.projects.detail.tab.overview` | Tab overview | `/projects/$id` | NOT_TESTED | P1 | — |
+| `ctrl.projects.detail.pipeline.upload` | Pipeline → Upload | `/projects/$id` | NOT_TESTED | P0 | — |
+| `ctrl.projects.detail.pipeline.analysis` | Pipeline → Analysis | `/projects/$id` | NOT_TESTED | P0 | — |
+| `ctrl.projects.detail.pipeline.estimate` | Pipeline → Estimate | `/projects/$id` | NOT_TESTED | P0 | — |
+| `ctrl.projects.detail.pipeline.report` | Pipeline → Report | `/projects/$id` | NOT_TESTED | P0 | — |
+| `ctrl.projects.detail.saved-studies` | Saved studies link | `/projects/$id` | NOT_TESTED | P1 | — |
+| `ctrl.projects.detail.bulk-upload` | BulkPhotoUpload zone | `/projects/$id` | NOT_TESTED | P1 | — |
+| `ctrl.projects.detail.publish-gallery` | PublishToGallery open/submit | `/projects/$id` | NOT_TESTED | P1 | — |
+
+### public
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.public.home.cta-auth` | Landing primary auth CTA | `/` | NOT_TESTED | P0 | — |
+| `ctrl.public.home.workflow-anchor` | Workflow section anchor | `/` | NOT_TESTED | P3 | — |
+| `ctrl.public.support.mailto` | support@ mailto | `/support` | NOT_TESTED | P2 | — |
+| `ctrl.public.privacy.mailto` | privacy support mailto | `/privacy` | NOT_TESTED | P3 | — |
+| `ctrl.root.error-reset` | Root error boundary reset | `*` | NOT_TESTED | P2 | — |
+| `ctrl.root.error-home` | Root error boundary home link | `*` | NOT_TESTED | P2 | — |
+
+### roi
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.estimate.roi-display` | Live ROI metrics display | `/projects/$id/estimate` | NOT_TESTED | P0 | — |
+
+### settings
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.settings.save` | Save changes | `/settings` | BROKEN | P1 | missing-profile-mutation |
+| `ctrl.settings.region` | Default region select | `/settings` | NOT_TESTED | P2 | — |
+| `ctrl.settings.link.privacy` | Privacy Policy link | `/settings` | NOT_TESTED | P3 | — |
+| `ctrl.settings.link.terms` | Terms link | `/settings` | NOT_TESTED | P3 | — |
+| `ctrl.settings.link.support` | Contact support link | `/settings` | NOT_TESTED | P3 | — |
+| `ctrl.settings.delete-open` | Delete Account open dialog | `/settings` | NOT_TESTED | P1 | — |
+| `ctrl.settings.delete-confirm` | Delete Account confirm | `/settings` | NOT_TESTED | P1 | — |
+| `ctrl.settings.delete-cancel` | Delete Account cancel | `/settings` | NOT_TESTED | P2 | — |
+
+### sharing
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.studies.detail.share-create` | Create share link | `/studies/$id` | NOT_TESTED | P1 | — |
+| `ctrl.studies.detail.share-revoke` | Revoke share link | `/studies/$id` | NOT_TESTED | P1 | — |
+| `ctrl.studies.detail.share-open` | Open share link external | `/studies/$id` | NOT_TESTED | P2 | — |
+
+### studies
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.analyze.open-study` | Open study dashboard link | `/analyze` | NOT_TESTED | P1 | — |
+| `ctrl.studies.filter-project` | Project filter input/datalist | `/studies` | NOT_TESTED | P1 | — |
+| `ctrl.studies.open` | Open study | `/studies` | NOT_TESTED | P0 | — |
+| `ctrl.studies.create-actions` | Create/regenerate study actions | `/studies` | NOT_TESTED | P0 | — |
+| `ctrl.studies.detail.queue-export` | Queue export | `/studies/$id` | NOT_TESTED | P1 | — |
+| `ctrl.studies.detail.export-pdf` | Export PDF | `/studies/$id` | NOT_TESTED | P0 | — |
+| `ctrl.studies.detail.back` | Back to studies | `/studies/$id` | NOT_TESTED | P2 | — |
+| `ctrl.studies.detail.regenerate` | Regenerate study | `/studies/$id` | NOT_TESTED | P1 | — |
+
+### trades
+
+| surfaceId | control | route | status | severity | blocker |
+| --- | --- | --- | --- | --- | --- |
+| `ctrl.trades.filter-category` | Category filter chips | `/trades` | NOT_TESTED | P2 | — |
+| `ctrl.trades.filter-all` | Filter All categories | `/trades` | NOT_TESTED | P2 | — |
+| `ctrl.trades.post-job-cta` | Post a job CTAs | `/trades` | NOT_TESTED | P1 | — |
+| `ctrl.trades.open-job` | Open job card | `/trades` | NOT_TESTED | P1 | — |
+| `ctrl.trades.signup-cta` | Create free account CTA | `/trades` | NOT_TESTED | P1 | — |
+| `ctrl.trades.job.back` | Back to Trades | `/trades/$jobId` | NOT_TESTED | P2 | — |
+| `ctrl.trades.job.edit` | Edit Job | `/trades/$jobId` | NOT_TESTED | P1 | — |
+| `ctrl.trades.job.interest-submit` | Submit interest | `/trades/$jobId` | NOT_TESTED | P1 | — |
+| `ctrl.trades.job.interest-unauth` | Sign up to register interest | `/trades/$jobId` | NOT_TESTED | P1 | — |
+| `ctrl.trades.job.accept` | Accept interest | `/trades/$jobId` | NOT_TESTED | P1 | — |
+| `ctrl.trades.job.reject` | Reject interest | `/trades/$jobId` | NOT_TESTED | P1 | — |
+| `ctrl.trades.new.submit` | Post job submit | `/trades/new` | NOT_TESTED | P1 | — |
+| `ctrl.trades.new.category` | Job category select | `/trades/new` | NOT_TESTED | P2 | — |
+| `ctrl.trades.edit.submit` | Save job edit | `/trades/$jobId/edit` | NOT_TESTED | P1 | — |
+| `ctrl.trades.profile.submit` | Save trade profile | `/trades/profile` | NOT_TESTED | P1 | — |
+| `ctrl.trades.profile.categories` | Toggle trade categories | `/trades/profile` | NOT_TESTED | P2 | — |
+
+## Backend operations
+
+| surfaceId | control | sourcePath | status | severity |
 | --- | --- | --- | --- | --- |
-| `ctrl.analyze.photo.take` | Take Photo | `/analyze` | **BROKEN** | P0 |
-| `ctrl.analyze.photo.library` | Upload from Library | `/analyze` | **BROKEN** (same isLoading) | P0 |
-| `ctrl.analyze.photo.camera-input` | Hidden camera input | `/analyze` via zone | **BROKEN** (`multiple`) | P0 |
-| `ctrl.analyze.upload-selected` | Upload Selected | `/analyze` | **PARTIAL** | P0 |
-| `ctrl.upload.camera` | Take Photo | `/projects/$id/upload` | `NOT_TESTED` (semantics OK in code) | P0 |
-| `ctrl.upload.library` | Choose Files | `/projects/$id/upload` | `NOT_TESTED` | P0 |
-| `ctrl.upload.retry` | Retry failed files | upload page | `NOT_TESTED` | P1 |
-| `ctrl.bulk-photo` | BulkPhotoUpload component | shared | `NOT_TESTED` | P1 |
+| `be.auth.get-current-user` | getCurrentUserServerFn | `src/serverFns/auth.ts` | NOT_TESTED | P0 |
+| `be.auth.delete-account` | deleteAccountServerFn | `src/serverFns/auth.ts` | NOT_TESTED | P1 |
+| `be.projects.create` | createProjectServerFn | `src/serverFns/projects.ts` | NOT_TESTED | P0 |
+| `be.projects.stage-set` | projectStageRepository set stage | `src/features/projects/infrastructure/projectStageRepository.ts` | NOT_TESTED | P1 |
+| `be.photos.upload` | photos-write upload batch | `src/lib/photos-write.ts` | PARTIAL | P0 |
+| `be.photos.remove` | photos-write / remove photo | `src/lib/photos-write.ts` | NOT_TESTED | P1 |
+| `be.photos.health` | checkUploadHealth | `src/features/ai-upload/presentation/checkUploadHealth.ts` | NOT_TESTED | P1 |
+| `be.ai.photo-analysis` | runPhotoAnalysisServerFn | `src/features/ai-upload/presentation/serverFns.ts` | NOT_TESTED | P0 |
+| `be.ai.photo-analysis-provider` | runPhotoAnalysisWithProviderServerFn | `src/features/ai-upload/presentation/serverFns.ts` | NOT_TESTED | P1 |
+| `be.ai.scope` | runScopeAnalysisServerFn | `src/features/ai-design/presentation/serverFns.ts` | NOT_TESTED | P0 |
+| `be.ai.redesign` | generateRedesignConceptsServerFn | `src/features/ai-design/presentation/serverFns.ts` | NOT_TESTED | P1 |
+| `be.estimate.generate` | generateEstimateServerFn | `src/features/estimate/presentation/serverFns.ts` | NOT_TESTED | P0 |
+| `be.estimate.authority-save` | saveAuthorityCategoryEstimateServerFn | `src/features/estimate/presentation/serverFns.ts` | NOT_TESTED | P1 |
+| `be.estimate.repository` | supabaseEstimateRepository | `src/features/estimate/infrastructure/repositories/estimate.repository.ts` | NOT_TESTED | P0 |
+| `be.roi.engine` | deterministicRoiEngine / runRoiEngine | `src/features/roi/infrastructure/adapters/roi-engine.adapter.ts` | NOT_TESTED | P0 |
+| `be.export.pdf` | PDF export pipeline | `src/features/export` | NOT_TESTED | P0 |
+| `be.export.queue` | queue feasibility export | `src/features/export` | NOT_TESTED | P1 |
+| `be.feasibility.repository` | supabaseFeasibilityRepository | `src/features/feasibility/infrastructure/repositories/feasibility.repository.ts` | NOT_TESTED | P0 |
+| `be.sharing.create` | ShareLink create | `src/features/sharing/infrastructure/shareLink.repository.ts` | NOT_TESTED | P1 |
+| `be.sharing.list` | ShareLink listByStudy | `src/features/sharing/infrastructure/shareLink.repository.ts` | NOT_TESTED | P1 |
+| `be.sharing.revoke` | ShareLink revoke | `src/features/sharing/infrastructure/shareLink.repository.ts` | NOT_TESTED | P1 |
+| `be.gallery.repository` | gallery repository | `src/features/gallery/infrastructure/galleryRepository.ts` | NOT_TESTED | P1 |
+| `be.gallery.lead` | submitInvestorLead | `src/core/gallery/serverFns.ts` | NOT_TESTED | P1 |
+| `be.deal.save` | saveDealOpportunityServerFn | `src/serverFns/dealCopilot.ts` | NOT_TESTED | P1 |
+| `be.deal.delete` | deleteDealOpportunityServerFn | `src/serverFns/dealCopilot.ts` | NOT_TESTED | P1 |
+| `be.deal.analyze` | analyzeDealServerFn | `src/serverFns/dealAnalysis.ts` | NOT_TESTED | P1 |
+| `be.deal.chat.create-thread` | createThreadServerFn | `src/serverFns/dealChat.ts` | NOT_TESTED | P1 |
+| `be.deal.chat.list-threads` | listThreadsServerFn | `src/serverFns/dealChat.ts` | NOT_TESTED | P2 |
+| `be.deal.chat.list-messages` | listMessagesServerFn | `src/serverFns/dealChat.ts` | NOT_TESTED | P1 |
+| `be.deal.chat.send` | sendMessageServerFn | `src/serverFns/dealChat.ts` | BLOCKED_CONFIGURATION | P1 |
+| `be.admin.stats` | admin platform stats read | `src/features/admin` | NOT_TESTED | P1 |
+| `be.email.send` | Resend email helper | `src/lib/email.ts` | NOT_TESTED | P1 |
+| `be.payment.create-checkout` | createCheckout (mock gateway) | `src/platform/payments/index.ts` | NOT_TESTED | P2 |
+| `be.payment.has-pro-access` | hasProAccess gate | `src/features/payment/application/hasProAccess.ts` | NOT_TESTED | P1 |
+| `be.payment.verify-webhook` | verifyWebhook | `src/features/payment/application/verifyWebhook.ts` | NOT_TESTED | P2 |
 
-### 6.5 Feasibility / analyze orchestrator
+## Integrations
 
-| ID | Control | Status | Sev |
-| --- | --- | --- | --- |
-| `ctrl.analyze.run-full` | Run full analysis | `NOT_TESTED` (disabled without project/photos) | P0 |
-| `ctrl.analyze.stage-select` | Stage checklist clicks | `NOT_TESTED` | P0 |
-| `ctrl.analyze.retry-stage` | Retry from last successful | `NOT_TESTED` | P0 |
-| `ctrl.analyze.continue-stage` | Continue current stage | `NOT_TESTED` | P0 |
-| `ctrl.analyze.queue-export` | Queue export | `NOT_TESTED` | P1 |
-| `ctrl.analyze.export-report` | Export report | Pro-gated path | `NOT_TESTED` | P1 |
+| surfaceId | control | exposure | status | severity |
+| --- | --- | --- | --- | --- |
+| `int.supabase.browser` | Supabase browser client | production-visible | NOT_TESTED | P0 |
+| `int.supabase.server` | Supabase server/service client | production-visible | NOT_TESTED | P0 |
+| `int.supabase.storage` | Storage buckets project-photos/gallery | production-visible | NOT_TESTED | P0 |
+| `int.openai` | OpenAI | production-visible | NOT_TESTED | P0 |
+| `int.huggingface` | HuggingFace vision/text | production-visible | NOT_TESTED | P1 |
+| `int.resend` | Resend email | production-visible | NOT_TESTED | P1 |
+| `int.oauth.google` | Google OAuth provider | production-visible | NOT_TESTED | P0 |
+| `int.oauth.apple` | Apple OAuth provider | production-visible | NOT_TESTED | P0 |
+| `int.oauth.github` | GitHub OAuth provider | production-visible | NOT_TESTED | P0 |
+| `int.payment.mock` | Payment mock adapter | mock-only | NOT_TESTED | P2 |
+| `int.payment.pro-flag` | VITE_ENABLE_PRO_FEATURES / domain pro gate | production-visible | NOT_TESTED | P1 |
+| `int.posthog` | PostHog analytics | optional | NOT_TESTED | P3 |
+| `int.sentry` | Sentry | optional | NOT_TESTED | P2 |
+| `int.public-url` | VITE_PUBLIC_URL | production-visible | NOT_TESTED | P1 |
+| `int.export.pdf-runtime` | PDF export runtime | production-visible | NOT_TESTED | P0 |
 
-### 6.6 Estimate / ROI / report
+## Confirmed P0 BROKEN surfaces
 
-| ID | Control | Status | Sev |
-| --- | --- | --- | --- |
-| `ctrl.estimate.instant.l1` | Instant L1 form | Unit tests | P0 |
-| `ctrl.estimate.project.generate` | Generate / save estimate | `NOT_TESTED` | P0 |
-| `ctrl.estimate.region-condition` | Selects | `NOT_TESTED` | P1 |
-| `ctrl.estimate.roi-metrics` | Live ROI display | `NOT_TESTED` | P0 |
-| `ctrl.report.export-pdf` | PDF export | `NOT_TESTED` | P0 |
-| `ctrl.report.open-study` | Study link | `NOT_TESTED` | P1 |
+- `route.analyze` — Photo capture/select broken when no project; free-text project id (blocker: p0-photo-capture-upload)
+- `ctrl.analyze.project-select` — Unresolved free-text values possible (blocker: free-text-project-id)
+- `ctrl.analyze.photo.take` — Disabled when !selectedProject via isLoading (blocker: isLoading-gated-on-project)
+- `ctrl.analyze.photo.library` — Disabled when no project (blocker: isLoading-gated-on-project)
+- `ctrl.analyze.photo.camera-input` — Has multiple=true incorrectly (blocker: camera-multiple-attribute)
 
-### 6.7 Studies / sharing
+## Core journey map
 
-| ID | Control | Status | Sev |
-| --- | --- | --- | --- |
-| `ctrl.studies.list.open` | Open study | `NOT_TESTED` | P0 |
-| `ctrl.studies.share.create` | Create share link | `NOT_TESTED` | P1 |
-| `ctrl.studies.share.revoke` | Revoke share link | `NOT_TESTED` | P1 |
-
-### 6.8 Deal Copilot
-
-| ID | Control | Status | Sev |
-| --- | --- | --- | --- |
-| `ctrl.deal.new.analyze` | Intake submit | `NOT_TESTED` | P1 |
-| `ctrl.deal.list.open` | Open opportunity | `NOT_TESTED` | P1 |
-| `ctrl.deal.edit.save` | Save edit | `NOT_TESTED` | P1 |
-| `ctrl.deal.chat.send` | Chat send (if mounted) | `NOT_TESTED` / may be `BLOCKED_EXTERNAL` | P1 |
-
-### 6.9 Trades / marketplace
-
-| ID | Control | Status | Sev |
-| --- | --- | --- | --- |
-| `ctrl.trades.filter-category` | Category filters | `NOT_TESTED` | P2 |
-| `ctrl.trades.post-job` | → `/trades/new` | `NOT_TESTED` | P1 |
-| `ctrl.trades.job.interest` | Submit interest | `NOT_TESTED` | P1 |
-| `ctrl.trades.job.accept-reject` | Owner interest actions | `NOT_TESTED` | P1 |
-| `ctrl.trades.profile.save` | Trade profile form | `NOT_TESTED` | P1 |
-| `ctrl.marketplace.quote` | Quote request dialog | `NOT_TESTED` | P1 |
-
-### 6.10 Gallery / public
-
-| ID | Control | Status | Sev |
-| --- | --- | --- | --- |
-| `ctrl.gallery.list.open` | Open slug | `NOT_TESTED` | P1 |
-| `ctrl.gallery.contact` | Contact anchor | `NOT_TESTED` | P2 |
-| `ctrl.gallery.investor-lead` | Lead submit serverFn | `NOT_TESTED` | P1 |
-
-### 6.11 Settings / admin
-
-| ID | Control | Status | Sev |
-| --- | --- | --- | --- |
-| `ctrl.settings.save` | Save preferences | **BROKEN** (name fake success) | P1 |
-| `ctrl.settings.delete-account` | Delete + confirm | `NOT_TESTED` | P1 |
-| `ctrl.admin.stats` | View metrics | `NOT_TESTED` | P1 |
-| `ctrl.admin.users` | User list | `NOT_TESTED` | P1 |
-| `ctrl.admin.gate` | Non-admin denied | `NOT_TESTED` | P0 |
-
-### 6.12 Global / a11y shell
-
-| ID | Control | Status | Sev |
-| --- | --- | --- | --- |
-| `ctrl.theme.toggle` | ThemeToggle | `NOT_TESTED` | P3 |
-| `ctrl.root.error-reset` | Error boundary reset | `NOT_TESTED` | P2 |
-| `ctrl.mobile.menu` | Hamburger nav | `NOT_TESTED` | P2 |
-
----
-
-## 7. Backend and integration inventory
-
-### 7.1 Server functions (TanStack `createServerFn`)
-
-| Module | Functions (representative) | Auth | Persistence |
-| --- | --- | --- | --- |
-| `serverFns/auth.ts` | `getCurrentUserServerFn`, `deleteAccountServerFn` | Session | profiles / auth |
-| `serverFns/projects.ts` | `createProjectServerFn` | Session + ownership | projects |
-| `serverFns/dealCopilot.ts` | save/delete opportunity | Session | deal opportunities |
-| `serverFns/dealChat.ts` | create/list threads, list/send messages | Session | deal chat |
-| `serverFns/dealAnalysis.ts` | `analyzeDealServerFn` | Session | AI + store |
-| `features/ai-upload/.../serverFns.ts` | `runPhotoAnalysisServerFn`, provider variant | Session | room_analyses |
-| `features/ai-design/.../serverFns.ts` | redesign concepts, scope analysis | Session | AI outputs |
-| `features/estimate/.../serverFns.ts` | generate estimate, authority save | Session | estimates |
-| `core/gallery/serverFns.ts` | `submitInvestorLead` | Public/lead | leads |
-
-### 7.2 Client-side Supabase writes (representative)
-
-| Area | Module | Tables / storage |
+| Step | Status | Surfaces |
 | --- | --- | --- |
-| Photos | `lib/photos-write.ts` | Storage `project-photos` + photo metadata |
-| Estimates | estimate repository | project estimates |
-| Stages | `projectStageRepository` | project stage flags |
-| Feasibility | feasibility repository | studies / checkpoints |
-| Export | export repository + PDF | export records / files |
-| Share links | `shareLink.repository` | `share_links` |
-| Gallery | gallery repository | gallery + storage |
-| Trades | marketplace feature | jobs / interests / profiles |
-| ROI | engine (client compute) + estimate page save path | financial fields |
+| signup | NOT_TESTED | `ctrl.auth.signup-submit`, `route.auth` |
+| signin | NOT_TESTED | `ctrl.auth.signin-submit`, `route.auth` |
+| project | NOT_TESTED | `ctrl.projects.new.submit`, `route.projects.new` |
+| photos | BROKEN | `ctrl.analyze.photo.take`, `ctrl.analyze.photo.library`, `ctrl.upload.camera`, `route.projects.upload` |
+| analysis | NOT_TESTED | `route.projects.analysis`, `be.ai.photo-analysis` |
+| scope | NOT_TESTED | `route.projects.scope`, `be.ai.scope` |
+| redesign | NOT_TESTED | `be.ai.redesign` |
+| estimate | NOT_TESTED | `route.projects.estimate`, `ctrl.estimate.instant.l1-submit` |
+| roi | NOT_TESTED | `ctrl.estimate.roi-display`, `be.roi.engine` |
+| export | NOT_TESTED | `ctrl.report.export-pdf`, `be.export.pdf` |
+| reopen | NOT_TESTED | `route.studies.detail`, `ctrl.studies.open` |
+| share_download | NOT_TESTED | `ctrl.studies.detail.share-create`, `ctrl.studies.detail.export-pdf` |
 
-### 7.3 External integrations
-
-| Integration | Env vars (names only) | Production surface | Status |
-| --- | --- | --- | --- |
-| Supabase Auth/DB/Storage | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_URL` | All authenticated data | Config `UNVERIFIED` this phase |
-| OpenAI | `OPENAI_API_KEY` | Vision, deal chat, estimates | `NOT_TESTED` / may `BLOCKED_CONFIGURATION` |
-| HuggingFace | `HUGGINGFACE_API_KEY`, `HUGGINGFACE_ENDPOINT_URL`, model envs | Vision fallback | `NOT_TESTED` |
-| Resend | `RESEND_API_KEY` | Email (server) | `NOT_TESTED` |
-| PostHog | `VITE_PUBLIC_POSTHOG_PROJECT_TOKEN`, host | Analytics | Optional `NOT_TESTED` |
-| Sentry | `VITE_SENTRY_DSN` | Error reporting | Optional `NOT_TESTED` |
-| Payments | mock provider + `VITE_ENABLE_PRO_FEATURES` | Pro export gate | **Mock / domain gate** — not full Stripe journey |
-| Apple client meta | `VITE_APPLE_CLIENT_ID` | Meta tag only | `NOT_TESTED` |
-| Public URL | `VITE_PUBLIC_URL` | Absolute URLs / SEO | `NOT_TESTED` |
-
----
-
-## 8. Core customer journey map (priority for P0-APP-C)
-
-| Step | Route / control | Inventory status | Blocker |
-| --- | --- | --- | --- |
-| Sign up | `/auth` | `NOT_TESTED` | Runtime E2E |
-| Sign in | `/auth` | `NOT_TESTED` | Runtime E2E |
-| Create project | `/projects/new` | `NOT_TESTED` | Runtime E2E |
-| Edit project | project detail | `NOT_TESTED` | Confirm edit surface |
-| Capture/upload photos | `/analyze`, `/projects/$id/upload` | **BROKEN** on analyze | P0 photo defects; PR #104 unmerged |
-| AI analysis | analysis + orchestrator | `NOT_TESTED` | OpenAI config |
-| Scope | `/projects/$id/scope` | `NOT_TESTED` | |
-| Redesign / skip | feasibility stages | `NOT_TESTED` | |
-| Estimate | project + instant | Partial unit | Runtime |
-| ROI | estimate page metrics | `NOT_TESTED` | |
-| Export | report / feasibility export | Pro gate | |
-| Reopen study | `/studies/$id` | `NOT_TESTED` | |
-| Download/share | share links + PDF | `NOT_TESTED` | |
-
----
-
-## 9. Status totals (P0-APP-A close)
-
-Counts are for surfaces recorded in the JSON register (routes + primary controls + integrations). They intentionally over-represent `NOT_TESTED`.
-
-| Status | Count (approx.) | Notes |
-| --- | --- | --- |
-| WORKING | 0 | None promoted without runtime evidence |
-| BROKEN | 7 | Analyze photo path + free-text project + settings name save |
-| PARTIAL | 9 | Auth unit coverage, trades banner, upload page code-OK, support, etc. |
-| INACCESSIBLE | 0 | Admin gate untested (not yet proven inaccessible incorrectly) |
-| BLOCKED_CONFIGURATION | 1 | OpenAI/deal chat without key (env-dependent) |
-| BLOCKED_EXTERNAL | 1 | Payment real checkout not production-wired |
-| INTENTIONALLY_HIDDEN | 1 | Admin not in primary nav |
-| NOT_TESTED | 66 | Expected until C–E phases |
-
-**Total surfaces in JSON:** 85 (routes + primary controls + backend + integrations).
-
-**P0 open issues on main:** analyze photo capture/upload path (and free-text project selector as contributing factor).
-
----
-
-## 10. Automated test coverage map (existing)
-
-| Area | Evidence |
-| --- | --- |
-| Auth presentation | `AuthExperience.test.tsx`, password/OAuth/sign-out/callback hooks |
-| Dashboard | `dashboard.test.tsx` (onboarding goal only) |
-| Admin | `admin.test.tsx` + admin metrics hooks |
-| Photos | format/classify error, usePhotos, invalidation hooks — **no PhotoUploadZone test on main** |
-| Estimate | L1 form, L2 fields, save/apply hooks |
-| Feasibility | `useProjectCatalog.test.ts` |
-| Marketplace | quote, messages, favorites hooks |
-| Deal | analyze/update opportunity hooks |
-| Export | pitch deck hook |
-| Invariants | `pnpm test:invariants` (auth-env, server-only boundary, etc.) |
-| UI suite | `pnpm test:ui` (vitest) |
-
-**Gap:** No every-button audit harness yet (scheduled for programme §8). No full E2E signup→export journey on CI evidence in this inventory.
-
----
-
-## 11. Recommended repair sequence (after inventory acceptance)
-
-1. **Merge path for photos:** complete independent verification of PR #104 (P0-PHOTO-1V) or re-land equivalent on main — unblocks core journey photos.
-2. **P0-APP-B:** env + local Supabase + integration readiness (no secrets in git).
-3. **P0-APP-C branches:** auth, projects, photos (if still open), guided feasibility, estimate/ROI/export.
-4. **P0-APP-D:** deal-copilot, trades, gallery, settings (name persistence), payments gating honesty, admin probes.
-5. **P0-APP-E / Z:** regression, staging deploy, independent gate.
-
-Do **not** resume 4C2E / catalogue-publication / D1 until this programme is independently closed.
-
----
-
-## 12. Honesty statement
-
-This document is **audit evidence for P0-APP-A**, not a claim that the application is operational.
-
-- No production-visible control is marked `WORKING` based solely on code review.
-- Confirmed defects are listed with file-level evidence.
-- Outstanding draft PR #104 is **not** treated as merged behaviour on main.
-- Environment values were **not** printed; classification for live secrets is deferred to P0-APP-B.
-
----
-
-## 13. Validation of this register
+## Validation
 
 ```bash
 node scripts/validate-functional-surface-register.mjs
+pnpm exec tsx --test tests/invariants/functional-surface-register.invariant.test.ts
 ```
 
-Expect exit 0 when JSON schema and required fields are present.
+## 4C2E status
+
+4C2E evidence-vault, catalogue-publication and D1 work remain paused until the application operational programme is independently closed.
+
+---
+
+Generated 2026-08-04 by `scripts/build-functional-surface-register.mjs` from inventory phase P0-APP-AR.
