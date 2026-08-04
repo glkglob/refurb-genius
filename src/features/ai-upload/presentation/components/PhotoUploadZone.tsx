@@ -3,12 +3,13 @@ import { Camera, Image, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { isImageFile } from "@/features/ai-upload";
+import { isImageFile } from "../../domain/rules";
 
 export interface PhotoUploadZoneProps {
   onPhotosSelected: (files: File[]) => void;
   photos?: File[];
   maxPhotos?: number;
+  /** True only while a genuine file/upload operation blocks further selection. */
   isLoading?: boolean;
 }
 
@@ -32,7 +33,7 @@ export function PhotoUploadZone({
   const previewPhotos = useMemo<PreviewPhoto[]>(
     () =>
       currentPhotos.map((file, index) => ({
-        key: `${file.name}-${file.size}-${index}`,
+        key: `${file.name}-${file.size}-${file.lastModified}-${index}`,
         url: URL.createObjectURL(file),
         file,
       })),
@@ -53,35 +54,51 @@ export function PhotoUploadZone({
     [onPhotosSelected, photos],
   );
 
+  const resetInputs = useCallback(() => {
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+  }, []);
+
   const processFiles = useCallback(
     (fileList: FileList | null) => {
-      if (!fileList || fileList.length === 0) return;
+      if (!fileList || fileList.length === 0) {
+        resetInputs();
+        return;
+      }
 
       const files = Array.from(fileList).filter(isImageFile);
 
       if (files.length === 0) {
         toast.error("Please select image files only.");
+        resetInputs();
         return;
       }
 
       if (currentPhotos.length + files.length > maxPhotos) {
         toast.error(`Maximum ${maxPhotos} photos allowed.`);
+        resetInputs();
         return;
       }
 
       const newPhotos = [...currentPhotos, ...files];
       setPhotos(newPhotos);
-
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      if (cameraInputRef.current) cameraInputRef.current.value = "";
+      resetInputs();
     },
-    [currentPhotos, maxPhotos, setPhotos],
+    [currentPhotos, maxPhotos, setPhotos, resetInputs],
   );
 
-  const triggerLibrary = () => fileInputRef.current?.click();
-  const triggerCamera = () => cameraInputRef.current?.click();
+  const triggerLibrary = () => {
+    if (isLoading) return;
+    fileInputRef.current?.click();
+  };
+
+  const triggerCamera = () => {
+    if (isLoading) return;
+    cameraInputRef.current?.click();
+  };
 
   const removePhoto = (index: number) => {
+    if (isLoading) return;
     const updated = currentPhotos.filter((_, i) => i !== index);
     setPhotos(updated);
   };
@@ -103,8 +120,9 @@ export function PhotoUploadZone({
             onClick={triggerCamera}
             size="lg"
             disabled={isLoading}
-            className="h-14"
+            className="h-14 min-h-14"
             title="Open camera to take a photo"
+            aria-label="Take Photo"
           >
             <Camera className="mr-3 h-6 w-6" />
             Take Photo
@@ -116,8 +134,9 @@ export function PhotoUploadZone({
             variant="outline"
             size="lg"
             disabled={isLoading}
-            className="h-14"
+            className="h-14 min-h-14"
             title="Choose photos from your library"
+            aria-label="Upload from Library"
           >
             <Upload className="mr-3 h-6 w-6" />
             Upload from Library
@@ -126,19 +145,28 @@ export function PhotoUploadZone({
 
         <input
           ref={cameraInputRef}
+          id="property-photo-camera-input"
           type="file"
           accept="image/*"
           capture="environment"
-          multiple
-          className="hidden"
+          className="sr-only"
+          tabIndex={-1}
+          disabled={isLoading}
+          aria-label="Camera photo capture"
+          data-testid="property-photo-camera-input"
           onChange={(event) => processFiles(event.target.files)}
         />
         <input
           ref={fileInputRef}
+          id="property-photo-library-input"
           type="file"
           accept="image/*"
           multiple
-          className="hidden"
+          className="sr-only"
+          tabIndex={-1}
+          disabled={isLoading}
+          aria-label="Photo library multi-select"
+          data-testid="property-photo-library-input"
           onChange={(event) => processFiles(event.target.files)}
         />
 
@@ -148,7 +176,13 @@ export function PhotoUploadZone({
               <h4 className="font-medium">
                 Selected ({currentPhotos.length}/{maxPhotos})
               </h4>
-              <Button variant="ghost" size="sm" onClick={() => setPhotos([])}>
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                disabled={isLoading}
+                onClick={() => setPhotos([])}
+              >
                 Clear
               </Button>
             </div>
@@ -161,13 +195,14 @@ export function PhotoUploadZone({
                 >
                   <img
                     src={photo.url}
-                    alt={`Photo ${index + 1}`}
+                    alt={`Photo ${index + 1}: ${photo.file.name}`}
                     className="h-full w-full object-cover"
                   />
                   <button
                     type="button"
                     onClick={() => removePhoto(index)}
-                    className="absolute -right-1 -top-1 rounded-full bg-red-600 p-1 text-white shadow hover:bg-red-700"
+                    disabled={isLoading}
+                    className="absolute -right-1 -top-1 rounded-full bg-red-600 p-1 text-white shadow hover:bg-red-700 disabled:opacity-50"
                     aria-label={`Remove ${photo.file.name}`}
                   >
                     <X className="h-4 w-4" />

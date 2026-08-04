@@ -21,11 +21,26 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { LoadingState } from "@/components/LoadingState";
-import { usePhotos, useUploadPhotos, PhotoUploadZone } from "@/features/ai-upload";
+import {
+  usePhotos,
+  useUploadPhotos,
+  PhotoUploadZone,
+  PhotoUploadBatchError,
+  formatPhotoUploadError,
+  formatPhotoUploadBatchError,
+  checkUploadHealth,
+  type UploadHealthResult,
+} from "@/features/ai-upload";
 import { useExportFeasibilityReport } from "@/features/export";
 import {
   useQueueFeasibilityExport,
@@ -101,6 +116,9 @@ export const Route = createFileRoute("/_authed/analyze")({
 
 function AnalyzeRoute() {
   const [selectedUploadFiles, setSelectedUploadFiles] = useState<File[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccessMessage, setUploadSuccessMessage] = useState<string | null>(null);
+  const [uploadHealth, setUploadHealth] = useState<UploadHealthResult | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const celebrationTimeoutRef = useRef<number | null>(null);
   const navigate = useNavigate();
@@ -130,6 +148,8 @@ function AnalyzeRoute() {
     Math.min(100, ((activeStageIndex + (hasCompletedStudy ? 1 : 0)) / STAGE_META.length) * 100),
   );
   const currentStageLabel = STAGE_META[Math.max(activeStageIndex, 0)]?.label ?? "Upload";
+  const needsProjectForUpload = selectedUploadFiles.length > 0 && !selectedProject;
+  const uploadPending = uploadPhotos.isPending;
 
   useEffect(() => {
     return () => {
@@ -138,6 +158,70 @@ function AnalyzeRoute() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void checkUploadHealth().then((result) => {
+      if (!cancelled) setUploadHealth(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function handleProjectChange(projectId: string) {
+    setUploadError(null);
+    setUploadSuccessMessage(null);
+    void navigate({
+      to: "/analyze",
+      search: { projectId, studyId: search.studyId },
+      replace: true,
+    });
+  }
+
+  function handleUploadSelected() {
+    if (!selectedProject) {
+      setUploadError("Select a project before uploading the selected photos.");
+      setUploadSuccessMessage(null);
+      return;
+    }
+    if (selectedUploadFiles.length === 0 || uploadPending) return;
+
+    setUploadError(null);
+    setUploadSuccessMessage(null);
+
+    const batch = selectedUploadFiles;
+    uploadPhotos.mutate(batch, {
+      onSuccess: (uploaded) => {
+        setSelectedUploadFiles([]);
+        const count = uploaded.length;
+        const message =
+          count === 1 ? "Photo uploaded successfully." : `${count} photos uploaded successfully.`;
+        setUploadSuccessMessage(message);
+        toast.success(message);
+      },
+      onError: (err) => {
+        if (err instanceof PhotoUploadBatchError) {
+          const message = formatPhotoUploadBatchError(err);
+          setUploadError(message);
+          toast.error(message);
+          // Keep only files that failed; successful ones are already persisted.
+          const failedFiles = err.failures.map((failure) => failure.file);
+          setSelectedUploadFiles(failedFiles);
+          if (err.successes.length > 0) {
+            setUploadSuccessMessage(
+              `${err.successes.length} photo${err.successes.length === 1 ? "" : "s"} saved. Retry the remaining files.`,
+            );
+          }
+          return;
+        }
+        const message = formatPhotoUploadError(err);
+        setUploadError(message);
+        toast.error(message);
+        // Full failure: retain entire selection for retry.
+      },
+    });
+  }
 
   async function handleRunFullAnalysis() {
     try {
@@ -299,32 +383,46 @@ function AnalyzeRoute() {
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor="project-id">Project</Label>
-                    <Input
-                      id="project-id"
-                      list="analyze-projects"
-                      value={search.projectId ?? ""}
-                      onChange={(event) =>
-                        navigate({
-                          to: "/analyze",
-                          search: { projectId: event.target.value, studyId: search.studyId },
-                          replace: true,
-                        })
-                      }
-                      placeholder="Select project ID"
-                    />
-                    <datalist id="analyze-projects">
-                      {projects.map((project) => (
-                        <option key={project.id} value={project.id}>
-                          {project.name || project.address}
-                        </option>
-                      ))}
-                    </datalist>
+                    <Label htmlFor="analyze-project-select">Project</Label>
+                    <Select
+                      value={selectedProject?.id}
+                      onValueChange={handleProjectChange}
+                      disabled={projects.length === 0}
+                    >
+                      <SelectTrigger
+                        id="analyze-project-select"
+                        className="w-full min-h-11"
+                        aria-label="Select project for photo upload"
+                      >
+                        <SelectValue placeholder="Select a project" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.name || project.address || project.id}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {projects.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">
+                        No projects available. Create a project first.
+                      </p>
+                    ) : null}
+                    {search.projectId && !selectedProject ? (
+                      <p className="text-xs text-destructive" role="status">
+                        That project ID is not in your list. Choose a project from the menu.
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="rounded-xl border border-border/60 bg-background/50 p-3 text-sm">
                     <p>
                       Photos uploaded: <span className="font-medium">{photos.length}</span>
+                    </p>
+                    <p>
+                      Selected for upload:{" "}
+                      <span className="font-medium">{selectedUploadFiles.length}</span>
                     </p>
                     <p>
                       Current stage:{" "}
@@ -340,32 +438,100 @@ function AnalyzeRoute() {
                 </div>
               )}
 
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="w-full">
-                  <PhotoUploadZone
-                    photos={selectedUploadFiles}
-                    onPhotosSelected={setSelectedUploadFiles}
-                    isLoading={!selectedProject || uploadPhotos.isPending}
-                  />
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="touch"
-                  title="Upload selected photos to project storage"
-                  disabled={
-                    !selectedProject || selectedUploadFiles.length === 0 || uploadPhotos.isPending
-                  }
-                  onClick={() => {
-                    uploadPhotos.mutate(selectedUploadFiles, {
-                      onSuccess: () => setSelectedUploadFiles([]),
-                    });
+              {uploadHealth && !uploadHealth.ok ? (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <span className="font-medium">Upload may not work right now. </span>
+                    {uploadHealth.message}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+
+              <div className="space-y-3">
+                <PhotoUploadZone
+                  photos={selectedUploadFiles}
+                  onPhotosSelected={(files) => {
+                    setSelectedUploadFiles(files);
+                    setUploadError(null);
+                    setUploadSuccessMessage(null);
                   }}
-                >
-                  {uploadPhotos.isPending
-                    ? "Uploading photos..."
-                    : `Upload Selected (${selectedUploadFiles.length})`}
-                </Button>
+                  isLoading={uploadPending}
+                />
+
+                {needsProjectForUpload ? (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Select a project before uploading the selected photos.
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {uploadError ? (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
+                      <span>{uploadError}</span>
+                      {selectedUploadFiles.length > 0 && selectedProject ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={uploadPending}
+                          onClick={handleUploadSelected}
+                        >
+                          Retry upload
+                        </Button>
+                      ) : null}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {uploadSuccessMessage ? (
+                  <Alert className="border-success/40 bg-success/10 text-foreground">
+                    <CheckCircle2 className="h-4 w-4 text-success" />
+                    <AlertDescription>{uploadSuccessMessage}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="touch"
+                    title={
+                      !selectedProject
+                        ? "Select a project before uploading"
+                        : selectedUploadFiles.length === 0
+                          ? "Select photos first"
+                          : "Upload selected photos to project storage"
+                    }
+                    disabled={!selectedProject || selectedUploadFiles.length === 0 || uploadPending}
+                    onClick={handleUploadSelected}
+                    aria-describedby={
+                      needsProjectForUpload ? "analyze-project-required-hint" : undefined
+                    }
+                  >
+                    {uploadPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Uploading photos...
+                      </>
+                    ) : (
+                      `Upload Selected (${selectedUploadFiles.length})`
+                    )}
+                  </Button>
+                  {needsProjectForUpload ? (
+                    <p
+                      id="analyze-project-required-hint"
+                      className="text-xs text-muted-foreground"
+                      role="status"
+                    >
+                      Select a project before uploading the selected photos.
+                    </p>
+                  ) : null}
+                </div>
               </div>
             </CardContent>
           </Card>
