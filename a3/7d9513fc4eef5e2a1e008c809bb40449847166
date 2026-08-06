@@ -1,0 +1,16 @@
+package.json
+  h_7ea6129503670a 61
+pnpm-lock.yaml
+  h_7ea6129503670a 11,5295-5296,8852,9577,9781,10642
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "a37d9513fc4eef5e2a1e008c809bb40449847166",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
