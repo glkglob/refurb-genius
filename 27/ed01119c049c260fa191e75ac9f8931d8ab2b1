@@ -1,0 +1,22 @@
+supabase/migrations/20260806150000_p0_db_1_security_definer_and_internal_deny.sql
+  h_7ea6129503670a 1-294
+supabase/migrations/20260806151000_p0_db_1_rls_consolidation_and_fk_indexes.sql
+  h_7ea6129503670a 1-633
+supabase/tests/database/estimate_authority_persistence_foundation.test.sql
+  h_7ea6129503670a 558-560,566-568,570,578-580,582,590-592,594
+supabase/tests/database/p0_db_1_advisor_hardening.test.sql
+  h_7ea6129503670a 1-493
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 75-76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "27ed01119c049c260fa191e75ac9f8931d8ab2b1",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
