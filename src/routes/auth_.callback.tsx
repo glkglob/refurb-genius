@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuthCallbackCompletion } from "@/features/auth";
 import { Loader2, AlertCircle } from "lucide-react";
 import { z } from "zod";
 
 const callbackSearchSchema = z.object({
   code: z.string().optional(),
+  token_hash: z.string().optional(),
   type: z.string().optional(),
+  flow: z.string().optional(),
   error: z.string().optional(),
   error_description: z.string().optional(),
   redirect_to: z.string().optional(),
@@ -18,16 +20,42 @@ export const Route = createFileRoute("/auth_/callback")({
   component: AuthCallback,
 });
 
+function stripSensitiveCallbackParamsFromUrl(): void {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  let dirty = false;
+  for (const key of ["token_hash", "code"] as const) {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      dirty = true;
+    }
+  }
+  if (!dirty) return;
+  const next = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState(window.history.state, "", next);
+}
+
 function AuthCallback() {
   const { complete } = useAuthCallbackCompletion();
-  const { code, type, error: urlError, error_description, redirect_to } = Route.useSearch();
+  const search = Route.useSearch();
   const [error, setError] = useState<string | null>(null);
+  const startedRef = useRef(false);
 
   useEffect(() => {
+    // Exactly-once completion: URL cleanup must not re-trigger exchange.
+    if (startedRef.current) return;
+    startedRef.current = true;
+
+    const { code, token_hash, type, error: urlError, error_description, redirect_to } = search;
+
+    // Capture values before stripping sensitive query params from history.
+    stripSensitiveCallbackParamsFromUrl();
+
     // Rejected complete (e.g. no-code getSession network failure) intentionally
     // has no .catch — parity with the pre-extraction getSession branch.
     void complete({
       code,
+      tokenHash: token_hash,
       type,
       urlError,
       errorDescription: error_description,
@@ -37,7 +65,7 @@ function AuthCallback() {
         setError(result.error);
       }
     });
-  }, [code, complete, error_description, redirect_to, type, urlError]);
+  }, [complete, search]);
 
   if (error) {
     return (

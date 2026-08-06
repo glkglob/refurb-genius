@@ -1,12 +1,16 @@
 /**
- * AuthExperience email-access orchestration (AO-1E1.3).
+ * AuthExperience email-access orchestration (P0-AUTH-1).
  *
  * Owns magic-link callback URL construction, recovery redirect construction,
  * and primitive invocation for OTP, password-reset request, and password
  * update. Loading, logger, toast, validation copy, and navigation remain in
  * AuthExperience. Callback exchange remains auth_.callback.tsx.
+ *
+ * Magic-link emailRedirectTo always includes flow=magiclink so hosted email
+ * templates can append token_hash with an ampersand safely.
  */
 import { useCallback } from "react";
+import { resolveAuthCallbackDestination } from "../../application/resolveAuthCallbackDestination";
 import { sendMagicLinkEmail } from "../../infrastructure/sendMagicLinkEmail";
 import { requestPasswordResetEmail } from "../../infrastructure/requestPasswordResetEmail";
 import { updateAuthUserPassword } from "../../infrastructure/updateAuthUserPassword";
@@ -17,9 +21,15 @@ export interface UseAuthEmailAccessResult {
   updatePassword: (password: string) => Promise<void>;
 }
 
+function isSafeInternalRedirect(redirect?: string): redirect is string {
+  if (!redirect) return false;
+  return resolveAuthCallbackDestination(redirect) === redirect;
+}
+
 function buildMagicLinkEmailRedirectTo(redirect?: string): string {
   const callbackUrl = new URL("/auth/callback", window.location.origin);
-  if (redirect) {
+  callbackUrl.searchParams.set("flow", "magiclink");
+  if (isSafeInternalRedirect(redirect)) {
     callbackUrl.searchParams.set("redirect_to", redirect);
   }
   return callbackUrl.toString();

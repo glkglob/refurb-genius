@@ -18,6 +18,7 @@ const ROUTE = "src/routes/auth_.callback.tsx";
 const HOOK = "src/features/auth/presentation/hooks/useAuthCallbackCompletion.ts";
 const APP = "src/features/auth/application/completeAuthCallback.ts";
 const EXCHANGE = "src/features/auth/infrastructure/exchangeAuthCode.ts";
+const VERIFY = "src/features/auth/infrastructure/verifyEmailTokenHash.ts";
 const SESSION = "src/features/auth/infrastructure/getBrowserAuthSession.ts";
 const DEST = "src/features/auth/application/resolveAuthCallbackDestination.ts";
 
@@ -84,6 +85,8 @@ test("auth callback presentation — route retains search validation and present
   const text = read(ROUTE);
   assert.match(text, /validateSearch|callbackSearchSchema/);
   assert.match(text, /code/);
+  assert.match(text, /token_hash/);
+  assert.match(text, /flow/);
   assert.match(text, /redirect_to/);
   assert.match(text, /error_description/);
   assert.match(text, /Completing sign in/);
@@ -91,6 +94,8 @@ test("auth callback presentation — route retains search validation and present
   assert.match(text, /Back to sign in/);
   assert.match(text, /aria-busy/);
   assert.match(text, /aria-live/);
+  assert.match(text, /replaceState|history/);
+  assert.doesNotMatch(text, /verifyOtp|exchangeCodeForSession/);
 });
 
 test("auth callback presentation — hook owns seed and navigation", () => {
@@ -110,6 +115,7 @@ test("auth callback presentation — application owns mapping and branch model",
   const text = read(APP);
   assert.match(text, /fromSupabaseUser/);
   assert.match(text, /exchangeAuthCode/);
+  assert.match(text, /verifyEmailTokenHash/);
   assert.match(text, /getBrowserAuthSession/);
   assert.match(text, /resolveAuthCallbackDestination/);
   assert.match(text, /kind:\s*["']recovery["']/);
@@ -120,16 +126,18 @@ test("auth callback presentation — application owns mapping and branch model",
   assert.doesNotMatch(text, /@\/platform\/supabase/);
 });
 
-test("auth callback presentation — destination rule preserved", () => {
+test("auth callback presentation — destination rule hardened", () => {
   const text = read(DEST);
   assert.match(text, /startsWith\s*\(\s*["']\/["']\s*\)/);
   assert.match(text, /\/dashboard/);
-  assert.doesNotMatch(text, /startsWith\s*\(\s*["']\/auth/);
+  assert.match(text, /\/auth/);
+  assert.match(text, /\/\//);
 });
 
 test("auth callback presentation — infrastructure owns Auth methods", () => {
   for (const [path, method] of [
     [EXCHANGE, /exchangeCodeForSession/],
+    [VERIFY, /verifyOtp/],
     [SESSION, /getSession/],
   ] as const) {
     const text = read(path);

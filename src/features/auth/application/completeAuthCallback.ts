@@ -1,22 +1,26 @@
 /**
- * Auth callback completion orchestration (AO-1F1).
+ * Auth callback completion orchestration (P0-AUTH-1).
  *
- * Pure application flow for the Auth callback route: URL errors, no-code
- * session fallback, PKCE exchange, recovery branch, user mapping, and
- * destination resolution. No React, QueryClient, navigation, logger, or toast.
+ * Pure application flow for the Auth callback route:
+ * 1. URL/provider error
+ * 2. Resolve safe destination
+ * 3. token-hash magic-link branch (cross-browser)
+ * 4. authorization-code PKCE branch (OAuth / recovery / same-browser)
+ * 5. existing-session fallback
+ * 6. missing callback error
  *
- * Rejected getBrowserAuthSession promises propagate (parity with the
- * pre-extraction no-code branch that had no .catch).
- * Exchange failures are converted to error results (parity with the
- * pre-extraction exchange .catch / returned-error paths).
+ * No React, QueryClient, navigation, logger, or toast.
+ * User-facing errors are bounded; raw backend text is not returned.
  */
 import { fromSupabaseUser, type AuthUser } from "@/lib/auth";
 import { exchangeAuthCode } from "../infrastructure/exchangeAuthCode";
 import { getBrowserAuthSession } from "../infrastructure/getBrowserAuthSession";
+import { verifyEmailTokenHash } from "../infrastructure/verifyEmailTokenHash";
 import { resolveAuthCallbackDestination } from "./resolveAuthCallbackDestination";
 
 export interface CompleteAuthCallbackInput {
   code?: string;
+  tokenHash?: string;
   type?: string;
   urlError?: string;
   errorDescription?: string;
@@ -37,8 +41,67 @@ export type AuthCallbackCompletionResult =
       destination: string;
     };
 
-function exchangeFailureMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Auth callback failed.";
+/** Safe message when PKCE verifier is missing or invalid in this browser. */
+export const AUTH_CALLBACK_BROWSER_MISMATCH_MESSAGE =
+  "This sign-in link was opened in a different browser or the original sign-in session is no longer available. Request a new link and open the new email in this browser.";
+
+/** Safe message for expired, reused, or invalid OTP / token-hash links. */
+export const AUTH_CALLBACK_INVALID_LINK_MESSAGE =
+  "This sign-in link is invalid or has expired. Request a new link and try again.";
+
+/** Safe generic callback failure. */
+export const AUTH_CALLBACK_GENERIC_FAILURE_MESSAGE =
+  "We could not complete sign-in. Request a new link and try again.";
+
+function readErrorProperty(error: unknown, key: "code" | "status" | "message"): unknown {
+  if (error && typeof error === "object" && key in error) {
+    return (error as Record<string, unknown>)[key];
+  }
+  return undefined;
+}
+
+/**
+ * Map Auth / transport failures to bounded user-facing copy.
+ * Never includes tokens, codes, or full callback URLs.
+ */
+export function mapAuthCallbackFailure(error: unknown): string {
+  const code = String(readErrorProperty(error, "code") ?? "").toLowerCase();
+  const message = String(
+    readErrorProperty(error, "message") ?? (error instanceof Error ? error.message : ""),
+  ).toLowerCase();
+
+  const pkceSignals = [
+    "code verifier",
+    "pkce",
+    "code challenge",
+    "both auth code and code verifier",
+    "auth code and code verifier",
+  ];
+  if (pkceSignals.some((signal) => message.includes(signal) || code.includes(signal))) {
+    return AUTH_CALLBACK_BROWSER_MISMATCH_MESSAGE;
+  }
+
+  const invalidLinkSignals = [
+    "otp_expired",
+    "otp_disabled",
+    "expired",
+    "invalid token",
+    "invalid otp",
+    "token has expired",
+    "token is invalid",
+    "flow_state",
+    "email link is invalid",
+    "magic link",
+  ];
+  if (
+    invalidLinkSignals.some((signal) => message.includes(signal) || code.includes(signal)) ||
+    code === "otp_expired" ||
+    code === "otp_disabled"
+  ) {
+    return AUTH_CALLBACK_INVALID_LINK_MESSAGE;
+  }
+
+  return AUTH_CALLBACK_GENERIC_FAILURE_MESSAGE;
 }
 
 /**
@@ -57,37 +120,62 @@ export async function completeAuthCallback(
 
   const destination = resolveAuthCallbackDestination(input.redirectTo);
 
-  if (!input.code) {
-    // No PKCE code — check if a session already exists (e.g. fragment-based flow).
-    // Rejected promises intentionally propagate (no .catch on pre-extraction path).
-    const session = await getBrowserAuthSession();
-    if (session) {
+  // Path A — token-hash magic link (cross-browser / cross-device).
+  if (input.tokenHash) {
+    if (input.type !== "email") {
       return {
-        kind: "authenticated",
-        user: fromSupabaseUser(session.user),
-        destination,
+        kind: "error",
+        message: AUTH_CALLBACK_INVALID_LINK_MESSAGE,
       };
     }
+    try {
+      const { user } = await verifyEmailTokenHash({ tokenHash: input.tokenHash });
+      return {
+        kind: "authenticated",
+        user: fromSupabaseUser(user),
+        destination,
+      };
+    } catch (error: unknown) {
+      return {
+        kind: "error",
+        message: mapAuthCallbackFailure(error),
+      };
+    }
+  }
+
+  // Path B — authorization code (OAuth, recovery, same-browser PKCE magic link).
+  if (input.code) {
+    try {
+      const { user } = await exchangeAuthCode({ code: input.code });
+      if (input.type === "recovery") {
+        return { kind: "recovery" };
+      }
+      return {
+        kind: "authenticated",
+        user: fromSupabaseUser(user),
+        destination,
+      };
+    } catch (error: unknown) {
+      return {
+        kind: "error",
+        message: mapAuthCallbackFailure(error),
+      };
+    }
+  }
+
+  // Existing session fallback (e.g. fragment-based session already established).
+  // Rejected promises intentionally propagate (no .catch on pre-extraction path).
+  const session = await getBrowserAuthSession();
+  if (session) {
     return {
-      kind: "error",
-      message: "No authentication code received. Please try signing in again.",
+      kind: "authenticated",
+      user: fromSupabaseUser(session.user),
+      destination,
     };
   }
 
-  try {
-    const { user } = await exchangeAuthCode({ code: input.code });
-    if (input.type === "recovery") {
-      return { kind: "recovery" };
-    }
-    return {
-      kind: "authenticated",
-      user: fromSupabaseUser(user),
-      destination,
-    };
-  } catch (error: unknown) {
-    return {
-      kind: "error",
-      message: exchangeFailureMessage(error),
-    };
-  }
+  return {
+    kind: "error",
+    message: AUTH_CALLBACK_GENERIC_FAILURE_MESSAGE,
+  };
 }

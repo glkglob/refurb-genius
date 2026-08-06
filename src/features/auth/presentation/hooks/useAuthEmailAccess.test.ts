@@ -1,5 +1,5 @@
 /**
- * AO-1E1.3 — Email-access presentation hook contracts.
+ * P0-AUTH-1 — Email-access presentation hook contracts.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
@@ -48,20 +48,7 @@ afterEach(() => {
 });
 
 describe("useAuthEmailAccess — magic link", () => {
-  it("builds callback URL with redirect_to when redirect is truthy", async () => {
-    const { result } = renderHook(() => useAuthEmailAccess());
-
-    await act(async () => {
-      await result.current.sendMagicLink("user@example.com", "/projects");
-    });
-
-    expect(sendMagicLinkEmail).toHaveBeenCalledWith({
-      email: "user@example.com",
-      emailRedirectTo: "https://app.example/auth/callback?redirect_to=%2Fprojects",
-    });
-  });
-
-  it("omits redirect_to when redirect is falsy", async () => {
+  it("preserves origin and always includes flow=magiclink", async () => {
     const { result } = renderHook(() => useAuthEmailAccess());
 
     await act(async () => {
@@ -70,8 +57,58 @@ describe("useAuthEmailAccess — magic link", () => {
 
     expect(sendMagicLinkEmail).toHaveBeenCalledWith({
       email: "user@example.com",
-      emailRedirectTo: "https://app.example/auth/callback",
+      emailRedirectTo: "https://app.example/auth/callback?flow=magiclink",
     });
+  });
+
+  it("encodes a safe internal redirect_to with flow=magiclink", async () => {
+    const { result } = renderHook(() => useAuthEmailAccess());
+
+    await act(async () => {
+      await result.current.sendMagicLink("user@example.com", "/projects");
+    });
+
+    expect(sendMagicLinkEmail).toHaveBeenCalledWith({
+      email: "user@example.com",
+      emailRedirectTo: "https://app.example/auth/callback?flow=magiclink&redirect_to=%2Fprojects",
+    });
+  });
+
+  it("does not propagate external redirect input", async () => {
+    const { result } = renderHook(() => useAuthEmailAccess());
+
+    await act(async () => {
+      await result.current.sendMagicLink("user@example.com", "https://evil.example");
+    });
+
+    expect(sendMagicLinkEmail).toHaveBeenCalledWith({
+      email: "user@example.com",
+      emailRedirectTo: "https://app.example/auth/callback?flow=magiclink",
+    });
+  });
+
+  it("does not propagate protocol-relative redirect input", async () => {
+    const { result } = renderHook(() => useAuthEmailAccess());
+
+    await act(async () => {
+      await result.current.sendMagicLink("user@example.com", "//evil.example");
+    });
+
+    expect(sendMagicLinkEmail).toHaveBeenCalledWith({
+      email: "user@example.com",
+      emailRedirectTo: "https://app.example/auth/callback?flow=magiclink",
+    });
+  });
+
+  it("does not place token_hash on the initiating redirect URL", async () => {
+    const { result } = renderHook(() => useAuthEmailAccess());
+
+    await act(async () => {
+      await result.current.sendMagicLink("user@example.com", "/projects");
+    });
+
+    const redirect = String(sendMagicLinkEmail.mock.calls[0]?.[0]?.emailRedirectTo ?? "");
+    expect(redirect).not.toMatch(/token_hash/);
   });
 
   it("propagates primitive errors", async () => {
@@ -87,7 +124,7 @@ describe("useAuthEmailAccess — magic link", () => {
 });
 
 describe("useAuthEmailAccess — password reset request", () => {
-  it("builds recovery callback URL exactly", async () => {
+  it("builds recovery callback URL exactly (unchanged)", async () => {
     const { result } = renderHook(() => useAuthEmailAccess());
 
     await act(async () => {
@@ -145,6 +182,7 @@ describe("useAuthEmailAccess — source boundary", () => {
     expect(src).toMatch(/updateAuthUserPassword/);
     expect(src).toMatch(/auth\/callback/);
     expect(src).toMatch(/redirect_to/);
+    expect(src).toMatch(/flow/);
     expect(src).toMatch(/type=recovery/);
     expect(src).not.toMatch(/\blogger\b|\btoast\b|captureAuthError/);
     expect(src).not.toMatch(/useNavigate|navigate\s*\(/);

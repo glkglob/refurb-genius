@@ -12,3 +12,9 @@ major_version = 17
 # rely on auto-grants to anon/authenticated/service_role. Deprecated 2026-10-30.
 [api]
 auto_expose_new_tables = true
+
+# Local Auth email templates (P0-AUTH-1).
+# Hosted project templates are managed separately after callback deploy.
+[auth.email.template.magic_link]
+subject = "Your Refurb Genius sign-in link"
+content_path = "./supabase/templates/magic-link.html"
