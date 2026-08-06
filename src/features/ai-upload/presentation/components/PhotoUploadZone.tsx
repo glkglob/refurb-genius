@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Camera, Image, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -26,25 +26,40 @@ export function PhotoUploadZone({
   isLoading = false,
 }: PhotoUploadZoneProps) {
   const [internalPhotos, setInternalPhotos] = useState<File[]>([]);
+  const [previewPhotos, setPreviewPhotos] = useState<PreviewPhoto[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileKeyMapRef = useRef<WeakMap<File, string>>(new WeakMap());
+  const fileKeySeqRef = useRef(0);
+  const previewIdPrefix = useId();
   const currentPhotos = photos ?? internalPhotos;
 
-  const previewPhotos = useMemo<PreviewPhoto[]>(
-    () =>
-      currentPhotos.map((file, index) => ({
-        key: `${file.name}-${file.size}-${file.lastModified}-${index}`,
-        url: URL.createObjectURL(file),
-        file,
-      })),
-    [currentPhotos],
+  const getStableFileKey = useCallback(
+    (file: File): string => {
+      const map = fileKeyMapRef.current;
+      const existing = map.get(file);
+      if (existing) return existing;
+      fileKeySeqRef.current += 1;
+      const key = `${previewIdPrefix}-file-${fileKeySeqRef.current}`;
+      map.set(file, key);
+      return key;
+    },
+    [previewIdPrefix],
   );
 
+  // Effect-owned object URLs: create on photo list change, revoke on cleanup.
   useEffect(() => {
+    const next = currentPhotos.map((file) => ({
+      key: getStableFileKey(file),
+      url: URL.createObjectURL(file),
+      file,
+    }));
+    setPreviewPhotos(next);
+
     return () => {
-      previewPhotos.forEach((preview) => URL.revokeObjectURL(preview.url));
+      next.forEach((preview) => URL.revokeObjectURL(preview.url));
     };
-  }, [previewPhotos]);
+  }, [currentPhotos, getStableFileKey]);
 
   const setPhotos = useCallback(
     (next: File[]) => {
@@ -66,12 +81,22 @@ export function PhotoUploadZone({
         return;
       }
 
+      const originalCount = fileList.length;
       const files = Array.from(fileList).filter(isImageFile);
+      const skippedCount = originalCount - files.length;
 
       if (files.length === 0) {
         toast.error("Please select image files only.");
         resetInputs();
         return;
+      }
+
+      if (skippedCount > 0) {
+        toast.error(
+          skippedCount === 1
+            ? "1 non-image file was skipped."
+            : `${skippedCount} non-image files were skipped.`,
+        );
       }
 
       if (currentPhotos.length + files.length > maxPhotos) {
@@ -152,7 +177,7 @@ export function PhotoUploadZone({
           className="sr-only"
           tabIndex={-1}
           disabled={isLoading}
-          aria-label="Camera photo capture"
+          aria-hidden="true"
           data-testid="property-photo-camera-input"
           onChange={(event) => processFiles(event.target.files)}
         />
@@ -165,7 +190,7 @@ export function PhotoUploadZone({
           className="sr-only"
           tabIndex={-1}
           disabled={isLoading}
-          aria-label="Photo library multi-select"
+          aria-hidden="true"
           data-testid="property-photo-library-input"
           onChange={(event) => processFiles(event.target.files)}
         />
@@ -191,6 +216,7 @@ export function PhotoUploadZone({
               {previewPhotos.map((photo, index) => (
                 <div
                   key={photo.key}
+                  data-preview-key={photo.key}
                   className="relative aspect-square overflow-hidden rounded-xl border border-slate-700"
                 >
                   <img

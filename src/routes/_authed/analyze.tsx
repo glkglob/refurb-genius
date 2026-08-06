@@ -121,6 +121,8 @@ function AnalyzeRoute() {
   const [uploadHealth, setUploadHealth] = useState<UploadHealthResult | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const celebrationTimeoutRef = useRef<number | null>(null);
+  const uploadHealthProbeStartedRef = useRef(false);
+  const routeUnmountedRef = useRef(false);
   const navigate = useNavigate();
   const search = Route.useSearch();
   const { data: projects = [], isLoading: loadingProjects } = useProjectCatalog();
@@ -152,22 +154,22 @@ function AnalyzeRoute() {
   const uploadPending = uploadPhotos.isPending;
 
   useEffect(() => {
+    routeUnmountedRef.current = false;
     return () => {
+      routeUnmountedRef.current = true;
       if (celebrationTimeoutRef.current !== null) {
         window.clearTimeout(celebrationTimeoutRef.current);
       }
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
+  function startUploadHealthProbeOnce() {
+    if (uploadHealthProbeStartedRef.current) return;
+    uploadHealthProbeStartedRef.current = true;
     void checkUploadHealth().then((result) => {
-      if (!cancelled) setUploadHealth(result);
+      if (!routeUnmountedRef.current) setUploadHealth(result);
     });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  }
 
   function handleProjectChange(projectId: string) {
     setUploadError(null);
@@ -208,17 +210,14 @@ function AnalyzeRoute() {
           // Keep only files that failed; successful ones are already persisted.
           const failedFiles = err.failures.map((failure) => failure.file);
           setSelectedUploadFiles(failedFiles);
-          if (err.successes.length > 0) {
-            setUploadSuccessMessage(
-              `${err.successes.length} photo${err.successes.length === 1 ? "" : "s"} saved. Retry the remaining files.`,
-            );
-          }
+          startUploadHealthProbeOnce();
           return;
         }
         const message = formatPhotoUploadError(err);
         setUploadError(message);
         toast.error(message);
         // Full failure: retain entire selection for retry.
+        startUploadHealthProbeOnce();
       },
     });
   }
@@ -385,7 +384,7 @@ function AnalyzeRoute() {
                   <div className="space-y-1.5">
                     <Label htmlFor="analyze-project-select">Project</Label>
                     <Select
-                      value={selectedProject?.id}
+                      value={selectedProject?.id ?? ""}
                       onValueChange={handleProjectChange}
                       disabled={projects.length === 0}
                     >

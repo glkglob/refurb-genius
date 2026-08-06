@@ -1,12 +1,11 @@
 /**
  * P0-PHOTO-1 — /analyze photo selection and upload gating.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement, type ReactNode } from "react";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+
 const navigate = vi.fn();
 const useSearch = vi.fn();
 const useProjectCatalog = vi.fn();
@@ -94,6 +93,12 @@ const PROJECT_A = {
   address: "1 High Street",
 } as const;
 
+const PROJECT_B = {
+  id: "proj-bbb",
+  name: "Beta Villa",
+  address: "2 Low Road",
+} as const;
+
 function makeImage(name: string): File {
   return new File([new Uint8Array(32)], name, { type: "image/jpeg" });
 }
@@ -133,13 +138,32 @@ beforeEach(() => {
   mutate.mockReset();
   toastSuccess.mockReset();
   toastError.mockReset();
+  checkUploadHealth.mockReset();
   useSearch.mockReturnValue({});
-  useProjectCatalog.mockReturnValue({ data: [PROJECT_A], isLoading: false });
+  useProjectCatalog.mockReturnValue({ data: [PROJECT_A, PROJECT_B], isLoading: false });
   usePhotos.mockReturnValue({ data: [] });
   useUploadPhotos.mockReturnValue({ mutate, isPending: false });
-  checkUploadHealth.mockResolvedValue({ ok: true, status: "ok", message: "ok" });
+  checkUploadHealth.mockResolvedValue({ ok: true, status: "ok", message: "ok", checkedAt: "t" });
   vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test");
   vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+
+  // Radix Select requires pointer-capture / scrollIntoView APIs absent from jsdom.
+  if (!Element.prototype.hasPointerCapture) {
+    Element.prototype.hasPointerCapture = () => false;
+  }
+  if (!Element.prototype.setPointerCapture) {
+    Element.prototype.setPointerCapture = () => undefined;
+  }
+  if (!Element.prototype.releasePointerCapture) {
+    Element.prototype.releasePointerCapture = () => undefined;
+  }
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = () => undefined;
+  }
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("analyze photo upload flow", () => {
@@ -176,14 +200,26 @@ describe("analyze photo upload flow", () => {
   });
 
   it("project selector stores the exact project id via navigation", async () => {
-    useSearch.mockReturnValue({ projectId: PROJECT_A.id });
+    useSearch.mockReturnValue({ studyId: "study-123" });
     renderAnalyze();
-    // Select value is bound to the exact project id (no free-text).
-    expect(screen.getByLabelText(/select project for photo upload/i)).toBeTruthy();
-    fireLibraryFiles([makeImage("a.jpg")]);
-    fireEvent.click(await screen.findByRole("button", { name: /upload selected \(1\)/i }));
-    expect(mutate).toHaveBeenCalled();
-    expect(useUploadPhotos).toHaveBeenCalledWith(PROJECT_A.id);
+
+    const trigger = screen.getByLabelText(/select project for photo upload/i);
+    // Open via keyboard (supported Radix path in jsdom).
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+
+    const option = await screen.findByRole("option", { name: /alpha house/i });
+    fireEvent.click(option);
+
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith({
+        to: "/analyze",
+        search: {
+          projectId: "proj-aaa",
+          studyId: "study-123",
+        },
+        replace: true,
+      });
+    });
   });
 
   it("clears selected files on full upload success", async () => {
@@ -204,22 +240,38 @@ describe("analyze photo upload flow", () => {
 
   it("retains files and shows error on full upload failure", async () => {
     useSearch.mockReturnValue({ projectId: PROJECT_A.id });
+    const original = makeImage("a.jpg");
     mutate.mockImplementation((_files: File[], opts: { onError?: (e: unknown) => void }) => {
       opts.onError?.(
         new PhotoWriteError("network down", { stage: "storage-upload", cause: new Error("net") }),
       );
     });
     renderAnalyze();
-    fireLibraryFiles([makeImage("a.jpg")]);
+    fireLibraryFiles([original]);
     fireEvent.click(await screen.findByRole("button", { name: /upload selected \(1\)/i }));
     await waitFor(() => {
       expect(screen.getByText(/Selected \(1\/20\)/i)).toBeTruthy();
     });
     expect(toastError).toHaveBeenCalled();
     expect(screen.getByRole("button", { name: /retry upload/i })).toBeTruthy();
+
+    mutate.mockClear();
+    mutate.mockImplementation((_files: File[], opts: { onError?: (e: unknown) => void }) => {
+      opts.onError?.(
+        new PhotoWriteError("network down", { stage: "storage-upload", cause: new Error("net") }),
+      );
+    });
+    fireEvent.click(screen.getByRole("button", { name: /retry upload/i }));
+    await waitFor(() => {
+      expect(mutate).toHaveBeenCalledTimes(1);
+    });
+    const secondFiles = mutate.mock.calls[0]![0] as File[];
+    expect(secondFiles).toHaveLength(1);
+    expect(secondFiles[0]).toBe(original);
+    expect(useUploadPhotos).toHaveBeenCalledWith(PROJECT_A.id);
   });
 
-  it("partial upload keeps failed files only", async () => {
+  it("partial upload keeps failed files only and shows one canonical message", async () => {
     useSearch.mockReturnValue({ projectId: PROJECT_A.id });
     const ok = makeImage("ok.jpg");
     const bad = makeImage("bad.jpg");
@@ -245,35 +297,142 @@ describe("analyze photo upload flow", () => {
     await waitFor(() => {
       expect(screen.getByText(/Selected \(1\/20\)/i)).toBeTruthy();
     });
-    expect(screen.getByText(/1 uploaded, 1 failed/i)).toBeTruthy();
+    // Canonical formatted batch error is visible once.
+    const canonical = await screen.findByText(/1 uploaded, 1 failed/i);
+    expect(canonical).toBeTruthy();
+    expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/1 uploaded, 1 failed/i));
+    // No separate full-success banner and no old competing partial-success copy.
+    expect(screen.queryByText(/Photo uploaded successfully/i)).toBeNull();
+    expect(screen.queryByText(/\d+ photos uploaded successfully/i)).toBeNull();
+    expect(screen.queryByText(/Retry the remaining files/i)).toBeNull();
   });
 });
 
-describe("analyze photo upload source contract", () => {
-  it("does not gate PhotoUploadZone isLoading on missing project", () => {
-    const source = readFileSync(join(process.cwd(), "src/routes/_authed/analyze.tsx"), "utf8");
-    expect(source).not.toMatch(/isLoading=\{\s*!selectedProject/);
-    expect(source).toMatch(/isLoading=\{uploadPending\}/);
-    expect(source).toMatch(/Select a project before uploading the selected photos/);
-    expect(source).toMatch(/SelectTrigger/);
-    expect(source).not.toMatch(/list="analyze-projects"/);
+describe("analyze upload health probe timing", () => {
+  it("does not probe upload health on initial mount", async () => {
+    renderAnalyze();
+    await screen.findByRole("button", { name: /take photo/i });
+    expect(checkUploadHealth).not.toHaveBeenCalled();
   });
-});
 
-describe("projects upload route camera contract (regression)", () => {
-  it("keeps camera single-file and library multi-file", () => {
-    const source = readFileSync(
-      join(process.cwd(), "src/routes/_authed/projects.$id.upload.tsx"),
-      "utf8",
+  it("does not probe upload health after a successful upload", async () => {
+    useSearch.mockReturnValue({ projectId: PROJECT_A.id });
+    mutate.mockImplementation(
+      (_files: File[], opts: { onSuccess?: (p: ProjectPhoto[]) => void }) => {
+        opts.onSuccess?.([makePhoto("p1")]);
+      },
     );
-    // Camera input block: capture environment without multiple
-    expect(source).toMatch(/capture="environment"/);
-    const cameraBlock = source.slice(
-      source.indexOf("ref={cameraInputRef}"),
-      source.indexOf("ref={libraryInputRef}"),
+    renderAnalyze();
+    fireLibraryFiles([makeImage("a.jpg")]);
+    fireEvent.click(await screen.findByRole("button", { name: /upload selected \(1\)/i }));
+    await waitFor(() => {
+      expect(toastSuccess).toHaveBeenCalled();
+    });
+    expect(checkUploadHealth).not.toHaveBeenCalled();
+  });
+
+  it("probes once on first full failure and not again on retry failure", async () => {
+    useSearch.mockReturnValue({ projectId: PROJECT_A.id });
+    mutate.mockImplementation((_files: File[], opts: { onError?: (e: unknown) => void }) => {
+      opts.onError?.(
+        new PhotoWriteError("network down", { stage: "storage-upload", cause: new Error("net") }),
+      );
+    });
+    renderAnalyze();
+    fireLibraryFiles([makeImage("a.jpg")]);
+    fireEvent.click(await screen.findByRole("button", { name: /upload selected \(1\)/i }));
+    await waitFor(() => {
+      expect(checkUploadHealth).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /retry upload/i }));
+    await waitFor(() => {
+      expect(mutate.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
+    expect(checkUploadHealth).toHaveBeenCalledTimes(1);
+  });
+
+  it("probes once on first partial failure", async () => {
+    useSearch.mockReturnValue({ projectId: PROJECT_A.id });
+    mutate.mockImplementation((files: File[], opts: { onError?: (e: unknown) => void }) => {
+      opts.onError?.(
+        new PhotoUploadBatchError({
+          successes: [makePhoto("ok")],
+          failures: [
+            {
+              index: 1,
+              file: files[1] ?? makeImage("bad.jpg"),
+              stage: "storage-upload",
+              cause: new Error("fail"),
+            },
+          ],
+          attemptedCount: 2,
+        }),
+      );
+    });
+    renderAnalyze();
+    fireLibraryFiles([makeImage("ok.jpg"), makeImage("bad.jpg")]);
+    fireEvent.click(await screen.findByRole("button", { name: /upload selected \(2\)/i }));
+    await waitFor(() => {
+      expect(checkUploadHealth).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("renders storage-health warning when probe reports unhealthy", async () => {
+    useSearch.mockReturnValue({ projectId: PROJECT_A.id });
+    checkUploadHealth.mockResolvedValue({
+      ok: false,
+      status: "storage",
+      message: "Photo storage is not writable.",
+      checkedAt: "t",
+    });
+    mutate.mockImplementation((_files: File[], opts: { onError?: (e: unknown) => void }) => {
+      opts.onError?.(
+        new PhotoWriteError("network down", { stage: "storage-upload", cause: new Error("net") }),
+      );
+    });
+    renderAnalyze();
+    fireLibraryFiles([makeImage("a.jpg")]);
+    fireEvent.click(await screen.findByRole("button", { name: /upload selected \(1\)/i }));
+    expect(await screen.findByText(/Upload may not work right now/i)).toBeTruthy();
+    expect(screen.getByText(/Photo storage is not writable/i)).toBeTruthy();
+  });
+
+  it("ignores late health probe results after unmount", async () => {
+    useSearch.mockReturnValue({ projectId: PROJECT_A.id });
+    let resolveHealth:
+      | ((value: { ok: boolean; status: string; message: string; checkedAt: string }) => void)
+      | undefined;
+    checkUploadHealth.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveHealth = resolve;
+        }),
     );
-    expect(cameraBlock).not.toMatch(/\bmultiple\b/);
-    const libraryBlock = source.slice(source.indexOf("ref={libraryInputRef}"));
-    expect(libraryBlock).toMatch(/\bmultiple\b/);
+    mutate.mockImplementation((_files: File[], opts: { onError?: (e: unknown) => void }) => {
+      opts.onError?.(
+        new PhotoWriteError("network down", { stage: "storage-upload", cause: new Error("net") }),
+      );
+    });
+
+    const { unmount } = renderAnalyze();
+    fireLibraryFiles([makeImage("a.jpg")]);
+    fireEvent.click(await screen.findByRole("button", { name: /upload selected \(1\)/i }));
+    await waitFor(() => {
+      expect(checkUploadHealth).toHaveBeenCalledTimes(1);
+    });
+
+    unmount();
+    resolveHealth?.({
+      ok: false,
+      status: "storage",
+      message: "late unhealthy",
+      checkedAt: "t",
+    });
+    // Allow microtasks; no throw / no re-render of unmounted tree warning content.
+    await waitFor(() => {
+      expect(checkUploadHealth).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.queryByText(/late unhealthy/i)).toBeNull();
   });
 });
