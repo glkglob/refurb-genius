@@ -1,5 +1,5 @@
 /**
- * AO-1F1 — Auth callback application orchestration contracts.
+ * P0-AUTH-1 — Auth callback application orchestration contracts.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -7,6 +7,7 @@ import { join } from "node:path";
 
 const exchangeAuthCode = vi.fn();
 const getBrowserAuthSession = vi.fn();
+const verifyEmailTokenHash = vi.fn();
 type MappedUser = { id: string; email: string; fullName?: string };
 
 const fromSupabaseUser = vi.fn((u: { id: string; email?: string } | null): MappedUser | null =>
@@ -21,17 +22,27 @@ vi.mock("../infrastructure/getBrowserAuthSession", () => ({
   getBrowserAuthSession: () => getBrowserAuthSession(),
 }));
 
+vi.mock("../infrastructure/verifyEmailTokenHash", () => ({
+  verifyEmailTokenHash: (input: unknown) => verifyEmailTokenHash(input),
+}));
+
 vi.mock("@/lib/auth", () => ({
   fromSupabaseUser: (u: unknown) => fromSupabaseUser(u as { id: string; email?: string } | null),
 }));
 
-import { completeAuthCallback } from "./completeAuthCallback";
+import {
+  AUTH_CALLBACK_BROWSER_MISMATCH_MESSAGE,
+  AUTH_CALLBACK_GENERIC_FAILURE_MESSAGE,
+  AUTH_CALLBACK_INVALID_LINK_MESSAGE,
+  completeAuthCallback,
+} from "./completeAuthCallback";
 
 const SRC = join(__dirname, "completeAuthCallback.ts");
 
 beforeEach(() => {
   exchangeAuthCode.mockReset();
   getBrowserAuthSession.mockReset();
+  verifyEmailTokenHash.mockReset();
   fromSupabaseUser.mockClear();
 });
 
@@ -41,11 +52,13 @@ describe("completeAuthCallback — URL error", () => {
       urlError: "access_denied",
       errorDescription: "User cancelled",
       code: "should-not-use",
+      tokenHash: "should-not-use",
     });
 
     expect(result).toEqual({ kind: "error", message: "User cancelled" });
     expect(exchangeAuthCode).not.toHaveBeenCalled();
     expect(getBrowserAuthSession).not.toHaveBeenCalled();
+    expect(verifyEmailTokenHash).not.toHaveBeenCalled();
   });
 
   it("falls back to urlError when errorDescription is absent", async () => {
@@ -56,6 +69,79 @@ describe("completeAuthCallback — URL error", () => {
     expect(result).toEqual({ kind: "error", message: "access_denied" });
     expect(exchangeAuthCode).not.toHaveBeenCalled();
     expect(getBrowserAuthSession).not.toHaveBeenCalled();
+  });
+});
+
+describe("completeAuthCallback — token-hash magic link", () => {
+  it("calls verifyEmailTokenHash exactly once for type=email and skips code/session", async () => {
+    const rawUser = { id: "u-th", email: "m@example.com" };
+    verifyEmailTokenHash.mockResolvedValue({ user: rawUser });
+    fromSupabaseUser.mockReturnValue({ id: "u-th", email: "m@example.com" });
+
+    const result = await completeAuthCallback({
+      tokenHash: "th-value",
+      type: "email",
+      redirectTo: "/projects",
+      code: "should-not-use",
+    });
+
+    expect(verifyEmailTokenHash).toHaveBeenCalledTimes(1);
+    expect(verifyEmailTokenHash).toHaveBeenCalledWith({ tokenHash: "th-value" });
+    expect(exchangeAuthCode).not.toHaveBeenCalled();
+    expect(getBrowserAuthSession).not.toHaveBeenCalled();
+    expect(fromSupabaseUser).toHaveBeenCalledWith(rawUser);
+    expect(result).toEqual({
+      kind: "authenticated",
+      user: { id: "u-th", email: "m@example.com" },
+      destination: "/projects",
+    });
+  });
+
+  it("rejects token hash with missing type before infrastructure invocation", async () => {
+    const result = await completeAuthCallback({
+      tokenHash: "th-value",
+    });
+
+    expect(verifyEmailTokenHash).not.toHaveBeenCalled();
+    expect(exchangeAuthCode).not.toHaveBeenCalled();
+    expect(getBrowserAuthSession).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      kind: "error",
+      message: AUTH_CALLBACK_INVALID_LINK_MESSAGE,
+    });
+  });
+
+  it("rejects token hash with unsupported type before infrastructure invocation", async () => {
+    const result = await completeAuthCallback({
+      tokenHash: "th-value",
+      type: "recovery",
+    });
+
+    expect(verifyEmailTokenHash).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      kind: "error",
+      message: AUTH_CALLBACK_INVALID_LINK_MESSAGE,
+    });
+  });
+
+  it("maps token-hash Auth error to the safe expired-link message", async () => {
+    verifyEmailTokenHash.mockRejectedValue(
+      Object.assign(new Error("Token has expired or is invalid"), {
+        code: "otp_expired",
+        status: 403,
+      }),
+    );
+
+    const result = await completeAuthCallback({
+      tokenHash: "th-value",
+      type: "email",
+    });
+
+    expect(result).toEqual({
+      kind: "error",
+      message: AUTH_CALLBACK_INVALID_LINK_MESSAGE,
+    });
+    expect(JSON.stringify(result)).not.toMatch(/th-value|otp_expired|Token has expired/i);
   });
 });
 
@@ -71,6 +157,7 @@ describe("completeAuthCallback — no-code session", () => {
 
     expect(getBrowserAuthSession).toHaveBeenCalledTimes(1);
     expect(exchangeAuthCode).not.toHaveBeenCalled();
+    expect(verifyEmailTokenHash).not.toHaveBeenCalled();
     expect(fromSupabaseUser).toHaveBeenCalledWith(rawUser);
     expect(result).toEqual({
       kind: "authenticated",
@@ -79,14 +166,14 @@ describe("completeAuthCallback — no-code session", () => {
     });
   });
 
-  it("returns exact missing-code error when no session", async () => {
+  it("returns generic missing-callback error when no session", async () => {
     getBrowserAuthSession.mockResolvedValue(null);
 
     const result = await completeAuthCallback({});
 
     expect(result).toEqual({
       kind: "error",
-      message: "No authentication code received. Please try signing in again.",
+      message: AUTH_CALLBACK_GENERIC_FAILURE_MESSAGE,
     });
     expect(exchangeAuthCode).not.toHaveBeenCalled();
   });
@@ -108,6 +195,30 @@ describe("completeAuthCallback — no-code session", () => {
       destination: "/dashboard",
     });
   });
+
+  it("rejects protocol-relative redirects", async () => {
+    getBrowserAuthSession.mockResolvedValue({ user: { id: "u1" } });
+    fromSupabaseUser.mockReturnValue({ id: "u1", email: "" });
+
+    const result = await completeAuthCallback({ redirectTo: "//evil.example" });
+
+    expect(result).toMatchObject({
+      kind: "authenticated",
+      destination: "/dashboard",
+    });
+  });
+
+  it("rejects /auth redirects", async () => {
+    getBrowserAuthSession.mockResolvedValue({ user: { id: "u1" } });
+    fromSupabaseUser.mockReturnValue({ id: "u1", email: "" });
+
+    const result = await completeAuthCallback({ redirectTo: "/auth?mode=signin" });
+
+    expect(result).toMatchObject({
+      kind: "authenticated",
+      destination: "/dashboard",
+    });
+  });
 });
 
 describe("completeAuthCallback — code exchange", () => {
@@ -123,6 +234,7 @@ describe("completeAuthCallback — code exchange", () => {
 
     expect(exchangeAuthCode).toHaveBeenCalledWith({ code: "pkce" });
     expect(getBrowserAuthSession).not.toHaveBeenCalled();
+    expect(verifyEmailTokenHash).not.toHaveBeenCalled();
     expect(fromSupabaseUser).toHaveBeenCalledWith(rawUser);
     expect(result).toEqual({
       kind: "authenticated",
@@ -158,21 +270,44 @@ describe("completeAuthCallback — code exchange", () => {
     });
   });
 
-  it("converts thrown Auth error to error.message result", async () => {
-    const err = Object.assign(new Error("invalid grant"), { status: 400 });
-    exchangeAuthCode.mockRejectedValue(err);
+  it("maps PKCE verifier errors to the safe browser-mismatch message", async () => {
+    exchangeAuthCode.mockRejectedValue(
+      Object.assign(
+        new Error("invalid request: both auth code and code verifier should be non-empty"),
+        { status: 400 },
+      ),
+    );
 
     const result = await completeAuthCallback({ code: "bad" });
 
-    expect(result).toEqual({ kind: "error", message: "invalid grant" });
+    expect(result).toEqual({
+      kind: "error",
+      message: AUTH_CALLBACK_BROWSER_MISMATCH_MESSAGE,
+    });
+    expect(JSON.stringify(result)).not.toMatch(/code verifier|pkce|invalid request/i);
   });
 
-  it("converts non-Error rejection to Auth callback failed.", async () => {
+  it("maps unknown exchange failures to the generic message", async () => {
+    exchangeAuthCode.mockRejectedValue(Object.assign(new Error("invalid grant"), { status: 400 }));
+
+    const result = await completeAuthCallback({ code: "bad" });
+
+    expect(result).toEqual({
+      kind: "error",
+      message: AUTH_CALLBACK_GENERIC_FAILURE_MESSAGE,
+    });
+    expect(JSON.stringify(result)).not.toMatch(/invalid grant/i);
+  });
+
+  it("maps non-Error rejection to the generic message", async () => {
     exchangeAuthCode.mockRejectedValue("boom");
 
     const result = await completeAuthCallback({ code: "bad" });
 
-    expect(result).toEqual({ kind: "error", message: "Auth callback failed." });
+    expect(result).toEqual({
+      kind: "error",
+      message: AUTH_CALLBACK_GENERIC_FAILURE_MESSAGE,
+    });
   });
 });
 

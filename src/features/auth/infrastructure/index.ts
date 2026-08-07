@@ -28,4 +28,9 @@ export {
   type ExchangeAuthCodeInput,
   type ExchangeAuthCodeResult,
 } from "./exchangeAuthCode";
+export {
+  verifyEmailTokenHash,
+  type VerifyEmailTokenHashInput,
+  type VerifyEmailTokenHashResult,
+} from "./verifyEmailTokenHash";
 export { getBrowserAuthSession, type BrowserAuthSessionResult } from "./getBrowserAuthSession";

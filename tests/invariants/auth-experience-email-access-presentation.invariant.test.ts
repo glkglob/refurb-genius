@@ -71,6 +71,8 @@ test("auth email access presentation — hook owns redirects and primitives", ()
   assert.match(text, /updateAuthUserPassword/);
   assert.match(text, /auth\/callback/);
   assert.match(text, /redirect_to/);
+  assert.match(text, /flow/);
+  assert.match(text, /magiclink/);
   assert.match(text, /type=recovery/);
   assert.doesNotMatch(text, /@\/platform\/supabase/);
   assert.doesNotMatch(
