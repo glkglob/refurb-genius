@@ -1,0 +1,18 @@
+supabase/migrations/20260806152000_p0_db_1r_share_link_append_only_deny.sql
+  h_7ea6129503670a 1-204
+supabase/tests/database/p0_db_1_advisor_hardening.test.sql
+  h_7ea6129503670a 1-2,6,143-151,173,177,202-211,239-261,272-291,294,313-318,325-336,350-363,372,441,475-495,583,595,599-638
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "c0282c59a3b44ff3841ca6c8d4afad6850690cea",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
