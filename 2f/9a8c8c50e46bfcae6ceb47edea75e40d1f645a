@@ -1,0 +1,22 @@
+AGENTS.md
+  h_7ea6129503670a 23,33
+CLAUDE.md
+  h_7ea6129503670a 10
+docs/architecture/future-roadmap.md
+  h_7ea6129503670a 15-17
+docs/architecture/overview.md
+  h_7ea6129503670a 26-30,36
+docs/architecture/workflow/ia-0-workflow-authority-spec.md
+  h_7ea6129503670a 6,25-31,38-39,772-789,1017,1030-1031,1038-1039,1047-1048,1051-1059,1061-1066,1079,1083-1109,1121-1255,1268-1271,1571-1596,1608,1611-1613,1617,1655-1656,1660-1662,1883-1886,1904-1907,1938,1942,1946,1963-1969
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "2f9a8c8c50e46bfcae6ceb47edea75e40d1f645a",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
