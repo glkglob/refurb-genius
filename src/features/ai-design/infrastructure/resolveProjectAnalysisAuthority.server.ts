@@ -1,19 +1,19 @@
 /**
  * Server-only: resolve current durable photo-analysis authority for a project.
  *
- * Used by redesign (and any investor AI path) so the browser cannot supply
- * stale/forged RoomAnalysis payloads as production authority.
+ * Uses get_current_project_analysis_authority (projects FOR SHARE) so the
+ * catalogue cannot change mid-resolution and client payloads are never trusted.
  */
 import "@tanstack/react-start/server-only";
 
-import type { Json, Tables } from "@repo/supabase";
+import type { Tables } from "@repo/supabase";
 import {
-  isProductionValidAnalysisSet,
   projectNotAuthorisedError,
   staleAnalysisRequiresReanalysisError,
   type AnalysisSource,
   type RoomAnalysis,
 } from "@/features/ai-upload";
+import type { Json } from "@repo/supabase";
 
 export type ResolveCurrentProjectAnalysisAuthorityInput = {
   userId: string;
@@ -56,68 +56,34 @@ export function mapRoomAnalysisRow(r: Tables<"room_analyses">): RoomAnalysis {
 }
 
 /**
- * Load current project photos + room_analyses and return analyses only when
- * the set is production-valid against the live catalogue.
- *
- * Does not run vision, mutate data, or use client cache.
+ * Load a serialized current authority view via database RPC.
+ * Does not run vision, mutate data, or use client cache/analyses.
  */
 export async function resolveCurrentProjectAnalysisAuthority(
   input: ResolveCurrentProjectAnalysisAuthorityInput,
 ): Promise<RoomAnalysis[]> {
-  const { userId, projectId } = input;
+  const { projectId } = input;
+  // userId is enforced inside the RPC via auth.uid(); retained for call-site clarity.
+  void input.userId;
 
   const { createSupabaseServerClient } = await import("@/serverFns/auth.server");
   const supabase = await createSupabaseServerClient();
 
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .select("id")
-    .eq("id", projectId)
-    .eq("user_id", userId)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc("get_current_project_analysis_authority", {
+    p_project_id: projectId,
+  });
 
-  if (projectError || !project) {
-    // Fail closed without leaking another user's project existence.
-    throw projectNotAuthorisedError();
-  }
-
-  const { data: photos, error: photosError } = await supabase
-    .from("photos")
-    .select("id,url,name")
-    .eq("project_id", projectId)
-    .eq("user_id", userId)
-    .order("uploaded_at", { ascending: true });
-
-  if (photosError) {
+  if (error) {
+    const msg = error.message ?? "";
+    if (/project_not_authorised|42501|PGRST301/i.test(msg)) {
+      throw projectNotAuthorisedError();
+    }
     throw staleAnalysisRequiresReanalysisError();
   }
 
-  const catalogue = (photos ?? []).map((p) => ({
-    id: p.id,
-    url: p.url,
-    name: p.name,
-  }));
-
-  if (catalogue.length === 0) {
+  if (!data || !Array.isArray(data) || data.length === 0) {
     throw staleAnalysisRequiresReanalysisError();
   }
 
-  const { data: rows, error: analysesError } = await supabase
-    .from("room_analyses")
-    .select("*")
-    .eq("project_id", projectId)
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true });
-
-  if (analysesError) {
-    throw staleAnalysisRequiresReanalysisError();
-  }
-
-  const analyses = (rows ?? []).map(mapRoomAnalysisRow);
-
-  if (!isProductionValidAnalysisSet(analyses, catalogue)) {
-    throw staleAnalysisRequiresReanalysisError();
-  }
-
-  return analyses;
+  return (data as Tables<"room_analyses">[]).map(mapRoomAnalysisRow);
 }

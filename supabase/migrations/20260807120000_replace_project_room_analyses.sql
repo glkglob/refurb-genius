@@ -1,7 +1,16 @@
--- P0-PHOTO-ANALYZE-R2/R3 — Atomic replacement of project room_analyses authority.
--- SECURITY INVOKER: operates under caller RLS (auth.uid() = user_id on owned rows).
--- R3: payload photo_id set must exactly equal the current project photo catalogue.
--- Does not apply to production in this phase; file is for local/preview/test only until release.
+-- P0-PHOTO-ANALYZE R2/R3/R4 — Project catalogue serialization + analysis authority.
+-- Unapplied to production (history remains 40). Amended in-place on PR #110 only.
+--
+-- R4 contract:
+--   CATALOGUE MUTATION  → projects row FOR UPDATE
+--   ANALYSIS REPLACEMENT → projects row FOR UPDATE
+--   AUTHORITY READ      → projects row FOR SHARE
+-- Photo metadata INSERT/DELETE go through hardened SECURITY DEFINER RPCs so
+-- authenticated direct DML can be sealed without bypassing ownership checks.
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 1. Atomic room_analyses replacement (SECURITY INVOKER)
+-- ═══════════════════════════════════════════════════════════════════════════
 
 CREATE OR REPLACE FUNCTION public.replace_project_room_analyses(
   p_project_id uuid,
@@ -37,7 +46,7 @@ BEGIN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '28000';
   END IF;
 
-  -- Serialize competing replacements for this project under the owner.
+  -- Project-row exclusive lock: serializes vs photo metadata mutations.
   SELECT p.id
   INTO v_project_id
   FROM public.projects p
@@ -58,14 +67,8 @@ BEGIN
     RAISE EXCEPTION 'invalid_analyses_payload' USING ERRCODE = '22023';
   END IF;
 
-  -- Lock current catalogue rows so concurrent photo add/remove cannot race
-  -- validation vs insert within this replacement transaction.
-  PERFORM 1
-  FROM public.photos ph
-  WHERE ph.project_id = p_project_id
-    AND ph.user_id = v_uid
-  FOR SHARE;
-
+  -- Catalogue snapshot under project FOR UPDATE (primary serialization).
+  -- Do not FOR SHARE photo rows: authenticated has SELECT-only after DML seal.
   SELECT coalesce(array_agg(ph.id ORDER BY ph.id), ARRAY[]::uuid[])
   INTO v_catalogue_ids
   FROM public.photos ph
@@ -77,8 +80,6 @@ BEGIN
     RAISE EXCEPTION 'empty_photo_catalogue' USING ERRCODE = '22023';
   END IF;
 
-  -- Validate payload + collect photo_ids (no mock; unique photo_id required).
-  -- Write-time sources: ai | fallback only (persisted is a reload semantic, not a write label).
   FOR v_i IN 0 .. (v_len - 1) LOOP
     v_elem := p_analyses -> v_i;
     IF v_elem IS NULL OR jsonb_typeof(v_elem) <> 'object' THEN
@@ -117,7 +118,6 @@ BEGIN
 
   v_payload_count := array_length(v_photo_ids, 1);
 
-  -- Complete-catalogue authority: exact set equality with current project photos.
   IF v_payload_count <> v_catalogue_count THEN
     RAISE EXCEPTION 'incomplete_photo_catalogue' USING ERRCODE = '22023';
   END IF;
@@ -138,8 +138,6 @@ BEGIN
     RAISE EXCEPTION 'incomplete_photo_catalogue' USING ERRCODE = '22023';
   END IF;
 
-  -- Atomic replace: delete previous project rows then insert complete set.
-  -- All validation above completed before any delete.
   DELETE FROM public.room_analyses ra
   WHERE ra.project_id = p_project_id
     AND ra.user_id = v_uid;
@@ -161,7 +159,6 @@ BEGIN
         v_confidence := 0;
     END;
 
-    -- Durable URL/name come from canonical photos row (not client payload).
     INSERT INTO public.room_analyses (
       project_id,
       user_id,
@@ -211,8 +208,304 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.replace_project_room_analyses(uuid, jsonb) IS
-  'Atomic project room_analyses replacement (SECURITY INVOKER). Requires exact complete photo catalogue coverage; rejects mock; persists photo_id from canonical photos.';
+  'Atomic room_analyses replacement. Project FOR UPDATE serializes with photo catalogue mutations. Complete catalogue required.';
 
 REVOKE ALL ON FUNCTION public.replace_project_room_analyses(uuid, jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.replace_project_room_analyses(uuid, jsonb) FROM anon;
 GRANT EXECUTE ON FUNCTION public.replace_project_room_analyses(uuid, jsonb) TO authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 2. Photo metadata INSERT (SECURITY DEFINER — sealed direct DML)
+-- ═══════════════════════════════════════════════════════════════════════════
+
+CREATE OR REPLACE FUNCTION public.create_project_photo_metadata(
+  p_project_id uuid,
+  p_photo_id uuid,
+  p_storage_path text,
+  p_url text,
+  p_name text,
+  p_size integer
+)
+RETURNS public.photos
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_project_id uuid;
+  v_row public.photos;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '28000';
+  END IF;
+
+  IF p_project_id IS NULL OR p_photo_id IS NULL THEN
+    RAISE EXCEPTION 'invalid_photo_metadata' USING ERRCODE = '22023';
+  END IF;
+
+  IF coalesce(trim(p_storage_path), '') = ''
+     OR coalesce(trim(p_url), '') = ''
+     OR coalesce(trim(p_name), '') = ''
+     OR p_size IS NULL
+     OR p_size < 0 THEN
+    RAISE EXCEPTION 'invalid_photo_metadata' USING ERRCODE = '22023';
+  END IF;
+
+  -- Serialize vs analysis replacement / concurrent catalogue mutations.
+  SELECT p.id
+  INTO v_project_id
+  FROM public.projects p
+  WHERE p.id = p_project_id
+    AND p.user_id = v_uid
+  FOR UPDATE;
+
+  IF v_project_id IS NULL THEN
+    RAISE EXCEPTION 'project_not_authorised' USING ERRCODE = '42501';
+  END IF;
+
+  INSERT INTO public.photos (
+    id,
+    project_id,
+    user_id,
+    storage_path,
+    url,
+    name,
+    size
+  )
+  VALUES (
+    p_photo_id,
+    p_project_id,
+    v_uid,
+    p_storage_path,
+    p_url,
+    p_name,
+    p_size
+  )
+  RETURNING * INTO v_row;
+
+  -- Catalogue changed → prior complete analysis is no longer current.
+  UPDATE public.projects
+  SET analysis_done = false
+  WHERE id = p_project_id
+    AND user_id = v_uid;
+
+  RETURN v_row;
+END;
+$$;
+
+COMMENT ON FUNCTION public.create_project_photo_metadata(uuid, uuid, text, text, text, integer) IS
+  'Serialize project photo metadata INSERT under projects FOR UPDATE; invalidates analysis_done.';
+
+REVOKE ALL ON FUNCTION public.create_project_photo_metadata(uuid, uuid, text, text, text, integer) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.create_project_photo_metadata(uuid, uuid, text, text, text, integer) FROM anon;
+GRANT EXECUTE ON FUNCTION public.create_project_photo_metadata(uuid, uuid, text, text, text, integer) TO authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 3. Photo metadata DELETE (SECURITY DEFINER — sealed direct DML)
+-- ═══════════════════════════════════════════════════════════════════════════
+
+CREATE OR REPLACE FUNCTION public.delete_project_photo_metadata(
+  p_photo_id uuid
+)
+RETURNS TABLE (
+  id uuid,
+  storage_path text,
+  project_id uuid
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_project_id uuid;
+  v_owner uuid;
+  v_storage_path text;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '28000';
+  END IF;
+
+  IF p_photo_id IS NULL THEN
+    RAISE EXCEPTION 'invalid_photo_id' USING ERRCODE = '22023';
+  END IF;
+
+  -- Resolve ownership without leaking foreign existence details.
+  SELECT ph.project_id, ph.user_id, ph.storage_path
+  INTO v_project_id, v_owner, v_storage_path
+  FROM public.photos ph
+  WHERE ph.id = p_photo_id;
+
+  IF v_project_id IS NULL OR v_owner IS DISTINCT FROM v_uid THEN
+    RAISE EXCEPTION 'source_not_authorised' USING ERRCODE = '42501';
+  END IF;
+
+  -- Same project-row lock as insert / analysis replacement.
+  PERFORM 1
+  FROM public.projects p
+  WHERE p.id = v_project_id
+    AND p.user_id = v_uid
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'project_not_authorised' USING ERRCODE = '42501';
+  END IF;
+
+  DELETE FROM public.photos ph
+  WHERE ph.id = p_photo_id
+    AND ph.user_id = v_uid
+    AND ph.project_id = v_project_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'source_not_authorised' USING ERRCODE = '42501';
+  END IF;
+
+  UPDATE public.projects
+  SET analysis_done = false
+  WHERE public.projects.id = v_project_id
+    AND public.projects.user_id = v_uid;
+
+  id := p_photo_id;
+  storage_path := coalesce(v_storage_path, '');
+  project_id := v_project_id;
+  RETURN NEXT;
+END;
+$$;
+
+COMMENT ON FUNCTION public.delete_project_photo_metadata(uuid) IS
+  'Serialize project photo metadata DELETE under projects FOR UPDATE; invalidates analysis_done.';
+
+REVOKE ALL ON FUNCTION public.delete_project_photo_metadata(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.delete_project_photo_metadata(uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.delete_project_photo_metadata(uuid) TO authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 4. Atomic current analysis authority read (SECURITY INVOKER + FOR SHARE)
+-- ═══════════════════════════════════════════════════════════════════════════
+
+CREATE OR REPLACE FUNCTION public.get_current_project_analysis_authority(
+  p_project_id uuid
+)
+RETURNS SETOF public.room_analyses
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public
+AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_project_id uuid;
+  v_catalogue_count int;
+  v_analysis_count int;
+  v_matched int;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '28000';
+  END IF;
+
+  -- Shared lock: blocks catalogue mutations / replacement until resolution completes.
+  SELECT p.id
+  INTO v_project_id
+  FROM public.projects p
+  WHERE p.id = p_project_id
+    AND p.user_id = v_uid
+  FOR SHARE;
+
+  IF v_project_id IS NULL THEN
+    RAISE EXCEPTION 'project_not_authorised' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT count(*)::int
+  INTO v_catalogue_count
+  FROM public.photos ph
+  WHERE ph.project_id = p_project_id
+    AND ph.user_id = v_uid;
+
+  IF v_catalogue_count < 1 THEN
+    RAISE EXCEPTION 'stale_requires_reanalysis' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT count(*)::int
+  INTO v_analysis_count
+  FROM public.room_analyses ra
+  WHERE ra.project_id = p_project_id
+    AND ra.user_id = v_uid;
+
+  IF v_analysis_count < 1 OR v_analysis_count <> v_catalogue_count THEN
+    RAISE EXCEPTION 'stale_requires_reanalysis' USING ERRCODE = '22023';
+  END IF;
+
+  -- Reject mock / null photo_id / non-unique photo_id.
+  IF EXISTS (
+    SELECT 1
+    FROM public.room_analyses ra
+    WHERE ra.project_id = p_project_id
+      AND ra.user_id = v_uid
+      AND (ra.photo_id IS NULL OR ra.source = 'mock')
+  ) THEN
+    RAISE EXCEPTION 'stale_requires_reanalysis' USING ERRCODE = '22023';
+  END IF;
+
+  IF (
+    SELECT count(DISTINCT ra.photo_id)
+    FROM public.room_analyses ra
+    WHERE ra.project_id = p_project_id
+      AND ra.user_id = v_uid
+  ) <> v_analysis_count THEN
+    RAISE EXCEPTION 'stale_requires_reanalysis' USING ERRCODE = '22023';
+  END IF;
+
+  -- Exact set equality + canonical URL/name correspondence.
+  SELECT count(*)::int
+  INTO v_matched
+  FROM public.room_analyses ra
+  INNER JOIN public.photos ph
+    ON ph.id = ra.photo_id
+   AND ph.project_id = p_project_id
+   AND ph.user_id = v_uid
+   AND ph.url = ra.photo_url
+   AND ph.name = ra.photo_name
+  WHERE ra.project_id = p_project_id
+    AND ra.user_id = v_uid;
+
+  IF v_matched <> v_catalogue_count THEN
+    RAISE EXCEPTION 'stale_requires_reanalysis' USING ERRCODE = '22023';
+  END IF;
+
+  RETURN QUERY
+  SELECT ra.*
+  FROM public.room_analyses ra
+  WHERE ra.project_id = p_project_id
+    AND ra.user_id = v_uid
+  ORDER BY ra.created_at ASC;
+END;
+$$;
+
+COMMENT ON FUNCTION public.get_current_project_analysis_authority(uuid) IS
+  'Atomic current analysis authority under projects FOR SHARE. Raises when stale/incomplete/mock.';
+
+REVOKE ALL ON FUNCTION public.get_current_project_analysis_authority(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.get_current_project_analysis_authority(uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.get_current_project_analysis_authority(uuid) TO authenticated;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 5. Seal authenticated direct DML on public.photos
+--    Mutations only via create/delete RPCs (SECURITY DEFINER).
+-- ═══════════════════════════════════════════════════════════════════════════
+
+DROP POLICY IF EXISTS "photos_all_own" ON public.photos;
+
+CREATE POLICY "photos_select_own"
+  ON public.photos
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+-- photos_select_admin already exists for admin read.
+
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.photos FROM PUBLIC;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.photos FROM anon;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.photos FROM authenticated;
+
+-- Authenticated retains SELECT under RLS policies above.
+GRANT SELECT ON TABLE public.photos TO authenticated;
