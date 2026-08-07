@@ -1,0 +1,18 @@
+supabase/migrations/20260807210000_reconcile_redesign_concepts_live_shape.sql
+  h_7ea6129503670a 1-182
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 80
+tests/invariants/project-first-class-redesign.invariant.test.ts
+  h_7ea6129503670a 68-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "f7ce94225b0823480dfffbaff4a0dff24cf2d82f",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
