@@ -2005,6 +2005,74 @@ export type Database = {
     };
     Functions: {
       is_admin: { Args: never; Returns: boolean };
+      replace_project_room_analyses: {
+        Args: { p_analyses: Json; p_project_id: string };
+        Returns: {
+          ai_summary: string;
+          condition_level: string;
+          confidence_score: number;
+          created_at: string;
+          id: string;
+          photo_id: string | null;
+          photo_name: string;
+          photo_url: string;
+          project_id: string;
+          recommended_works: Json;
+          refurbishment_level: string;
+          room_type: string;
+          source: string;
+          user_id: string;
+          visible_issues: Json;
+        }[];
+      };
+      create_project_photo_metadata: {
+        Args: {
+          p_project_id: string;
+          p_photo_id: string;
+          p_storage_path: string;
+          p_url: string;
+          p_name: string;
+          p_size: number;
+        };
+        Returns: {
+          id: string;
+          project_id: string;
+          user_id: string;
+          storage_path: string;
+          url: string;
+          name: string;
+          size: number;
+          uploaded_at: string;
+        };
+      };
+      delete_project_photo_metadata: {
+        Args: { p_photo_id: string };
+        Returns: {
+          id: string;
+          storage_path: string;
+          project_id: string;
+        }[];
+      };
+      get_current_project_analysis_authority: {
+        Args: { p_project_id: string };
+        Returns: {
+          ai_summary: string;
+          condition_level: string;
+          confidence_score: number;
+          created_at: string;
+          id: string;
+          photo_id: string | null;
+          photo_name: string;
+          photo_url: string;
+          project_id: string;
+          recommended_works: Json;
+          refurbishment_level: string;
+          room_type: string;
+          source: string;
+          user_id: string;
+          visible_issues: Json;
+        }[];
+      };
       measured_boq_catalog_assert_parent_draft: {
         Args: { p_revision: string };
         Returns: undefined;

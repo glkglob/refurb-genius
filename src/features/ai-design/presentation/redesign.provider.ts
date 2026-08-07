@@ -1,10 +1,13 @@
 /**
  * AI-design slice — Client-side redesign provider (presentation wiring).
  * Moved from `src/core/ai/redesignConcepts.ts` (now a shim).
+ *
+ * Security/correctness boundary is the redesign serverFn, which re-reads
+ * current durable room_analyses + current photo catalogue. Client cache is
+ * not sufficient to authorize redesign generation.
  */
 import { REDESIGN_CONCEPTS, REDESIGN_STYLES } from "@/lib/redesign";
 import type { RedesignConcept, RedesignStyle } from "../domain";
-import { analysisStore } from "@/features/ai-upload";
 import { generateRedesignConceptsServerFn } from "./serverFns";
 
 export type RedesignInput = {
@@ -44,11 +47,11 @@ export const redesignProvider: RedesignProvider = {
     const cached = cache.get(input.projectId);
     if (cached) return cached;
 
+    // Server re-resolves durable analysis authority; do not send client analyses.
     const concepts = await generateRedesignConceptsServerFn({
       data: {
         projectId: input.projectId,
         styles: input.styles,
-        analyses: analysisStore.get(input.projectId) ?? [],
       },
     });
 

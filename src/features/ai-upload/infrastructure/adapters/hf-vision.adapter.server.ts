@@ -20,7 +20,7 @@ import type {
   RoomAnalysis,
   RoomType,
 } from "../../domain";
-import { buildMockRoomAnalyses } from "../../domain";
+import { buildMockRoomAnalyses, noSourcePhotosError } from "../../domain";
 import { safeParseRoomAnalysis } from "../../domain/validation";
 import { captureAiError, addDiagnosticBreadcrumb, setConversationId } from "@/lib/sentry";
 import {
@@ -108,9 +108,14 @@ Analyse the photo and return ONLY a JSON object with EXACTLY these fields (no ma
 
 UK spelling. Only describe what is clearly visible. Return pure JSON.`;
 
+function newAnalysisId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `analysis-${Date.now()}-${Math.random()}`;
+}
+
 function buildFallback(photo: AnalysisPhotoSource): RoomAnalysis {
   return {
-    id: photo.id,
+    id: newAnalysisId(),
+    photo_id: photo.id,
     photo_url: photo.url,
     photo_name: photo.name,
     room_type: "Other",
@@ -185,7 +190,8 @@ async function analysePhoto(
     incrementCounter("hf_vision_success");
 
     return {
-      id: photo.id,
+      id: newAnalysisId(),
+      photo_id: photo.id,
       photo_url: photo.url,
       photo_name: photo.name,
       room_type: coerceRoomType(validated.room_type),
@@ -195,7 +201,7 @@ async function analysePhoto(
       recommended_works: coerceStringArray(validated.recommended_works),
       ai_summary: typeof validated.ai_summary === "string" ? validated.ai_summary : "",
       confidence_score: coerceScore(validated.confidence_score),
-      source: "ai", // Could be "hf-ai" to distinguish
+      source: "ai",
     };
   } catch (err) {
     let reason: "timeout" | "rate_limit" | "parse_error" | "api_error" | "not_configured" =
@@ -243,7 +249,12 @@ export async function runSecurePhotoAnalysisHuggingFace(input: {
   projectId: string;
   photos: AnalysisPhotoSource[];
 }): Promise<RoomAnalysis[]> {
-  const photos = input.photos.length > 0 ? input.photos : undefined;
+  // Never invent bundled demo analyses for an empty photo list.
+  if (!input.photos.length) {
+    throw noSourcePhotosError();
+  }
+
+  const photos = input.photos;
   const config = getHuggingFaceConfig();
 
   if (!isHuggingFaceConfigured()) {
@@ -252,16 +263,12 @@ export async function runSecurePhotoAnalysisHuggingFace(input: {
       captureAiError(err, { provider: "hf-vision", reason: "not_configured" });
       throw err;
     }
+    // Dev/test only: fixtures grounded in supplied photos (never FALLBACK_PHOTOS for empty).
     incrementCounter("hf_vision_fallback_used");
     return buildMockRoomAnalyses(photos);
   }
 
   setConversationId(`project-${input.projectId}`);
-
-  if (!photos?.length) {
-    incrementCounter("hf_vision_fallback_used");
-    return buildMockRoomAnalyses(photos);
-  }
 
   const startTime = Date.now();
   addDiagnosticBreadcrumb("ai:hf:batch:start", {

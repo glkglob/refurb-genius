@@ -12,7 +12,7 @@ import type {
   RoomAnalysis,
   RoomType,
 } from "../../domain";
-import { buildMockRoomAnalyses } from "../../domain";
+import { buildMockRoomAnalyses, noSourcePhotosError } from "../../domain";
 import { safeParseRoomAnalysis } from "../../domain/validation";
 import { captureAiError, addDiagnosticBreadcrumb, setConversationId } from "@/lib/sentry";
 import { getOpenAIClient } from "@/platform/openai/server";
@@ -95,9 +95,14 @@ Analyse the photo and return ONLY a JSON object with EXACTLY these fields (no ma
 
 UK spelling. Only describe what is clearly visible. Return pure JSON.`;
 
+function newAnalysisId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `analysis-${Date.now()}-${Math.random()}`;
+}
+
 function buildFallback(photo: AnalysisPhotoSource): RoomAnalysis {
   return {
-    id: photo.id,
+    id: newAnalysisId(),
+    photo_id: photo.id,
     photo_url: photo.url,
     photo_name: photo.name,
     room_type: "Other",
@@ -173,7 +178,8 @@ async function analysePhoto(apiKey: string, photo: AnalysisPhotoSource): Promise
     incrementCounter("vision_success");
 
     return {
-      id: photo.id,
+      id: newAnalysisId(),
+      photo_id: photo.id,
       photo_url: photo.url,
       photo_name: photo.name,
       room_type: coerceRoomType(validated.room_type),
@@ -227,7 +233,13 @@ export async function runSecurePhotoAnalysis(input: {
   projectId: string;
   photos: AnalysisPhotoSource[];
 }): Promise<RoomAnalysis[]> {
-  const photos = input.photos.length > 0 ? input.photos : undefined;
+  // Production (and all environments): never analyse an empty photo list.
+  // Empty list must not fall back to bundled mock Kitchen/Bathroom/Living Room demos.
+  if (!input.photos.length) {
+    throw noSourcePhotosError();
+  }
+
+  const photos = input.photos;
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
@@ -236,16 +248,13 @@ export async function runSecurePhotoAnalysis(input: {
       captureAiError(err, { provider: "gpt-4o-vision", reason: "api_error" });
       throw err;
     }
+    // Dev/test only: deterministic fixtures grounded in the supplied photos.
+    // Never invent FALLBACK_PHOTOS when the caller provided an empty list (handled above).
     incrementCounter("vision_fallback_used");
     return buildMockRoomAnalyses(photos);
   }
 
   setConversationId(`project-${input.projectId}`);
-
-  if (!photos?.length) {
-    incrementCounter("vision_fallback_used");
-    return buildMockRoomAnalyses(photos);
-  }
 
   const startTime = Date.now();
   addDiagnosticBreadcrumb("ai:gpt4o:batch:start", {

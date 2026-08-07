@@ -456,25 +456,22 @@ export async function uploadProjectPhoto(input: {
 
   addDiagnosticBreadcrumb("photos-write:metadata:insert", { file: file.name, path });
 
-  // ── Metadata insert (Storage already succeeded) ─────────────────
+  // ── Metadata insert via serialized RPC (Storage already succeeded) ─
+  // Authority boundary is public.photos publication under projects FOR UPDATE.
+  // Unreferenced Storage objects are rolled back best-effort on RPC failure.
   // Timeout races without cancelling the underlying request; rollback is best-effort.
   emit("saving");
   try {
     const insertResult = await timeoutPromise(
       Promise.resolve(
-        supabase
-          .from("photos")
-          .insert({
-            id,
-            project_id: projectId,
-            user_id: user.id,
-            storage_path: path,
-            url,
-            name: file.name,
-            size: file.size,
-          })
-          .select()
-          .single(),
+        supabase.rpc("create_project_photo_metadata", {
+          p_project_id: projectId,
+          p_photo_id: id,
+          p_storage_path: path,
+          p_url: url,
+          p_name: file.name,
+          p_size: file.size,
+        }),
       ),
       UPLOAD_TIMEOUT_MS,
       `Insert metadata for ${file.name}`,
@@ -508,7 +505,20 @@ export async function uploadProjectPhoto(input: {
       throw primary;
     }
 
-    const photo = rowToPhoto(row);
+    // RPC returns a single photos row (object); tolerate array wrappers from clients.
+    const rowObj = Array.isArray(row) ? row[0] : row;
+    if (!rowObj) {
+      emit("rolling-back");
+      const rollbackError = await rollbackStorageObject(path);
+      throw new PhotoWriteError("No data returned from insert", {
+        stage: "metadata-insert",
+        cause: new Error("empty RPC response"),
+        rollbackError,
+        code: "metadata_write_failed",
+      });
+    }
+
+    const photo = rowToPhoto(rowObj as never);
     logger.info("[photos-write] upload success", {
       projectId,
       photoId: id,
@@ -678,10 +688,11 @@ function normaliseConcurrency(value: number | undefined): number {
 // ── Remove ────────────────────────────────────────────────────────
 
 /**
- * Remove a project photo: database row first (returning storage_path), then Storage.
+ * Remove a project photo: database row first via serialized RPC, then Storage.
  *
  * - Auth required before any remote write.
- * - Zero-row delete throws; Storage is not called.
+ * - delete_project_photo_metadata takes projects FOR UPDATE and clears analysis_done.
+ * - Zero-row / unauthorized delete throws; Storage is not called.
  * - Storage path always comes from the deleted database row (never caller-supplied).
  * - Non-missing Storage failures after metadata delete yield orphan-warning (no throw).
  */
@@ -690,12 +701,10 @@ export async function removeProjectPhoto(input: { photoId: string }): Promise<Ph
 
   await resolvePhotoWriteUser();
 
-  const { data: deletedRow, error: dbError } = await supabase
-    .from("photos")
-    .delete()
-    .eq("id", input.photoId)
-    .select("id, storage_path")
-    .maybeSingle();
+  const { data: deletedRows, error: dbError } = await supabase.rpc(
+    "delete_project_photo_metadata",
+    { p_photo_id: input.photoId },
+  );
 
   if (dbError) {
     logger.error("[photos-write] delete metadata failed", {
@@ -703,13 +712,17 @@ export async function removeProjectPhoto(input: { photoId: string }): Promise<Ph
       error: dbError.message,
     });
     captureUploadError(dbError, { stage: "metadata" });
-    throw new PhotoWriteError(dbError.message, {
+    const notFound =
+      /source_not_authorised|not found|PGRST/i.test(dbError.message) ||
+      dbError.message.includes("42501");
+    throw new PhotoWriteError(notFound ? "Photo not found" : dbError.message, {
       stage: "metadata-delete",
       cause: dbError,
     });
   }
 
-  if (!deletedRow) {
+  const deletedRow = Array.isArray(deletedRows) ? deletedRows[0] : deletedRows;
+  if (!deletedRow?.id) {
     throw new PhotoWriteError("Photo not found", {
       stage: "metadata-delete",
       cause: new Error("Photo not found"),

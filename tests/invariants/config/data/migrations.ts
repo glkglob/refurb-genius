@@ -75,6 +75,7 @@ export const MIGRATION_FILENAMES = [
   "20260806150000_p0_db_1_security_definer_and_internal_deny.sql",
   "20260806151000_p0_db_1_rls_consolidation_and_fk_indexes.sql",
   "20260806152000_p0_db_1r_share_link_append_only_deny.sql",
+  "20260807120000_replace_project_room_analyses.sql",
 ] as const;
 
 export const MIGRATION_TIMESTAMP_PATTERN = /^\d{14}_[\w-]+\.sql$/;

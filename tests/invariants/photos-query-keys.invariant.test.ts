@@ -34,14 +34,17 @@ const ROOM_ANALYSIS_REPO =
  *
  * - src/lib/photos-write.ts — canonical active writer
  * - queries/projects, gallery, ai-quality-audit — read-only list/audit authority
+ * - resolveAuthorizedPhotos.server.ts — server-side ownership gate for vision
+ * - photos-write.ts uses create/delete photo metadata RPCs (no direct table DML)
+ * - resolveProjectAnalysisAuthority.server.ts uses get_current_project_analysis_authority RPC
  *
  * BulkPhotoUpload and retired src/lib/photos.ts are not listed.
  */
 const PHOTOS_TABLE_ALLOWLIST = new Set([
   "src/lib/queries/projects.ts",
-  "src/lib/photos-write.ts",
   "src/lib/queries/gallery.ts",
   "src/lib/ai-quality-audit.ts",
+  "src/features/ai-upload/infrastructure/resolveAuthorizedPhotos.server.ts",
 ]);
 
 const SCAN_ROOTS = [
