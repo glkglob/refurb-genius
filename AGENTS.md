@@ -30,7 +30,9 @@ If implementation requires changing a locked IA-0 rule, **stop** and request arc
 
 IA-1 (Shared Project Workflow Shell) is **Completed** on main.
 
-IA-2 (Canonical Next-Action Resolver) is **Planned / Next** and **MUST NOT** begin until explicitly authorised (including after IA-0-CL1 clarification is on main).
+IA-2 (Canonical Next-Action Resolver) is **Completed** on main (`resolveProjectNextAction` in Projects domain).
+
+IA-3 (Photos → Analysis Continuity) is **Planned / Next** and **MUST NOT** begin until explicitly authorised.
 
 ---
 
