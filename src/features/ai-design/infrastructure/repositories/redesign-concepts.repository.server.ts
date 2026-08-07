@@ -1,13 +1,9 @@
 /**
- * IA-4 — Server-only redesign_concepts persistence.
+ * IA-4-R1 — Server-only redesign_concepts persistence.
  *
- * Live table columns (production): id, user_id, project_id, photo_id, title,
- * description, style, image_url, created_at, updated_at.
- *
- * Durable selection + Analysis binding are stored in description as JSON
- * (concept payload). No schema migration required.
- *
- * Ownership: RLS redesign_all_own + auth.uid() via server client.
+ * Canonical authority columns: analysis_identity, is_selected.
+ * Selection writes ONLY via select_project_redesign_concept (atomic RPC).
+ * Description JSON remains concept presentation payload (not selection authority).
  */
 import "@tanstack/react-start/server-only";
 
@@ -16,7 +12,6 @@ import {
   parseRedesignPayload,
   payloadToConcept,
   type DurableRedesignConcept,
-  type RedesignConceptPayload,
 } from "../../domain/redesignAuthority";
 import type { RedesignConcept } from "../../domain";
 
@@ -26,15 +21,28 @@ type LiveRow = {
   title: string | null;
   description: string | null;
   image_url: string | null;
+  analysis_identity?: string | null;
+  is_selected?: boolean | null;
 };
 
 function rowToConcept(row: LiveRow): DurableRedesignConcept | null {
-  // Prefer structured JSON in description; fall back to minimal fields.
+  // Canonical authority: columns (not JSON isSelected).
+  const analysisIdentity = typeof row.analysis_identity === "string" ? row.analysis_identity : "";
+  const isSelected = Boolean(row.is_selected);
+
   const fromJson = row.description ? parseRedesignPayload(safeJson(row.description)) : null;
   if (fromJson) {
-    return payloadToConcept(row.style || "Modern", fromJson, row.id);
+    const concept = payloadToConcept(row.style || "Modern", fromJson, row.id);
+    return {
+      ...concept,
+      // Columns override JSON for authority fields.
+      analysisIdentity,
+      isSelected,
+    };
   }
-  if (!row.style && !row.title) return null;
+
+  if (!row.style && !row.title && !analysisIdentity && !isSelected) return null;
+
   return {
     id: row.id,
     style: (row.style || "Modern") as DurableRedesignConcept["style"],
@@ -42,11 +50,14 @@ function rowToConcept(row: LiveRow): DurableRedesignConcept | null {
     palette: [],
     flooring: "",
     lighting: "",
-    furniture: row.description || "",
+    furniture:
+      typeof row.description === "string" && !row.description.startsWith("{")
+        ? row.description
+        : "",
     afterGradient: "linear-gradient(135deg, #F5F5F2 0%, #E4DED2 100%)",
     ...(row.image_url ? { afterImageUrl: row.image_url } : {}),
-    analysisIdentity: "",
-    isSelected: false,
+    analysisIdentity,
+    isSelected,
   };
 }
 
@@ -62,13 +73,24 @@ function conceptToRowFields(
   concept: RedesignConcept,
   analysisIdentity: string,
   isSelected: boolean,
-): { title: string; description: string; style: string; image_url: string | null } {
-  const payload = conceptToPayload(concept, analysisIdentity, isSelected);
+): {
+  title: string;
+  description: string;
+  style: string;
+  image_url: string | null;
+  analysis_identity: string;
+  is_selected: boolean;
+} {
+  // Description still holds presentation payload for UI; isSelected forced false in JSON
+  // so JSON cannot override column authority.
+  const payload = conceptToPayload(concept, analysisIdentity, false);
   return {
     title: concept.tagline.slice(0, 200) || concept.style,
     description: JSON.stringify(payload),
     style: concept.style,
     image_url: concept.afterImageUrl ?? null,
+    analysis_identity: analysisIdentity,
+    is_selected: isSelected,
   };
 }
 
@@ -80,7 +102,7 @@ export async function listDurableRedesignConcepts(
 
   const { data, error } = await supabase
     .from("redesign_concepts")
-    .select("id, style, title, description, image_url")
+    .select("id, style, title, description, image_url, analysis_identity, is_selected")
     .eq("project_id", projectId)
     .order("created_at", { ascending: true });
 
@@ -96,6 +118,10 @@ export async function listDurableRedesignConcepts(
   return out;
 }
 
+/**
+ * Replace non-selected candidates with a new generation batch.
+ * Preserves selected row when analysis_identity matches (same Analysis).
+ */
 export async function replaceRedesignCandidates(input: {
   projectId: string;
   userId: string;
@@ -145,6 +171,10 @@ export async function replaceRedesignCandidates(input: {
   return listDurableRedesignConcepts(input.projectId);
 }
 
+/**
+ * Atomic selection via select_project_redesign_concept.
+ * Prior selection remains if RPC fails (transaction rollback).
+ */
 export async function selectDurableRedesignConcept(input: {
   projectId: string;
   conceptId: string;
@@ -152,68 +182,38 @@ export async function selectDurableRedesignConcept(input: {
   const { createSupabaseServerClient } = await import("@/serverFns/auth.server");
   const supabase = await createSupabaseServerClient();
 
-  const existing = await listDurableRedesignConcepts(input.projectId);
-  const target = existing.find((c) => c.id === input.conceptId);
-  if (!target) {
-    throw new Error("Redesign concept not found for this project");
+  const { data, error } = await supabase.rpc("select_project_redesign_concept", {
+    p_project_id: input.projectId,
+    p_concept_id: input.conceptId,
+  });
+
+  if (error) {
+    const msg = error.message ?? "";
+    if (/redesign_concept_not_found|P0002/i.test(msg)) {
+      throw new Error("Redesign concept not found for this project");
+    }
+    if (/project_not_authorised|42501/i.test(msg)) {
+      throw new Error("Not authorised for this project");
+    }
+    if (/not_authenticated|28000/i.test(msg)) {
+      throw new Error("Not authenticated");
+    }
+    throw new Error(msg || "Failed to persist redesign selection");
   }
 
-  for (const row of existing) {
-    if (!row.isSelected && row.id !== target.id) continue;
-    const payload: RedesignConceptPayload = {
-      tagline: row.tagline,
-      palette: row.palette,
-      flooring: row.flooring,
-      lighting: row.lighting,
-      furniture: row.furniture,
-      afterGradient: row.afterGradient,
-      ...(row.afterImageUrl ? { afterImageUrl: row.afterImageUrl } : {}),
-      ...(row.estimatedCostUplift ? { estimatedCostUplift: row.estimatedCostUplift } : {}),
-      analysisIdentity: row.analysisIdentity,
-      isSelected: row.id === input.conceptId,
-    };
-    const { error } = await supabase
-      .from("redesign_concepts")
-      .update({
-        title: payload.tagline.slice(0, 200),
-        description: JSON.stringify(payload),
-        style: row.style,
-        image_url: row.afterImageUrl ?? null,
-      } as never)
-      .eq("id", row.id)
-      .eq("project_id", input.projectId);
-    if (error) throw new Error(error.message || "Failed to persist redesign selection");
+  // RPC may return a row object or array depending on client version.
+  const row = (Array.isArray(data) ? data[0] : data) as LiveRow | null;
+  if (!row?.id) {
+    throw new Error("Selection did not persist");
   }
 
-  // Ensure target selected even if it was not previously selected
-  if (!existing.some((c) => c.isSelected && c.id === input.conceptId)) {
-    const payload: RedesignConceptPayload = {
-      tagline: target.tagline,
-      palette: target.palette,
-      flooring: target.flooring,
-      lighting: target.lighting,
-      furniture: target.furniture,
-      afterGradient: target.afterGradient,
-      ...(target.afterImageUrl ? { afterImageUrl: target.afterImageUrl } : {}),
-      ...(target.estimatedCostUplift ? { estimatedCostUplift: target.estimatedCostUplift } : {}),
-      analysisIdentity: target.analysisIdentity,
-      isSelected: true,
-    };
-    const { error } = await supabase
-      .from("redesign_concepts")
-      .update({
-        title: payload.tagline.slice(0, 200),
-        description: JSON.stringify(payload),
-        style: target.style,
-        image_url: target.afterImageUrl ?? null,
-      } as never)
-      .eq("id", input.conceptId)
-      .eq("project_id", input.projectId);
-    if (error) throw new Error(error.message || "Failed to persist redesign selection");
+  const concept = rowToConcept(row);
+  if (!concept?.isSelected) {
+    // Re-list for full presentation payload after RPC.
+    const all = await listDurableRedesignConcepts(input.projectId);
+    const selected = all.find((c) => c.id === input.conceptId && c.isSelected);
+    if (!selected) throw new Error("Selection did not persist");
+    return selected;
   }
-
-  const after = await listDurableRedesignConcepts(input.projectId);
-  const selected = after.find((c) => c.id === input.conceptId && c.isSelected);
-  if (!selected) throw new Error("Selection did not persist");
-  return selected;
+  return concept;
 }

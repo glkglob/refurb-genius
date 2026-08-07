@@ -1335,10 +1335,12 @@ export type Database = {
       };
       redesign_concepts: {
         Row: {
+          analysis_identity: string;
           created_at: string;
           description: string | null;
           id: string;
           image_url: string | null;
+          is_selected: boolean;
           photo_id: string | null;
           project_id: string;
           style: string | null;
@@ -1347,10 +1349,12 @@ export type Database = {
           user_id: string;
         };
         Insert: {
+          analysis_identity?: string;
           created_at?: string;
           description?: string | null;
           id?: string;
           image_url?: string | null;
+          is_selected?: boolean;
           photo_id?: string | null;
           project_id: string;
           style?: string | null;
@@ -1359,10 +1363,12 @@ export type Database = {
           user_id: string;
         };
         Update: {
+          analysis_identity?: string;
           created_at?: string;
           description?: string | null;
           id?: string;
           image_url?: string | null;
+          is_selected?: boolean;
           photo_id?: string | null;
           project_id?: string;
           style?: string | null;
@@ -2017,6 +2023,23 @@ export type Database = {
     };
     Functions: {
       is_admin: { Args: never; Returns: boolean };
+      select_project_redesign_concept: {
+        Args: { p_concept_id: string; p_project_id: string };
+        Returns: {
+          analysis_identity: string;
+          created_at: string;
+          description: string | null;
+          id: string;
+          image_url: string | null;
+          is_selected: boolean;
+          photo_id: string | null;
+          project_id: string;
+          style: string | null;
+          title: string;
+          updated_at: string;
+          user_id: string;
+        };
+      };
       replace_project_room_analyses: {
         Args: { p_analyses: Json; p_project_id: string };
         Returns: {

@@ -47,15 +47,21 @@ test("IA-4 redesign adapter is pure and exported", () => {
   assert.match(pub, /redesignCurrencyFromEvidence/);
 });
 
-test("IA-4 selection persistence uses existing redesign_concepts table", () => {
+test("IA-4-R1 selection uses atomic RPC and canonical columns", () => {
   const repo = read(
     "src/features/ai-design/infrastructure/repositories/redesign-concepts.repository.server.ts",
   );
   assert.match(repo, /redesign_concepts/);
-  assert.match(repo, /isSelected/);
-  assert.match(repo, /analysisIdentity/);
-  assert.match(repo, /description/);
+  assert.match(repo, /select_project_redesign_concept/);
+  assert.match(repo, /analysis_identity/);
+  assert.match(repo, /is_selected/);
   assert.match(repo, /server-only/);
-  // Live columns + description JSON authority (no schema migration).
-  assert.match(repo, /No schema migration/);
+  // Old sequential multi-update selection algorithm must not remain.
+  assert.doesNotMatch(repo, /clear prior redesign selection/);
+
+  const migration = read("supabase/migrations/20260807220000_ia4_atomic_redesign_selection.sql");
+  assert.match(migration, /redesign_concepts_one_selected_per_project/);
+  assert.match(migration, /select_project_redesign_concept/);
+  assert.match(migration, /FOR UPDATE/);
+  assert.match(migration, /SECURITY INVOKER/);
 });
