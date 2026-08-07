@@ -1,0 +1,20 @@
+AGENTS.md
+  h_7ea6129503670a 33-35
+CLAUDE.md
+  h_7ea6129503670a 10
+docs/architecture/future-roadmap.md
+  h_7ea6129503670a 17-18
+docs/architecture/overview.md
+  h_7ea6129503670a 26-31,37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "2f6534ce0e7bc297260e94b99bfd80b1b4b8a54b",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
