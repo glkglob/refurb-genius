@@ -1,0 +1,48 @@
+src/features/ai-design/presentation/redesign.provider.ts
+  h_7ea6129503670a 7,47-54,59
+src/features/ai-upload/application/analyzePhotos.test.ts
+  h_7ea6129503670a 3-7,10,23,27,35,79-99,101-115,119,121-180,193-201
+src/features/ai-upload/application/analyzePhotos.ts
+  h_7ea6129503670a 6-11,13-18,38-41,47-51
+src/features/ai-upload/application/photo-analysis-incident.regression.test.ts
+  h_7ea6129503670a 1-191
+src/features/ai-upload/application/retryWeakAnalyses.test.ts
+  h_7ea6129503670a 1-135
+src/features/ai-upload/application/retryWeakAnalyses.ts
+  h_7ea6129503670a 3-7,11-12,15,37-53,60,72-73
+src/features/ai-upload/domain/errors.ts
+  h_7ea6129503670a 1-42
+src/features/ai-upload/domain/index.ts
+  h_7ea6129503670a 30-42
+src/features/ai-upload/domain/rules.test.ts
+  h_7ea6129503670a 14-19,150-237
+src/features/ai-upload/domain/rules.ts
+  h_7ea6129503670a 7-14,16-25,172-300
+src/features/ai-upload/infrastructure/adapters/ai-vision.adapter.server.test.ts
+  h_7ea6129503670a 1-62
+src/features/ai-upload/infrastructure/adapters/ai-vision.adapter.server.ts
+  h_7ea6129503670a 15,230-236,245-246
+src/features/ai-upload/infrastructure/adapters/hf-vision.adapter.server.ts
+  h_7ea6129503670a 23,246-251,260
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.test.ts
+  h_7ea6129503670a 181,190-191
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts
+  h_7ea6129503670a 83-88,90-101,121-134,146,149-152,176,187-190,194-196
+src/features/ai-upload/presentation/serverFns.ts
+  h_7ea6129503670a 30-33
+src/features/ai-upload/presentation/serverFns.validation.test.ts
+  h_7ea6129503670a 1-38
+src/routes/_authed/projects.$id.analysis.tsx
+  h_7ea6129503670a 12-13,23-25,44-49,53,55,57,63-64,67-70,72-88,90-91,93-94,107-110,112-134,140-161,163-165,168-177,179,181-184,188-191,197,208,248,270-307,315-331,333-334,410-414,418-433,436-440,442-446,448,450-471
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "fa527d825d817754b125823f66caa79f4fe954ec",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
