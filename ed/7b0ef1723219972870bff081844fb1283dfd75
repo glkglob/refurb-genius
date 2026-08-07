@@ -1,0 +1,18 @@
+src/routes/_authed/-projects.$id.analysis.shell.test.ts
+  h_7ea6129503670a 1-105
+src/routes/_authed/projects.$id.analysis.tsx
+  h_7ea6129503670a 10,279,292-300,303-342,344-346,359-360,364-366,378-379,383-386,390-392,403-404,407-419,424-427,429-442,444-449,453-479,481-509,512-516,518-521,523-554
+tests/invariants/project-workflow-shell.invariant.test.ts
+  h_7ea6129503670a 62-78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "ed7b0ef1723219972870bff081844fb1283dfd75",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
