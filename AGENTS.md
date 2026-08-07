@@ -28,7 +28,9 @@ Implementations **MUST NOT** introduce conflicting workflow, Scope, provenance, 
 
 If implementation requires changing a locked IA-0 rule, **stop** and request architecture review rather than modifying it implicitly.
 
-IA-1 (Shared Project Workflow Shell) is the next authorised phase and **MUST NOT** begin until explicitly authorised.
+IA-1 (Shared Project Workflow Shell) is **Completed** on main.
+
+IA-2 (Canonical Next-Action Resolver) is the next authorised phase and **MUST NOT** begin until explicitly authorised.
 
 ---
 

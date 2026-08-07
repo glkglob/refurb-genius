@@ -12,7 +12,8 @@
 - ✅ Platform boundary: OpenAI, Supabase, PostHog via `src/platform/`
 - ✅ UI migration in progress: 17/46 components migrated to `@repo/ui`
 - 🔄 **Active**: UI migration (29 remaining); legacy shim cleanup; `export` + `gallery` slices
-- ✅ **IA-0** Workflow Authority Specification **LOCKED** — [workflow/ia-0-workflow-authority-spec.md](./workflow/ia-0-workflow-authority-spec.md) (governs IA-1–IA-10; next planned: IA-1 Shared Project Workflow Shell — **not started**)
+- ✅ **IA-0** Workflow Authority Specification **LOCKED** — [workflow/ia-0-workflow-authority-spec.md](./workflow/ia-0-workflow-authority-spec.md) (governs IA-1–IA-10)
+- ✅ **IA-1** Shared Project Workflow Shell **Completed** on main (five-stage shell; next planned: IA-2 Canonical Next-Action Resolver — **not started**)
 
 ---
 

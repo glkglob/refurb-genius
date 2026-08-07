@@ -23,14 +23,17 @@ this overview plus Phase 0 evidence as higher priority until those docs are upda
 
 ### IA programme (product workflow)
 
-| Phase    | Title                                                           | Status                    | Canonical specification                                                                |
-| -------- | --------------------------------------------------------------- | ------------------------- | -------------------------------------------------------------------------------------- |
-| **IA-0** | Workflow Authority, Provenance, State, Resolver, Design & Trust | **Completed / Locked**    | [workflow/ia-0-workflow-authority-spec.md](./workflow/ia-0-workflow-authority-spec.md) |
-| **IA-1** | Shared Project Workflow Shell                                   | **Planned (not started)** | Governed by IA-0                                                                       |
+| Phase    | Title                                                           | Status                 | Canonical specification                                                                |
+| -------- | --------------------------------------------------------------- | ---------------------- | -------------------------------------------------------------------------------------- |
+| **IA-0** | Workflow Authority, Provenance, State, Resolver, Design & Trust | **Completed / Locked** | [workflow/ia-0-workflow-authority-spec.md](./workflow/ia-0-workflow-authority-spec.md) |
+| **IA-1** | Shared Project Workflow Shell                                   | **Completed**          | Governed by IA-0; shared shell on main                                                 |
+| **IA-2** | Canonical Next-Action Resolver                                  | **Planned (next)**     | Governed by IA-0; **not started**                                                      |
 
 Controlling journey: **Photos → Analysis → Redesign → Estimate → Export**.
 
 IA-1 through IA-10 **MUST NOT** introduce conflicting workflow, Scope, provenance, resolver, entitlement, navigation, design or trust semantics. Material changes to locked IA-0 rules require architecture review.
+
+**IA-2 MUST NOT begin until explicitly authorised.**
 
 ---
 
