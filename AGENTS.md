@@ -32,7 +32,9 @@ IA-1 (Shared Project Workflow Shell) is **Completed** on main.
 
 IA-2 (Canonical Next-Action Resolver) is **Completed** on main (`resolveProjectNextAction` in Projects domain).
 
-IA-3 (Photos → Analysis Continuity) is **Planned / Next** and **MUST NOT** begin until explicitly authorised.
+IA-3 (Photos → Analysis Continuity) is **Completed** on main (durable photo catalogue + Analysis currentness + resolver adapters).
+
+IA-4 (First-Class Redesign) is **Planned / Next** and **MUST NOT** begin until explicitly authorised.
 
 ---
 

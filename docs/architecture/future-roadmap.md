@@ -15,7 +15,8 @@
 - ✅ **IA-0** Workflow Authority Specification **LOCKED v1.0.1** — [workflow/ia-0-workflow-authority-spec.md](./workflow/ia-0-workflow-authority-spec.md) (governs IA-1–IA-10; IA-0-CL1 clarifies `reconcile_scope` + `view_stage_progress`)
 - ✅ **IA-1** Shared Project Workflow Shell **Completed** on main (five-stage shell)
 - ✅ **IA-2** Canonical Next-Action Resolver **Completed** on main (pure `resolveProjectNextAction`; UI consumer migration remains IA-6)
-- 🔜 **IA-3** Photos → Analysis Continuity — **Planned / Next** (**not started**)
+- ✅ **IA-3** Photos → Analysis Continuity **Completed** on main (durable photo catalogue currentness; Analysis publication safety; resolver adapters; shell status consistency)
+- 🔜 **IA-4** First-Class Redesign — **Planned / Next** (**not started**)
 
 ---
 
