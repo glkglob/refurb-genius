@@ -1,0 +1,28 @@
+packages/supabase/src/database.types.ts
+  h_7ea6129503670a 1338,1343,1352,1357,1366,1371,2026-2042
+src/features/ai-design/domain/redesignAuthority.test.ts
+  h_7ea6129503670a 26,35-36,41,44-68
+src/features/ai-design/infrastructure/repositories/redesign-concepts.repository.r1.test.ts
+  h_7ea6129503670a 1-154
+src/features/ai-design/infrastructure/repositories/redesign-concepts.repository.server.ts
+  h_7ea6129503670a 2,4-6,24-25,29-32,35-41,43-45,53-56,59-60,76-86,92-93,105,121-124,174-177,185-188,190-201,204-207,210-218
+supabase/migrations/20260807220000_ia4_atomic_redesign_selection.sql
+  h_7ea6129503670a 1-184
+supabase/tests/database/select_project_redesign_concept.test.sql
+  h_7ea6129503670a 1-77
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 80
+tests/invariants/project-first-class-redesign.invariant.test.ts
+  h_7ea6129503670a 50,55-57,59-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "ed0d421c02f562fa0a83c096c428a10b4fce79ee",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
