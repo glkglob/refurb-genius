@@ -1,6 +1,6 @@
--- IA-4-R1 — select_project_redesign_concept + uniqueness behavioral suite
+-- IA-4-R2 — select/replace redesign authority + write-path seal suite
 BEGIN;
-SELECT plan(14);
+SELECT plan(22);
 
 SELECT has_function(
   'public',
@@ -9,14 +9,31 @@ SELECT has_function(
   'select_project_redesign_concept exists'
 );
 
+SELECT has_function(
+  'public',
+  'replace_project_redesign_candidates',
+  ARRAY['uuid', 'jsonb'],
+  'replace_project_redesign_candidates exists'
+);
+
 SELECT is(
   (
     SELECT prosecdef
     FROM pg_proc
     WHERE oid = 'public.select_project_redesign_concept(uuid,uuid)'::regprocedure
   ),
-  false,
-  'select_project_redesign_concept is SECURITY INVOKER'
+  true,
+  'select_project_redesign_concept is SECURITY DEFINER'
+);
+
+SELECT is(
+  (
+    SELECT prosecdef
+    FROM pg_proc
+    WHERE oid = 'public.replace_project_redesign_candidates(uuid,jsonb)'::regprocedure
+  ),
+  true,
+  'replace_project_redesign_candidates is SECURITY DEFINER'
 );
 
 SELECT ok(
@@ -34,6 +51,16 @@ SELECT ok(
   'authenticated can EXECUTE select_project_redesign_concept'
 );
 
+SELECT ok(
+  NOT has_function_privilege('anon', 'public.replace_project_redesign_candidates(uuid,jsonb)', 'EXECUTE'),
+  'anon cannot EXECUTE replace_project_redesign_candidates'
+);
+
+SELECT ok(
+  has_function_privilege('authenticated', 'public.replace_project_redesign_candidates(uuid,jsonb)', 'EXECUTE'),
+  'authenticated can EXECUTE replace_project_redesign_candidates'
+);
+
 SELECT has_column('public', 'redesign_concepts', 'analysis_identity', 'analysis_identity column exists');
 SELECT has_column('public', 'redesign_concepts', 'is_selected', 'is_selected column exists');
 
@@ -47,7 +74,6 @@ SELECT ok(
   'partial unique index redesign_concepts_one_selected_per_project exists'
 );
 
--- Index definition is partial on is_selected
 SELECT ok(
   (
     SELECT indexdef
@@ -58,20 +84,56 @@ SELECT ok(
   'unique index is partial on is_selected'
 );
 
--- search_path fixed on function
 SELECT ok(
   (
     SELECT proconfig::text
     FROM pg_proc
     WHERE oid = 'public.select_project_redesign_concept(uuid,uuid)'::regprocedure
   ) ILIKE '%search_path%',
-  'function sets search_path'
+  'select function sets search_path'
 );
 
-SELECT pass('IA-4-R1 select_project_redesign_concept security surface verified');
-SELECT pass('concurrency dual-selection prevented by project FOR UPDATE + unique index');
-SELECT pass('rollback: failed select leaves prior selection (transactional function body)');
-SELECT pass('direct dual is_selected=true rejected by partial unique index');
+SELECT ok(
+  (
+    SELECT proconfig::text
+    FROM pg_proc
+    WHERE oid = 'public.replace_project_redesign_candidates(uuid,jsonb)'::regprocedure
+  ) ILIKE '%search_path%',
+  'replace function sets search_path'
+);
+
+-- Privilege seal: authenticated must not have direct DML
+SELECT ok(
+  NOT has_table_privilege('authenticated', 'public.redesign_concepts', 'INSERT'),
+  'authenticated cannot INSERT redesign_concepts'
+);
+
+SELECT ok(
+  NOT has_table_privilege('authenticated', 'public.redesign_concepts', 'UPDATE'),
+  'authenticated cannot UPDATE redesign_concepts'
+);
+
+SELECT ok(
+  NOT has_table_privilege('authenticated', 'public.redesign_concepts', 'DELETE'),
+  'authenticated cannot DELETE redesign_concepts'
+);
+
+SELECT ok(
+  has_table_privilege('authenticated', 'public.redesign_concepts', 'SELECT'),
+  'authenticated can SELECT redesign_concepts'
+);
+
+SELECT ok(
+  NOT has_table_privilege('anon', 'public.redesign_concepts', 'UPDATE'),
+  'anon cannot UPDATE redesign_concepts'
+);
+
+SELECT ok(
+  NOT has_table_privilege('anon', 'public.redesign_concepts', 'INSERT'),
+  'anon cannot INSERT redesign_concepts'
+);
+
+SELECT pass('IA-4-R2 write-path seal security surface verified');
 
 SELECT * FROM finish();
 ROLLBACK;

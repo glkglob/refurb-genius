@@ -78,6 +78,7 @@ export const MIGRATION_FILENAMES = [
   "20260807120000_replace_project_room_analyses.sql",
   "20260807144000_fix_room_analysis_array_persistence.sql",
   "20260807220000_ia4_atomic_redesign_selection.sql",
+  "20260807230000_ia4_redesign_authority_write_path_seal.sql",
 ] as const;
 
 export const MIGRATION_TIMESTAMP_PATTERN = /^\d{14}_[\w-]+\.sql$/;

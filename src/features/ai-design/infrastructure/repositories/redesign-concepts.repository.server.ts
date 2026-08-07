@@ -1,9 +1,11 @@
 /**
- * IA-4-R1 — Server-only redesign_concepts persistence.
+ * IA-4-R2 — Server-only redesign_concepts persistence.
  *
  * Canonical authority columns: analysis_identity, is_selected.
  * Selection writes ONLY via select_project_redesign_concept (atomic RPC).
+ * Generation writes ONLY via replace_project_redesign_candidates (sealed RPC).
  * Description JSON remains concept presentation payload (not selection authority).
+ * Direct authenticated DML on authority columns is revoked at the database.
  */
 import "@tanstack/react-start/server-only";
 
@@ -69,28 +71,24 @@ function safeJson(text: string): unknown {
   }
 }
 
-function conceptToRowFields(
+function conceptToPresentationFields(
   concept: RedesignConcept,
   analysisIdentity: string,
-  isSelected: boolean,
 ): {
   title: string;
   description: string;
   style: string;
   image_url: string | null;
-  analysis_identity: string;
-  is_selected: boolean;
 } {
-  // Description still holds presentation payload for UI; isSelected forced false in JSON
-  // so JSON cannot override column authority.
+  // Description holds presentation payload; isSelected forced false in JSON so
+  // JSON cannot claim selection authority. analysisIdentity in JSON is
+  // presentation only — RPC overwrites column from room_analyses.
   const payload = conceptToPayload(concept, analysisIdentity, false);
   return {
     title: concept.tagline.slice(0, 200) || concept.style,
     description: JSON.stringify(payload),
     style: concept.style,
     image_url: concept.afterImageUrl ?? null,
-    analysis_identity: analysisIdentity,
-    is_selected: isSelected,
   };
 }
 
@@ -120,7 +118,8 @@ export async function listDurableRedesignConcepts(
 
 /**
  * Replace non-selected candidates with a new generation batch.
- * Preserves selected row when analysis_identity matches (same Analysis).
+ * RPC preserves selected row when analysis_identity matches current Analysis.
+ * analysis_identity is derived inside the database from durable room_analyses.
  */
 export async function replaceRedesignCandidates(input: {
   projectId: string;
@@ -131,41 +130,48 @@ export async function replaceRedesignCandidates(input: {
   const { createSupabaseServerClient } = await import("@/serverFns/auth.server");
   const supabase = await createSupabaseServerClient();
 
-  const existing = await listDurableRedesignConcepts(input.projectId);
-  const preserved = existing.find(
-    (c) => c.isSelected && c.analysisIdentity === input.analysisIdentity,
-  );
+  // Presentation-only payload. Server RPC derives authority columns from
+  // room_analyses. input.analysisIdentity is mirrored into description JSON
+  // for presentation only and is not trusted for column authority.
+  void input.userId;
 
-  if (preserved) {
-    const { error: delErr } = await supabase
-      .from("redesign_concepts")
-      .delete()
-      .eq("project_id", input.projectId)
-      .neq("id", preserved.id);
-    if (delErr) throw new Error(delErr.message || "Failed to clear redesign candidates");
-  } else {
-    const { error: delAll } = await supabase
-      .from("redesign_concepts")
-      .delete()
-      .eq("project_id", input.projectId);
-    if (delAll) throw new Error(delAll.message || "Failed to clear redesign candidates");
+  const p_concepts = input.concepts.map((concept) => {
+    const fields = conceptToPresentationFields(concept, input.analysisIdentity);
+    return {
+      title: fields.title,
+      description: fields.description,
+      style: fields.style,
+      image_url: fields.image_url,
+    };
+  });
+
+  const { data, error } = await supabase.rpc("replace_project_redesign_candidates", {
+    p_project_id: input.projectId,
+    p_concepts,
+  });
+
+  if (error) {
+    const msg = error.message ?? "";
+    if (/redesign_requires_analysis_identity/i.test(msg)) {
+      throw new Error("Cannot generate Redesign without durable Analysis photo identity.");
+    }
+    if (/project_not_authorised|42501/i.test(msg)) {
+      throw new Error("Not authorised for this project");
+    }
+    if (/not_authenticated|28000/i.test(msg)) {
+      throw new Error("Not authenticated");
+    }
+    throw new Error(msg || "Failed to persist redesign candidates");
   }
 
-  const stylesToSkip = new Set(preserved ? [preserved.style] : []);
-  const rows = input.concepts
-    .filter((c) => !stylesToSkip.has(c.style))
-    .map((concept) => {
-      const fields = conceptToRowFields(concept, input.analysisIdentity, false);
-      return {
-        project_id: input.projectId,
-        user_id: input.userId,
-        ...fields,
-      };
-    });
-
+  const rows = (Array.isArray(data) ? data : data ? [data] : []) as LiveRow[];
   if (rows.length > 0) {
-    const { error: insErr } = await supabase.from("redesign_concepts").insert(rows as never);
-    if (insErr) throw new Error(insErr.message || "Failed to persist redesign candidates");
+    const out: DurableRedesignConcept[] = [];
+    for (const row of rows) {
+      const c = rowToConcept(row);
+      if (c) out.push(c);
+    }
+    if (out.length > 0) return out;
   }
 
   return listDurableRedesignConcepts(input.projectId);

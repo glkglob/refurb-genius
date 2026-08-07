@@ -63,5 +63,24 @@ test("IA-4-R1 selection uses atomic RPC and canonical columns", () => {
   assert.match(migration, /redesign_concepts_one_selected_per_project/);
   assert.match(migration, /select_project_redesign_concept/);
   assert.match(migration, /FOR UPDATE/);
-  assert.match(migration, /SECURITY INVOKER/);
+});
+
+test("IA-4-R2 write path sealed via DEFINER RPCs and DML revoke", () => {
+  const repo = read(
+    "src/features/ai-design/infrastructure/repositories/redesign-concepts.repository.server.ts",
+  );
+  assert.match(repo, /replace_project_redesign_candidates/);
+  assert.match(repo, /select_project_redesign_concept/);
+  // Generation must not direct-insert authority rows after seal.
+  assert.doesNotMatch(repo, /\.from\("redesign_concepts"\)\.insert/);
+  assert.doesNotMatch(repo, /\.from\("redesign_concepts"\)\s*\n?\s*\.delete/);
+
+  const seal = read(
+    "supabase/migrations/20260807230000_ia4_redesign_authority_write_path_seal.sql",
+  );
+  assert.match(seal, /SECURITY DEFINER/);
+  assert.match(seal, /replace_project_redesign_candidates/);
+  assert.match(seal, /REVOKE INSERT, UPDATE, DELETE, TRUNCATE/);
+  assert.match(seal, /select_project_redesign_concept/);
+  assert.match(seal, /GRANT SELECT ON TABLE public\.redesign_concepts TO authenticated/);
 });

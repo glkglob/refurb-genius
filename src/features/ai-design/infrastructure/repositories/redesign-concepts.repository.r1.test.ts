@@ -1,5 +1,5 @@
 /**
- * IA-4-R1 — repository uses atomic RPC; columns override JSON for authority.
+ * IA-4-R1/R2 — repository uses sealed RPCs; columns override JSON for authority.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -7,7 +7,7 @@ vi.mock("@/serverFns/auth.server", () => ({
   createSupabaseServerClient: vi.fn(),
 }));
 
-describe("IA-4-R1 selectDurableRedesignConcept", () => {
+describe("IA-4 redesign repository write authority", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
@@ -150,5 +150,67 @@ describe("IA-4-R1 selectDurableRedesignConcept", () => {
         conceptId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1",
       }),
     ).rejects.toThrow(/not found/i);
+  });
+
+  it("replaceRedesignCandidates uses sealed replace RPC only", async () => {
+    const rpcMock = vi.fn(async () => ({
+      data: [
+        {
+          id: "c1",
+          style: "Modern",
+          title: "Clean",
+          description: JSON.stringify({
+            tagline: "Clean",
+            palette: [],
+            flooring: "Oak",
+            lighting: "Warm",
+            furniture: "Sofa",
+            afterGradient: "g",
+            analysisIdentity: "p1",
+            isSelected: false,
+          }),
+          image_url: null,
+          analysis_identity: "p1",
+          is_selected: false,
+        },
+      ],
+      error: null,
+    }));
+
+    const { createSupabaseServerClient: create } = await import("@/serverFns/auth.server");
+    vi.mocked(create).mockResolvedValue({
+      rpc: rpcMock,
+      from: () => {
+        throw new Error("direct table DML must not be used for generation");
+      },
+    } as never);
+
+    const { replaceRedesignCandidates } = await import("./redesign-concepts.repository.server");
+    const result = await replaceRedesignCandidates({
+      projectId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+      userId: "user-1",
+      analysisIdentity: "p1",
+      concepts: [
+        {
+          style: "Modern",
+          tagline: "Clean",
+          palette: [],
+          flooring: "Oak",
+          lighting: "Warm",
+          furniture: "Sofa",
+          afterGradient: "g",
+        },
+      ],
+    });
+
+    expect(rpcMock).toHaveBeenCalledWith("replace_project_redesign_candidates", {
+      p_project_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+      p_concepts: expect.arrayContaining([
+        expect.objectContaining({ style: "Modern", title: "Clean" }),
+      ]),
+    });
+    expect(result).toHaveLength(1);
+    expect(result[0]?.isSelected).toBe(false);
+    expect(result[0]?.analysisIdentity).toBe("p1");
   });
 });
