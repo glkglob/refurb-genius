@@ -1,0 +1,16 @@
+supabase/templates/magic-link.html
+  h_7ea6129503670a 26,36
+tests/invariants/auth-magic-link-template.invariant.test.ts
+  h_7ea6129503670a 2-5,22-32,52-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "1a8789415c47f5c3ab851880c668bcb72bb5964f",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
