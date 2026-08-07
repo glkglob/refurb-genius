@@ -193,22 +193,46 @@ export function isMockOnlyAnalysisSet(analyses: RoomAnalysis[]): boolean {
 type CataloguePhotoIdentity = Pick<AnalysisPhotoSource, "id" | "url" | "name">;
 
 /**
- * Stable catalogue identity fingerprint for route invalidation.
- * Changes when any source photo id/url changes (including same-count replacements).
+ * Durable current photo-catalogue identity (IA-0 / IA-3).
+ *
+ * Deterministic properties:
+ * - same durable photo id set → same identity (order-independent);
+ * - add / remove / replace of durable photo ids changes identity;
+ * - signed URL / display-name changes MUST NOT change identity.
+ *
+ * Implementation: sorted durable photo UUIDs joined by unit separator.
  */
-export function catalogueIdentityFingerprint(
-  catalogue: Array<Pick<AnalysisPhotoSource, "id" | "url">>,
+export function durablePhotoCatalogueIdentity(
+  catalogue: Array<Pick<AnalysisPhotoSource, "id">>,
 ): string {
   return [...catalogue]
-    .map((p) => `${p.id}\u0000${p.url ?? ""}`)
+    .map((p) => p.id)
+    .filter((id) => typeof id === "string" && id.length > 0)
     .sort()
     .join("\u0001");
 }
 
 /**
- * Shared production authority guard.
- * Valid only when non-empty, no mock, every row has durable photo_id, and
- * photo_id set exactly matches the current catalogue ids.
+ * Stable catalogue identity fingerprint for route/cache invalidation.
+ * Alias of durablePhotoCatalogueIdentity (IA-3: durable ids only).
+ */
+export function catalogueIdentityFingerprint(
+  catalogue: Array<Pick<AnalysisPhotoSource, "id" | "url">>,
+): string {
+  return durablePhotoCatalogueIdentity(catalogue);
+}
+
+/**
+ * Shared production authority guard (IA-3 currentness).
+ *
+ * analysisCurrent =
+ *   non-empty authoritative analyses
+ *   AND no mock rows
+ *   AND every row has durable photo_id
+ *   AND photo_id set exactly equals current catalogue id set
+ *
+ * Signed URL / name drift alone MUST NOT invalidate currentness.
+ * Existence and legacy analysis_done are not sufficient.
  */
 export function isProductionValidAnalysisSet(
   analyses: RoomAnalysis[],
@@ -217,6 +241,8 @@ export function isProductionValidAnalysisSet(
   if (analyses.length === 0 || catalogue.length === 0) return false;
   if (hasMockAnalysis(analyses)) return false;
   if (analyses.some((a) => !a.photo_id || a.source === "mock")) return false;
+  // Only durable AI/fallback sources may be current production authority.
+  if (analyses.some((a) => a.source !== "ai" && a.source !== "fallback")) return false;
 
   const catIds = new Set(catalogue.map((p) => p.id));
   if (catIds.size !== catalogue.length) return false;
@@ -227,15 +253,6 @@ export function isProductionValidAnalysisSet(
 
   for (const id of catIds) {
     if (!analysisIds.has(id)) return false;
-  }
-
-  // URL/name must match the catalogue row for each photo_id when catalogue provides them.
-  const byId = new Map(catalogue.map((p) => [p.id, p]));
-  for (const a of analyses) {
-    const photo = byId.get(a.photo_id as string);
-    if (!photo) return false;
-    if (photo.url && a.photo_url && photo.url !== a.photo_url) return false;
-    if (photo.name && a.photo_name && photo.name !== a.photo_name) return false;
   }
   return true;
 }

@@ -43,4 +43,27 @@ describe("buildProjectPipelineSteps (five-stage convergence)", () => {
     expect(steps.find((s) => s.id === "photos")?.isActive).toBe(true);
     expect(steps.filter((s) => s.isActive)).toHaveLength(1);
   });
+
+  it("IA-3-R1: analysisHasFallback alone does not mark Analysis Needs attention", () => {
+    const steps = buildProjectPipelineSteps({
+      photoCount: 1,
+      analysisComplete: true,
+      analysisHasFallback: true,
+      estimateComplete: false,
+      current: "analysis",
+    });
+    expect(steps.find((s) => s.id === "analysis")?.statusLabel).toBe("Complete");
+    expect(steps.find((s) => s.id === "analysis")?.statusLabel).not.toBe("Needs attention");
+  });
+
+  it("IA-3-R1: explicit analysisNeedsAttention marks non-current recovery", () => {
+    const steps = buildProjectPipelineSteps({
+      photoCount: 2,
+      analysisComplete: true,
+      analysisNeedsAttention: true,
+      estimateComplete: false,
+      current: "analysis",
+    });
+    expect(steps.find((s) => s.id === "analysis")?.statusLabel).toBe("Needs attention");
+  });
 });

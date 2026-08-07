@@ -52,3 +52,13 @@ export {
   type ProjectNextAction,
   type ResolveProjectNextActionInput,
 } from "./resolveProjectNextAction";
+
+export {
+  analysisCurrencyFromEvidence,
+  analysisShellFlagsFromCurrency,
+  buildPhotosAnalysisWorkflowState,
+  photosCurrencyFromEvidence,
+  type AnalysisAuthorityEvidence,
+  type DurablePhotoIdentity,
+  type PhotosAnalysisAdapterInput,
+} from "./photosAnalysisWorkflowAdapter";

@@ -16,7 +16,6 @@ import {
   runPhotoAnalysis,
   retryWeakPhotoAnalyses,
   groupAnalysesByRoom,
-  hasFallbackResults,
   countNeedingReview,
   isProductionValidAnalysisSet,
   isStaleAnalysisRelativeToCatalogue,
@@ -36,6 +35,9 @@ import {
   useSetProjectStage,
   ProjectWorkflowShell,
   progressFromProjectFlags,
+  analysisShellFlagsFromCurrency,
+  buildPhotosAnalysisWorkflowState,
+  resolveProjectNextAction,
 } from "@/features/projects";
 import { trackEvent } from "@/lib/analytics";
 
@@ -78,6 +80,26 @@ function AnalysisPage() {
     [results, catalogue],
   );
 
+  // IA-3: Photos/Analysis currency → IA-2 resolver (no second next-action algorithm).
+  const analysisWorkflow = useMemo(
+    () =>
+      buildPhotosAnalysisWorkflowState({
+        photos: catalogue.map((p) => ({ id: p.id })),
+        analyses: results.map((r) => ({ photoId: r.photo_id, source: r.source })),
+        analysisOperationRunning: analysing || uiState === "loading",
+      }),
+    [catalogue, results, analysing, uiState],
+  );
+  const analysisNextAction = useMemo(
+    () => resolveProjectNextAction({ projectId: id, workflow: analysisWorkflow }),
+    [id, analysisWorkflow],
+  );
+  // IA-3-R1: shell Analysis status follows currency — not fallback/quality review.
+  const analysisShellFlags = useMemo(
+    () => analysisShellFlagsFromCurrency(analysisWorkflow.analysis.currency),
+    [analysisWorkflow.analysis.currency],
+  );
+
   const loadRedesign = useCallback((projectId: string) => {
     setConceptsLoading(true);
     setRedesignError(null);
@@ -100,7 +122,9 @@ function AnalysisPage() {
     (r: RoomAnalysis[]) => {
       // Durable success only: never set analysis_done / redesign from invalid authority.
       if (!isProductionValidAnalysisSet(r, catalogue)) {
-        setResults([]);
+        // Keep rows as non-current evidence for shell Needs attention + update_analysis
+        // (IA-3-R1). UI still uses stale_mock presentation, not ready cards.
+        setResults(catalogue.length === 0 ? [] : r);
         setAnalysing(false);
         setUiState(catalogue.length === 0 ? "no_photos" : "stale_mock");
         return;
@@ -194,7 +218,8 @@ function AnalysisPage() {
         if (persisted?.length && isStaleAnalysisRelativeToCatalogue(persisted, catalogue)) {
           // Do not present mock/stale rows as completed AI work.
           // Do not mark analysis_done. Do not generate redesign from mocks.
-          setResults([]);
+          // Keep rows so adapter currency stays non_current (IA-3-R1 shell Needs attention).
+          setResults(persisted);
           setUiState("stale_mock");
           return;
         }
@@ -231,7 +256,7 @@ function AnalysisPage() {
     try {
       const fresh = await retryWeakPhotoAnalyses({ projectId: id });
       if (!isProductionValidAnalysisSet(fresh, catalogue)) {
-        setResults([]);
+        setResults(fresh);
         setUiState("stale_mock");
         return;
       }
@@ -309,11 +334,10 @@ function AnalysisPage() {
   const shellProgress = {
     ...progressFromProjectFlags(project),
     photoCount,
-    analysisDone: analysisIsValid || project.analysis_done,
-    analysisNeedsAttention:
-      uiState === "ready"
-        ? hasFallbackResults(results) || needsReviewCount > 0
-        : Boolean(project.analysis_done && (uiState === "stale_mock" || uiState === "error")),
+    // IA-3-R1: Complete only when current; Needs attention only when non_current.
+    // Fallback / low-confidence remain advisory in-page — never shell stage status.
+    analysisDone: analysisShellFlags.analysisDone,
+    analysisNeedsAttention: analysisShellFlags.analysisNeedsAttention,
   };
 
   const analysisShell = (opts: {
@@ -371,7 +395,12 @@ function AnalysisPage() {
           action={
             <Button onClick={() => void runFreshAnalysis()} disabled={analysing || retrying}>
               <Sparkles className="mr-1 h-4 w-4" />
-              {analysing ? "Analysing…" : "Analyse uploaded photos"}
+              {analysing
+                ? "Analysing…"
+                : analysisNextAction.actionKind === "update_analysis" ||
+                    analysisNextAction.actionKind === "analyse_photos"
+                  ? analysisNextAction.label
+                  : "Analyse uploaded photos"}
             </Button>
           }
         />
@@ -414,16 +443,16 @@ function AnalysisPage() {
             Re-analyse weak photos
           </Button>
         ) : null}
-        {analysisIsValid ? (
+        {analysisIsValid && analysisNextAction.actionKind === "create_redesign" ? (
           <>
             {/*
-                IA-1 transitional: do not establish permanent Analysis → Estimate.
-                Redesign remains stage 3; first-class /redesign is IA-4.
-                Primary continuation surfaces Redesign (embedded here).
+                IA-3: primary continuation from resolver (create_redesign).
+                Transitional Redesign surface until IA-4 — never skip to Estimate.
               */}
             <Button asChild>
               <Link to="/projects/$id/analysis" params={{ id }} search={{ focus: "redesign" }}>
-                Continue to Redesign <ArrowRight className="ml-1 h-4 w-4" />
+                {analysisNextAction.label}
+                <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
             <Button asChild variant="outline">
@@ -432,6 +461,13 @@ function AnalysisPage() {
               </Link>
             </Button>
           </>
+        ) : analysisIsValid && analysisNextAction.actionKind === "select_redesign" ? (
+          <Button asChild>
+            <Link to="/projects/$id/analysis" params={{ id }} search={{ focus: "redesign" }}>
+              {analysisNextAction.label}
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
         ) : null}
       </div>
     ),

@@ -60,7 +60,16 @@ function toPipelineStep(stage: ProjectWorkflowStagePresentation): PipelineStep {
 export function buildProjectPipelineSteps(input: {
   photoCount: number;
   analysisComplete: boolean;
+  /**
+   * @deprecated IA-3-R1 — fallback/quality is advisory, not workflow Needs attention.
+   * Ignored for stage status. Prefer `analysisNeedsAttention` for non-current recovery.
+   */
   analysisHasFallback?: boolean;
+  /**
+   * True only when Analysis is durable but non-current (stale / mock / incomplete).
+   * Must not be derived from fallback or low-confidence alone when Analysis is current.
+   */
+  analysisNeedsAttention?: boolean;
   estimateComplete: boolean;
   reportComplete?: boolean;
   /** Active surface — drives active-stage presentation. */
@@ -72,7 +81,8 @@ export function buildProjectPipelineSteps(input: {
     estimateDone: input.estimateComplete,
     reportDone: Boolean(input.reportComplete),
     photoCount: input.photoCount,
-    analysisNeedsAttention: Boolean(input.analysisHasFallback),
+    // IA-3-R1: never map analysisHasFallback → Needs attention (quality ≠ stale).
+    analysisNeedsAttention: Boolean(input.analysisNeedsAttention),
   };
 
   const route: ProjectWorkflowRouteContext = (() => {
