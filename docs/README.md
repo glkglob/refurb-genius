@@ -10,26 +10,27 @@
 
 ## Architecture
 
-| Document                                                                     | Description                                                |
-| ---------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| [Architecture Overview](./architecture/overview.md)                          | **Authoritative** platform model, ownership, freezes, enforcement honesty |
-| [ADR index](./architecture/adr/README.md)                                    | ADR process (immutable, append-only) and catalogue         |
-| [ADR 0001 — Rules-first governance](./architecture/adr/0001-adopt-rules-first-incremental-architecture-governance.md) | Document → register → enforce → baseline → migrate |
-| [Phase 0 inventory](./architecture/phase-0-inventory-report.md)              | Verified tree, dependencies, Supabase/AI maps (evidence)   |
-| [Architecture registry](../tests/invariants/config/README.md)                | Machine-readable ownership / dependency / freeze metadata  |
-| [Feature-Slice Architecture](./architecture/FEATURE_SLICE.md)                | Vertical slices, layering rules, migration state           |
-| [Platform Boundary](./architecture/platform-boundary.md)                     | Vendor SDK seams (OpenAI, Supabase, PostHog)               |
-| [Dependency Rules](./architecture/dependency-rules.md)                       | One-way import hierarchy between packages                  |
-| [Package Boundaries](./architecture/package-boundaries.md)                   | What each package owns                                     |
-| [Runtime Boundaries](./architecture/runtime-boundaries.md)                   | What cannot be moved or extracted                          |
-| [Routes](./architecture/routes.md)                                           | Route map — public, auth, authenticated                    |
-| [AI Platform](./architecture/ai-platform.md)                                 | Pure TS + OpenAI serverFns pipeline                        |
-| [Analysis Paths](./architecture/analysis-paths.md)                           | Photo analysis and AI estimate flows                       |
-| [Migration History](./architecture/migration-history.md)                     | Monorepo extraction phases 1–4                             |
-| [Future Roadmap](./architecture/future-roadmap.md)                           | Upcoming phases (includes Phase 4.5 stabilization summary) |
-| [Platform Debt](./architecture/platform-debt.md)                             | Known trade-offs and resolution paths                      |
-| [Refurb Estimator Import](./architecture/refurb-estimator-import.md)         | Pure engines ported from glkglob/refurb-estimator          |
-| [Phase 5C Runtime Validation](./architecture/phase-5c-runtime-validation.md) | Stress-test results and operational risks                  |
+| Document                                                                                                              | Description                                                                                |
+| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| [Architecture Overview](./architecture/overview.md)                                                                   | **Authoritative** platform model, ownership, freezes, enforcement honesty                  |
+| [IA-0 Workflow Authority Spec](./architecture/workflow/ia-0-workflow-authority-spec.md)                               | **LOCKED** — workflow authority, provenance, resolver, design & trust (governs IA-1–IA-10) |
+| [ADR index](./architecture/adr/README.md)                                                                             | ADR process (immutable, append-only) and catalogue                                         |
+| [ADR 0001 — Rules-first governance](./architecture/adr/0001-adopt-rules-first-incremental-architecture-governance.md) | Document → register → enforce → baseline → migrate                                         |
+| [Phase 0 inventory](./architecture/phase-0-inventory-report.md)                                                       | Verified tree, dependencies, Supabase/AI maps (evidence)                                   |
+| [Architecture registry](../tests/invariants/config/README.md)                                                         | Machine-readable ownership / dependency / freeze metadata                                  |
+| [Feature-Slice Architecture](./architecture/FEATURE_SLICE.md)                                                         | Vertical slices, layering rules, migration state                                           |
+| [Platform Boundary](./architecture/platform-boundary.md)                                                              | Vendor SDK seams (OpenAI, Supabase, PostHog)                                               |
+| [Dependency Rules](./architecture/dependency-rules.md)                                                                | One-way import hierarchy between packages                                                  |
+| [Package Boundaries](./architecture/package-boundaries.md)                                                            | What each package owns                                                                     |
+| [Runtime Boundaries](./architecture/runtime-boundaries.md)                                                            | What cannot be moved or extracted                                                          |
+| [Routes](./architecture/routes.md)                                                                                    | Route map — public, auth, authenticated                                                    |
+| [AI Platform](./architecture/ai-platform.md)                                                                          | Pure TS + OpenAI serverFns pipeline                                                        |
+| [Analysis Paths](./architecture/analysis-paths.md)                                                                    | Photo analysis and AI estimate flows                                                       |
+| [Migration History](./architecture/migration-history.md)                                                              | Monorepo extraction phases 1–4                                                             |
+| [Future Roadmap](./architecture/future-roadmap.md)                                                                    | Upcoming phases (includes Phase 4.5 stabilization summary)                                 |
+| [Platform Debt](./architecture/platform-debt.md)                                                                      | Known trade-offs and resolution paths                                                      |
+| [Refurb Estimator Import](./architecture/refurb-estimator-import.md)                                                  | Pure engines ported from glkglob/refurb-estimator                                          |
+| [Phase 5C Runtime Validation](./architecture/phase-5c-runtime-validation.md)                                          | Stress-test results and operational risks                                                  |
 
 ## Operations
 

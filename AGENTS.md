@@ -14,6 +14,24 @@ Refurb Genius is a property refurbishment estimation platform for UK property in
 
 ---
 
+## IA workflow programme
+
+For IA-1 through IA-10, read and follow:
+
+`docs/architecture/workflow/ia-0-workflow-authority-spec.md`
+
+IA-0 is the **LOCKED** canonical workflow contract (Version 1.0).
+
+Controlling journey: **Photos → Analysis → Redesign → Estimate → Export**.
+
+Implementations **MUST NOT** introduce conflicting workflow, Scope, provenance, resolver, entitlement or navigation semantics.
+
+If implementation requires changing a locked IA-0 rule, **stop** and request architecture review rather than modifying it implicitly.
+
+IA-1 (Shared Project Workflow Shell) is the next authorised phase and **MUST NOT** begin until explicitly authorised.
+
+---
+
 ## Tech Stack
 
 | Layer          | Technology                                               |
