@@ -75,7 +75,8 @@ describe("IA-1-R1 Analysis shell continuity", () => {
 
   it("keeps ready path inside ProjectWorkflowShell", () => {
     expect(SRC).toMatch(/Room-by-room condition assessment/);
-    expect(SRC).toMatch(/Continue to Redesign/);
+    // IA-3: primary CTA label comes from resolver (create_redesign → Create Redesign).
+    expect(SRC).toMatch(/create_redesign|Create Redesign|Continue to Redesign/);
     expect(SRC).toMatch(/ProjectWorkflowShell/);
   });
 

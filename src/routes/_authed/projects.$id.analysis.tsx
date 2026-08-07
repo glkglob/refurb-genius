@@ -36,6 +36,8 @@ import {
   useSetProjectStage,
   ProjectWorkflowShell,
   progressFromProjectFlags,
+  buildPhotosAnalysisWorkflowState,
+  resolveProjectNextAction,
 } from "@/features/projects";
 import { trackEvent } from "@/lib/analytics";
 
@@ -77,6 +79,16 @@ function AnalysisPage() {
     () => isProductionValidAnalysisSet(results, catalogue),
     [results, catalogue],
   );
+
+  // IA-3: Photos/Analysis currency → IA-2 resolver (no second next-action algorithm).
+  const analysisNextAction = useMemo(() => {
+    const workflow = buildPhotosAnalysisWorkflowState({
+      photos: catalogue.map((p) => ({ id: p.id })),
+      analyses: results.map((r) => ({ photoId: r.photo_id, source: r.source })),
+      analysisOperationRunning: analysing || uiState === "loading",
+    });
+    return resolveProjectNextAction({ projectId: id, workflow });
+  }, [catalogue, results, analysing, uiState, id]);
 
   const loadRedesign = useCallback((projectId: string) => {
     setConceptsLoading(true);
@@ -309,11 +321,13 @@ function AnalysisPage() {
   const shellProgress = {
     ...progressFromProjectFlags(project),
     photoCount,
-    analysisDone: analysisIsValid || project.analysis_done,
+    // Stronger non-current/mock evidence overrides legacy analysis_done (IA-3).
+    analysisDone: analysisIsValid,
     analysisNeedsAttention:
-      uiState === "ready"
+      analysisNextAction.actionKind === "update_analysis" ||
+      (uiState === "ready"
         ? hasFallbackResults(results) || needsReviewCount > 0
-        : Boolean(project.analysis_done && (uiState === "stale_mock" || uiState === "error")),
+        : uiState === "stale_mock" || uiState === "error"),
   };
 
   const analysisShell = (opts: {
@@ -371,7 +385,12 @@ function AnalysisPage() {
           action={
             <Button onClick={() => void runFreshAnalysis()} disabled={analysing || retrying}>
               <Sparkles className="mr-1 h-4 w-4" />
-              {analysing ? "Analysing…" : "Analyse uploaded photos"}
+              {analysing
+                ? "Analysing…"
+                : analysisNextAction.actionKind === "update_analysis" ||
+                    analysisNextAction.actionKind === "analyse_photos"
+                  ? analysisNextAction.label
+                  : "Analyse uploaded photos"}
             </Button>
           }
         />
@@ -414,16 +433,16 @@ function AnalysisPage() {
             Re-analyse weak photos
           </Button>
         ) : null}
-        {analysisIsValid ? (
+        {analysisIsValid && analysisNextAction.actionKind === "create_redesign" ? (
           <>
             {/*
-                IA-1 transitional: do not establish permanent Analysis → Estimate.
-                Redesign remains stage 3; first-class /redesign is IA-4.
-                Primary continuation surfaces Redesign (embedded here).
+                IA-3: primary continuation from resolver (create_redesign).
+                Transitional Redesign surface until IA-4 — never skip to Estimate.
               */}
             <Button asChild>
               <Link to="/projects/$id/analysis" params={{ id }} search={{ focus: "redesign" }}>
-                Continue to Redesign <ArrowRight className="ml-1 h-4 w-4" />
+                {analysisNextAction.label}
+                <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
             <Button asChild variant="outline">
@@ -432,6 +451,13 @@ function AnalysisPage() {
               </Link>
             </Button>
           </>
+        ) : analysisIsValid && analysisNextAction.actionKind === "select_redesign" ? (
+          <Button asChild>
+            <Link to="/projects/$id/analysis" params={{ id }} search={{ focus: "redesign" }}>
+              {analysisNextAction.label}
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
         ) : null}
       </div>
     ),

@@ -15,6 +15,8 @@ import {
   isMockOnlyAnalysisSet,
   isStaleAnalysisRelativeToCatalogue,
   isProductionValidAnalysisSet,
+  durablePhotoCatalogueIdentity,
+  catalogueIdentityFingerprint,
   assertAnalysisProvenance,
   PHOTO_ANALYSIS_MOCK_FORBIDDEN,
 } from "./rules";
@@ -246,5 +248,35 @@ describe("ai-upload domain rules", () => {
       { id: "c", url: "https://cdn/c.jpg", name: "c.jpg" },
     ];
     expect(isProductionValidAnalysisSet(mockTrio, oneRoomPhotos)).toBe(false);
+  });
+
+  it("IA-3: durable catalogue identity is order-independent and ignores signed URLs", () => {
+    const a = [
+      { id: "p2", url: "https://signed/old?token=1" },
+      { id: "p1", url: "https://signed/old?token=1" },
+    ];
+    const b = [
+      { id: "p1", url: "https://signed/new?token=2" },
+      { id: "p2", url: "https://signed/new?token=2" },
+    ];
+    expect(durablePhotoCatalogueIdentity(a)).toBe(durablePhotoCatalogueIdentity(b));
+    expect(catalogueIdentityFingerprint(a)).toBe(catalogueIdentityFingerprint(b));
+    expect(durablePhotoCatalogueIdentity([{ id: "p1" }])).not.toBe(
+      durablePhotoCatalogueIdentity([{ id: "p1" }, { id: "p2" }]),
+    );
+  });
+
+  it("IA-3: signed URL drift alone does not invalidate current Analysis", () => {
+    const rows = [
+      analysis({
+        id: "p1",
+        photo_id: "p1",
+        photo_url: "https://signed/old",
+        photo_name: "a.jpg",
+        source: "ai",
+      }),
+    ];
+    const catalogue = [{ id: "p1", url: "https://signed/new", name: "a.jpg" }];
+    expect(isProductionValidAnalysisSet(rows, catalogue)).toBe(true);
   });
 });

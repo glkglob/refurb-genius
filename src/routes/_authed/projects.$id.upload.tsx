@@ -4,7 +4,12 @@ import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
-import { ProjectWorkflowShell, progressFromProjectFlags } from "@/features/projects";
+import {
+  ProjectWorkflowShell,
+  progressFromProjectFlags,
+  buildPhotosAnalysisWorkflowState,
+  resolveProjectNextAction,
+} from "@/features/projects";
 import { formatFileSize } from "@/lib/file-utils";
 import {
   Upload,
@@ -18,7 +23,7 @@ import {
   CheckCircle2,
   XCircle,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useProject } from "@/hooks/useProjects";
 import { useSetProjectStage } from "@/features/projects";
 import {
@@ -127,6 +132,20 @@ function UploadPage() {
       }),
     );
   }, []);
+
+  const uploading = uploadPhotos.isPending;
+
+  // IA-3: primary continuation from Photos uses the canonical IA-2 resolver.
+  // Hooks must run before any early return. Analysis rows are not loaded here —
+  // absent Analysis is correct once durable photos exist (analyse_photos).
+  const photosNextAction = useMemo(() => {
+    const workflow = buildPhotosAnalysisWorkflowState({
+      photos: photos.map((p) => ({ id: p.id })),
+      photosOperationRunning: uploading,
+      analyses: [],
+    });
+    return resolveProjectNextAction({ projectId: id, workflow });
+  }, [photos, uploading, id]);
 
   if (projectLoading) {
     return (
@@ -266,8 +285,11 @@ function UploadPage() {
     void handleFiles(dt.files);
   };
 
-  const uploading = uploadPhotos.isPending;
   const failedCount = batchItems.filter((i) => i.status === "failed").length;
+
+  const continueToAnalysis =
+    photosNextAction.actionKind === "analyse_photos" ||
+    photosNextAction.actionKind === "update_analysis";
 
   return (
     <ProjectWorkflowShell
@@ -276,14 +298,30 @@ function UploadPage() {
       progress={{
         ...progressFromProjectFlags(project),
         photoCount: photos.length,
+        // Prefer durable catalogue evidence over legacy photos_done alone.
+        photosDone: photos.length > 0 || project.photos_done,
       }}
       pageTitle={project.name?.trim() || "Photos"}
       pageSubtitle="Add photos of every room. We'll run AI analysis next."
       actions={
-        <Button onClick={handleAnalyse} disabled={photos.length === 0 || uploading}>
-          <Sparkles className="h-4 w-4" /> Run AI Analysis
-          <ArrowRight className="h-4 w-4" />
-        </Button>
+        continueToAnalysis ? (
+          <Button onClick={handleAnalyse} disabled={uploading}>
+            <Sparkles className="h-4 w-4" />
+            {photosNextAction.label}
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        ) : photosNextAction.actionKind === "view_stage_progress" ? (
+          <Button disabled>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            {photosNextAction.label}
+          </Button>
+        ) : (
+          <Button disabled={uploading || photos.length === 0} onClick={handleAnalyse}>
+            <Sparkles className="h-4 w-4" />
+            {photosNextAction.label}
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        )
       }
     >
       {health && !health.ok ? (

@@ -31,6 +31,7 @@ export {
   isMockOnlyAnalysisSet,
   isStaleAnalysisRelativeToCatalogue,
   isProductionValidAnalysisSet,
+  durablePhotoCatalogueIdentity,
   catalogueIdentityFingerprint,
   assertAnalysisProvenance,
   PHOTO_ANALYSIS_NO_SOURCE_PHOTOS,
