@@ -1,0 +1,54 @@
+src/components/PipelineChecklist.tsx
+  h_7ea6129503670a 2-8,10,19-21,23,25,27,30,38,61,77-116
+src/components/pipeline-checklist.test.ts
+  h_7ea6129503670a 1-46
+src/components/pipeline-checklist.ts
+  h_7ea6129503670a 2-7,9-16,18-19,21,29-31,34-59,65-67,69-76,78-95,97,99-107
+src/features/projects/domain/index.ts
+  h_7ea6129503670a 1-25
+src/features/projects/domain/workflowStages.test.ts
+  h_7ea6129503670a 1-173
+src/features/projects/domain/workflowStages.ts
+  h_7ea6129503670a 1-331
+src/features/projects/index.ts
+  h_7ea6129503670a 4,12-40
+src/features/projects/presentation/components/ProjectStageNav.test.tsx
+  h_7ea6129503670a 1-80
+src/features/projects/presentation/components/ProjectStageNav.tsx
+  h_7ea6129503670a 1-147
+src/features/projects/presentation/components/ProjectWorkflowShell.tsx
+  h_7ea6129503670a 1-107
+src/features/projects/presentation/components/index.ts
+  h_7ea6129503670a 1-2
+src/features/projects/presentation/index.ts
+  h_7ea6129503670a 1-5
+src/routes/_authed/projects.$id.analysis.tsx
+  h_7ea6129503670a 35-39,44-47,59,147-155,363-366,369-379,389-405,465,520
+src/routes/_authed/projects.$id.estimate.tsx
+  h_7ea6129503670a 8,293-298,574
+src/routes/_authed/projects.$id.index.tsx
+  h_7ea6129503670a 24,37-42,124-135,137-138,140-144,147-153,170,173-198,263,265-280,282-312,477
+src/routes/_authed/projects.$id.report.tsx
+  h_7ea6129503670a 1,35-39,295-312,315-317,571-572
+src/routes/_authed/projects.$id.scope.tsx
+  h_7ea6129503670a 4,132-143,291-296,540
+src/routes/_authed/projects.$id.upload.tsx
+  h_7ea6129503670a 1,7,257,273-281,283-286,497
+src/routes/_authed/projects.new.tsx
+  h_7ea6129503670a 28-33,42-45,57-61,66-69,76-78,88-92,94,106-109,114-115,124-125,128-129,131-135,153-156,158,172,176,192,195,206,217,224-225,232,235,243,246,279,299-300
+src/serverFns/projects.ts
+  h_7ea6129503670a 66-69,74-75,79-87
+tests/invariants/project-workflow-shell.invariant.test.ts
+  h_7ea6129503670a 1-61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "e9fa0aaf1c3d79d07821b4ca477f10b08897bd6d",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
