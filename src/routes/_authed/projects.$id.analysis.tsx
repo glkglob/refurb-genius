@@ -7,8 +7,6 @@ import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import { AnalysisCard } from "@/components/AnalysisCard";
 import { RedesignCard } from "@/components/RedesignCard";
-import { PipelineChecklist } from "@/components/PipelineChecklist";
-import { buildProjectPipelineSteps } from "@/components/pipeline-checklist";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Sparkles, ArrowRight, AlertCircle, RefreshCw, Camera } from "lucide-react";
 import { toast } from "sonner";
@@ -34,11 +32,19 @@ import {
 } from "@/features/ai-design";
 import { DISCLAIMER } from "@/core/reports";
 import { useProject } from "@/hooks/useProjects";
-import { useSetProjectStage } from "@/features/projects";
+import {
+  useSetProjectStage,
+  ProjectWorkflowShell,
+  progressFromProjectFlags,
+} from "@/features/projects";
 import { trackEvent } from "@/lib/analytics";
 
 export const Route = createFileRoute("/_authed/projects/$id/analysis")({
   head: () => ({ meta: [{ title: "AI analysis — Refurb Genius" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    // Transitional Redesign focus until IA-4 first-class route (no /redesign path).
+    focus: search.focus === "redesign" ? ("redesign" as const) : undefined,
+  }),
   component: AnalysisPage,
 });
 
@@ -50,6 +56,7 @@ function toCatalogue(photos: Array<{ id: string; url: string; name: string }>) {
 
 function AnalysisPage() {
   const { id } = Route.useParams();
+  const { focus } = Route.useSearch();
   const { data: project, isLoading: projectLoading, error: projectError } = useProject(id);
   const { data: projectPhotos, isLoading: photosLoading } = usePhotos(id);
   const setStage = useSetProjectStage();
@@ -136,6 +143,15 @@ function AnalysisPage() {
       toast.error(err instanceof Error ? err.message : "Analysis failed. Please try again.");
     }
   }, [afterValidAnalysis, id, photoCount]);
+
+  // IA-1 transitional Redesign focus: scroll to embedded redesign without a /redesign route.
+  useEffect(() => {
+    if (focus !== "redesign" || uiState !== "ready") return;
+    const el = document.getElementById("project-redesign");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [focus, uiState]);
 
   useEffect(() => {
     let cancelled = false;
@@ -344,18 +360,23 @@ function AnalysisPage() {
     );
   }
 
-  const pipelineSteps = buildProjectPipelineSteps({
-    photoCount,
-    analysisComplete: analysisIsValid,
-    analysisHasFallback: hasFallbackResults(results),
-    estimateComplete: project.estimate_done,
-    current: "analyse",
-  });
+  const workflowRoute =
+    focus === "redesign"
+      ? ({ surface: "analysis", focus: "redesign" } as const)
+      : ({ surface: "analysis" } as const);
 
   return (
-    <AppLayout
-      title="AI analysis"
-      subtitle="Room-by-room condition assessment with recommended works."
+    <ProjectWorkflowShell
+      project={project}
+      route={workflowRoute}
+      progress={{
+        ...progressFromProjectFlags(project),
+        photoCount,
+        analysisDone: analysisIsValid || project.analysis_done,
+        analysisNeedsAttention: hasFallbackResults(results) || needsReviewCount > 0,
+      }}
+      pageTitle={project.name?.trim() || "Analysis"}
+      pageSubtitle="Room-by-room condition assessment with recommended works."
       actions={
         <div className="flex flex-wrap gap-2">
           {needsReviewCount > 0 && analysisIsValid ? (
@@ -365,19 +386,27 @@ function AnalysisPage() {
             </Button>
           ) : null}
           {analysisIsValid ? (
-            <Button asChild>
-              <Link to="/projects/$id/estimate" params={{ id }} search={{ from: undefined }}>
-                Continue to estimate <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
+            <>
+              {/*
+                IA-1 transitional: do not establish permanent Analysis → Estimate.
+                Redesign remains stage 3; first-class /redesign is IA-4.
+                Primary continuation surfaces Redesign (embedded here).
+              */}
+              <Button asChild>
+                <Link to="/projects/$id/analysis" params={{ id }} search={{ focus: "redesign" }}>
+                  Continue to Redesign <ArrowRight className="ml-1 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link to="/projects/$id/estimate" params={{ id }} search={{ from: undefined }}>
+                  Estimate
+                </Link>
+              </Button>
+            </>
           ) : null}
         </div>
       }
     >
-      <div className="mb-5">
-        <PipelineChecklist steps={pipelineSteps} />
-      </div>
-
       {needsReviewCount > 0 ? (
         <div className="mb-5 flex items-start gap-2 rounded-md border border-amber-300/50 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -433,7 +462,7 @@ function AnalysisPage() {
       ) : null}
 
       {analysisIsValid ? (
-        <div className="mt-12">
+        <div id="project-redesign" className="mt-12 scroll-mt-24">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold tracking-tight text-foreground">
@@ -488,6 +517,6 @@ function AnalysisPage() {
       ) : null}
 
       <p className="mt-6 text-xs text-muted-foreground">{DISCLAIMER}</p>
-    </AppLayout>
+    </ProjectWorkflowShell>
   );
 }

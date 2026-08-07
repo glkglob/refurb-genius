@@ -63,26 +63,28 @@ import { rowToProject } from "@/lib/mappers";
 /**
  * Zod schema for the New Project creation payload.
  *
- * Matches `NewProjectInput` from the domain plus sensible runtime constraints
- * (positive prices, reasonable ranges for beds/baths/size, required fields).
- * The client form already does similar validation, but the serverFn must never
- * trust the client.
+ * IA-0 / IA-1 contract: only `name` is mandatory. Address, postcode, property
+ * type, notes, and financials are optional. Empty optional strings and zero
+ * numerics are accepted so name-only creation can create a durable project ID
+ * and enter Photos immediately.
  *
  * Notes:
  * - `notes` is optional on the wire (form can be empty) → defaults to "".
  * - All numeric fields arrive as numbers from the React caller (JSON serialised).
+ * - region / property_type default when omitted so NOT NULL DB columns stay satisfied
+ *   without requiring user input (presentation defaults, not business authority).
  */
 const createProjectInputSchema = z.object({
   name: z.string().trim().min(1, "Project name is required"),
-  address: z.string().trim().min(1, "Address is required"),
-  postcode: z.string().trim().min(1, "Postcode is required"),
-  region: z.enum(UK_REGIONS),
-  property_type: z.enum(PROPERTY_TYPES),
-  bedrooms: z.number().int().min(0).max(50),
-  bathrooms: z.number().int().min(0).max(50),
-  size_sqm: z.number().positive().max(10000),
-  purchase_price: z.number().positive(),
-  estimated_gdv: z.number().positive(),
+  address: z.string().trim().default(""),
+  postcode: z.string().trim().default(""),
+  region: z.enum(UK_REGIONS).default("London"),
+  property_type: z.enum(PROPERTY_TYPES).default("Terraced"),
+  bedrooms: z.number().int().min(0).max(50).default(0),
+  bathrooms: z.number().int().min(0).max(50).default(0),
+  size_sqm: z.number().min(0).max(10000).default(0),
+  purchase_price: z.number().min(0).default(0),
+  estimated_gdv: z.number().min(0).default(0),
   notes: z.string().default(""),
 });
 

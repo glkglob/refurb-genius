@@ -25,8 +25,12 @@ export const Route = createFileRoute("/_authed/projects/new")({
   component: NewProject,
 });
 
-const UK_POSTCODE = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
-
+/**
+ * IA-0 / IA-1 project creation contract:
+ * - Name is the only required field.
+ * - Address, postcode, property type, notes, and financials are optional.
+ * - Successful durable creation makes Photos immediately available.
+ */
 function NewProject() {
   const navigate = useNavigate();
   const createProject = useCreateProject();
@@ -35,10 +39,10 @@ function NewProject() {
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [postcode, setPostcode] = useState("");
-  const [region, setRegion] = useState<UKRegion>("London");
-  const [propertyType, setPropertyType] = useState<PropertyType>("Terraced");
-  const [bedrooms, setBedrooms] = useState("3");
-  const [bathrooms, setBathrooms] = useState("1");
+  const [region, setRegion] = useState<UKRegion | "">("");
+  const [propertyType, setPropertyType] = useState<PropertyType | "">("");
+  const [bedrooms, setBedrooms] = useState("");
+  const [bathrooms, setBathrooms] = useState("");
   const [sizeSqm, setSizeSqm] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
   const [estimatedGdv, setEstimatedGdv] = useState("");
@@ -49,30 +53,29 @@ function NewProject() {
     setError(null);
 
     if (!name.trim()) return setError("Project name is required.");
-    if (!address.trim()) return setError("Address is required.");
-    if (!UK_POSTCODE.test(postcode.trim())) return setError("Enter a valid UK postcode.");
 
-    const beds = Number(bedrooms);
-    const baths = Number(bathrooms);
-    const size = Number(sizeSqm);
-    const price = Number(purchasePrice);
-    const gdv = Number(estimatedGdv);
+    const beds = bedrooms.trim() === "" ? 0 : Number(bedrooms);
+    const baths = bathrooms.trim() === "" ? 0 : Number(bathrooms);
+    const size = sizeSqm.trim() === "" ? 0 : Number(sizeSqm);
+    const price = purchasePrice.trim() === "" ? 0 : Number(purchasePrice);
+    const gdv = estimatedGdv.trim() === "" ? 0 : Number(estimatedGdv);
 
     if (!Number.isFinite(beds) || beds < 0 || beds > 50) return setError("Bedrooms must be 0–50.");
     if (!Number.isFinite(baths) || baths < 0 || baths > 50)
       return setError("Bathrooms must be 0–50.");
-    if (!Number.isFinite(size) || size <= 0 || size > 10000)
-      return setError("Enter a valid size in m².");
-    if (!Number.isFinite(price) || price <= 0) return setError("Enter a valid purchase price.");
-    if (!Number.isFinite(gdv) || gdv <= 0) return setError("Enter a valid estimated GDV.");
+    if (!Number.isFinite(size) || size < 0 || size > 10000)
+      return setError("Enter a valid size in m² (or leave blank).");
+    if (!Number.isFinite(price) || price < 0) return setError("Enter a valid purchase price.");
+    if (!Number.isFinite(gdv) || gdv < 0) return setError("Enter a valid estimated GDV.");
 
     createProject.mutate(
       {
         name: name.trim(),
         address: address.trim(),
         postcode: postcode.trim().toUpperCase(),
-        region,
-        property_type: propertyType,
+        // Server defaults apply when optional fields are omitted; send safe values for typed path.
+        region: (region || "London") as UKRegion,
+        property_type: (propertyType || "Terraced") as PropertyType,
         bedrooms: beds,
         bathrooms: baths,
         size_sqm: size,
@@ -82,11 +85,14 @@ function NewProject() {
       },
       {
         onSuccess: (project) => {
-          trackEvent("project_created", { region, property_type: propertyType });
+          trackEvent("project_created", {
+            region: region || "unspecified",
+            property_type: propertyType || "unspecified",
+          });
+          // Preferred IA-0 continuation: durable ID → Photos immediately available.
           navigate({
-            to: "/projects/$id",
+            to: "/projects/$id/upload",
             params: { id: project.id },
-            search: { tab: "overview" },
           });
         },
         onError: (err) => {
@@ -97,14 +103,16 @@ function NewProject() {
   };
 
   return (
-    <AppLayout title="New project" subtitle="Create a new refurbishment project to analyse.">
+    <AppLayout
+      title="New project"
+      subtitle="Only a name is required. You can add property details later and start with Photos straight away."
+    >
       <Card>
         <CardContent className="p-6 sm:p-8">
           <form className="space-y-6" onSubmit={handleSubmit} noValidate>
-            {/* Property Details */}
             <div className="space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                Property Details
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Required
               </h2>
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Project name" className="sm:col-span-2">
@@ -113,15 +121,23 @@ function NewProject() {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Victorian Terrace Refurb"
                     required
+                    autoFocus
+                    aria-required="true"
                   />
                 </Field>
+              </div>
+            </div>
 
+            <div className="space-y-4">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Optional property details
+              </h2>
+              <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Address" className="sm:col-span-2">
                   <Input
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="12 Elm Street, London"
-                    required
                   />
                 </Field>
 
@@ -130,14 +146,16 @@ function NewProject() {
                     value={postcode}
                     onChange={(e) => setPostcode(e.target.value)}
                     placeholder="E1 6AN"
-                    required
                   />
                 </Field>
 
                 <Field label="Region">
-                  <Select value={region} onValueChange={(v) => setRegion(v as UKRegion)}>
+                  <Select
+                    value={region || undefined}
+                    onValueChange={(v) => setRegion(v as UKRegion)}
+                  >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Optional" />
                     </SelectTrigger>
                     <SelectContent>
                       {UK_REGIONS.map((r) => (
@@ -151,11 +169,11 @@ function NewProject() {
 
                 <Field label="Property type">
                   <Select
-                    value={propertyType}
+                    value={propertyType || undefined}
                     onValueChange={(v) => setPropertyType(v as PropertyType)}
                   >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Optional" />
                     </SelectTrigger>
                     <SelectContent>
                       {PROPERTY_TYPES.map((t) => (
@@ -171,11 +189,10 @@ function NewProject() {
                   <Input
                     type="number"
                     inputMode="numeric"
-                    min={1}
+                    min={0}
                     value={sizeSqm}
                     onChange={(e) => setSizeSqm(e.target.value)}
-                    placeholder="95"
-                    required
+                    placeholder="Optional"
                   />
                 </Field>
 
@@ -186,8 +203,7 @@ function NewProject() {
                     min={0}
                     value={bedrooms}
                     onChange={(e) => setBedrooms(e.target.value)}
-                    placeholder="e.g. 3"
-                    required
+                    placeholder="Optional"
                   />
                 </Field>
 
@@ -198,28 +214,25 @@ function NewProject() {
                     min={0}
                     value={bathrooms}
                     onChange={(e) => setBathrooms(e.target.value)}
-                    placeholder="e.g. 1"
-                    required
+                    placeholder="Optional"
                   />
                 </Field>
               </div>
             </div>
 
-            {/* Financial Assumptions */}
             <div className="space-y-4">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                Financial Assumptions
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                Optional financials
               </h2>
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Purchase price (£)">
                   <Input
                     type="number"
                     inputMode="numeric"
-                    min={1}
+                    min={0}
                     value={purchasePrice}
                     onChange={(e) => setPurchasePrice(e.target.value)}
-                    placeholder="e.g. 285,000"
-                    required
+                    placeholder="Optional"
                   />
                 </Field>
 
@@ -227,11 +240,10 @@ function NewProject() {
                   <Input
                     type="number"
                     inputMode="numeric"
-                    min={1}
+                    min={0}
                     value={estimatedGdv}
                     onChange={(e) => setEstimatedGdv(e.target.value)}
-                    placeholder="e.g. 410,000"
-                    required
+                    placeholder="Optional"
                   />
                 </Field>
 
@@ -264,7 +276,7 @@ function NewProject() {
               </Button>
               <Button type="submit" disabled={createProject.isPending}>
                 {createProject.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                {createProject.isPending ? "Creating…" : "Create & continue"}
+                {createProject.isPending ? "Creating…" : "Create & open Photos"}
               </Button>
             </div>
           </form>
@@ -284,8 +296,8 @@ function Field({
   className?: string;
 }) {
   return (
-    <div className={`space-y-1.5 ${className ?? ""}`}>
-      <Label>{label}</Label>
+    <div className={className}>
+      <Label className="mb-1.5 block text-sm font-medium text-foreground">{label}</Label>
       {children}
     </div>
   );

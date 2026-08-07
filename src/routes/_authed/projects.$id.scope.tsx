@@ -1,6 +1,7 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
+import { ProjectWorkflowShell, progressFromProjectFlags } from "@/features/projects";
 import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import { Badge, Button, Card, CardContent, Checkbox, Label, Textarea } from "@repo/ui";
@@ -128,7 +129,18 @@ function ScopeContent({
   project,
 }: {
   id: string;
-  project: { property_type: string; bedrooms: number; bathrooms: number; region: string };
+  project: {
+    id: string;
+    name: string;
+    property_type: string;
+    bedrooms: number;
+    bathrooms: number;
+    region: string;
+    photos_done?: boolean;
+    analysis_done?: boolean;
+    estimate_done?: boolean;
+    report_done?: boolean;
+  };
 }) {
   const navigate = useNavigate();
   const { data: photos = [], isLoading: photosLoading } = usePhotos(id);
@@ -276,9 +288,12 @@ function ScopeContent({
   }
 
   return (
-    <AppLayout
-      title="AI scope analysis"
-      subtitle="Photo-based condition assessment with costed scope of works."
+    <ProjectWorkflowShell
+      project={project}
+      route={{ surface: "scope" }}
+      progress={progressFromProjectFlags(project)}
+      pageTitle={project.name?.trim() || "Scope"}
+      pageSubtitle="Photo-based condition assessment with costed scope of works."
       actions={
         result ? (
           <div className="flex gap-2">
@@ -522,7 +537,7 @@ function ScopeContent({
           </Card>
         </div>
       )}
-    </AppLayout>
+    </ProjectWorkflowShell>
   );
 }
 

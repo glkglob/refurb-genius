@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/LoadingState";
 import { AIEstimateBuilder } from "@/components/AIEstimateBuilder";
 import { EstimateBuilder } from "@/components/EstimateBuilder";
+import { ProjectWorkflowShell, progressFromProjectFlags } from "@/features/projects";
 import {
   Badge,
   Button,
@@ -289,9 +290,12 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
   }
 
   return (
-    <AppLayout
-      title="Cost estimate"
-      subtitle="Region, condition and finish-aware UK refurbishment calculator."
+    <ProjectWorkflowShell
+      project={project}
+      route={{ surface: "estimate" }}
+      progress={progressFromProjectFlags(project)}
+      pageTitle={project.name?.trim() || "Estimate"}
+      pageSubtitle="Region, condition and finish-aware UK refurbishment calculator."
       actions={
         <Button asChild>
           <Link to="/projects/$id/report" params={{ id }} onClick={handleReportClick}>
@@ -567,7 +571,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
           <p className="mt-6 text-xs text-muted-foreground">{DISCLAIMER}</p>
         </TabsContent>
       </Tabs>
-    </AppLayout>
+    </ProjectWorkflowShell>
   );
 }
 
