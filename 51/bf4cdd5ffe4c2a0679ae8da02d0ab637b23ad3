@@ -1,0 +1,30 @@
+src/features/projects/domain/index.ts
+  h_7ea6129503670a 2,26-54
+src/features/projects/domain/nextActionKinds.ts
+  h_7ea6129503670a 1-60
+src/features/projects/domain/projectWorkflowState.ts
+  h_7ea6129503670a 1-119
+src/features/projects/domain/resolveProjectNextAction.test.ts
+  h_7ea6129503670a 1-698
+src/features/projects/domain/resolveProjectNextAction.ts
+  h_7ea6129503670a 1-433
+src/features/projects/domain/workflowStages.ts
+  h_7ea6129503670a 4,6-10
+src/features/projects/index.ts
+  h_7ea6129503670a 4-5,8,26-29,32,35,38,41-47,49,56,58-61
+src/routes/_authed/projects.$id.index.tsx
+  h_7ea6129503670a 140-143
+tests/invariants/project-next-action-resolver.invariant.test.ts
+  h_7ea6129503670a 1-105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "51bf4cdd5ffe4c2a0679ae8da02d0ab637b23ad3",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
