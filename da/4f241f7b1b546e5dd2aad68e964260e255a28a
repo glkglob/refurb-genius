@@ -1,0 +1,44 @@
+src/features/auth/application/completeAuthCallback.test.ts
+  h_7ea6129503670a 2,10,25-28,33-38,45,55,61,75-147,160,169,176,198-221,237,273-291,295-299,302,307-310
+src/features/auth/application/completeAuthCallback.ts
+  h_7ea6129503670a 2,4-10,12-13,18,23,44-104,123-132,135,138-142,146-162,164-169,172,176-180
+src/features/auth/application/resolveAuthCallbackDestination.test.ts
+  h_7ea6129503670a 2,11,14-16,18-20,22,28-44
+src/features/auth/application/resolveAuthCallbackDestination.ts
+  h_7ea6129503670a 2,4-9,11,13-23,25-43
+src/features/auth/infrastructure/index.ts
+  h_7ea6129503670a 31-35
+src/features/auth/infrastructure/verifyEmailTokenHash.test.ts
+  h_7ea6129503670a 1-109
+src/features/auth/infrastructure/verifyEmailTokenHash.ts
+  h_7ea6129503670a 1-29
+src/features/auth/presentation/hooks/useAuthEmailAccess.test.ts
+  h_7ea6129503670a 2,51-64,73,77,81-94,99,103-113,127,185
+src/features/auth/presentation/hooks/useAuthEmailAccess.ts
+  h_7ea6129503670a 2,8-10,13,24-28,31-32
+src/routes/auth_.callback.test.tsx
+  h_7ea6129503670a 1-159
+src/routes/auth_.callback.tsx
+  h_7ea6129503670a 2,9,11,23-37,40,42,45-53,58,68
+supabase/config.toml
+  h_7ea6129503670a 15-20
+supabase/templates/magic-link.html
+  h_7ea6129503670a 1-48
+tests/invariants/auth-callback-presentation.invariant.test.ts
+  h_7ea6129503670a 21,88-89,97-98,118,129,133-134,140
+tests/invariants/auth-experience-email-access-presentation.invariant.test.ts
+  h_7ea6129503670a 74-75
+tests/invariants/auth-magic-link-template.invariant.test.ts
+  h_7ea6129503670a 1-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "da4f241f7b1b546e5dd2aad68e964260e255a28a",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
