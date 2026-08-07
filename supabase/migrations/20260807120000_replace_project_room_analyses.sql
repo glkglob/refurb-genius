@@ -1,5 +1,6 @@
--- P0-PHOTO-ANALYZE-R2 — Atomic replacement of project room_analyses authority.
+-- P0-PHOTO-ANALYZE-R2/R3 — Atomic replacement of project room_analyses authority.
 -- SECURITY INVOKER: operates under caller RLS (auth.uid() = user_id on owned rows).
+-- R3: payload photo_id set must exactly equal the current project photo catalogue.
 -- Does not apply to production in this phase; file is for local/preview/test only until release.
 
 CREATE OR REPLACE FUNCTION public.replace_project_room_analyses(
@@ -27,8 +28,10 @@ DECLARE
   v_summary text;
   v_confidence real;
   v_photo_ids uuid[] := ARRAY[]::uuid[];
-  v_photo_count int;
   v_seen uuid[] := ARRAY[]::uuid[];
+  v_catalogue_ids uuid[];
+  v_catalogue_count int;
+  v_payload_count int;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '28000';
@@ -55,7 +58,27 @@ BEGIN
     RAISE EXCEPTION 'invalid_analyses_payload' USING ERRCODE = '22023';
   END IF;
 
+  -- Lock current catalogue rows so concurrent photo add/remove cannot race
+  -- validation vs insert within this replacement transaction.
+  PERFORM 1
+  FROM public.photos ph
+  WHERE ph.project_id = p_project_id
+    AND ph.user_id = v_uid
+  FOR SHARE;
+
+  SELECT coalesce(array_agg(ph.id ORDER BY ph.id), ARRAY[]::uuid[])
+  INTO v_catalogue_ids
+  FROM public.photos ph
+  WHERE ph.project_id = p_project_id
+    AND ph.user_id = v_uid;
+
+  v_catalogue_count := coalesce(array_length(v_catalogue_ids, 1), 0);
+  IF v_catalogue_count < 1 THEN
+    RAISE EXCEPTION 'empty_photo_catalogue' USING ERRCODE = '22023';
+  END IF;
+
   -- Validate payload + collect photo_ids (no mock; unique photo_id required).
+  -- Write-time sources: ai | fallback only (persisted is a reload semantic, not a write label).
   FOR v_i IN 0 .. (v_len - 1) LOOP
     v_elem := p_analyses -> v_i;
     IF v_elem IS NULL OR jsonb_typeof(v_elem) <> 'object' THEN
@@ -80,7 +103,7 @@ BEGIN
     v_photo_ids := array_append(v_photo_ids, v_photo_id);
 
     v_source := coalesce(v_elem ->> 'source', '');
-    IF v_source = 'mock' OR v_source NOT IN ('ai', 'fallback', 'persisted') THEN
+    IF v_source NOT IN ('ai', 'fallback') THEN
       RAISE EXCEPTION 'mock_or_invalid_source' USING ERRCODE = '22023';
     END IF;
 
@@ -92,19 +115,31 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- Every photo_id must exist on this project for the authenticated owner.
-  SELECT count(*)::int
-  INTO v_photo_count
-  FROM public.photos ph
-  WHERE ph.project_id = p_project_id
-    AND ph.user_id = v_uid
-    AND ph.id = ANY (v_photo_ids);
+  v_payload_count := array_length(v_photo_ids, 1);
 
-  IF v_photo_count <> array_length(v_photo_ids, 1) THEN
+  -- Complete-catalogue authority: exact set equality with current project photos.
+  IF v_payload_count <> v_catalogue_count THEN
+    RAISE EXCEPTION 'incomplete_photo_catalogue' USING ERRCODE = '22023';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM unnest(v_photo_ids) AS pid(id)
+    WHERE NOT (pid.id = ANY (v_catalogue_ids))
+  ) THEN
     RAISE EXCEPTION 'source_not_authorised' USING ERRCODE = '42501';
   END IF;
 
+  IF EXISTS (
+    SELECT 1
+    FROM unnest(v_catalogue_ids) AS cid(id)
+    WHERE NOT (cid.id = ANY (v_photo_ids))
+  ) THEN
+    RAISE EXCEPTION 'incomplete_photo_catalogue' USING ERRCODE = '22023';
+  END IF;
+
   -- Atomic replace: delete previous project rows then insert complete set.
+  -- All validation above completed before any delete.
   DELETE FROM public.room_analyses ra
   WHERE ra.project_id = p_project_id
     AND ra.user_id = v_uid;
@@ -176,7 +211,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.replace_project_room_analyses(uuid, jsonb) IS
-  'Atomic project room_analyses replacement (SECURITY INVOKER). Validates photo ownership, rejects mock, persists photo_id.';
+  'Atomic project room_analyses replacement (SECURITY INVOKER). Requires exact complete photo catalogue coverage; rejects mock; persists photo_id from canonical photos.';
 
 REVOKE ALL ON FUNCTION public.replace_project_room_analyses(uuid, jsonb) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.replace_project_room_analyses(uuid, jsonb) FROM anon;
