@@ -65,6 +65,22 @@ test("IA-4-R1 selection uses atomic RPC and canonical columns", () => {
   assert.match(migration, /FOR UPDATE/);
 });
 
+test("IA-4-R3 live redesign_concepts shape is committed before R1/R2", () => {
+  const reconcile = read(
+    "supabase/migrations/20260807210000_reconcile_redesign_concepts_live_shape.sql",
+  );
+  assert.match(reconcile, /ADD COLUMN IF NOT EXISTS title/);
+  assert.match(reconcile, /ADD COLUMN IF NOT EXISTS description/);
+  assert.match(reconcile, /payload/);
+  // Ordering: reconcile filename is strictly before R1 and R2 migrations.
+  const names = [
+    "20260807210000_reconcile_redesign_concepts_live_shape.sql",
+    "20260807220000_ia4_atomic_redesign_selection.sql",
+    "20260807230000_ia4_redesign_authority_write_path_seal.sql",
+  ];
+  assert.deepEqual([...names].sort(), names);
+});
+
 test("IA-4-R2 write path sealed via DEFINER RPCs and DML revoke", () => {
   const repo = read(
     "src/features/ai-design/infrastructure/repositories/redesign-concepts.repository.server.ts",
