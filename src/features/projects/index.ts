@@ -1,9 +1,11 @@
 /**
  * Projects feature — public API.
  *
- * Presentation consumers import stage mutation and IA-1 workflow shell from here.
+ * Presentation consumers import stage mutation, IA-1 workflow shell, and IA-2
+ * next-action resolver from here.
  * Infrastructure is intentionally not re-exported.
  * List/detail/create remain on transitional @/hooks/useProjects (out of AO-1M4).
+ * Broad UI consumer migration of continuation (Dashboard/Overview) is IA-6.
  */
 export {
   useSetProjectStage,
@@ -21,20 +23,40 @@ export {
   PROJECT_WORKFLOW_STAGE_IDS,
   PROJECT_WORKFLOW_STAGES,
   PROJECT_WORKFLOW_STATUS_LABELS,
+  PROJECT_NEXT_ACTION_KINDS,
+  PROJECT_NEXT_ACTION_LABELS,
+  PROJECT_NEXT_ACTION_REASONS,
+  PROJECT_STAGE_PROGRESS_LABELS,
   buildProjectIdentitySubtitle,
   buildProjectIdentityTitle,
+  buildProjectNextActionRoute,
   buildProjectWorkflowStages,
   isCanonicalWorkflowStatus,
+  isProjectNextActionKind,
   progressFromProjectFlags,
   resolveActiveWorkflowStage,
+  resolveProjectNextAction,
   resolveStageStatus,
   stageDestination,
+  type AnalysisWorkflowState,
+  type EstimateWorkflowState,
+  type ExportWorkflowState,
+  type PhotosWorkflowState,
+  type ProjectNextAction,
+  type ProjectNextActionKind,
+  type ProjectNextActionReason,
   type ProjectWorkflowDestination,
+  type ProjectWorkflowEntitlements,
   type ProjectWorkflowProgressInput,
   type ProjectWorkflowRouteContext,
   type ProjectWorkflowRouteTo,
   type ProjectWorkflowStageDefinition,
   type ProjectWorkflowStageId,
   type ProjectWorkflowStagePresentation,
+  type ProjectWorkflowState,
   type ProjectWorkflowStatusLabel,
+  type RedesignWorkflowState,
+  type ResolveProjectNextActionInput,
+  type ScopeWorkflowState,
+  type WorkflowAuthorityCurrency,
 } from "./domain";
