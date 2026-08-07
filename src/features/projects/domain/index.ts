@@ -1,5 +1,5 @@
 /**
- * Projects domain — pure workflow presentation model (IA-1).
+ * Projects domain — pure workflow presentation (IA-1) and next-action resolver (IA-2).
  */
 export {
   PROJECT_OVERVIEW_IS_WORKFLOW_STAGE,
@@ -23,3 +23,32 @@ export {
   type ProjectWorkflowStagePresentation,
   type ProjectWorkflowStatusLabel,
 } from "./workflowStages";
+
+export {
+  PROJECT_NEXT_ACTION_KINDS,
+  PROJECT_NEXT_ACTION_LABELS,
+  PROJECT_STAGE_PROGRESS_LABELS,
+  isProjectNextActionKind,
+  type ProjectNextActionKind,
+} from "./nextActionKinds";
+
+export {
+  PROJECT_NEXT_ACTION_REASONS,
+  type AnalysisWorkflowState,
+  type EstimateWorkflowState,
+  type ExportWorkflowState,
+  type PhotosWorkflowState,
+  type ProjectNextActionReason,
+  type ProjectWorkflowEntitlements,
+  type ProjectWorkflowState,
+  type RedesignWorkflowState,
+  type ScopeWorkflowState,
+  type WorkflowAuthorityCurrency,
+} from "./projectWorkflowState";
+
+export {
+  buildProjectNextActionRoute,
+  resolveProjectNextAction,
+  type ProjectNextAction,
+  type ResolveProjectNextActionInput,
+} from "./resolveProjectNextAction";

@@ -137,8 +137,10 @@ function ProjectDetail() {
     route: { surface: "overview" },
   });
 
-  // Overview is not a stage — continuation uses existing progress flags only
-  // (no IA-2 resolver). First incomplete stage in journey order.
+  // Overview is not a stage. Legacy presentation continuation (first incomplete
+  // stage by status) remains until IA-6 Dashboard/Overview convergence.
+  // Authoritative next-action decisions live in resolveProjectNextAction (IA-2);
+  // this route does not own a second resolver algorithm.
   const nextStagePresentation =
     stagePresentations.find((s) => s.status !== "Complete") ??
     stagePresentations[stagePresentations.length - 1];

@@ -1,10 +1,13 @@
 /**
  * IA-1 — Canonical five-stage project workflow presentation model.
  *
- * Presentation-only. Does not own next-action resolution (IA-2), provenance
- * (later), Redesign route authority (IA-4), or Scope business logic (IA-9).
+ * Presentation-only status/nav model (IA-1).
  *
- * Controlling journey (IA-0 LOCKED):
+ * Authoritative next-action decisions: resolveProjectNextAction (IA-2).
+ * Does not own provenance (later), Redesign route authority (IA-4), or Scope
+ * business logic (IA-9).
+ *
+ * Controlling journey (IA-0 LOCKED v1.0.1):
  *   Photos → Analysis → Redesign → Estimate → Export
  *
  * Project Overview is the project home — not a workflow stage.
