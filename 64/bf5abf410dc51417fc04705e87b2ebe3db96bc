@@ -1,0 +1,66 @@
+packages/supabase/src/database.types.ts
+  h_7ea6129503670a 2008-2027
+src/features/ai-design/presentation/redesign.provider.ts
+  h_7ea6129503670a 10-20,59-60
+src/features/ai-upload/application/analyzePhotos.test.ts
+  h_7ea6129503670a 13,36-43,159,178
+src/features/ai-upload/application/authority-r2.test.ts
+  h_7ea6129503670a 1-316
+src/features/ai-upload/application/photo-analysis-incident.regression.test.ts
+  h_7ea6129503670a 27,100,123,137,160
+src/features/ai-upload/application/retryWeakAnalyses.test.ts
+  h_7ea6129503670a 8,63,73,81,101,105,112
+src/features/ai-upload/application/retryWeakAnalyses.ts
+  h_7ea6129503670a 59,61-63
+src/features/ai-upload/domain/errors.ts
+  h_7ea6129503670a 11-15,23-26,52-79
+src/features/ai-upload/domain/index.ts
+  h_7ea6129503670a 34,41-44,48-51
+src/features/ai-upload/domain/mockData.ts
+  h_7ea6129503670a 17,141-142
+src/features/ai-upload/domain/rules.test.ts
+  h_7ea6129503670a 24,129-134,137,146,163,171,179,236
+src/features/ai-upload/domain/rules.ts
+  h_7ea6129503670a 22-25,29-32,82-83,85-88,195-205,209-211,213,217-219,221-222,224-229,232-240,244-246,248,252-253,257-258,267-275,289-319,322
+src/features/ai-upload/domain/types.ts
+  h_7ea6129503670a 36-39,41-45
+src/features/ai-upload/infrastructure/adapters/ai-vision.adapter.server.ts
+  h_7ea6129503670a 98-101,104-105,181-182
+src/features/ai-upload/infrastructure/adapters/hf-vision.adapter.server.ts
+  h_7ea6129503670a 111-114,117-118,193-194,204
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.r2.test.ts
+  h_7ea6129503670a 1-139
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.test.ts
+  h_7ea6129503670a 15,19,22
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts
+  h_7ea6129503670a 4-5,12-20,47,50,82-94,96-98,100-104,107-109,111-126,128-134,136-141,176-179,181-201,210
+src/features/ai-upload/infrastructure/resolveAuthorizedPhotos.server.ts
+  h_7ea6129503670a 1-84
+src/features/ai-upload/presentation/serverFns.ts
+  h_7ea6129503670a 4-5,19-22,26-43,48,75-107,118-123,129-146,148,157-163
+src/features/ai-upload/presentation/serverFns.validation.test.ts
+  h_7ea6129503670a 5-7,11-26,28-32,34,40-48,50-51
+src/routes/_authed/projects.$id.analysis.tsx
+  h_7ea6129503670a 25,65,94-100,118,205,207,217-221,361,367-373
+src/routes/_authed/projects.$id.report.tsx
+  h_7ea6129503670a 30-31,116,118-134,136-139,144-145,152,160
+supabase/migrations/20260807120000_replace_project_room_analyses.sql
+  h_7ea6129503670a 1-183
+supabase/tests/database/replace_project_room_analyses.test.sql
+  h_7ea6129503670a 1-60
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 78
+tests/invariants/photos-query-keys.invariant.test.ts
+  h_7ea6129503670a 37,46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "64bf5abf410dc51417fc04705e87b2ebe3db96bc",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
