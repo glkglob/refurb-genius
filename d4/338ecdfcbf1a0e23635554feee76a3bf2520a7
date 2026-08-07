@@ -1,0 +1,16 @@
+src/features/projects/domain/resolveProjectNextAction.test.ts
+  h_7ea6129503670a 634
+src/routes/_authed/projects.$id.redesign.tsx
+  h_7ea6129503670a 128-130,133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "d4338ecdfcbf1a0e23635554feee76a3bf2520a7",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
