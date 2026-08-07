@@ -1,8 +1,9 @@
--- P0-DB-1 — Security DEFINER grants, INVOKER share link, RLS matrix, indexes
+-- P0-DB-1 / P0-DB-1R — Security DEFINER grants, exact-token share link,
+-- append-only trade messages, RLS matrix, indexes
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(43);
+select plan(63);
 
 -- ── fixtures ──────────────────────────────────────────────────────────────
 do $$
@@ -32,7 +33,6 @@ begin
      '{"provider":"email","providers":["email"]}', '{}', now(), now())
   on conflict (id) do nothing;
 
-  -- INSERT does not fire prevent_role_self_escalation (UPDATE-only trigger).
   insert into public.profiles (id, email, role)
   values
     (v_owner, 'p0db1-owner@example.com', 'user'),
@@ -48,7 +48,6 @@ begin
     2, 1, 90, 250000, 400000, false
   ) on conflict (id) do update set user_id = excluded.user_id;
 
-  -- feasibility study for share links (if table exists)
   if to_regclass('public.feasibility_studies') is not null then
     insert into public.feasibility_studies (id, project_id, user_id, status)
     values (v_study, v_project, v_owner, 'draft')
@@ -141,7 +140,15 @@ select is(
    where n.nspname='public' and p.proname='resolve_share_link'
      and pg_get_function_identity_arguments(p.oid)='p_token text'),
   false,
-  'resolve_share_link is SECURITY INVOKER'
+  'public.resolve_share_link is SECURITY INVOKER'
+);
+
+select is(
+  (select prosecdef from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+   where n.nspname='private' and p.proname='resolve_share_link_exact'
+     and pg_get_function_identity_arguments(p.oid)='p_token text'),
+  true,
+  'private.resolve_share_link_exact is SECURITY DEFINER'
 );
 
 select ok(
@@ -163,11 +170,11 @@ select ok(
 
 select ok(
   has_function_privilege('anon', 'public.resolve_share_link(text)', 'EXECUTE'),
-  'anon can execute resolve_share_link'
+  'anon can execute public.resolve_share_link'
 );
 select ok(
   has_function_privilege('authenticated', 'public.resolve_share_link(text)', 'EXECUTE'),
-  'authenticated can execute resolve_share_link'
+  'authenticated can execute public.resolve_share_link'
 );
 
 select ok(
@@ -190,6 +197,16 @@ select ok(
       and t.tgname='trg_prevent_role_self_escalation' and not t.tgisinternal
   ),
   'role self-escalation trigger remains attached'
+);
+
+-- Private helper is not in public namespace (Data API RPC surface).
+select ok(
+  not exists (
+    select 1 from pg_proc p
+    join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'resolve_share_link_exact'
+  ),
+  'private helper is not exposed as public.resolve_share_link_exact'
 );
 
 -- ── share link resolution ─────────────────────────────────────────────────
@@ -219,6 +236,29 @@ select is(
   0,
   'anon invalid share token returns no rows'
 );
+select is(
+  (select count(*)::int from public.resolve_share_link('')),
+  0,
+  'anon empty share token returns no rows'
+);
+-- Direct table access: no enumerable public SELECT for anon
+select is(
+  (select count(*)::int from public.share_links),
+  0,
+  'anon direct share_links SELECT returns no rows'
+);
+-- Wrapper returns only limited columns (no token column in result type).
+select is(
+  (
+    select count(*)::int
+    from (
+      select id, study_id, visibility, access_role, expires_at, owner_user_id
+      from public.resolve_share_link('p0db1-public-valid-token')
+    ) r
+  ),
+  1,
+  'public wrapper returns only limited columns (no token)'
+);
 reset role;
 
 set local role authenticated;
@@ -229,9 +269,29 @@ select is(
   1,
   'authenticated resolves valid public share token'
 );
+-- Non-owner authenticated cannot enumerate owner public links via table SELECT
+select is(
+  (select count(*)::int from public.share_links
+   where token = 'p0db1-public-valid-token'),
+  0,
+  'authenticated non-owner cannot enumerate public share_links by table SELECT'
+);
 reset role;
 
--- ── policy cardinality (one per role/action for key tables) ───────────────
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
+select ok(
+  exists (
+    select 1 from public.share_links
+    where token = 'p0db1-public-valid-token'
+      and owner_user_id = '11111111-1111-4111-8111-111111111111'
+  ),
+  'owner can SELECT own share_links rows'
+);
+reset role;
+
+-- ── policy cardinality ────────────────────────────────────────────────────
 select is(
   (select count(*)::int from pg_policies
    where schemaname='public' and tablename='estimates' and cmd='SELECT' and 'authenticated'=any(roles)),
@@ -252,9 +312,27 @@ select is(
 );
 select is(
   (select count(*)::int from pg_policies
+   where schemaname='public' and tablename='trade_messages' and cmd='SELECT' and 'authenticated'=any(roles)),
+  1,
+  'trade_messages: single authenticated SELECT policy'
+);
+select is(
+  (select count(*)::int from pg_policies
    where schemaname='public' and tablename='trade_messages' and cmd='INSERT' and 'authenticated'=any(roles)),
   1,
   'trade_messages: single authenticated INSERT policy'
+);
+select is(
+  (select count(*)::int from pg_policies
+   where schemaname='public' and tablename='trade_messages' and cmd='UPDATE'),
+  0,
+  'trade_messages: zero UPDATE policies'
+);
+select is(
+  (select count(*)::int from pg_policies
+   where schemaname='public' and tablename='trade_messages' and cmd='DELETE'),
+  0,
+  'trade_messages: zero DELETE policies'
 );
 select is(
   (select count(*)::int from pg_policies
@@ -269,6 +347,20 @@ select is(
   'tradespeople: single authenticated SELECT policy'
 );
 
+-- ── trade_messages privileges (append-only) ───────────────────────────────
+select ok(
+  not has_table_privilege('authenticated', 'public.trade_messages', 'UPDATE'),
+  'authenticated has no UPDATE on trade_messages'
+);
+select ok(
+  not has_table_privilege('authenticated', 'public.trade_messages', 'DELETE'),
+  'authenticated has no DELETE on trade_messages'
+);
+select ok(
+  not has_table_privilege('anon', 'public.trade_messages', 'SELECT'),
+  'anon has no SELECT on trade_messages'
+);
+
 -- ── unwrapped auth.uid() absent in touched policies ───────────────────────
 select is(
   (
@@ -277,7 +369,7 @@ select is(
     where schemaname='public'
       and tablename in (
         'estimates','estimate_rooms','estimate_items','trade_messages',
-        'trades_job_interests','trades_jobs','tradespeople'
+        'trades_job_interests','trades_jobs','tradespeople','share_links'
       )
       and (
         (coalesce(qual,'') ~ 'auth\.uid\(\)' and coalesce(qual,'') !~* '\(\s*select\s+auth\.uid\(\)')
@@ -327,7 +419,6 @@ select throws_ok(
   'owner cannot insert non-draft measured estimate via client RLS'
 );
 
--- BEFORE trigger may fire first (P0001); RLS WITH CHECK also denies (42501).
 select throws_ok(
   $$
     insert into public.estimate_items (
@@ -347,7 +438,7 @@ select throws_ok(
 );
 reset role;
 
--- ── trade message sender spoof prevention ─────────────────────────────────
+-- ── trade message sender spoof + append-only ──────────────────────────────
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
@@ -380,6 +471,27 @@ select lives_ok(
     )
   $$,
   'participant can insert trade_message as self'
+);
+
+select throws_ok(
+  $$
+    update public.trade_messages
+    set content = 'edited'
+    where id = '99999999-9999-4999-8999-999999999905'
+  $$,
+  '42501',
+  null,
+  'authenticated cannot UPDATE trade_messages (append-only)'
+);
+
+select throws_ok(
+  $$
+    delete from public.trade_messages
+    where id = '99999999-9999-4999-8999-999999999905'
+  $$,
+  '42501',
+  null,
+  'authenticated cannot DELETE trade_messages (append-only)'
 );
 reset role;
 
@@ -443,7 +555,6 @@ select throws_ok(
 );
 reset role;
 
--- service_role can read internal tables (bypass / grants)
 set local role service_role;
 select lives_ok(
   $$ select count(*) from public.estimate_authority_idempotency $$,
@@ -469,7 +580,7 @@ select ok(
   'index measured_boq_catalog_events_prior_revision_id_idx exists'
 );
 
--- ── prevent role escalation still works via trigger ───────────────────────
+-- ── prevent role escalation ───────────────────────────────────────────────
 set local role authenticated;
 select set_config('request.jwt.claim.sub', '11111111-1111-4111-8111-111111111111', true);
 select set_config('request.jwt.claim.role', 'authenticated', true);
@@ -481,12 +592,50 @@ select throws_ok(
 );
 reset role;
 
--- ── internal deny policy presence ─────────────────────────────────────────
+-- ── internal deny: exactly one policy per table ───────────────────────────
 select is(
   (select count(*)::int from pg_policies
    where schemaname='public' and tablename='estimate_authority_idempotency'),
-  2,
-  'estimate_authority_idempotency has deny policies for anon+authenticated'
+  1,
+  'estimate_authority_idempotency has exactly one deny policy'
+);
+select is(
+  (select count(*)::int from pg_policies
+   where schemaname='public' and tablename='measured_boq_catalog_entries'),
+  1,
+  'measured_boq_catalog_entries has exactly one deny policy'
+);
+select is(
+  (select count(*)::int from pg_policies
+   where schemaname='public' and tablename='measured_boq_catalog_events'),
+  1,
+  'measured_boq_catalog_events has exactly one deny policy'
+);
+select is(
+  (select count(*)::int from pg_policies
+   where schemaname='public' and tablename='measured_boq_catalog_packages'),
+  1,
+  'measured_boq_catalog_packages has exactly one deny policy'
+);
+select is(
+  (select count(*)::int from pg_policies
+   where schemaname='public' and tablename='measured_boq_catalog_revisions'),
+  1,
+  'measured_boq_catalog_revisions has exactly one deny policy'
+);
+
+select is(
+  (
+    select count(*)::int from pg_policies
+    where schemaname='public'
+      and tablename='estimate_authority_idempotency'
+      and policyname='estimate_authority_idempotency_deny_clients'
+      and 'anon'=any(roles)
+      and 'authenticated'=any(roles)
+      and cmd='ALL'
+  ),
+  1,
+  'estimate_authority_idempotency deny targets anon+authenticated FOR ALL'
 );
 
 select * from finish();
