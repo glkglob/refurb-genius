@@ -1,0 +1,80 @@
+docs/operations/app-functional-surface-register.json
+  h_7ea6129503670a 46,50,59,62,468-488
+docs/operations/app-functional-surface-register.md
+  h_7ea6129503670a 20,24,37,62
+packages/supabase/src/database.types.ts
+  h_7ea6129503670a 1339,1341-1342,1344-1346,1351,1353-1354,1356-1358,1363,1365-1366,1368-1370
+scripts/build-functional-surface-register.mjs
+  h_7ea6129503670a 298-308
+src/components/RedesignCard.tsx
+  h_7ea6129503670a 3,11-16,19-26,28-32,38,46,56,62,73-82,116-128
+src/components/pipeline-checklist.ts
+  h_7ea6129503670a 96
+src/features/ai-design/domain/index.ts
+  h_7ea6129503670a 38-45
+src/features/ai-design/domain/redesignAuthority.test.ts
+  h_7ea6129503670a 1-46
+src/features/ai-design/domain/redesignAuthority.ts
+  h_7ea6129503670a 1-115
+src/features/ai-design/infrastructure/adapters/ai-redesign.adapter.server.ts
+  h_7ea6129503670a 42-44
+src/features/ai-design/infrastructure/repositories/redesign-concepts.repository.server.ts
+  h_7ea6129503670a 1-219
+src/features/ai-design/presentation/index.ts
+  h_7ea6129503670a 4-9
+src/features/ai-design/presentation/redesign.provider.ts
+  h_7ea6129503670a 51-52,59-70
+src/features/ai-design/presentation/serverFns.ts
+  h_7ea6129503670a 50-55,58,63-104
+src/features/projects/domain/index.ts
+  h_7ea6129503670a 65-71
+src/features/projects/domain/photosAnalysisWorkflowAdapter.test.ts
+  h_7ea6129503670a 177
+src/features/projects/domain/redesignWorkflowAdapter.test.ts
+  h_7ea6129503670a 1-207
+src/features/projects/domain/redesignWorkflowAdapter.ts
+  h_7ea6129503670a 1-95
+src/features/projects/domain/resolveProjectNextAction.test.ts
+  h_7ea6129503670a 167,214,577,607,629,635
+src/features/projects/domain/resolveProjectNextAction.ts
+  h_7ea6129503670a 51-52,56-63,73,75-76
+src/features/projects/domain/workflowStages.test.ts
+  h_7ea6129503670a 73,76-77,80,82-83
+src/features/projects/domain/workflowStages.ts
+  h_7ea6129503670a 77-78,119-127,141,146,154-155,172-174,189,198,242-245
+src/features/projects/index.ts
+  h_7ea6129503670a 35-36
+src/features/projects/presentation/components/ProjectStageNav.test.tsx
+  h_7ea6129503670a 67,71-72
+src/routeTree.gen.ts
+  h_7ea6129503670a 43,203-208,257,293,331,369,405,442,683-689,757,782
+src/routes/_authed/-projects.$id.analysis.shell.test.ts
+  h_7ea6129503670a 88-91
+src/routes/_authed/projects.$id.analysis.tsx
+  h_7ea6129503670a 1,40,43-51,103,126,128,281,395-398,401-402,405,479,481,484-486
+src/routes/_authed/projects.$id.redesign.tsx
+  h_7ea6129503670a 1-395
+tests/invariants/config/legacy-import-baseline.ts
+  h_7ea6129503670a 105
+tests/invariants/project-first-class-redesign.invariant.test.ts
+  h_7ea6129503670a 1-61
+tests/invariants/project-next-action-resolver.invariant.test.ts
+  h_7ea6129503670a 72-76
+tests/invariants/project-photos-analysis-continuity.invariant.test.ts
+  h_7ea6129503670a 56-57,60
+tests/invariants/project-workflow-shell.invariant.test.ts
+  h_7ea6129503670a 38,41-42
+tests/invariants/routes.invariant.test.ts
+  h_7ea6129503670a 56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "bffe444f4455497a5e26739dd7edf413a88d58e8",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
