@@ -1,0 +1,26 @@
+packages/supabase/src/database.types.ts
+  h_7ea6129503670a 2043-2059
+src/features/ai-design/infrastructure/repositories/redesign-concepts.repository.r1.test.ts
+  h_7ea6129503670a 2,10,154-215
+src/features/ai-design/infrastructure/repositories/redesign-concepts.repository.server.ts
+  h_7ea6129503670a 2,6,8,74,83-85,121-122,133-146,148-165,167,169-174
+supabase/migrations/20260807230000_ia4_redesign_authority_write_path_seal.sql
+  h_7ea6129503670a 1-296
+supabase/tests/database/select_project_redesign_concept.test.sql
+  h_7ea6129503670a 1,3,12-18,25-36,54-63,93-133,136
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 81
+tests/invariants/project-first-class-redesign.invariant.test.ts
+  h_7ea6129503670a 66-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "c248f28ca1b24b233193a74b5795fd0723f4ff9b",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
