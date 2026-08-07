@@ -1,0 +1,26 @@
+AGENTS.md
+  h_7ea6129503670a 17-34
+CLAUDE.md
+  h_7ea6129503670a 10
+docs/README.md
+  h_7ea6129503670a 13-33
+docs/architecture/future-roadmap.md
+  h_7ea6129503670a 15
+docs/architecture/overview.md
+  h_7ea6129503670a 11,13-16,24-34,39-47,70-75,135-140,144-166,170-175,183-190,221-234,253-257,278-293,320-329,363-370,386-393,401-407,418-434,440-451,457-466,482-487,493-500,508-514
+docs/architecture/workflow/ia-0-workflow-authority-spec.md
+  h_7ea6129503670a 1-1739
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "81da91b8bb97fe20e04d2996d7c2dec706cc7777",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
