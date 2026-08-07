@@ -1,9 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { makeAnalyzePhotos } from "./analyzePhotos";
-import type { AnalysisPhotoSource, RoomAnalysis } from "../domain";
+import {
+  PHOTO_ANALYSIS_NO_SOURCE_PHOTOS,
+  type AnalysisPhotoSource,
+  type RoomAnalysis,
+} from "../domain";
 import type { AiVisionPort, PhotoCatalogPort, RoomAnalysisRepository } from "./ports";
 
-function makeAnalysis(id: string): RoomAnalysis {
+function makeAnalysis(id: string, partial: Partial<RoomAnalysis> = {}): RoomAnalysis {
   return {
     id,
     photo_url: `https://u/${id}`,
@@ -16,10 +20,11 @@ function makeAnalysis(id: string): RoomAnalysis {
     ai_summary: "ok",
     confidence_score: 0.9,
     source: "ai",
+    ...partial,
   };
 }
 
-describe("makeAnalyzePhotos (C5-2 async catalog)", () => {
+describe("makeAnalyzePhotos (C5-2 async catalog + P0 real-photo authority)", () => {
   let vision: AiVisionPort;
   let analyses: RoomAnalysisRepository;
   let photos: PhotoCatalogPort;
@@ -27,7 +32,7 @@ describe("makeAnalyzePhotos (C5-2 async catalog)", () => {
   beforeEach(() => {
     vision = {
       analyzePhotos: vi.fn(async ({ photos: list }: { photos: AnalysisPhotoSource[] }) =>
-        list.map((p) => makeAnalysis(p.id)),
+        list.map((p) => makeAnalysis(p.id, { photo_url: p.url, photo_name: p.name, source: "ai" })),
       ),
     };
     analyses = {
@@ -71,14 +76,108 @@ describe("makeAnalyzePhotos (C5-2 async catalog)", () => {
     });
   });
 
-  it("uses empty list when catalog port is omitted", async () => {
+  it("A: zero catalogue photos — no vision, no mock, no persistence", async () => {
+    photos.listPhotos = vi.fn(async () => []);
+    const analyze = makeAnalyzePhotos({ vision, analyses, photos });
+
+    await expect(analyze({ projectId: "proj-1" })).rejects.toMatchObject({
+      code: PHOTO_ANALYSIS_NO_SOURCE_PHOTOS,
+    });
+    expect(vision.analyzePhotos).not.toHaveBeenCalled();
+    expect(analyses.save).not.toHaveBeenCalled();
+  });
+
+  it("rejects empty explicit photos without calling vision", async () => {
+    const analyze = makeAnalyzePhotos({ vision, analyses, photos });
+    await expect(analyze({ projectId: "proj-1", photos: [] })).rejects.toMatchObject({
+      code: PHOTO_ANALYSIS_NO_SOURCE_PHOTOS,
+    });
+    expect(vision.analyzePhotos).not.toHaveBeenCalled();
+    expect(analyses.save).not.toHaveBeenCalled();
+  });
+
+  it("uses empty catalog port omission as no-photos failure", async () => {
     const analyze = makeAnalyzePhotos({ vision, analyses });
-    await analyze({ projectId: "proj-1" });
+    await expect(analyze({ projectId: "proj-1" })).rejects.toMatchObject({
+      code: PHOTO_ANALYSIS_NO_SOURCE_PHOTOS,
+    });
+    expect(vision.analyzePhotos).not.toHaveBeenCalled();
+  });
+
+  it("D: 3 real project photos — exactly those 3 sources passed to vision", async () => {
+    const three: AnalysisPhotoSource[] = [
+      { id: "p1", url: "https://cdn/p1.jpg", name: "a.jpg" },
+      { id: "p2", url: "https://cdn/p2.jpg", name: "b.jpg" },
+      { id: "p3", url: "https://cdn/p3.jpg", name: "c.jpg" },
+    ];
+    photos.listPhotos = vi.fn(async () => three);
+    const analyze = makeAnalyzePhotos({ vision, analyses, photos });
+    const result = await analyze({ projectId: "proj-1" });
 
     expect(vision.analyzePhotos).toHaveBeenCalledWith({
       projectId: "proj-1",
-      photos: [],
+      photos: three,
     });
+    expect(result).toHaveLength(3);
+    expect(result.map((r) => r.id)).toEqual(["p1", "p2", "p3"]);
+    expect(result.every((r) => r.source === "ai")).toBe(true);
+  });
+
+  it("G: successful replacement provenance matches project photos", async () => {
+    const three: AnalysisPhotoSource[] = [
+      { id: "p1", url: "https://cdn/p1.jpg", name: "a.jpg" },
+      { id: "p2", url: "https://cdn/p2.jpg", name: "b.jpg" },
+    ];
+    const analyze = makeAnalyzePhotos({ vision, analyses, photos });
+    const result = await analyze({ projectId: "proj-1", photos: three });
+    expect(result[0]).toMatchObject({
+      id: "p1",
+      photo_url: "https://cdn/p1.jpg",
+      photo_name: "a.jpg",
+    });
+    expect(result[1]).toMatchObject({
+      id: "p2",
+      photo_url: "https://cdn/p2.jpg",
+      photo_name: "b.jpg",
+    });
+  });
+
+  it("I: rejects mock vision results before persistence", async () => {
+    vision.analyzePhotos = vi.fn(async ({ photos: list }: { photos: AnalysisPhotoSource[] }) =>
+      list.map((p: AnalysisPhotoSource) =>
+        makeAnalysis(p.id, {
+          photo_url: p.url,
+          photo_name: p.name,
+          source: "mock",
+          room_type: "Kitchen",
+        }),
+      ),
+    );
+    const analyze = makeAnalyzePhotos({ vision, analyses, photos });
+    await expect(
+      analyze({
+        projectId: "proj-1",
+        photos: [{ id: "p1", url: "https://cdn/p1.jpg", name: "a.jpg" }],
+      }),
+    ).rejects.toThrow(/Mock analysis/);
+    expect(analyses.save).not.toHaveBeenCalled();
+  });
+
+  it("rejects unexplained extra results", async () => {
+    vision.analyzePhotos = vi.fn(async ({ photos: list }: { photos: AnalysisPhotoSource[] }) => [
+      ...list.map((p: AnalysisPhotoSource) =>
+        makeAnalysis(p.id, { photo_url: p.url, photo_name: p.name }),
+      ),
+      makeAnalysis("extra", { photo_url: "https://u/extra", photo_name: "extra.jpg" }),
+    ]);
+    const analyze = makeAnalyzePhotos({ vision, analyses, photos });
+    await expect(
+      analyze({
+        projectId: "proj-1",
+        photos: [{ id: "p1", url: "https://cdn/p1.jpg", name: "a.jpg" }],
+      }),
+    ).rejects.toThrow(/Expected 1 analyses/);
+    expect(analyses.save).not.toHaveBeenCalled();
   });
 
   it("propagates catalog errors without swallowing", async () => {
@@ -89,6 +188,15 @@ describe("makeAnalyzePhotos (C5-2 async catalog)", () => {
 
     await expect(analyze({ projectId: "proj-1" })).rejects.toThrow("catalog failed");
     expect(vision.analyzePhotos).not.toHaveBeenCalled();
+    expect(analyses.save).not.toHaveBeenCalled();
+  });
+
+  it("H: AI failure during analysis does not call save (no destructive replacement)", async () => {
+    vision.analyzePhotos = vi.fn(async () => {
+      throw new Error("vision down");
+    });
+    const analyze = makeAnalyzePhotos({ vision, analyses, photos });
+    await expect(analyze({ projectId: "proj-1" })).rejects.toThrow("vision down");
     expect(analyses.save).not.toHaveBeenCalled();
   });
 });

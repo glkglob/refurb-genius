@@ -178,7 +178,7 @@ describe("SupabaseRoomAnalysisRepository.runMock (C5-2)", () => {
     expect(repo.get("proj-1")).toEqual(result);
   });
 
-  it("genuine empty list preserves FALLBACK mock behaviour", async () => {
+  it("genuine empty list does not invent FALLBACK mock analyses", async () => {
     fetchProjectPhotosList.mockResolvedValue([]);
 
     const repo = new SupabaseRoomAnalysisRepository();
@@ -187,10 +187,8 @@ describe("SupabaseRoomAnalysisRepository.runMock (C5-2)", () => {
     const result = await pending;
 
     expect(fetchProjectPhotosList).toHaveBeenCalledWith("empty-proj");
-    // buildMockRoomAnalyses substitutes FALLBACK_PHOTOS when no sources
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.every((r) => r.source === "mock")).toBe(true);
-    expect(result[0]?.id).toMatch(/^fallback-/);
+    // Empty catalogue must not create Kitchen/Bathroom/Living Room demo rows.
+    expect(result).toEqual([]);
   });
 
   it("propagates canonical fetch failures", async () => {

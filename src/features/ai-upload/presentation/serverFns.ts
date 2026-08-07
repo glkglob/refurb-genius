@@ -27,7 +27,10 @@ const photoInputSchema = z.object({
 
 const runPhotoAnalysisInputSchema = z.object({
   projectId: z.string().min(1),
-  photos: z.array(photoInputSchema),
+  /** Production contract: at least one real project photo is required. */
+  photos: z.array(photoInputSchema).min(1, {
+    message: "Upload at least one project photo before running AI analysis.",
+  }),
 });
 
 /** Shared schema for redesign serverFn input (re-exported by legacy serverFns shim). */

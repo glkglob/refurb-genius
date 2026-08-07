@@ -11,6 +11,12 @@ import {
   isSuccessfulAnalysis,
   hasFallbackResults,
   mergeAnalysesRetainingGood,
+  hasMockAnalysis,
+  isMockOnlyAnalysisSet,
+  isStaleAnalysisRelativeToCatalogue,
+  isProductionValidAnalysisSet,
+  assertAnalysisProvenance,
+  PHOTO_ANALYSIS_MOCK_FORBIDDEN,
 } from "./rules";
 
 function analysis(partial: Partial<RoomAnalysis> & Pick<RoomAnalysis, "id">): RoomAnalysis {
@@ -140,5 +146,93 @@ describe("ai-upload domain rules", () => {
     expect(merged[0]?.photo_url).toBe("https://u/good");
     expect(merged[0]?.confidence_score).toBe(0.9);
     expect(merged[1]?.ai_summary).toBe("Better");
+  });
+
+  it("E: existing mock Kitchen/Bathroom/Living Room + 3 real photos is stale", () => {
+    const mockSet = [
+      analysis({
+        id: "fallback-0",
+        source: "mock",
+        room_type: "Kitchen",
+        photo_url: "/assets/before.jpg",
+        photo_name: "fallback-living.jpg",
+      }),
+      analysis({
+        id: "fallback-1",
+        source: "mock",
+        room_type: "Bathroom",
+        photo_url: "/assets/after.jpg",
+        photo_name: "fallback-kitchen.jpg",
+      }),
+      analysis({
+        id: "fallback-2",
+        source: "mock",
+        room_type: "Living Room",
+        photo_url: "/assets/hero-after.jpg",
+        photo_name: "fallback-exterior.jpg",
+      }),
+    ];
+    const catalogue = [
+      { id: "r1", url: "https://cdn/r1.jpg", name: "one.jpg" },
+      { id: "r2", url: "https://cdn/r2.jpg", name: "two.jpg" },
+      { id: "r3", url: "https://cdn/r3.jpg", name: "three.jpg" },
+    ];
+    expect(hasMockAnalysis(mockSet)).toBe(true);
+    expect(isMockOnlyAnalysisSet(mockSet)).toBe(true);
+    expect(isStaleAnalysisRelativeToCatalogue(mockSet, catalogue)).toBe(true);
+    expect(isProductionValidAnalysisSet(mockSet, catalogue)).toBe(false);
+  });
+
+  it("detects catalogue photos absent from analysis set as stale", () => {
+    const analyses = [
+      analysis({ id: "r1", photo_url: "https://cdn/r1.jpg", photo_name: "one.jpg" }),
+    ];
+    const catalogue = [
+      { id: "r1", url: "https://cdn/r1.jpg", name: "one.jpg" },
+      { id: "r2", url: "https://cdn/r2.jpg", name: "two.jpg" },
+    ];
+    expect(isStaleAnalysisRelativeToCatalogue(analyses, catalogue)).toBe(true);
+  });
+
+  it("assertAnalysisProvenance rejects mock and cardinality mismatches", () => {
+    const photos = [{ id: "p1", url: "https://cdn/p1.jpg", name: "a.jpg" }];
+    try {
+      assertAnalysisProvenance(photos, [
+        analysis({
+          id: "p1",
+          photo_url: "https://cdn/p1.jpg",
+          photo_name: "a.jpg",
+          source: "mock",
+        }),
+      ]);
+      expect.fail("expected throw");
+    } catch (e) {
+      expect((e as { code?: string }).code).toBe(PHOTO_ANALYSIS_MOCK_FORBIDDEN);
+    }
+
+    expect(() =>
+      assertAnalysisProvenance(photos, [
+        analysis({ id: "p1", photo_url: "https://cdn/p1.jpg", photo_name: "a.jpg" }),
+        analysis({ id: "extra", photo_url: "https://cdn/x.jpg", photo_name: "x.jpg" }),
+      ]),
+    ).toThrow(/Expected 1 analyses/);
+  });
+
+  it("J: production-valid set never accepts deterministic Kitchen/Bathroom/Living mock trio", () => {
+    const mockTrio = ["Kitchen", "Bathroom", "Living Room"].map((room_type, i) =>
+      analysis({
+        id: `fallback-${i}`,
+        source: "mock",
+        room_type: room_type as RoomAnalysis["room_type"],
+        photo_url: `/assets/demo-${i}.jpg`,
+        photo_name: `demo-${i}.jpg`,
+      }),
+    );
+    const oneRoomPhotos = [
+      { id: "a", url: "https://cdn/a.jpg", name: "a.jpg" },
+      { id: "b", url: "https://cdn/b.jpg", name: "b.jpg" },
+      { id: "c", url: "https://cdn/c.jpg", name: "c.jpg" },
+    ];
+    expect(isProductionValidAnalysisSet(mockTrio, oneRoomPhotos)).toBe(false);
   });
 });

@@ -80,8 +80,25 @@ async function persistToSupabase(projectId: string, analyses: RoomAnalysis[]): P
   const user = auth.getUser();
   if (!user) return;
 
+  // Production path must not persist mock demo analyses as project authority.
+  if (analyses.some((a) => a.source === "mock")) {
+    logger.warn("[analysis] refused to persist mock analysis rows", { projectId });
+    return;
+  }
+
   try {
-    await supabase.from("room_analyses").delete().eq("project_id", projectId);
+    // Non-destructive replacement: insert new rows first, then retire prior rows.
+    // A failed AI/persist must not wipe existing analysis before replacement succeeds.
+    const { data: existing, error: existingError } = await supabase
+      .from("room_analyses")
+      .select("id")
+      .eq("project_id", projectId);
+    if (existingError) {
+      logger.warn("[analysis] failed to load existing analysis ids", {
+        error: existingError.message,
+      });
+      return;
+    }
 
     if (analyses.length > 0) {
       const rows = analyses.map((a) => ({
@@ -101,6 +118,20 @@ async function persistToSupabase(projectId: string, analyses: RoomAnalysis[]): P
       const { error } = await supabase.from("room_analyses").insert(rows);
       if (error) {
         logger.warn("[analysis] failed to persist analyses", { error: error.message });
+        return;
+      }
+    }
+
+    const priorIds = (existing ?? []).map((r) => r.id).filter(Boolean);
+    if (priorIds.length > 0) {
+      const { error: deleteError } = await supabase
+        .from("room_analyses")
+        .delete()
+        .in("id", priorIds);
+      if (deleteError) {
+        logger.warn("[analysis] failed to retire prior analyses after insert", {
+          error: deleteError.message,
+        });
       }
     }
   } catch {
@@ -112,9 +143,13 @@ function delay(ms = 1200) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-/** Source photos for mock analysis — canonical C5-1 list (C5-2). */
+/** Source photos for dev mock provider — canonical C5-1 list (C5-2). */
 async function buildFromProjectPhotos(projectId: string): Promise<RoomAnalysis[]> {
   const photos = await fetchProjectPhotosList(projectId);
+  if (photos.length === 0) {
+    // Never invent FALLBACK_PHOTOS as project analysis when the catalogue is empty.
+    return [];
+  }
   return buildMockRoomAnalyses(
     photos.map((p) => ({ id: p.id, url: p.url, name: p.name, size: p.size })),
   );
@@ -138,6 +173,7 @@ export class SupabaseRoomAnalysisRepository implements RoomAnalysisRepositoryPor
   }
 
   async save(projectId: string, analyses: RoomAnalysis[]): Promise<void> {
+    // In-memory cache may hold results for UI; DB path refuses mock rows.
     cache.set(projectId, analyses);
     notify();
     await persistToSupabase(projectId, analyses);
@@ -148,11 +184,16 @@ export class SupabaseRoomAnalysisRepository implements RoomAnalysisRepositoryPor
     return () => listeners.delete(fn);
   }
 
-  /** Dev-only mock run from project photo metadata (mockPhotoAnalysisProvider). */
+  /**
+   * Dev-only mock run from project photo metadata (mockPhotoAnalysisProvider).
+   * Not used by production serverPhotoAnalysisProvider. Empty catalogue → no mock rows.
+   */
   async runMock(projectId: string): Promise<RoomAnalysis[]> {
     await delay();
     const result = await buildFromProjectPhotos(projectId);
-    await this.save(projectId, result);
+    // Cache only for local mock provider — do not hit DB with source=mock.
+    cache.set(projectId, result);
+    notify();
     return result;
   }
 }

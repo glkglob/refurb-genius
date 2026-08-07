@@ -20,7 +20,7 @@ import type {
   RoomAnalysis,
   RoomType,
 } from "../../domain";
-import { buildMockRoomAnalyses } from "../../domain";
+import { buildMockRoomAnalyses, noSourcePhotosError } from "../../domain";
 import { safeParseRoomAnalysis } from "../../domain/validation";
 import { captureAiError, addDiagnosticBreadcrumb, setConversationId } from "@/lib/sentry";
 import {
@@ -243,7 +243,12 @@ export async function runSecurePhotoAnalysisHuggingFace(input: {
   projectId: string;
   photos: AnalysisPhotoSource[];
 }): Promise<RoomAnalysis[]> {
-  const photos = input.photos.length > 0 ? input.photos : undefined;
+  // Never invent bundled demo analyses for an empty photo list.
+  if (!input.photos.length) {
+    throw noSourcePhotosError();
+  }
+
+  const photos = input.photos;
   const config = getHuggingFaceConfig();
 
   if (!isHuggingFaceConfigured()) {
@@ -252,16 +257,12 @@ export async function runSecurePhotoAnalysisHuggingFace(input: {
       captureAiError(err, { provider: "hf-vision", reason: "not_configured" });
       throw err;
     }
+    // Dev/test only: fixtures grounded in supplied photos (never FALLBACK_PHOTOS for empty).
     incrementCounter("hf_vision_fallback_used");
     return buildMockRoomAnalyses(photos);
   }
 
   setConversationId(`project-${input.projectId}`);
-
-  if (!photos?.length) {
-    incrementCounter("hf_vision_fallback_used");
-    return buildMockRoomAnalyses(photos);
-  }
 
   const startTime = Date.now();
   addDiagnosticBreadcrumb("ai:hf:batch:start", {

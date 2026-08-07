@@ -4,8 +4,25 @@
  * Pure judgements over domain types. Vision AI produces language and condition
  * signals; pricing/ROI math stays in @repo/services (not here).
  */
-import type { RoomAnalysis, RoomType } from "./types";
+import type { AnalysisPhotoSource, RoomAnalysis, RoomType } from "./types";
+import {
+  PHOTO_ANALYSIS_CARDINALITY_MISMATCH,
+  PHOTO_ANALYSIS_MOCK_FORBIDDEN,
+  PHOTO_ANALYSIS_PROVENANCE_MISMATCH,
+  PhotoAnalysisError,
+  noSourcePhotosError,
+} from "./errors";
 export { isImageFile, imageContentType } from "@/lib/file-utils";
+export {
+  PHOTO_ANALYSIS_NO_SOURCE_PHOTOS,
+  PHOTO_ANALYSIS_CARDINALITY_MISMATCH,
+  PHOTO_ANALYSIS_PROVENANCE_MISMATCH,
+  PHOTO_ANALYSIS_MOCK_FORBIDDEN,
+  PHOTO_ANALYSIS_STALE_REQUIRES_REANALYSIS,
+  PhotoAnalysisError,
+  noSourcePhotosError,
+  staleAnalysisRequiresReanalysisError,
+} from "./errors";
 
 /** Confidence below this is treated as needing human review. */
 export const CONFIDENCE_REVIEW_THRESHOLD = 0.55;
@@ -150,6 +167,135 @@ export function findDuplicatePhotoIds(
     else seen.set(key, p.id);
   }
   return dups;
+}
+
+/** True when any analysis row is a bundled mock result. */
+export function hasMockAnalysis(analyses: RoomAnalysis[]): boolean {
+  return analyses.some((a) => a.source === "mock");
+}
+
+/** True when the set is non-empty and every row is mock. */
+export function isMockOnlyAnalysisSet(analyses: RoomAnalysis[]): boolean {
+  return analyses.length > 0 && analyses.every((a) => a.source === "mock");
+}
+
+type CataloguePhotoIdentity = Pick<AnalysisPhotoSource, "id" | "url" | "name">;
+
+function catalogueKeys(catalogue: CataloguePhotoIdentity[]): Set<string> {
+  const keys = new Set<string>();
+  for (const p of catalogue) {
+    if (p.url) keys.add(p.url);
+    if (p.name) keys.add(p.name);
+    if (p.id) keys.add(p.id);
+  }
+  return keys;
+}
+
+function analysisMatchesCatalogue(
+  analysis: RoomAnalysis,
+  catalogue: CataloguePhotoIdentity[],
+  keys: Set<string>,
+): boolean {
+  if (keys.has(analysis.photo_url) || keys.has(analysis.photo_name) || keys.has(analysis.id)) {
+    return true;
+  }
+  return catalogue.some(
+    (p) =>
+      p.id === analysis.id ||
+      (p.url.length > 0 && p.url === analysis.photo_url) ||
+      (p.name.length > 0 && p.name === analysis.photo_name),
+  );
+}
+
+/**
+ * Persisted analysis is stale relative to the canonical project photo catalogue when:
+ * - any result source is mock; OR
+ * - analysis photo identities do not correspond to the catalogue; OR
+ * - the catalogue contains real photos absent from the analysis set.
+ *
+ * Empty analysis is not "stale" — it is simply missing (caller decides to run or not).
+ */
+export function isStaleAnalysisRelativeToCatalogue(
+  analyses: RoomAnalysis[],
+  catalogue: CataloguePhotoIdentity[],
+): boolean {
+  if (analyses.length === 0) return false;
+  if (hasMockAnalysis(analyses)) return true;
+  if (catalogue.length === 0) {
+    // Analyses exist but catalogue is empty — identities cannot be grounded.
+    return true;
+  }
+
+  const keys = catalogueKeys(catalogue);
+  for (const a of analyses) {
+    if (!analysisMatchesCatalogue(a, catalogue, keys)) return true;
+  }
+
+  const analysisKeys = new Set(analyses.map((a) => analysisPhotoKey(a)));
+  const analysisIds = new Set(analyses.map((a) => a.id));
+  for (const p of catalogue) {
+    const key = p.url || p.name;
+    if (!analysisKeys.has(key) && !analysisIds.has(p.id)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * A production-valid analysis set is non-empty, free of mock rows, and aligned
+ * with the current canonical photo catalogue.
+ */
+export function isProductionValidAnalysisSet(
+  analyses: RoomAnalysis[],
+  catalogue: CataloguePhotoIdentity[],
+): boolean {
+  if (analyses.length === 0 || catalogue.length === 0) return false;
+  if (hasMockAnalysis(analyses)) return false;
+  return !isStaleAnalysisRelativeToCatalogue(analyses, catalogue);
+}
+
+/**
+ * Assert vision output is grounded in the supplied project photos.
+ * Rejects empty inputs, cardinality drift, mock rows, and unlinked results.
+ */
+export function assertAnalysisProvenance(
+  photos: AnalysisPhotoSource[],
+  results: RoomAnalysis[],
+): void {
+  if (photos.length === 0) {
+    throw noSourcePhotosError();
+  }
+  if (results.length !== photos.length) {
+    throw new PhotoAnalysisError(
+      PHOTO_ANALYSIS_CARDINALITY_MISMATCH,
+      `Expected ${photos.length} analyses for ${photos.length} photos, received ${results.length}.`,
+    );
+  }
+  if (hasMockAnalysis(results)) {
+    throw new PhotoAnalysisError(
+      PHOTO_ANALYSIS_MOCK_FORBIDDEN,
+      "Mock analysis results cannot be used as production analysis.",
+    );
+  }
+
+  const byId = new Map(photos.map((p) => [p.id, p]));
+  for (const result of results) {
+    const photo = byId.get(result.id);
+    if (!photo) {
+      throw new PhotoAnalysisError(
+        PHOTO_ANALYSIS_PROVENANCE_MISMATCH,
+        "Analysis result is not linked to a supplied project photo.",
+      );
+    }
+    if (result.photo_url !== photo.url || result.photo_name !== photo.name) {
+      throw new PhotoAnalysisError(
+        PHOTO_ANALYSIS_PROVENANCE_MISMATCH,
+        "Analysis result photo identity does not match the supplied project photo.",
+      );
+    }
+  }
 }
 
 /**

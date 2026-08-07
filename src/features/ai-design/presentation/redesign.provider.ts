@@ -4,7 +4,7 @@
  */
 import { REDESIGN_CONCEPTS, REDESIGN_STYLES } from "@/lib/redesign";
 import type { RedesignConcept, RedesignStyle } from "../domain";
-import { analysisStore } from "@/features/ai-upload";
+import { analysisStore, hasMockAnalysis, isMockOnlyAnalysisSet } from "@/features/ai-upload";
 import { generateRedesignConceptsServerFn } from "./serverFns";
 
 export type RedesignInput = {
@@ -44,11 +44,19 @@ export const redesignProvider: RedesignProvider = {
     const cached = cache.get(input.projectId);
     if (cached) return cached;
 
+    const analyses = analysisStore.get(input.projectId) ?? [];
+    // Do not derive redesign / investor-facing concepts from mock-only or mock-tainted analysis.
+    if (hasMockAnalysis(analyses) || isMockOnlyAnalysisSet(analyses)) {
+      throw new Error(
+        "Previous analysis was not based on the current project photos. Run analysis again to use your uploaded photos.",
+      );
+    }
+
     const concepts = await generateRedesignConceptsServerFn({
       data: {
         projectId: input.projectId,
         styles: input.styles,
-        analyses: analysisStore.get(input.projectId) ?? [],
+        analyses,
       },
     });
 

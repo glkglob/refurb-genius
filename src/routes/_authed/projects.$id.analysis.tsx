@@ -9,8 +9,8 @@ import { AnalysisCard } from "@/components/AnalysisCard";
 import { RedesignCard } from "@/components/RedesignCard";
 import { PipelineChecklist } from "@/components/PipelineChecklist";
 import { buildProjectPipelineSteps } from "@/components/pipeline-checklist";
-import { useEffect, useMemo, useState } from "react";
-import { Sparkles, ArrowRight, AlertCircle, RefreshCw } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Sparkles, ArrowRight, AlertCircle, RefreshCw, Camera } from "lucide-react";
 import { toast } from "sonner";
 import {
   getPhotoAnalysis,
@@ -19,8 +19,10 @@ import {
   retryWeakPhotoAnalyses,
   groupAnalysesByRoom,
   hasFallbackResults,
-  needsHumanReview,
   countNeedingReview,
+  isProductionValidAnalysisSet,
+  isStaleAnalysisRelativeToCatalogue,
+  usePhotos,
   type RoomAnalysis,
 } from "@/features/ai-upload";
 import {
@@ -39,37 +41,57 @@ export const Route = createFileRoute("/_authed/projects/$id/analysis")({
   component: AnalysisPage,
 });
 
+type AnalysisUiState = "loading" | "ready" | "no_photos" | "stale_mock" | "error";
+
+function toCatalogue(photos: Array<{ id: string; url: string; name: string }>) {
+  return photos.map((p) => ({ id: p.id, url: p.url, name: p.name }));
+}
+
 function AnalysisPage() {
   const { id } = Route.useParams();
   const { data: project, isLoading: projectLoading, error: projectError } = useProject(id);
+  const { data: projectPhotos, isLoading: photosLoading } = usePhotos(id);
   const setStage = useSetProjectStage();
-  const [loading, setLoading] = useState(true);
+  const [uiState, setUiState] = useState<AnalysisUiState>("loading");
   const [retrying, setRetrying] = useState(false);
+  const [analysing, setAnalysing] = useState(false);
   const [results, setResults] = useState<RoomAnalysis[]>([]);
   const [concepts, setConcepts] = useState<RedesignConcept[]>(REDESIGN_CONCEPTS);
   const [conceptsLoading, setConceptsLoading] = useState(false);
   const [redesignError, setRedesignError] = useState<string | null>(null);
 
+  const catalogue = useMemo(() => toCatalogue(projectPhotos ?? []), [projectPhotos]);
+  const photoCount = catalogue.length;
   const roomGroups = useMemo(() => groupAnalysesByRoom(results), [results]);
   const needsReviewCount = useMemo(() => countNeedingReview(results), [results]);
+  const analysisIsValid = useMemo(
+    () => isProductionValidAnalysisSet(results, catalogue),
+    [results, catalogue],
+  );
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadRedesign = useCallback((projectId: string) => {
+    setConceptsLoading(true);
+    setRedesignError(null);
+    generateRedesignConcepts({ projectId })
+      .then((generated) => {
+        setConcepts(generated);
+        setConceptsLoading(false);
+      })
+      .catch((err) => {
+        setConceptsLoading(false);
+        const msg = err instanceof Error ? err.message : "Could not generate redesign concepts.";
+        setRedesignError(msg);
+        toast.error("Redesign concepts unavailable", {
+          description: "Using default suggestions. You can retry later.",
+        });
+      });
+  }, []);
 
-    if (!project) {
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    setResults([]);
-    setLoading(true);
-    setConcepts(REDESIGN_CONCEPTS);
-
-    const afterAnalysis = (r: RoomAnalysis[]) => {
-      if (cancelled) return;
+  const afterValidAnalysis = useCallback(
+    (r: RoomAnalysis[]) => {
       setResults(r);
-      setLoading(false);
+      setUiState("ready");
+      setAnalysing(false);
       setStage.mutate({ id, stage: "analysis", value: true });
       trackEvent("ai_analysis_completed", { room_count: r.length });
 
@@ -82,64 +104,97 @@ function AnalysisPage() {
         });
       }
 
-      setConceptsLoading(true);
-      setRedesignError(null);
-      generateRedesignConcepts({ projectId: id })
-        .then((generated) => {
-          if (cancelled) return;
-          setConcepts(generated);
-          setConceptsLoading(false);
-        })
-        .catch((err) => {
-          if (!cancelled) {
-            setConceptsLoading(false);
-            const msg =
-              err instanceof Error ? err.message : "Could not generate redesign concepts.";
-            setRedesignError(msg);
-            toast.error("Redesign concepts unavailable", {
-              description: "Using default suggestions. You can retry later.",
-            });
-          }
-        });
-    };
+      loadRedesign(id);
+    },
+    [id, loadRedesign, setStage],
+  );
 
-    const cached = getPhotoAnalysis(id);
-    if (cached?.length) {
-      afterAnalysis(cached);
+  const runFreshAnalysis = useCallback(async () => {
+    if (photoCount < 1) {
+      setUiState("no_photos");
+      setResults([]);
+      return;
+    }
+    setAnalysing(true);
+    setUiState("loading");
+    trackEvent("ai_analysis_started", { projectId: id });
+    try {
+      const r = await runPhotoAnalysis({ projectId: id });
+      afterValidAnalysis(r);
+    } catch (err: unknown) {
+      setAnalysing(false);
+      setUiState(photoCount < 1 ? "no_photos" : "error");
+      toast.error(err instanceof Error ? err.message : "Analysis failed. Please try again.");
+    }
+  }, [afterValidAnalysis, id, photoCount]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!project || photosLoading) {
       return () => {
         cancelled = true;
       };
     }
 
-    loadPhotoAnalysis(id)
-      .then((persisted) => {
+    setResults([]);
+    setUiState("loading");
+    setConcepts(REDESIGN_CONCEPTS);
+
+    // Gate: no photos → no analysis, no analysis_done, no redesign generation.
+    if (catalogue.length === 0) {
+      setUiState("no_photos");
+      setResults([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const resolve = async () => {
+      const cached = getPhotoAnalysis(id);
+      if (cached?.length && isProductionValidAnalysisSet(cached, catalogue)) {
+        if (!cancelled) afterValidAnalysis(cached);
+        return;
+      }
+
+      try {
+        const persisted = await loadPhotoAnalysis(id);
         if (cancelled) return;
-        if (persisted?.length) {
-          afterAnalysis(persisted);
+
+        if (persisted?.length && isProductionValidAnalysisSet(persisted, catalogue)) {
+          afterValidAnalysis(persisted);
           return;
         }
+
+        if (persisted?.length && isStaleAnalysisRelativeToCatalogue(persisted, catalogue)) {
+          // Do not present mock/stale rows as completed AI work.
+          // Do not mark analysis_done. Do not generate redesign from mocks.
+          setResults([]);
+          setUiState("stale_mock");
+          return;
+        }
+
+        // No valid persisted analysis and photos exist → run real analysis.
         trackEvent("ai_analysis_started", { projectId: id });
-        return runPhotoAnalysis({ projectId: id })
-          .then(afterAnalysis)
-          .catch((err: unknown) => {
-            if (cancelled) return;
-            setLoading(false);
-            toast.error(err instanceof Error ? err.message : "Analysis failed. Please try again.");
-          });
-      })
-      .catch((err: unknown) => {
+        const r = await runPhotoAnalysis({ projectId: id });
         if (cancelled) return;
-        setLoading(false);
+        afterValidAnalysis(r);
+      } catch (err: unknown) {
+        if (cancelled) return;
+        setUiState("error");
         toast.error(
           err instanceof Error ? err.message : "Failed to load analysis. Please try again.",
         );
-      });
+      }
+    };
+
+    void resolve();
 
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, project?.id]);
+  }, [id, project?.id, photosLoading, catalogue.length]);
 
   const handleRetryWeak = async () => {
     setRetrying(true);
@@ -150,9 +205,9 @@ function AnalysisPage() {
     try {
       const fresh = await retryWeakPhotoAnalyses({ projectId: id });
       setResults(fresh);
+      setUiState("ready");
       setStage.mutate({ id, stage: "analysis", value: true });
 
-      // Invalidate redesign cache only after successful persistence of merged analyses.
       clearRedesignConceptsCache(id);
       setConceptsLoading(true);
       setRedesignError(null);
@@ -190,7 +245,7 @@ function AnalysisPage() {
     }
   };
 
-  if (projectLoading) {
+  if (projectLoading || photosLoading) {
     return (
       <AppLayout title="AI analysis" subtitle="Loading project details…">
         <LoadingState label="Loading project…" />
@@ -212,7 +267,44 @@ function AnalysisPage() {
 
   if (!project) return <Navigate to="/dashboard" />;
 
-  if (loading) {
+  if (uiState === "no_photos") {
+    return (
+      <AppLayout title="AI analysis" subtitle="Upload photos before analysis">
+        <EmptyState
+          icon={Camera}
+          title="NO PHOTOS TO ANALYSE"
+          description="Upload at least one project photo before running AI analysis. Analysis never uses demo or bundled images."
+          action={
+            <Button asChild>
+              <Link to="/projects/$id/upload" params={{ id }}>
+                Upload project photos
+              </Link>
+            </Button>
+          }
+        />
+      </AppLayout>
+    );
+  }
+
+  if (uiState === "stale_mock") {
+    return (
+      <AppLayout title="AI analysis" subtitle="Re-analysis required">
+        <EmptyState
+          icon={AlertCircle}
+          title="Previous analysis was not based on the current project photos"
+          description="Run analysis again to use your uploaded photos. Demo or mock results are not treated as completed AI work."
+          action={
+            <Button onClick={() => void runFreshAnalysis()} disabled={analysing || retrying}>
+              <Sparkles className="mr-1 h-4 w-4" />
+              {analysing ? "Analysing…" : "Analyse uploaded photos"}
+            </Button>
+          }
+        />
+      </AppLayout>
+    );
+  }
+
+  if (uiState === "loading" || analysing) {
     return (
       <AppLayout title="AI analysis" subtitle="Analysing your photos…">
         <LoadingState label="Running photo analysis on your photos…" />
@@ -220,9 +312,26 @@ function AnalysisPage() {
     );
   }
 
+  if (uiState === "error" && results.length === 0) {
+    return (
+      <AppLayout title="AI analysis" subtitle="Analysis unavailable">
+        <EmptyState
+          icon={AlertCircle}
+          title="Analysis failed"
+          description="We could not complete photo analysis. Check your photos and try again."
+          action={
+            <Button onClick={() => void runFreshAnalysis()} disabled={analysing}>
+              Analyse uploaded photos
+            </Button>
+          }
+        />
+      </AppLayout>
+    );
+  }
+
   const pipelineSteps = buildProjectPipelineSteps({
-    photoCount: results.length,
-    analysisComplete: results.length > 0,
+    photoCount,
+    analysisComplete: analysisIsValid,
     analysisHasFallback: hasFallbackResults(results),
     estimateComplete: project.estimate_done,
     current: "analyse",
@@ -298,59 +407,68 @@ function AnalysisPage() {
           icon={Sparkles}
           title="No analysis yet"
           description="Upload photos first, then run AI analysis."
+          action={
+            <Button onClick={() => void runFreshAnalysis()} disabled={analysing}>
+              Analyse uploaded photos
+            </Button>
+          }
         />
       ) : null}
 
-      <div className="mt-12">
-        <div className="mb-5 flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold tracking-tight text-foreground">
-              AI redesign concepts
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Six visual directions generated from your hero photo. Pick the one that matches your
-              buyer or tenant.
-            </p>
+      {analysisIsValid ? (
+        <div className="mt-12">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight text-foreground">
+                AI redesign concepts
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Six visual directions generated from your hero photo. Pick the one that matches your
+                buyer or tenant.
+              </p>
+            </div>
+            <Badge variant="outline" className="hidden sm:inline-flex">
+              <Sparkles className="mr-1 h-3 w-3 text-accent" />
+              {conceptsLoading ? "Generating…" : "Concept previews"}
+            </Badge>
           </div>
-          <Badge variant="outline" className="hidden sm:inline-flex">
-            <Sparkles className="mr-1 h-3 w-3 text-accent" />
-            {conceptsLoading ? "Generating…" : "Concept previews"}
-          </Badge>
+
+          {redesignError ? (
+            <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              Redesign generation failed: {redesignError} (showing defaults)
+            </div>
+          ) : null}
+
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {concepts.map((c) => (
+              <RedesignCard key={c.style} concept={c} beforePhotoUrl={results[0]?.photo_url} />
+            ))}
+          </div>
         </div>
+      ) : null}
 
-        {redesignError ? (
-          <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            Redesign generation failed: {redesignError} (showing defaults)
-          </div>
-        ) : null}
-
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {concepts.map((c) => (
-            <RedesignCard key={c.style} concept={c} beforePhotoUrl={results[0]?.photo_url} />
-          ))}
-        </div>
-      </div>
-
-      <Card className="mt-8 border-dashed">
-        <CardContent className="flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
-          <div>
-            <h3 className="text-base font-semibold text-foreground">Ready for cost estimate?</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Generate a UK refurbishment cost estimate based on this analysis. AI suggestions
-              pre-fill scope — they never silently overwrite your edits.
-            </p>
-          </div>
-          <Button
-            asChild
-            size="lg"
-            onClick={() => trackEvent("estimate_generated", { projectId: id })}
-          >
-            <Link to="/projects/$id/estimate" params={{ id }} search={{ from: undefined }}>
-              View estimate <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+      {analysisIsValid ? (
+        <Card className="mt-8 border-dashed">
+          <CardContent className="flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
+            <div>
+              <h3 className="text-base font-semibold text-foreground">Ready for cost estimate?</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Generate a UK refurbishment cost estimate based on this analysis. AI suggestions
+                pre-fill scope — they never silently overwrite your edits.
+              </p>
+            </div>
+            <Button
+              asChild
+              size="lg"
+              onClick={() => trackEvent("estimate_generated", { projectId: id })}
+            >
+              <Link to="/projects/$id/estimate" params={{ id }} search={{ from: undefined }}>
+                View estimate <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <p className="mt-6 text-xs text-muted-foreground">{DISCLAIMER}</p>
     </AppLayout>
