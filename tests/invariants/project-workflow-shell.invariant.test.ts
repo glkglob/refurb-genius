@@ -59,3 +59,20 @@ test("upload and analysis routes consume shared shell / five-stage model", () =>
   assert.doesNotMatch(upload, /label:\s*["']Upload["']/);
   assert.doesNotMatch(analysis, /id:\s*["']upload["']\s*,\s*label:\s*["']Upload["']/);
 });
+
+test("IA-1-R1 — Analysis early states use ProjectWorkflowShell when project exists", () => {
+  const analysis = read("src/routes/_authed/projects.$id.analysis.tsx");
+  // Helper used for all project-aware states (no_photos, stale, loading, error, ready).
+  assert.match(analysis, /analysisShell/);
+  assert.match(analysis, /uiState === ["']no_photos["']/);
+  assert.match(analysis, /uiState === ["']stale_mock["']/);
+  // Bare AppLayout only for identity-unavailable paths.
+  assert.match(analysis, /projectError/);
+  assert.match(analysis, /!project/);
+  const appLayoutOpens = analysis.match(/<AppLayout\b/g) ?? [];
+  assert.equal(
+    appLayoutOpens.length,
+    2,
+    "Analysis must only use bare AppLayout for projectError and pre-identity loading",
+  );
+});
