@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Sparkles, Palette, Sofa, Lightbulb, Layers } from "lucide-react";
 import type { RedesignConcept } from "@/features/ai-design";
 import { formatGBP } from "@/core/pricing";
@@ -7,17 +8,34 @@ import { formatGBP } from "@/core/pricing";
 export type RedesignCardProps = {
   concept: RedesignConcept;
   beforePhotoUrl?: string;
+  /** IA-4: durable selection state. */
+  selected?: boolean;
+  /** IA-4: explicit select/confirm handler. */
+  onSelect?: () => void;
+  selectDisabled?: boolean;
+  selectLabel?: string;
 };
 
-export function RedesignCard({ concept: c, beforePhotoUrl }: RedesignCardProps) {
+export function RedesignCard({
+  concept: c,
+  beforePhotoUrl,
+  selected = false,
+  onSelect,
+  selectDisabled = false,
+  selectLabel = "Select this concept",
+}: RedesignCardProps) {
   return (
-    <Card className="overflow-hidden">
+    <Card
+      className={`overflow-hidden ${selected ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""}`}
+      aria-selected={selected}
+      data-selected={selected ? "true" : "false"}
+    >
       <div className="grid grid-cols-2 gap-px bg-border">
         <div className="relative aspect-[4/5] bg-muted">
           {beforePhotoUrl ? (
             <img
               src={beforePhotoUrl}
-              alt={`${c.style} before`}
+              alt={`Original property evidence for ${c.style} concept`}
               className="h-full w-full object-cover"
             />
           ) : null}
@@ -25,7 +43,7 @@ export function RedesignCard({ concept: c, beforePhotoUrl }: RedesignCardProps) 
             variant="secondary"
             className="absolute left-2 top-2 bg-background/85 backdrop-blur"
           >
-            Before
+            Original
           </Badge>
         </div>
         <div
@@ -35,13 +53,13 @@ export function RedesignCard({ concept: c, beforePhotoUrl }: RedesignCardProps) 
           {c.afterImageUrl ? (
             <img
               src={c.afterImageUrl}
-              alt={`${c.style} AI render`}
+              alt={`Proposed ${c.style} redesign concept (AI-generated preview)`}
               className="h-full w-full object-cover"
             />
           ) : null}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.35),transparent_60%)]" />
           <Badge className="absolute left-2 top-2 bg-foreground/85 text-background backdrop-blur">
-            <Sparkles className="mr-1 h-3 w-3" /> AI render
+            <Sparkles className="mr-1 h-3 w-3" /> Proposed
           </Badge>
           <div className="absolute inset-x-0 bottom-0 p-3">
             <p className="text-xs font-medium uppercase tracking-wider text-background/90 drop-shadow">
@@ -52,9 +70,16 @@ export function RedesignCard({ concept: c, beforePhotoUrl }: RedesignCardProps) 
       </div>
 
       <CardContent className="space-y-4 p-5">
-        <div>
-          <h3 className="text-base font-semibold text-foreground">{c.style}</h3>
-          <p className="mt-1 text-sm text-muted-foreground">{c.tagline}</p>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h3 className="text-base font-semibold text-foreground">{c.style}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{c.tagline}</p>
+          </div>
+          {selected ? (
+            <Badge variant="default" className="shrink-0">
+              Selected
+            </Badge>
+          ) : null}
         </div>
 
         <div>
@@ -88,6 +113,19 @@ export function RedesignCard({ concept: c, beforePhotoUrl }: RedesignCardProps) 
             {c.estimatedCostUplift.note ? ` · ${c.estimatedCostUplift.note}` : ""}
           </div>
         )}
+
+        {onSelect ? (
+          <Button
+            type="button"
+            className="w-full min-h-11"
+            variant={selected ? "secondary" : "default"}
+            disabled={selectDisabled || selected}
+            onClick={onSelect}
+            aria-pressed={selected}
+          >
+            {selected ? "Selected concept" : selectLabel}
+          </Button>
+        ) : null}
       </CardContent>
     </Card>
   );

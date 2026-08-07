@@ -35,11 +35,11 @@ test("IA-1 pipeline checklist adapter does not reintroduce three-stage authority
   assert.doesNotMatch(src, /export type PipelineStepId = "upload" \| "analyse" \| "estimate"/);
 });
 
-test("IA-1 does not introduce a first-class /redesign route file", () => {
+test("IA-4 first-class Redesign route exists under Projects", () => {
   assert.equal(
     existsSync(join(ROOT, "src/routes/_authed/projects.$id.redesign.tsx")),
-    false,
-    "IA-4 owns /projects/$id/redesign — must not be created in IA-1",
+    true,
+    "IA-4 owns /projects/$id/redesign",
   );
 });
 

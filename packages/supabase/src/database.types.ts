@@ -1336,26 +1336,38 @@ export type Database = {
       redesign_concepts: {
         Row: {
           created_at: string;
+          description: string | null;
           id: string;
-          payload: Json;
+          image_url: string | null;
+          photo_id: string | null;
           project_id: string;
-          style: string;
+          style: string | null;
+          title: string;
+          updated_at: string;
           user_id: string;
         };
         Insert: {
           created_at?: string;
+          description?: string | null;
           id?: string;
-          payload: Json;
+          image_url?: string | null;
+          photo_id?: string | null;
           project_id: string;
-          style: string;
+          style?: string | null;
+          title: string;
+          updated_at?: string;
           user_id: string;
         };
         Update: {
           created_at?: string;
+          description?: string | null;
           id?: string;
-          payload?: Json;
+          image_url?: string | null;
+          photo_id?: string | null;
           project_id?: string;
-          style?: string;
+          style?: string | null;
+          title?: string;
+          updated_at?: string;
           user_id?: string;
         };
         Relationships: [

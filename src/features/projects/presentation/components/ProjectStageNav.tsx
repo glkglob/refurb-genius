@@ -70,13 +70,6 @@ function statusIcon(status: ProjectWorkflowStatusLabel, isActive: boolean) {
 }
 
 function stageLinkProps(projectId: string, stage: ProjectWorkflowStagePresentation) {
-  if (stage.destination.kind === "embedded") {
-    return {
-      to: "/projects/$id/analysis" as const,
-      params: { id: projectId },
-      search: { focus: "redesign" as const },
-    };
-  }
   return {
     to: stage.destination.to,
     params: { id: projectId },

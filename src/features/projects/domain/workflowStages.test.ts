@@ -70,18 +70,17 @@ describe("IA-1 canonical five-stage presentation model", () => {
     expect(resolveActiveWorkflowStage({ surface: "report" })).toBe("export");
   });
 
-  it("represents Redesign without a first-class /redesign route", () => {
+  it("IA-4: represents Redesign as first-class /projects/$id/redesign", () => {
     const dest = stageDestination("redesign");
     expect(dest).toEqual({
-      kind: "embedded",
-      host: "analysis",
-      focus: "redesign",
+      kind: "route",
+      to: "/projects/$id/redesign",
     });
-    expect(JSON.stringify(dest)).not.toMatch(/\/redesign/);
     expect(PROJECT_WORKFLOW_STAGES.find((s) => s.id === "redesign")?.hasImplementedRoute).toBe(
-      false,
+      true,
     );
-    expect(resolveActiveWorkflowStage({ surface: "analysis", focus: "redesign" })).toBe("redesign");
+    expect(resolveActiveWorkflowStage({ surface: "redesign" })).toBe("redesign");
+    expect(resolveActiveWorkflowStage({ surface: "analysis" })).toBe("analysis");
   });
 
   it("resolves active stage deterministically", () => {

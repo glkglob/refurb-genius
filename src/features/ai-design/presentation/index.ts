@@ -1,7 +1,12 @@
 /**
  * AI-design slice — Presentation surface.
  */
-export { generateRedesignConceptsServerFn, runScopeAnalysisServerFn } from "./serverFns";
+export {
+  generateRedesignConceptsServerFn,
+  listRedesignConceptsServerFn,
+  selectRedesignConceptServerFn,
+  runScopeAnalysisServerFn,
+} from "./serverFns";
 export {
   redesignProvider,
   mockRedesignProvider,

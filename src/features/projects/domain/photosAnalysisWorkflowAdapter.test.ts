@@ -174,7 +174,7 @@ describe("IA-3 adapter → resolveProjectNextAction integration", () => {
       stage: "redesign",
       status: "Ready",
       actionKind: "create_redesign",
-      route: `/projects/${PROJECT_ID}/analysis?focus=redesign`,
+      route: `/projects/${PROJECT_ID}/redesign`,
     });
     expect(next.actionKind).not.toBe("build_estimate");
   });

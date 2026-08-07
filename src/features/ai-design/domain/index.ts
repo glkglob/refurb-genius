@@ -35,3 +35,11 @@ export {
   type ValidatedScopeAnalysisResult,
   type ValidatedRedesignConceptText,
 } from "./validation";
+export {
+  analysisIdentityFromPhotoIds,
+  conceptToPayload,
+  parseRedesignPayload,
+  payloadToConcept,
+  type DurableRedesignConcept,
+  type RedesignConceptPayload,
+} from "./redesignAuthority";

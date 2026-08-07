@@ -64,12 +64,12 @@ describe("ProjectStageNav", () => {
     expect(active.getAttribute("aria-current")).toBe("step");
   });
 
-  it("does not create a /redesign href for Redesign", () => {
+  it("IA-4: Redesign stage links to first-class /redesign", () => {
     render(<ProjectStageNav projectId="proj-1" stages={stages} />);
     const redesign = screen.getByRole("link", { name: /3\. Redesign/i });
     const href = redesign.getAttribute("href") ?? "";
-    expect(href).not.toMatch(/\/redesign(?:\?|$)/);
-    expect(href).toMatch(/analysis/);
+    expect(href).toMatch(/\/redesign(?:\?|$)/);
+    expect(href).not.toContain("focus=redesign");
   });
 
   it("exposes status as text, not colour alone", () => {

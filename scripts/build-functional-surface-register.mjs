@@ -296,6 +296,17 @@ const ROUTES = [
     severity: "P0",
   },
   {
+    surfaceId: "route.projects.redesign",
+    area: "feasibility",
+    route: "/projects/$id/redesign",
+    sourcePath: "src/routes/_authed/projects.$id.redesign.tsx",
+    role: "authenticated",
+    authClass: "authenticated",
+    severity: "P0",
+    status: "NOT_TESTED",
+    notes: "IA-4 first-class Redesign stage",
+  },
+  {
     surfaceId: "route.projects.scope",
     area: "feasibility",
     route: "/projects/$id/scope",

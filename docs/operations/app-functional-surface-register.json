@@ -43,11 +43,11 @@
     "notes": "No surface marked WORKING. Controls inventoried individually. Routes reconciled against routeTree.gen.ts fullPaths. Perfect AST control discovery is NOT claimed."
   },
   "counts": {
-    "routes": 34,
+    "routes": 35,
     "controls": 182,
     "backendOperations": 48,
     "externalIntegrations": 15,
-    "totalSurfaces": 279,
+    "totalSurfaces": 280,
     "byStatus": {
       "WORKING": 0,
       "BROKEN": 7,
@@ -56,10 +56,10 @@
       "BLOCKED_CONFIGURATION": 1,
       "BLOCKED_EXTERNAL": 0,
       "INTENTIONALLY_HIDDEN": 1,
-      "NOT_TESTED": 260
+      "NOT_TESTED": 261
     },
     "byKind": {
-      "route": 34,
+      "route": 35,
       "control": 182,
       "backend": 48,
       "integration": 15
@@ -462,6 +462,27 @@
       "area": "feasibility",
       "route": "/projects/$id/analysis",
       "sourcePath": "src/routes/_authed/projects.$id.analysis.tsx",
+      "role": "authenticated",
+      "authClass": "authenticated"
+    },
+    {
+      "preconditions": [],
+      "testReference": null,
+      "blocker": null,
+      "notes": "IA-4 first-class Redesign stage",
+      "entitlement": "none",
+      "kind": "route",
+      "control": "Route /projects/$id/redesign",
+      "operation": "Render and serve /projects/$id/redesign",
+      "persistence": "none",
+      "expectedResult": "Route loads with correct auth class",
+      "actualResult": "Static inventory only; runtime not verified",
+      "status": "NOT_TESTED",
+      "severity": "P0",
+      "surfaceId": "route.projects.redesign",
+      "area": "feasibility",
+      "route": "/projects/$id/redesign",
+      "sourcePath": "src/routes/_authed/projects.$id.redesign.tsx",
       "role": "authenticated",
       "authClass": "authenticated"
     },

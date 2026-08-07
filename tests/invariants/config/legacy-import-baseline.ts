@@ -102,6 +102,7 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/routes/_authed/marketplace.tsx|@/lib/queries/marketplace",
   "src/routes/_authed/projects.$id.analysis.tsx|@/core/reports",
   "src/routes/_authed/projects.$id.analysis.tsx|@/lib/analytics",
+  "src/routes/_authed/projects.$id.redesign.tsx|@/core/reports",
   "src/routes/_authed/projects.$id.estimate.tsx|@/core/projects",
   "src/routes/_authed/projects.$id.estimate.tsx|@/core/constants",
   "src/routes/_authed/projects.$id.estimate.tsx|@/core/pricing",

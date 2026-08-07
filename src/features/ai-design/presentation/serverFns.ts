@@ -47,12 +47,60 @@ export const generateRedesignConceptsServerFn = createServerFn({ method: "POST" 
       projectId: data.projectId,
     });
 
+    const { analysisIdentityFromPhotoIds } = await import("../domain/redesignAuthority");
+    const analysisIdentity = analysisIdentityFromPhotoIds(analyses.map((a) => a.photo_id));
+    if (!analysisIdentity) {
+      throw new Error("Cannot generate Redesign without durable Analysis photo identity.");
+    }
+
     const { runSecureRedesignGeneration } =
       await import("../infrastructure/adapters/ai-redesign.adapter.server");
-    return runSecureRedesignGeneration({
+    const concepts = await runSecureRedesignGeneration({
       projectId: data.projectId,
       styles: data.styles,
       analyses,
+    });
+
+    // IA-4: persist candidates (selection unchanged when analysis identity matches).
+    const { replaceRedesignCandidates } =
+      await import("../infrastructure/repositories/redesign-concepts.repository.server");
+    return replaceRedesignCandidates({
+      projectId: data.projectId,
+      userId: user.id,
+      analysisIdentity,
+      concepts,
+    });
+  });
+
+const projectIdSchema = z.object({
+  projectId: z.string().uuid(),
+});
+
+/** Load durable Redesign candidates + selection for a project. */
+export const listRedesignConceptsServerFn = createServerFn({ method: "GET" })
+  .inputValidator((input: unknown) => projectIdSchema.parse(input))
+  .handler(async ({ data }) => {
+    await requireServerAuth();
+    const { listDurableRedesignConcepts } =
+      await import("../infrastructure/repositories/redesign-concepts.repository.server");
+    return listDurableRedesignConcepts(data.projectId);
+  });
+
+const selectRedesignSchema = z.object({
+  projectId: z.string().uuid(),
+  conceptId: z.string().uuid(),
+});
+
+/** Explicit user selection — single selected authority after success. */
+export const selectRedesignConceptServerFn = createServerFn({ method: "POST" })
+  .inputValidator((input: unknown) => selectRedesignSchema.parse(input))
+  .handler(async ({ data }) => {
+    await requireServerAuth();
+    const { selectDurableRedesignConcept } =
+      await import("../infrastructure/repositories/redesign-concepts.repository.server");
+    return selectDurableRedesignConcept({
+      projectId: data.projectId,
+      conceptId: data.conceptId,
     });
   });
 
