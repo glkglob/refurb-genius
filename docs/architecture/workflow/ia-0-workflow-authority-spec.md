@@ -3,7 +3,7 @@
 | Field                   | Value              |
 | ----------------------- | ------------------ |
 | **Status**              | **LOCKED**         |
-| **Version**             | **1.0**            |
+| **Version**             | **1.0.1**          |
 | **Programme**           | Refurb Genius      |
 | **Applies to**          | IA-1 through IA-10 |
 | **Architecture status** | CLOSED             |
@@ -22,13 +22,21 @@ IA-1 through IA-10 **MUST NOT** introduce conflicting workflow, Scope, provenanc
 
 If implementation requires changing a locked IA-0 rule, **STOP** and request architecture review rather than changing the rule implicitly.
 
+## Version history
+
+| Version   | Status | Note                                                                                                                                                                          |
+| --------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1.0**   | LOCKED | Initial locked workflow authority specification.                                                                                                                              |
+| **1.0.1** | LOCKED | Clarifies resolver semantics for canonical Scope reconciliation and In-progress stage continuation. No change to the five-stage workflow or product information architecture. |
+
 ---
 
 # Refurb Genius — Final IA-0 Workflow Authority, Provenance, State, Resolver, Design & Trust Plan
 
 **Programme:** Refurb Genius  
 **Phase:** IA-0  
-**Status:** **FINAL — READY TO LOCK**  
+**Status:** **LOCKED**  
+**Version:** **1.0.1**  
 **Architecture status:** **CLOSED**  
 **Controlling journey:** **Photos → Analysis → Redesign → Estimate → Export**
 
@@ -761,6 +769,24 @@ Reconciliation MAY be automatic when deterministic.
 
 Material user-controlled decisions SHOULD remain reviewable.
 
+### Resolver continuation for non-current Scope (IA-0-CL1)
+
+When current Analysis or selected Redesign changes such that the canonical Scope
+is no longer current, the shared next-action resolver MUST use the contract in
+**§9.1 Scope reconciliation continuation**. Summary:
+
+| Field          | Binding value                                                                       |
+| -------------- | ----------------------------------------------------------------------------------- |
+| **stage**      | `estimate` (customer-facing resolver stage; Scope is **not** a sixth journey stage) |
+| **status**     | Needs attention                                                                     |
+| **actionKind** | `reconcile_scope`                                                                   |
+| **route**      | `/projects/$id/estimate`                                                            |
+| **label**      | Review Scope                                                                        |
+
+`/projects/$id/scope` remains the professional/advanced editor of the **same**
+canonical Scope authority and MUST NOT become the primary sixth-stage
+continuation.
+
 ---
 
 # 6. Workflow status model
@@ -988,7 +1014,7 @@ Return contract:
 
 ## Stable `actionKind`
 
-Initial semantic actions include:
+Semantic actions include at minimum:
 
 ```text
 add_photos
@@ -1001,11 +1027,15 @@ select_redesign
 update_redesign
 unlock_redesign
 
+reconcile_scope
+
 build_estimate
 update_estimate
 
 create_export
 update_export
+
+view_stage_progress
 
 view_completed_project
 ```
@@ -1014,15 +1044,26 @@ UI text MAY change.
 
 Components MUST NOT derive behaviour by parsing labels.
 
+Labels are presentation only. Consumers MUST NOT infer action semantics from labels.
+
 ## Resolver precedence
 
-The resolver MUST:
+Canonical stage order for evaluation remains:
 
-1. find the earliest required non-current upstream stage;
-2. otherwise find the earliest incomplete Ready stage;
-3. apply entitlement handling to that exact stage;
-4. never skip a required gated stage;
-5. return completed-project behaviour only when all required authorities are current.
+```text
+Photos → Analysis → Redesign → Estimate → Export
+```
+
+The resolver evaluates authoritative dependencies from earliest to latest.
+
+Binding precedence:
+
+1. Earliest required upstream stage that is **non-current / Needs attention**.
+2. Otherwise earliest required stage that is **In progress**.
+3. Otherwise earliest incomplete **Ready** stage.
+4. Apply entitlement behaviour to that exact required stage.
+5. Never skip a required gated stage.
+6. Only when all required authorities are current return completed-project behaviour.
 
 Example:
 
@@ -1035,9 +1076,36 @@ Export = stored
 
 Required result:
 
-> **Analysis → Update Analysis**
+> **Analysis → Update Analysis** (`update_analysis`)
 
 Not Estimate or Export.
+
+Additional precedence examples (IA-0-CL1):
+
+```text
+Analysis = Needs attention
+Estimate = In progress
+→ Analysis wins (update_analysis)
+```
+
+```text
+Redesign required but incomplete
+Estimate = In progress
+→ Redesign wins
+```
+
+```text
+Estimate = In progress
+historical Export exists
+→ Estimate / In progress / view_stage_progress
+```
+
+If two stages are unexpectedly recorded as In progress simultaneously:
+
+the **earliest** stage in canonical order wins.
+
+The resolver does not attempt to resolve or mutate concurrency. It only reports
+deterministic continuation.
 
 ## Entitlement precedence
 
@@ -1050,6 +1118,141 @@ actionKind = unlock_redesign
 
 The resolver MUST NOT skip to Estimate.
 
+## §9.1 Scope reconciliation continuation
+
+Scope remains an **internal dependency authority feeding Estimate**.
+
+Scope is **NOT** a sixth primary customer-facing workflow stage.
+
+When current Analysis or selected Redesign changes such that the canonical Scope
+is no longer current:
+
+| Field          | Binding value                                                                                                              |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| **stage**      | `estimate`                                                                                                                 |
+| **status**     | Needs attention                                                                                                            |
+| **actionKind** | `reconcile_scope`                                                                                                          |
+| **route**      | `/projects/$id/estimate`                                                                                                   |
+| **label**      | Review Scope                                                                                                               |
+| **reason**     | The canonical Scope must be reconciled with the current Analysis and selected Redesign before Estimate can become current. |
+
+Binding semantics:
+
+1. Scope remains an internal dependency authority.
+2. Scope is **not** added to the five-stage customer journey.
+3. The customer-facing resolver stage remains **Estimate**.
+4. `/projects/$id/estimate` is the canonical customer continuation route.
+5. `/projects/$id/scope` remains the professional/advanced editor of the **same** canonical Scope authority.
+6. A professional secondary action MAY navigate to `/projects/$id/scope`.
+7. The primary resolver MUST NOT make `/scope` a sixth-stage continuation.
+8. `reconcile_scope` is **distinct** from `update_estimate`.
+9. `reconcile_scope` applies while Scope itself is non-current.
+10. `update_estimate` applies only after Scope is current/reconciled and the existing Estimate is non-current against that current Scope.
+11. `build_estimate` applies only when Scope is current and no current Estimate exists.
+
+Required Estimate-family precedence:
+
+```text
+Scope non-current
+→ reconcile_scope
+
+Scope current + no Estimate
+→ build_estimate
+
+Scope current + stale Estimate
+→ update_estimate
+```
+
+These cases MUST NOT be collapsed.
+
+For resolver precedence, treat a non-current required Scope as an **Estimate-stage
+dependency failure**. Therefore:
+
+```text
+Current Redesign + Scope non-current
+→ stage: estimate
+  status: Needs attention
+  actionKind: reconcile_scope
+  route: /projects/$id/estimate
+  label: Review Scope
+```
+
+`reconcile_scope` MUST win over:
+
+- `build_estimate`;
+- `update_estimate`;
+- `create_export`;
+- `update_export`;
+- completed-project action.
+
+An earlier upstream broken Analysis or Redesign dependency still wins over Scope
+reconciliation:
+
+```text
+Analysis stale + Scope stale
+→ update_analysis
+NOT reconcile_scope
+```
+
+## §9.2 In-progress continuation
+
+When the resolver's earliest authoritative workflow stage is already performing
+its required operation, the resolver MUST return:
+
+| Field          | Binding value                                         |
+| -------------- | ----------------------------------------------------- |
+| **stage**      | the running workflow stage                            |
+| **status**     | In progress                                           |
+| **actionKind** | `view_stage_progress`                                 |
+| **route**      | the canonical route for that stage                    |
+| **label**      | stage-appropriate progress label                      |
+| **reason**     | the required stage operation is currently in progress |
+
+Examples:
+
+| Running stage                    | stage      | status      | actionKind            | route                                   | label                  |
+| -------------------------------- | ---------- | ----------- | --------------------- | --------------------------------------- | ---------------------- |
+| Photos                           | `photos`   | In progress | `view_stage_progress` | `/projects/$id/upload`                  | View Upload Progress   |
+| Analysis                         | `analysis` | In progress | `view_stage_progress` | `/projects/$id/analysis`                | View Analysis Progress |
+| Redesign (pre–IA-4 transitional) | `redesign` | In progress | `view_stage_progress` | `/projects/$id/analysis?focus=redesign` | View Redesign Progress |
+| Estimate                         | `estimate` | In progress | `view_stage_progress` | `/projects/$id/estimate`                | View Estimate Progress |
+| Export                           | `export`   | In progress | `view_stage_progress` | `/projects/$id/report`                  | View Report Progress   |
+
+After IA-4, Redesign MAY use its canonical first-class route according to the
+then-current IA contract.
+
+### Navigational-only CTA semantics
+
+`view_stage_progress` is **NAVIGATIONAL ONLY**.
+
+It MUST NOT:
+
+- restart the operation;
+- invoke AI;
+- duplicate an upload;
+- regenerate Redesign;
+- rebuild Estimate;
+- regenerate Export;
+- mutate database state;
+- set completion flags;
+- perform invalidation.
+
+The CTA remains enabled when the stage surface is safely navigable.
+
+Its purpose is to return the user to the stage where the active operation can be
+inspected.
+
+It is **not** the initiating action.
+
+Therefore:
+
+- Analysis running MUST NOT return `analyse_photos`;
+- Estimate running MUST NOT return `build_estimate`;
+- Export running MUST NOT return `create_export`;
+
+unless those operations are no longer running and the state has returned to Ready
+(or another non-running status).
+
 ## Purity
 
 The resolver MUST NOT:
@@ -1061,6 +1264,10 @@ The resolver MUST NOT:
 - generate outputs;
 - navigate;
 - trigger analytics or other side effects.
+
+`view_stage_progress` and `reconcile_scope` are **decision outputs** only. They do
+not themselves perform navigation, Scope mutation, or operation restart. Consumers
+render and navigate; authoritative mutations remain with their owning use-cases.
 
 ## Consumers
 
@@ -1361,25 +1568,32 @@ Commercial UX SHOULD provide:
 
 These cases become the initial workflow resolver/invariant test contract.
 
-| Scenario                            | Stage                     | Status          | Expected action     |
-| ----------------------------------- | ------------------------- | --------------- | ------------------- |
-| Valid project name only             | Photos                    | Ready           | Add Photos          |
-| Project name + no optional metadata | Photos                    | Ready           | Add Photos          |
-| No photos                           | Photos                    | Ready           | Add Photos          |
-| Required photo upload active        | Photos                    | In progress     | Upload progress     |
-| Current photos, no Analysis         | Analysis                  | Ready           | Analyse Photos      |
-| Analysis running                    | Analysis                  | In progress     | Analysis progress   |
-| Analysis stale after photo mutation | Analysis                  | Needs attention | Update Analysis     |
-| Current Analysis, no Redesign       | Redesign                  | Ready           | Create Redesign     |
-| Concepts exist, none selected       | Redesign                  | Ready           | Select Redesign     |
-| Redesign gated                      | Redesign                  | Ready           | Unlock Redesign     |
-| Redesign changes, Scope stale       | Scope/Estimate dependency | Needs attention | Reconcile Scope     |
-| Current Scope, no Estimate          | Estimate                  | Ready           | Build Estimate      |
-| Estimate running                    | Estimate                  | In progress     | Estimate progress   |
-| Scope changes after Estimate        | Estimate                  | Needs attention | Update Estimate     |
-| Current Estimate, no Export         | Export                    | Ready           | Create Report       |
-| Estimate changes after Export       | Export                    | Needs attention | Update Report       |
-| All authorities current             | Completed project         | Complete        | View project/report |
+**actionKind** is authoritative. Labels are presentation only.
+
+| Scenario                                                   | Stage                     | Status          | actionKind               | Route                                              | Label                  |
+| ---------------------------------------------------------- | ------------------------- | --------------- | ------------------------ | -------------------------------------------------- | ---------------------- |
+| Valid project name only                                    | Photos                    | Ready           | `add_photos`             | `/projects/$id/upload`                             | Add Photos             |
+| Project name + no optional metadata                        | Photos                    | Ready           | `add_photos`             | `/projects/$id/upload`                             | Add Photos             |
+| No photos                                                  | Photos                    | Ready           | `add_photos`             | `/projects/$id/upload`                             | Add Photos             |
+| Required photo upload active                               | Photos                    | In progress     | `view_stage_progress`    | `/projects/$id/upload`                             | View Upload Progress   |
+| Current photos, no Analysis                                | Analysis                  | Ready           | `analyse_photos`         | `/projects/$id/analysis`                           | Analyse Photos         |
+| Analysis running                                           | Analysis                  | In progress     | `view_stage_progress`    | `/projects/$id/analysis`                           | View Analysis Progress |
+| Analysis stale after photo mutation                        | Analysis                  | Needs attention | `update_analysis`        | `/projects/$id/analysis`                           | Update Analysis        |
+| Current Analysis, no Redesign                              | Redesign                  | Ready           | `create_redesign`        | transitional Analysis Redesign surface             | Create Redesign        |
+| Concepts exist, none selected                              | Redesign                  | Ready           | `select_redesign`        | transitional Analysis Redesign surface             | Select Redesign        |
+| Redesign gated                                             | Redesign                  | Ready           | `unlock_redesign`        | transitional Analysis Redesign surface             | Unlock Redesign        |
+| Redesign operation running                                 | Redesign                  | In progress     | `view_stage_progress`    | `/projects/$id/analysis?focus=redesign` (pre–IA-4) | View Redesign Progress |
+| Redesign changes → Scope non-current                       | **Estimate**              | Needs attention | `reconcile_scope`        | `/projects/$id/estimate`                           | Review Scope           |
+| Scope reconciled/current + no Estimate                     | Estimate                  | Ready           | `build_estimate`         | `/projects/$id/estimate`                           | Build Estimate         |
+| Scope reconciled/current + Estimate references older Scope | Estimate                  | Needs attention | `update_estimate`        | `/projects/$id/estimate`                           | Update Estimate        |
+| Estimate running                                           | Estimate                  | In progress     | `view_stage_progress`    | `/projects/$id/estimate`                           | View Estimate Progress |
+| Current Estimate, no Export                                | Export                    | Ready           | `create_export`          | `/projects/$id/report`                             | Create Report          |
+| Estimate changes after Export                              | Export                    | Needs attention | `update_export`          | `/projects/$id/report`                             | Update Report          |
+| Export running                                             | Export                    | In progress     | `view_stage_progress`    | `/projects/$id/report`                             | View Report Progress   |
+| All authorities current                                    | Completed project         | Complete        | `view_completed_project` | project Overview / report per convention           | View Project           |
+| Analysis Needs attention + Estimate running                | Analysis                  | Needs attention | `update_analysis`        | `/projects/$id/analysis`                           | Update Analysis        |
+| Two stages marked running                                  | earliest in journey order | In progress     | `view_stage_progress`    | that stage's canonical route                       | stage progress label   |
+| Analysis stale + Scope stale                               | Analysis                  | Needs attention | `update_analysis`        | `/projects/$id/analysis`                           | Update Analysis        |
 
 ## Required negative assertions
 
@@ -1391,11 +1605,16 @@ These cases become the initial workflow resolver/invariant test contract.
 - Generated-but-unselected Redesign MUST NOT be Complete.
 - Gated Redesign MUST NOT be skipped.
 - Stale Scope MUST NOT make Estimate Complete.
+- Stale Scope MUST NOT return `update_estimate` or `build_estimate` (must return `reconcile_scope` at Estimate stage).
 - Stale Estimate MUST NOT make Export Complete.
 - Stale Export MUST NOT appear current.
+- Running stage MUST NOT return its initiating actionKind (`analyse_photos`, `build_estimate`, `create_export`, etc.).
+- Earlier Needs attention MUST beat later In progress.
+- Earliest simultaneous running stage in canonical order MUST win.
 - Legacy `*_done` flags MUST NOT override provenance.
 - Resolver MUST NOT mutate state.
 - Dashboard/pages MUST NOT override resolver precedence.
+- Primary resolver MUST NOT treat `/projects/$id/scope` as a sixth-stage continuation.
 
 ## Failure tests
 
@@ -1433,10 +1652,13 @@ Implement:
 Implement:
 
 - pure resolver;
-- `actionKind`;
-- precedence;
+- `actionKind` (including `reconcile_scope` and `view_stage_progress` per §9.1–§9.2);
+- precedence (Needs attention → In progress → Ready);
 - entitlement behaviour;
 - executable test matrix.
+
+IA-2 implements continuation **decision** logic only. It MUST NOT invent Scope
+reconciliation mutation, provenance persistence, or first-class Redesign routes.
 
 ## IA-3 — Photos → Analysis continuity
 
@@ -1658,8 +1880,10 @@ IA-0 is complete only when:
 - invalidation ownership is assigned;
 - Scope authority is singular;
 - resolver signature is deterministic;
-- `actionKind` is included;
-- resolver precedence is deterministic;
+- `actionKind` is included (including `reconcile_scope` and `view_stage_progress`);
+- Scope reconciliation continuation is explicit without making Scope a sixth stage;
+- In-progress continuation is navigational-only (`view_stage_progress`);
+- resolver precedence is deterministic (Needs attention → In progress → Ready);
 - resolver purity is binding;
 - entitlement behaviour is deterministic;
 - gated stages cannot be skipped;
@@ -1677,7 +1901,10 @@ IA-0 is complete only when:
 
 ```text
 IA-0 STATUS:
-FINAL — READY TO LOCK
+LOCKED — Version 1.0.1
+
+CLARIFICATIONS APPLIED:
+IA-0-CL1 — reconcile_scope + view_stage_progress
 
 PRODUCT DIRECTION:
 LOCKED
@@ -1708,12 +1935,15 @@ LOCKED
 
 CANONICAL SCOPE AUTHORITY:
 LOCKED
+(not a sixth customer-facing stage)
 
 NEXT-ACTION RESOLVER:
 LOCKED
+Includes reconcile_scope and view_stage_progress
 
 RESOLVER PRECEDENCE + PURITY:
 LOCKED
+Needs attention → In progress → Ready
 
 AI TRUST + FAILURE/RECOVERY:
 LOCKED
@@ -1730,8 +1960,13 @@ LOCKED
 BROAD ROUTE / REPOSITORY REWRITE:
 NOT AUTHORISED
 
-NEXT AUTHORISED PHASE:
-IA-1 — SHARED PROJECT WORKFLOW SHELL
+PROGRAMME (as of IA-0-CL1):
+IA-1 — COMPLETED ON MAIN
+IA-2 — PLANNED / UNBLOCKED AFTER IA-0-CL1 MERGES TO MAIN
+         (not started; requires explicit implementation authorisation)
+
+NEXT IMPLEMENTATION PHASE AFTER THIS CLARIFICATION MERGES:
+IA-2 — CANONICAL NEXT-ACTION RESOLVER
 ```
 
 ## Controlling implementation statement

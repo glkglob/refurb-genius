@@ -20,7 +20,7 @@ For IA-1 through IA-10, read and follow:
 
 `docs/architecture/workflow/ia-0-workflow-authority-spec.md`
 
-IA-0 is the **LOCKED** canonical workflow contract (Version 1.0).
+IA-0 is the **LOCKED** canonical workflow contract (Version **1.0.1**).
 
 Controlling journey: **Photos → Analysis → Redesign → Estimate → Export**.
 
@@ -30,7 +30,7 @@ If implementation requires changing a locked IA-0 rule, **stop** and request arc
 
 IA-1 (Shared Project Workflow Shell) is **Completed** on main.
 
-IA-2 (Canonical Next-Action Resolver) is the next authorised phase and **MUST NOT** begin until explicitly authorised.
+IA-2 (Canonical Next-Action Resolver) is **Planned / Next** and **MUST NOT** begin until explicitly authorised (including after IA-0-CL1 clarification is on main).
 
 ---
 
