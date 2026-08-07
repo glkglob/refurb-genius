@@ -19,9 +19,17 @@ export {
   PHOTO_ANALYSIS_PROVENANCE_MISMATCH,
   PHOTO_ANALYSIS_MOCK_FORBIDDEN,
   PHOTO_ANALYSIS_STALE_REQUIRES_REANALYSIS,
+  PHOTO_ANALYSIS_PROJECT_NOT_AUTHORISED,
+  PHOTO_ANALYSIS_SOURCE_NOT_AUTHORISED,
+  PHOTO_ANALYSIS_SOURCE_SET_MISMATCH,
+  PHOTO_ANALYSIS_PERSISTENCE_FAILED,
   PhotoAnalysisError,
   noSourcePhotosError,
   staleAnalysisRequiresReanalysisError,
+  projectNotAuthorisedError,
+  sourceNotAuthorisedError,
+  sourceSetMismatchError,
+  persistenceFailedError,
 } from "./errors";
 
 /** Confidence below this is treated as needing human review. */
@@ -71,10 +79,13 @@ export function countNeedingReview(analyses: RoomAnalysis[]): number {
 }
 
 /**
- * Stable photo identity for merge after re-analysis.
- * Prefer photo_url — after DB load, analysis.id is the row UUID, not photo id.
+ * Stable source-photo identity for merge / catalogue matching.
+ * Prefer durable photo_id; fall back to URL/name only for legacy rows.
  */
-export function analysisPhotoKey(analysis: Pick<RoomAnalysis, "photo_url" | "photo_name">): string {
+export function analysisPhotoKey(
+  analysis: Pick<RoomAnalysis, "photo_id" | "photo_url" | "photo_name">,
+): string {
+  if (analysis.photo_id) return analysis.photo_id;
   return analysis.photo_url || analysis.photo_name;
 }
 
@@ -181,71 +192,23 @@ export function isMockOnlyAnalysisSet(analyses: RoomAnalysis[]): boolean {
 
 type CataloguePhotoIdentity = Pick<AnalysisPhotoSource, "id" | "url" | "name">;
 
-function catalogueKeys(catalogue: CataloguePhotoIdentity[]): Set<string> {
-  const keys = new Set<string>();
-  for (const p of catalogue) {
-    if (p.url) keys.add(p.url);
-    if (p.name) keys.add(p.name);
-    if (p.id) keys.add(p.id);
-  }
-  return keys;
-}
-
-function analysisMatchesCatalogue(
-  analysis: RoomAnalysis,
-  catalogue: CataloguePhotoIdentity[],
-  keys: Set<string>,
-): boolean {
-  if (keys.has(analysis.photo_url) || keys.has(analysis.photo_name) || keys.has(analysis.id)) {
-    return true;
-  }
-  return catalogue.some(
-    (p) =>
-      p.id === analysis.id ||
-      (p.url.length > 0 && p.url === analysis.photo_url) ||
-      (p.name.length > 0 && p.name === analysis.photo_name),
-  );
-}
-
 /**
- * Persisted analysis is stale relative to the canonical project photo catalogue when:
- * - any result source is mock; OR
- * - analysis photo identities do not correspond to the catalogue; OR
- * - the catalogue contains real photos absent from the analysis set.
- *
- * Empty analysis is not "stale" — it is simply missing (caller decides to run or not).
+ * Stable catalogue identity fingerprint for route invalidation.
+ * Changes when any source photo id/url changes (including same-count replacements).
  */
-export function isStaleAnalysisRelativeToCatalogue(
-  analyses: RoomAnalysis[],
-  catalogue: CataloguePhotoIdentity[],
-): boolean {
-  if (analyses.length === 0) return false;
-  if (hasMockAnalysis(analyses)) return true;
-  if (catalogue.length === 0) {
-    // Analyses exist but catalogue is empty — identities cannot be grounded.
-    return true;
-  }
-
-  const keys = catalogueKeys(catalogue);
-  for (const a of analyses) {
-    if (!analysisMatchesCatalogue(a, catalogue, keys)) return true;
-  }
-
-  const analysisKeys = new Set(analyses.map((a) => analysisPhotoKey(a)));
-  const analysisIds = new Set(analyses.map((a) => a.id));
-  for (const p of catalogue) {
-    const key = p.url || p.name;
-    if (!analysisKeys.has(key) && !analysisIds.has(p.id)) {
-      return true;
-    }
-  }
-
-  return false;
+export function catalogueIdentityFingerprint(
+  catalogue: Array<Pick<AnalysisPhotoSource, "id" | "url">>,
+): string {
+  return [...catalogue]
+    .map((p) => `${p.id}\u0000${p.url ?? ""}`)
+    .sort()
+    .join("\u0001");
 }
 
 /**
- * A production-valid analysis set is non-empty, free of mock rows, and aligned
- * with the current canonical photo catalogue.
+ * Shared production authority guard.
+ * Valid only when non-empty, no mock, every row has durable photo_id, and
+ * photo_id set exactly matches the current catalogue ids.
  */
 export function isProductionValidAnalysisSet(
   analyses: RoomAnalysis[],
@@ -253,12 +216,46 @@ export function isProductionValidAnalysisSet(
 ): boolean {
   if (analyses.length === 0 || catalogue.length === 0) return false;
   if (hasMockAnalysis(analyses)) return false;
-  return !isStaleAnalysisRelativeToCatalogue(analyses, catalogue);
+  if (analyses.some((a) => !a.photo_id || a.source === "mock")) return false;
+
+  const catIds = new Set(catalogue.map((p) => p.id));
+  if (catIds.size !== catalogue.length) return false;
+
+  const analysisIds = new Set(analyses.map((a) => a.photo_id as string));
+  if (analysisIds.size !== analyses.length) return false;
+  if (analysisIds.size !== catIds.size) return false;
+
+  for (const id of catIds) {
+    if (!analysisIds.has(id)) return false;
+  }
+
+  // URL/name must match the catalogue row for each photo_id when catalogue provides them.
+  const byId = new Map(catalogue.map((p) => [p.id, p]));
+  for (const a of analyses) {
+    const photo = byId.get(a.photo_id as string);
+    if (!photo) return false;
+    if (photo.url && a.photo_url && photo.url !== a.photo_url) return false;
+    if (photo.name && a.photo_name && photo.name !== a.photo_name) return false;
+  }
+  return true;
 }
 
 /**
- * Assert vision output is grounded in the supplied project photos.
- * Rejects empty inputs, cardinality drift, mock rows, and unlinked results.
+ * Persisted analysis is stale relative to the canonical project photo catalogue when
+ * it is non-empty and fails the production validity guard (mock, missing photo_id,
+ * incomplete/mismatched coverage, or catalogue drift).
+ */
+export function isStaleAnalysisRelativeToCatalogue(
+  analyses: RoomAnalysis[],
+  catalogue: CataloguePhotoIdentity[],
+): boolean {
+  if (analyses.length === 0) return false;
+  return !isProductionValidAnalysisSet(analyses, catalogue);
+}
+
+/**
+ * Assert vision output is grounded in the supplied project photos using photo_id.
+ * Rejects empty inputs, cardinality drift, mock rows, duplicates, and unlinked results.
  */
 export function assertAnalysisProvenance(
   photos: AnalysisPhotoSource[],
@@ -267,6 +264,15 @@ export function assertAnalysisProvenance(
   if (photos.length === 0) {
     throw noSourcePhotosError();
   }
+
+  const inputIds = photos.map((p) => p.id);
+  if (new Set(inputIds).size !== inputIds.length) {
+    throw new PhotoAnalysisError(
+      PHOTO_ANALYSIS_PROVENANCE_MISMATCH,
+      "Duplicate project photo IDs are not allowed.",
+    );
+  }
+
   if (results.length !== photos.length) {
     throw new PhotoAnalysisError(
       PHOTO_ANALYSIS_CARDINALITY_MISMATCH,
@@ -280,9 +286,40 @@ export function assertAnalysisProvenance(
     );
   }
 
+  const resultIds = results.map((r) => r.photo_id);
+  if (resultIds.some((id) => !id)) {
+    throw new PhotoAnalysisError(
+      PHOTO_ANALYSIS_PROVENANCE_MISMATCH,
+      "Analysis result is missing durable photo_id.",
+    );
+  }
+  if (new Set(resultIds).size !== resultIds.length) {
+    throw new PhotoAnalysisError(
+      PHOTO_ANALYSIS_PROVENANCE_MISMATCH,
+      "Duplicate analysis photo_id values are not allowed.",
+    );
+  }
+
+  const inputSet = new Set(inputIds);
+  const resultSet = new Set(resultIds as string[]);
+  if (inputSet.size !== resultSet.size) {
+    throw new PhotoAnalysisError(
+      PHOTO_ANALYSIS_PROVENANCE_MISMATCH,
+      "Analysis photo_id set does not match input project photos.",
+    );
+  }
+  for (const id of inputSet) {
+    if (!resultSet.has(id)) {
+      throw new PhotoAnalysisError(
+        PHOTO_ANALYSIS_PROVENANCE_MISMATCH,
+        "Analysis photo_id set does not match input project photos.",
+      );
+    }
+  }
+
   const byId = new Map(photos.map((p) => [p.id, p]));
   for (const result of results) {
-    const photo = byId.get(result.id);
+    const photo = byId.get(result.photo_id as string);
     if (!photo) {
       throw new PhotoAnalysisError(
         PHOTO_ANALYSIS_PROVENANCE_MISMATCH,

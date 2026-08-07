@@ -95,9 +95,14 @@ Analyse the photo and return ONLY a JSON object with EXACTLY these fields (no ma
 
 UK spelling. Only describe what is clearly visible. Return pure JSON.`;
 
+function newAnalysisId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `analysis-${Date.now()}-${Math.random()}`;
+}
+
 function buildFallback(photo: AnalysisPhotoSource): RoomAnalysis {
   return {
-    id: photo.id,
+    id: newAnalysisId(),
+    photo_id: photo.id,
     photo_url: photo.url,
     photo_name: photo.name,
     room_type: "Other",
@@ -173,7 +178,8 @@ async function analysePhoto(apiKey: string, photo: AnalysisPhotoSource): Promise
     incrementCounter("vision_success");
 
     return {
-      id: photo.id,
+      id: newAnalysisId(),
+      photo_id: photo.id,
       photo_url: photo.url,
       photo_name: photo.name,
       room_type: coerceRoomType(validated.room_type),

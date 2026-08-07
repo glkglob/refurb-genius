@@ -14,7 +14,7 @@ const FALLBACK_PHOTOS = [
   { url: heroImg, name: "fallback-exterior.jpg" },
 ];
 
-const TEMPLATES: Array<Omit<RoomAnalysis, "id" | "photo_url" | "photo_name">> = [
+const TEMPLATES: Array<Omit<RoomAnalysis, "id" | "photo_id" | "photo_url" | "photo_name">> = [
   {
     source: "mock",
     room_type: "Kitchen",
@@ -138,6 +138,8 @@ export function buildMockRoomAnalyses(photos?: AnalysisPhotoSource[]): RoomAnaly
       photo_url: src.url,
       photo_name: src.name,
       ...template,
+      // Dev fixtures only — production save rejects source=mock.
+      photo_id: src.id.startsWith("fallback-") ? null : src.id,
     };
   });
 }

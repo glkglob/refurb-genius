@@ -2005,6 +2005,26 @@ export type Database = {
     };
     Functions: {
       is_admin: { Args: never; Returns: boolean };
+      replace_project_room_analyses: {
+        Args: { p_analyses: Json; p_project_id: string };
+        Returns: {
+          ai_summary: string;
+          condition_level: string;
+          confidence_score: number;
+          created_at: string;
+          id: string;
+          photo_id: string | null;
+          photo_name: string;
+          photo_url: string;
+          project_id: string;
+          recommended_works: Json;
+          refurbishment_level: string;
+          room_type: string;
+          source: string;
+          user_id: string;
+          visible_issues: Json;
+        }[];
+      };
       measured_boq_catalog_assert_parent_draft: {
         Args: { p_revision: string };
         Returns: undefined;

@@ -22,6 +22,7 @@ import {
   countNeedingReview,
   isProductionValidAnalysisSet,
   isStaleAnalysisRelativeToCatalogue,
+  catalogueIdentityFingerprint,
   usePhotos,
   type RoomAnalysis,
 } from "@/features/ai-upload";
@@ -61,6 +62,7 @@ function AnalysisPage() {
   const [redesignError, setRedesignError] = useState<string | null>(null);
 
   const catalogue = useMemo(() => toCatalogue(projectPhotos ?? []), [projectPhotos]);
+  const catalogueFingerprint = useMemo(() => catalogueIdentityFingerprint(catalogue), [catalogue]);
   const photoCount = catalogue.length;
   const roomGroups = useMemo(() => groupAnalysesByRoom(results), [results]);
   const needsReviewCount = useMemo(() => countNeedingReview(results), [results]);
@@ -89,6 +91,13 @@ function AnalysisPage() {
 
   const afterValidAnalysis = useCallback(
     (r: RoomAnalysis[]) => {
+      // Durable success only: never set analysis_done / redesign from invalid authority.
+      if (!isProductionValidAnalysisSet(r, catalogue)) {
+        setResults([]);
+        setAnalysing(false);
+        setUiState(catalogue.length === 0 ? "no_photos" : "stale_mock");
+        return;
+      }
       setResults(r);
       setUiState("ready");
       setAnalysing(false);
@@ -106,7 +115,7 @@ function AnalysisPage() {
 
       loadRedesign(id);
     },
-    [id, loadRedesign, setStage],
+    [catalogue, id, loadRedesign, setStage],
   );
 
   const runFreshAnalysis = useCallback(async () => {
@@ -193,8 +202,9 @@ function AnalysisPage() {
     return () => {
       cancelled = true;
     };
+    // Fingerprint (not length) so same-count photo replacement invalidates authority.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, project?.id, photosLoading, catalogue.length]);
+  }, [id, project?.id, photosLoading, catalogueFingerprint]);
 
   const handleRetryWeak = async () => {
     setRetrying(true);
@@ -204,6 +214,11 @@ function AnalysisPage() {
     });
     try {
       const fresh = await retryWeakPhotoAnalyses({ projectId: id });
+      if (!isProductionValidAnalysisSet(fresh, catalogue)) {
+        setResults([]);
+        setUiState("stale_mock");
+        return;
+      }
       setResults(fresh);
       setUiState("ready");
       setStage.mutate({ id, stage: "analysis", value: true });
@@ -343,17 +358,19 @@ function AnalysisPage() {
       subtitle="Room-by-room condition assessment with recommended works."
       actions={
         <div className="flex flex-wrap gap-2">
-          {needsReviewCount > 0 ? (
+          {needsReviewCount > 0 && analysisIsValid ? (
             <Button variant="outline" onClick={() => void handleRetryWeak()} disabled={retrying}>
               <RefreshCw className={`mr-1 h-4 w-4 ${retrying ? "animate-spin" : ""}`} />
               Re-analyse weak photos
             </Button>
           ) : null}
-          <Button asChild>
-            <Link to="/projects/$id/estimate" params={{ id }} search={{ from: undefined }}>
-              Continue to estimate <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
-          </Button>
+          {analysisIsValid ? (
+            <Button asChild>
+              <Link to="/projects/$id/estimate" params={{ id }} search={{ from: undefined }}>
+                Continue to estimate <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
+            </Button>
+          ) : null}
         </div>
       }
     >

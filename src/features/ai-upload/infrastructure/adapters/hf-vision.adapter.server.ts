@@ -108,9 +108,14 @@ Analyse the photo and return ONLY a JSON object with EXACTLY these fields (no ma
 
 UK spelling. Only describe what is clearly visible. Return pure JSON.`;
 
+function newAnalysisId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `analysis-${Date.now()}-${Math.random()}`;
+}
+
 function buildFallback(photo: AnalysisPhotoSource): RoomAnalysis {
   return {
-    id: photo.id,
+    id: newAnalysisId(),
+    photo_id: photo.id,
     photo_url: photo.url,
     photo_name: photo.name,
     room_type: "Other",
@@ -185,7 +190,8 @@ async function analysePhoto(
     incrementCounter("hf_vision_success");
 
     return {
-      id: photo.id,
+      id: newAnalysisId(),
+      photo_id: photo.id,
       photo_url: photo.url,
       photo_name: photo.name,
       room_type: coerceRoomType(validated.room_type),
@@ -195,7 +201,7 @@ async function analysePhoto(
       recommended_works: coerceStringArray(validated.recommended_works),
       ai_summary: typeof validated.ai_summary === "string" ? validated.ai_summary : "",
       confidence_score: coerceScore(validated.confidence_score),
-      source: "ai", // Could be "hf-ai" to distinguish
+      source: "ai",
     };
   } catch (err) {
     let reason: "timeout" | "rate_limit" | "parse_error" | "api_error" | "not_configured" =

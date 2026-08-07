@@ -12,12 +12,14 @@ vi.mock("@/lib/queries/projects", () => ({
 
 vi.mock("@/platform/supabase/browser", () => ({
   supabase: {
+    rpc: vi.fn(async () => ({ data: [], error: null })),
     from: vi.fn(() => ({
       select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      order: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
       delete: vi.fn().mockReturnThis(),
       insert: vi.fn().mockResolvedValue({ error: null }),
+      in: vi.fn().mockReturnThis(),
     })),
   },
 }));

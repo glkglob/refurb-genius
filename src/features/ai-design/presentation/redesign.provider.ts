@@ -7,6 +7,17 @@ import type { RedesignConcept, RedesignStyle } from "../domain";
 import { analysisStore, hasMockAnalysis, isMockOnlyAnalysisSet } from "@/features/ai-upload";
 import { generateRedesignConceptsServerFn } from "./serverFns";
 
+/** Redesign may not consume mock or photo_id-less analysis authority. */
+function isRedesignAuthorityUsable(
+  analyses: Array<{ source?: string; photo_id?: string | null }>,
+): boolean {
+  if (!analyses.length) return false;
+  if (hasMockAnalysis(analyses as never) || isMockOnlyAnalysisSet(analyses as never)) return false;
+  if (analyses.some((a) => !a.photo_id || a.source === "mock")) return false;
+  const ids = analyses.map((a) => a.photo_id as string);
+  return new Set(ids).size === ids.length;
+}
+
 export type RedesignInput = {
   projectId: string;
   styles?: RedesignStyle[];
@@ -45,8 +56,8 @@ export const redesignProvider: RedesignProvider = {
     if (cached) return cached;
 
     const analyses = analysisStore.get(input.projectId) ?? [];
-    // Do not derive redesign / investor-facing concepts from mock-only or mock-tainted analysis.
-    if (hasMockAnalysis(analyses) || isMockOnlyAnalysisSet(analyses)) {
+    // Do not derive redesign from mock, missing photo_id, or incomplete authority.
+    if (!isRedesignAuthorityUsable(analyses)) {
       throw new Error(
         "Previous analysis was not based on the current project photos. Run analysis again to use your uploaded photos.",
       );

@@ -21,6 +21,7 @@ import {
 
 function analysis(partial: Partial<RoomAnalysis> & Pick<RoomAnalysis, "id">): RoomAnalysis {
   return {
+    photo_id: partial.id,
     photo_url: `https://u/${partial.id}`,
     photo_name: `${partial.id}.jpg`,
     room_type: "Kitchen",
@@ -125,9 +126,15 @@ describe("ai-upload domain rules", () => {
 
   it("mergeAnalysesRetainingGood retains good rows and overwrites keys", () => {
     const existing = [
-      analysis({ id: "good", photo_url: "https://u/good", confidence_score: 0.9 }),
+      analysis({
+        id: "good",
+        photo_id: "photo-good",
+        photo_url: "https://u/good",
+        confidence_score: 0.9,
+      }),
       analysis({
         id: "weak",
+        photo_id: "photo-weak",
         photo_url: "https://u/weak",
         source: "fallback",
         confidence_score: 0,
@@ -136,6 +143,7 @@ describe("ai-upload domain rules", () => {
     const refreshed = [
       analysis({
         id: "weak2",
+        photo_id: "photo-weak",
         photo_url: "https://u/weak",
         confidence_score: 0.85,
         ai_summary: "Better",
@@ -152,6 +160,7 @@ describe("ai-upload domain rules", () => {
     const mockSet = [
       analysis({
         id: "fallback-0",
+        photo_id: null,
         source: "mock",
         room_type: "Kitchen",
         photo_url: "/assets/before.jpg",
@@ -159,6 +168,7 @@ describe("ai-upload domain rules", () => {
       }),
       analysis({
         id: "fallback-1",
+        photo_id: null,
         source: "mock",
         room_type: "Bathroom",
         photo_url: "/assets/after.jpg",
@@ -166,6 +176,7 @@ describe("ai-upload domain rules", () => {
       }),
       analysis({
         id: "fallback-2",
+        photo_id: null,
         source: "mock",
         room_type: "Living Room",
         photo_url: "/assets/hero-after.jpg",
@@ -222,6 +233,7 @@ describe("ai-upload domain rules", () => {
     const mockTrio = ["Kitchen", "Bathroom", "Living Room"].map((room_type, i) =>
       analysis({
         id: `fallback-${i}`,
+        photo_id: null,
         source: "mock",
         room_type: room_type as RoomAnalysis["room_type"],
         photo_url: `/assets/demo-${i}.jpg`,

@@ -27,7 +27,8 @@ import { ReportSection as Section } from "@/components/ReportSection";
 import { EstimateTable } from "@/components/EstimateTable";
 import {
   getPhotoAnalysis,
-  runPhotoAnalysis,
+  loadPhotoAnalysis,
+  isProductionValidAnalysisSet,
   usePhotos,
   type RoomAnalysis,
 } from "@/features/ai-upload";
@@ -112,36 +113,43 @@ function ReportPage() {
       };
     }
 
-    const cachedAnalysis = getPhotoAnalysis(id) ?? [];
+    const catalogue = photos.map((p) => ({ id: p.id, url: p.url, name: p.name }));
 
-    const loadAnalysis = () => {
-      runPhotoAnalysis({ projectId: id }).then((nextAnalysis) => {
+    const acceptIfValid = (candidate: RoomAnalysis[]) => {
+      if (isProductionValidAnalysisSet(candidate, catalogue)) {
+        setAnalysis(candidate);
+      } else {
+        // Stale/mock/missing photo_id must not feed investor report outputs.
+        setAnalysis([]);
+      }
+    };
+
+    const resolveAnalysis = async () => {
+      const cachedAnalysis = getPhotoAnalysis(id) ?? [];
+      if (cachedAnalysis.length && isProductionValidAnalysisSet(cachedAnalysis, catalogue)) {
+        if (!cancelled) setAnalysis(cachedAnalysis);
+        return;
+      }
+      try {
+        const persisted = await loadPhotoAnalysis(id);
         if (cancelled) return;
-        setAnalysis(nextAnalysis);
-      });
+        acceptIfValid(persisted ?? []);
+      } catch {
+        if (!cancelled) setAnalysis([]);
+      }
     };
 
     if (analysisProjectIdRef.current !== id) {
       analysisProjectIdRef.current = id;
-      setAnalysis(cachedAnalysis);
-
-      if (cachedAnalysis.length === 0) {
-        loadAnalysis();
-      }
-
+      setAnalysis([]);
+      void resolveAnalysis();
       if (!project.report_done) setStage.mutate({ id, stage: "report", value: true });
       return () => {
         cancelled = true;
       };
     }
 
-    if (analysis.length === 0) {
-      if (cachedAnalysis.length > 0) {
-        setAnalysis(cachedAnalysis);
-      } else {
-        loadAnalysis();
-      }
-    }
+    void resolveAnalysis();
 
     if (!project.report_done) setStage.mutate({ id, stage: "report", value: true });
 
@@ -149,7 +157,7 @@ function ReportPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, project, analysis.length]);
+  }, [id, project, photos]);
 
   useEffect(() => {
     let cancelled = false;

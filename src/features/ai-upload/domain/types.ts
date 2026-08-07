@@ -33,7 +33,16 @@ export type RefurbLevel = (typeof REFURB_LEVELS)[number];
 export type AnalysisSource = "ai" | "mock" | "fallback" | "persisted";
 
 export type RoomAnalysis = {
+  /**
+   * Analysis/result identity (room_analyses.id after durable persist).
+   * Not the project photo UUID — use photo_id for source authority.
+   */
   id: string;
+  /**
+   * Canonical public.photos.id for production AI/fallback results.
+   * Null on legacy/mock rows — treated as untrusted/stale.
+   */
+  photo_id: string | null;
   photo_url: string;
   photo_name: string;
   room_type: RoomType;

@@ -10,6 +10,7 @@ import type { AiVisionPort, PhotoCatalogPort, RoomAnalysisRepository } from "./p
 function makeAnalysis(id: string, partial: Partial<RoomAnalysis> = {}): RoomAnalysis {
   return {
     id,
+    photo_id: id,
     photo_url: `https://u/${id}`,
     photo_name: `${id}.jpg`,
     room_type: "Kitchen",
@@ -32,7 +33,14 @@ describe("makeAnalyzePhotos (C5-2 async catalog + P0 real-photo authority)", () 
   beforeEach(() => {
     vision = {
       analyzePhotos: vi.fn(async ({ photos: list }: { photos: AnalysisPhotoSource[] }) =>
-        list.map((p) => makeAnalysis(p.id, { photo_url: p.url, photo_name: p.name, source: "ai" })),
+        list.map((p) =>
+          makeAnalysis(p.id, {
+            photo_id: p.id,
+            photo_url: p.url,
+            photo_name: p.name,
+            source: "ai",
+          }),
+        ),
       ),
     };
     analyses = {
@@ -148,6 +156,7 @@ describe("makeAnalyzePhotos (C5-2 async catalog + P0 real-photo authority)", () 
         makeAnalysis(p.id, {
           photo_url: p.url,
           photo_name: p.name,
+          photo_id: null,
           source: "mock",
           room_type: "Kitchen",
         }),
@@ -166,7 +175,7 @@ describe("makeAnalyzePhotos (C5-2 async catalog + P0 real-photo authority)", () 
   it("rejects unexplained extra results", async () => {
     vision.analyzePhotos = vi.fn(async ({ photos: list }: { photos: AnalysisPhotoSource[] }) => [
       ...list.map((p: AnalysisPhotoSource) =>
-        makeAnalysis(p.id, { photo_url: p.url, photo_name: p.name }),
+        makeAnalysis(p.id, { photo_id: p.id, photo_url: p.url, photo_name: p.name }),
       ),
       makeAnalysis("extra", { photo_url: "https://u/extra", photo_name: "extra.jpg" }),
     ]);

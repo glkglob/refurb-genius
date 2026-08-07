@@ -56,8 +56,11 @@ export function makeRetryWeakAnalyses({ vision, analyses, photos }: RetryWeakAna
       return existing;
     }
 
+    // Prefer durable photo_id; fall back to URL/name for genuine retryable rows.
     const weakKeys = new Set(weak.map(analysisPhotoKey));
-    const toRetry = catalog.filter((p) => weakKeys.has(p.url) || weakKeys.has(p.name));
+    const toRetry = catalog.filter(
+      (p) => weakKeys.has(p.id) || weakKeys.has(p.url) || weakKeys.has(p.name),
+    );
 
     if (toRetry.length === 0) {
       // Catalog no longer has matching URLs — return existing without spending quota.

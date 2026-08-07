@@ -24,6 +24,7 @@ import type { AiVisionPort, PhotoCatalogPort, RoomAnalysisRepository } from "./p
 function aiResult(p: AnalysisPhotoSource): RoomAnalysis {
   return {
     id: p.id,
+    photo_id: p.id,
     photo_url: p.url,
     photo_name: p.name,
     room_type: "Other",
@@ -96,6 +97,7 @@ describe("P0 incident reproduction — real photo authority", () => {
     const mockPersisted: RoomAnalysis[] = [
       {
         id: "fallback-0",
+        photo_id: null,
         photo_url: "/assets/before.jpg",
         photo_name: "fallback-living.jpg",
         room_type: "Kitchen",
@@ -118,6 +120,7 @@ describe("P0 incident reproduction — real photo authority", () => {
         recommended_works: [],
         ai_summary: "demo bath",
         confidence_score: 0.87,
+        photo_id: null,
         source: "mock",
       },
       {
@@ -131,6 +134,7 @@ describe("P0 incident reproduction — real photo authority", () => {
         recommended_works: [],
         ai_summary: "demo living",
         confidence_score: 0.81,
+        photo_id: null,
         source: "mock",
       },
     ];
@@ -153,6 +157,7 @@ describe("P0 incident reproduction — real photo authority", () => {
     const mockRows: RoomAnalysis[] = [
       {
         id: "fallback-0",
+        photo_id: null,
         photo_url: "/assets/before.jpg",
         photo_name: "fallback-living.jpg",
         room_type: "Kitchen",

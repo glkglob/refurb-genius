@@ -5,6 +5,7 @@ import type { AiVisionPort, PhotoCatalogPort, RoomAnalysisRepository } from "./p
 
 function analysis(partial: Partial<RoomAnalysis> & Pick<RoomAnalysis, "id">): RoomAnalysis {
   return {
+    photo_id: partial.id,
     photo_url: `https://u/${partial.id}`,
     photo_name: `${partial.id}.jpg`,
     room_type: "Kitchen",
@@ -59,6 +60,7 @@ describe("makeRetryWeakAnalyses (P0 stale mock recovery)", () => {
     const mockRows: RoomAnalysis[] = [
       analysis({
         id: "fallback-0",
+        photo_id: null,
         photo_url: "/assets/before.jpg",
         photo_name: "fallback-living.jpg",
         source: "mock",
@@ -68,6 +70,7 @@ describe("makeRetryWeakAnalyses (P0 stale mock recovery)", () => {
         id: "fallback-1",
         photo_url: "/assets/after.jpg",
         photo_name: "fallback-kitchen.jpg",
+        photo_id: null,
         source: "mock",
         room_type: "Bathroom",
       }),
@@ -75,6 +78,7 @@ describe("makeRetryWeakAnalyses (P0 stale mock recovery)", () => {
         id: "fallback-2",
         photo_url: "/assets/hero-after.jpg",
         photo_name: "fallback-exterior.jpg",
+        photo_id: null,
         source: "mock",
         room_type: "Living Room",
       }),
@@ -94,16 +98,18 @@ describe("makeRetryWeakAnalyses (P0 stale mock recovery)", () => {
     expect(analyses.save).toHaveBeenCalledWith("proj-1", result);
   });
 
-  it("selective retry still matches genuine fallback rows by catalogue URL", async () => {
+  it("selective retry still matches genuine fallback rows by catalogue photo_id", async () => {
     const existing: RoomAnalysis[] = [
       analysis({
         id: "good",
+        photo_id: "real-1",
         photo_url: "https://cdn/real-1.jpg",
         photo_name: "room-a.jpg",
         confidence_score: 0.9,
       }),
       analysis({
         id: "weak",
+        photo_id: "real-2",
         photo_url: "https://cdn/real-2.jpg",
         photo_name: "room-b.jpg",
         source: "fallback",

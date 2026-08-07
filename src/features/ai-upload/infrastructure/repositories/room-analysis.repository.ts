@@ -1,15 +1,23 @@
 /**
  * AI-upload slice — Room analysis persistence (browser context).
  *
- * Moved from `src/lib/analysis.ts` (analysisStore is now a shim).
- * DB mapping + in-memory cache only — vision AI never runs here.
+ * Durable authority is the transactional RPC replace_project_room_analyses.
+ * In-memory cache is updated only after successful durable replacement.
  */
 import { supabase } from "@/platform/supabase/browser";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import { fetchProjectPhotosList } from "@/lib/queries/projects";
 import type { Json, Tables } from "@repo/supabase";
-import { buildMockRoomAnalyses, type AnalysisSource, type RoomAnalysis } from "../../domain";
+import {
+  buildMockRoomAnalyses,
+  hasMockAnalysis,
+  persistenceFailedError,
+  type AnalysisSource,
+  type RoomAnalysis,
+  PhotoAnalysisError,
+  PHOTO_ANALYSIS_MOCK_FORBIDDEN,
+} from "../../domain";
 import type { RoomAnalysisRepository as RoomAnalysisRepositoryPort } from "../../application/ports";
 
 const VALID_SOURCES: ReadonlySet<string> = new Set<AnalysisSource>([
@@ -25,12 +33,6 @@ function isAnalysisSource(value: unknown): value is AnalysisSource {
 
 /**
  * Map migration-built jsonb columns (generated as Json) to domain string[].
- *
- * Rule:
- * - null / undefined / non-array → []
- * - array → keep only string elements (drop numbers, objects, nested arrays)
- *
- * Keeps raw Json at the infrastructure boundary; presentation never sees Json.
  */
 export function jsonToStringArray(value: Json | null | undefined): string[] {
   if (value == null) return [];
@@ -42,9 +44,10 @@ const cache = new Map<string, RoomAnalysis[]>();
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((l) => l());
 
-function rowToAnalysis(r: Tables<"room_analyses">): RoomAnalysis {
+export function rowToAnalysis(r: Tables<"room_analyses">): RoomAnalysis {
   return {
     id: r.id,
+    photo_id: r.photo_id ?? null,
     photo_url: r.photo_url,
     photo_name: r.photo_name,
     room_type: r.room_type as RoomAnalysis["room_type"],
@@ -76,67 +79,66 @@ async function loadFromSupabase(projectId: string): Promise<RoomAnalysis[] | nul
   }
 }
 
-async function persistToSupabase(projectId: string, analyses: RoomAnalysis[]): Promise<void> {
+type RpcAnalysisPayload = {
+  photo_id: string;
+  room_type: string;
+  condition_level: string;
+  refurbishment_level: string;
+  visible_issues: string[];
+  recommended_works: string[];
+  ai_summary: string;
+  confidence_score: number;
+  source: string;
+};
+
+async function replaceViaRpc(projectId: string, analyses: RoomAnalysis[]): Promise<RoomAnalysis[]> {
   const user = auth.getUser();
-  if (!user) return;
-
-  // Production path must not persist mock demo analyses as project authority.
-  if (analyses.some((a) => a.source === "mock")) {
-    logger.warn("[analysis] refused to persist mock analysis rows", { projectId });
-    return;
+  if (!user) {
+    throw persistenceFailedError("not authenticated");
   }
 
-  try {
-    // Non-destructive replacement: insert new rows first, then retire prior rows.
-    // A failed AI/persist must not wipe existing analysis before replacement succeeds.
-    const { data: existing, error: existingError } = await supabase
-      .from("room_analyses")
-      .select("id")
-      .eq("project_id", projectId);
-    if (existingError) {
-      logger.warn("[analysis] failed to load existing analysis ids", {
-        error: existingError.message,
-      });
-      return;
-    }
-
-    if (analyses.length > 0) {
-      const rows = analyses.map((a) => ({
-        project_id: projectId,
-        user_id: user.id,
-        photo_url: a.photo_url,
-        photo_name: a.photo_name,
-        room_type: a.room_type,
-        condition_level: a.condition_level,
-        refurbishment_level: a.refurbishment_level,
-        visible_issues: a.visible_issues,
-        recommended_works: a.recommended_works,
-        ai_summary: a.ai_summary,
-        confidence_score: a.confidence_score,
-        source: a.source,
-      }));
-      const { error } = await supabase.from("room_analyses").insert(rows);
-      if (error) {
-        logger.warn("[analysis] failed to persist analyses", { error: error.message });
-        return;
-      }
-    }
-
-    const priorIds = (existing ?? []).map((r) => r.id).filter(Boolean);
-    if (priorIds.length > 0) {
-      const { error: deleteError } = await supabase
-        .from("room_analyses")
-        .delete()
-        .in("id", priorIds);
-      if (deleteError) {
-        logger.warn("[analysis] failed to retire prior analyses after insert", {
-          error: deleteError.message,
-        });
-      }
-    }
-  } catch {
-    logger.warn("[analysis] persist failed silently");
+  if (hasMockAnalysis(analyses) || analyses.some((a) => a.source === "mock")) {
+    throw new PhotoAnalysisError(
+      PHOTO_ANALYSIS_MOCK_FORBIDDEN,
+      "Mock analysis results cannot be persisted as production analysis.",
+    );
   }
+
+  if (analyses.some((a) => !a.photo_id)) {
+    throw persistenceFailedError("missing photo_id");
+  }
+
+  const payload: RpcAnalysisPayload[] = analyses.map((a) => ({
+    photo_id: a.photo_id as string,
+    room_type: a.room_type,
+    condition_level: a.condition_level,
+    refurbishment_level: a.refurbishment_level,
+    visible_issues: a.visible_issues,
+    recommended_works: a.recommended_works,
+    ai_summary: a.ai_summary,
+    confidence_score: a.confidence_score,
+    source: a.source,
+  }));
+
+  const { data, error } = await supabase.rpc("replace_project_room_analyses", {
+    p_project_id: projectId,
+    p_analyses: payload,
+  });
+
+  if (error) {
+    logger.warn("[analysis] replace_project_room_analyses failed", { error: error.message });
+    throw persistenceFailedError(error.message);
+  }
+
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    throw persistenceFailedError("empty RPC response");
+  }
+
+  const mapped = (data as Tables<"room_analyses">[]).map(rowToAnalysis);
+  if (mapped.some((a) => !a.photo_id) || hasMockAnalysis(mapped)) {
+    throw persistenceFailedError("invalid persisted rows");
+  }
+  return mapped;
 }
 
 function delay(ms = 1200) {
@@ -147,7 +149,6 @@ function delay(ms = 1200) {
 async function buildFromProjectPhotos(projectId: string): Promise<RoomAnalysis[]> {
   const photos = await fetchProjectPhotosList(projectId);
   if (photos.length === 0) {
-    // Never invent FALLBACK_PHOTOS as project analysis when the catalogue is empty.
     return [];
   }
   return buildMockRoomAnalyses(
@@ -172,11 +173,32 @@ export class SupabaseRoomAnalysisRepository implements RoomAnalysisRepositoryPor
     return undefined;
   }
 
+  /**
+   * Durable replacement is authoritative.
+   * Resolves only after transactional RPC success; cache updates only then.
+   */
   async save(projectId: string, analyses: RoomAnalysis[]): Promise<void> {
-    // In-memory cache may hold results for UI; DB path refuses mock rows.
-    cache.set(projectId, analyses);
-    notify();
-    await persistToSupabase(projectId, analyses);
+    if (hasMockAnalysis(analyses)) {
+      throw new PhotoAnalysisError(
+        PHOTO_ANALYSIS_MOCK_FORBIDDEN,
+        "Mock analysis results cannot be persisted as production analysis.",
+      );
+    }
+
+    const previous = cache.get(projectId);
+    try {
+      const persisted = await replaceViaRpc(projectId, analyses);
+      cache.set(projectId, persisted);
+      notify();
+    } catch (err) {
+      // Ensure failed save does not leave a false-success cache entry.
+      if (previous === undefined) {
+        cache.delete(projectId);
+      } else {
+        cache.set(projectId, previous);
+      }
+      throw err;
+    }
   }
 
   subscribe(fn: () => void): () => void {
@@ -185,13 +207,11 @@ export class SupabaseRoomAnalysisRepository implements RoomAnalysisRepositoryPor
   }
 
   /**
-   * Dev-only mock run from project photo metadata (mockPhotoAnalysisProvider).
-   * Not used by production serverPhotoAnalysisProvider. Empty catalogue → no mock rows.
+   * Dev-only mock run (mockPhotoAnalysisProvider). Never hits durable production save.
    */
   async runMock(projectId: string): Promise<RoomAnalysis[]> {
     await delay();
     const result = await buildFromProjectPhotos(projectId);
-    // Cache only for local mock provider — do not hit DB with source=mock.
     cache.set(projectId, result);
     notify();
     return result;
