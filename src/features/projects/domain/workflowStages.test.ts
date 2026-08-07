@@ -121,6 +121,36 @@ describe("IA-1 canonical five-stage presentation model", () => {
     expect(joined).not.toMatch(/stale|invalid_upstream|fingerprint|revision/i);
   });
 
+  it("IA-3-R1: current Analysis (analysisDone, no attention) → Complete", () => {
+    const stages = buildProjectWorkflowStages({
+      progress: {
+        photosDone: true,
+        analysisDone: true,
+        analysisNeedsAttention: false,
+        estimateDone: false,
+        reportDone: false,
+        photoCount: 1,
+      },
+      route: { surface: "analysis" },
+    });
+    expect(stages.find((s) => s.id === "analysis")?.status).toBe("Complete");
+  });
+
+  it("IA-3-R1: non-current Analysis → Needs attention (stale recovery)", () => {
+    const stages = buildProjectWorkflowStages({
+      progress: {
+        photosDone: true,
+        analysisDone: true,
+        analysisNeedsAttention: true,
+        estimateDone: false,
+        reportDone: false,
+        photoCount: 2,
+      },
+      route: { surface: "analysis" },
+    });
+    expect(stages.find((s) => s.id === "analysis")?.status).toBe("Needs attention");
+  });
+
   it("never marks Redesign Complete without redesign authority", () => {
     const stages = buildProjectWorkflowStages({
       progress: {

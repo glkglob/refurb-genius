@@ -4,10 +4,12 @@
 import { describe, expect, it } from "vitest";
 import {
   analysisCurrencyFromEvidence,
+  analysisShellFlagsFromCurrency,
   buildPhotosAnalysisWorkflowState,
   photosCurrencyFromEvidence,
 } from "./photosAnalysisWorkflowAdapter";
 import { resolveProjectNextAction } from "./resolveProjectNextAction";
+import { buildProjectWorkflowStages } from "./workflowStages";
 
 const PROJECT_ID = "proj-ia3";
 
@@ -202,5 +204,156 @@ describe("IA-3 adapter → resolveProjectNextAction integration", () => {
     const next = resolveProjectNextAction({ projectId: PROJECT_ID, workflow });
     expect(next.stage).toBe("photos");
     expect(next.actionKind).toBe("view_stage_progress");
+  });
+});
+
+describe("IA-3-R1 analysisShellFlagsFromCurrency + shell/resolver consistency", () => {
+  function shellAnalysisStatus(
+    currency: "current" | "non_current" | "running" | "absent",
+    photoCount: number,
+  ) {
+    const flags = analysisShellFlagsFromCurrency(currency);
+    const stages = buildProjectWorkflowStages({
+      progress: {
+        photosDone: photoCount > 0,
+        photoCount,
+        analysisDone: flags.analysisDone,
+        analysisNeedsAttention: flags.analysisNeedsAttention,
+        estimateDone: false,
+        reportDone: false,
+      },
+      route: { surface: "analysis" },
+    });
+    return stages.find((s) => s.id === "analysis")?.status;
+  }
+
+  it("current AI Analysis → shell Complete + create_redesign", () => {
+    const workflow = buildPhotosAnalysisWorkflowState({
+      photos: [{ id: "p1" }],
+      analyses: [{ photoId: "p1", source: "ai" }],
+    });
+    expect(workflow.analysis.currency).toBe("current");
+    expect(analysisShellFlagsFromCurrency("current")).toEqual({
+      analysisDone: true,
+      analysisNeedsAttention: false,
+    });
+    expect(shellAnalysisStatus("current", 1)).toBe("Complete");
+    const next = resolveProjectNextAction({ projectId: PROJECT_ID, workflow });
+    expect(next.actionKind).toBe("create_redesign");
+    // Forbidden contradiction: Needs attention + create_redesign
+    expect(shellAnalysisStatus("current", 1)).not.toBe("Needs attention");
+  });
+
+  it("current fallback Analysis → shell Complete + create_redesign (not Needs attention)", () => {
+    const workflow = buildPhotosAnalysisWorkflowState({
+      photos: [{ id: "p1" }],
+      analyses: [{ photoId: "p1", source: "fallback" }],
+    });
+    expect(workflow.analysis.currency).toBe("current");
+    expect(shellAnalysisStatus("current", 1)).toBe("Complete");
+    const next = resolveProjectNextAction({ projectId: PROJECT_ID, workflow });
+    expect(next).toMatchObject({
+      stage: "redesign",
+      actionKind: "create_redesign",
+    });
+    expect(shellAnalysisStatus("current", 1)).not.toBe("Needs attention");
+  });
+
+  it("low-confidence current Analysis still maps to Complete (advisory is separate)", () => {
+    // Currency current ⇒ shell Complete; quality review is not a stage status input.
+    expect(analysisShellFlagsFromCurrency("current").analysisNeedsAttention).toBe(false);
+    expect(shellAnalysisStatus("current", 2)).toBe("Complete");
+  });
+
+  it("mock Analysis → non_current → shell Needs attention + never create_redesign", () => {
+    const workflow = buildPhotosAnalysisWorkflowState({
+      photos: [{ id: "p1" }],
+      analyses: [{ photoId: "p1", source: "mock" }],
+    });
+    expect(workflow.analysis.currency).toBe("non_current");
+    expect(analysisShellFlagsFromCurrency("non_current")).toEqual({
+      analysisDone: true,
+      analysisNeedsAttention: true,
+    });
+    expect(shellAnalysisStatus("non_current", 1)).toBe("Needs attention");
+    const next = resolveProjectNextAction({ projectId: PROJECT_ID, workflow });
+    expect(next.actionKind).toBe("update_analysis");
+    expect(next.actionKind).not.toBe("create_redesign");
+  });
+
+  it("catalogue mismatch → Needs attention + update_analysis", () => {
+    const workflow = buildPhotosAnalysisWorkflowState({
+      photos: [{ id: "p1" }, { id: "p2" }],
+      analyses: [{ photoId: "p1", source: "ai" }],
+    });
+    expect(workflow.analysis.currency).toBe("non_current");
+    expect(shellAnalysisStatus("non_current", 2)).toBe("Needs attention");
+    expect(resolveProjectNextAction({ projectId: PROJECT_ID, workflow }).actionKind).toBe(
+      "update_analysis",
+    );
+  });
+
+  it("photo added after current Analysis → Needs attention + update_analysis", () => {
+    const workflow = buildPhotosAnalysisWorkflowState({
+      photos: [{ id: "p1" }, { id: "p2" }],
+      analyses: [{ photoId: "p1", source: "fallback" }],
+    });
+    expect(shellAnalysisStatus("non_current", 2)).toBe("Needs attention");
+    expect(resolveProjectNextAction({ projectId: PROJECT_ID, workflow }).actionKind).toBe(
+      "update_analysis",
+    );
+  });
+
+  it("photo removed after current Analysis → Needs attention + update_analysis", () => {
+    const workflow = buildPhotosAnalysisWorkflowState({
+      photos: [{ id: "p1" }],
+      analyses: [
+        { photoId: "p1", source: "ai" },
+        { photoId: "p2", source: "ai" },
+      ],
+    });
+    expect(shellAnalysisStatus("non_current", 1)).toBe("Needs attention");
+    expect(resolveProjectNextAction({ projectId: PROJECT_ID, workflow }).actionKind).toBe(
+      "update_analysis",
+    );
+  });
+
+  it("impossible: shell Needs attention while resolver create_redesign for same currency", () => {
+    for (const currency of ["current", "non_current", "running", "absent"] as const) {
+      const flags = analysisShellFlagsFromCurrency(currency);
+      // Synthetic workflow states for each currency
+      const workflow =
+        currency === "current"
+          ? buildPhotosAnalysisWorkflowState({
+              photos: [{ id: "p1" }],
+              analyses: [{ photoId: "p1", source: "fallback" }],
+            })
+          : currency === "non_current"
+            ? buildPhotosAnalysisWorkflowState({
+                photos: [{ id: "p1" }, { id: "p2" }],
+                analyses: [{ photoId: "p1", source: "ai" }],
+              })
+            : currency === "running"
+              ? buildPhotosAnalysisWorkflowState({
+                  photos: [{ id: "p1" }],
+                  analyses: [],
+                  analysisOperationRunning: true,
+                })
+              : buildPhotosAnalysisWorkflowState({
+                  photos: [{ id: "p1" }],
+                  analyses: [],
+                });
+
+      const next = resolveProjectNextAction({ projectId: PROJECT_ID, workflow });
+      const shellStatus = shellAnalysisStatus(currency, 1);
+      if (next.actionKind === "create_redesign") {
+        expect(flags.analysisNeedsAttention).toBe(false);
+        expect(shellStatus).not.toBe("Needs attention");
+      }
+      if (shellStatus === "Needs attention") {
+        expect(next.actionKind).toBe("update_analysis");
+        expect(next.actionKind).not.toBe("create_redesign");
+      }
+    }
   });
 });

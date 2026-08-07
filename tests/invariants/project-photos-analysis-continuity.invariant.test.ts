@@ -71,3 +71,25 @@ test("IA-3 replace_project_room_analyses remains the analysis publish authority"
   assert.match(repo, /replace_project_room_analyses/);
   assert.match(repo, /fetchProjectPhotosList|listPhotos|photo/);
 });
+
+test("IA-3-R1 — shell Analysis Needs attention follows currency, not fallback quality", () => {
+  const adapter = read("src/features/projects/domain/photosAnalysisWorkflowAdapter.ts");
+  assert.match(adapter, /export function analysisShellFlagsFromCurrency/);
+  assert.match(adapter, /analysisNeedsAttention/);
+  // Currency current must not set Needs attention.
+  assert.match(adapter, /case "current":/);
+  assert.match(adapter, /analysisNeedsAttention:\s*false/);
+
+  const analysis = read("src/routes/_authed/projects.$id.analysis.tsx");
+  assert.match(analysis, /analysisShellFlagsFromCurrency/);
+  // Must not reintroduce fallback/quality → shell Needs attention coupling.
+  assert.doesNotMatch(analysis, /analysisNeedsAttention\s*:\s*[\s\S]{0,200}hasFallbackResults/);
+  assert.doesNotMatch(
+    analysis,
+    /analysisNeedsAttention\s*:\s*[\s\S]{0,200}needsReviewCount\s*>\s*0/,
+  );
+
+  const checklist = read("src/components/pipeline-checklist.ts");
+  // Fallback quality must not drive canonical Needs attention.
+  assert.doesNotMatch(checklist, /analysisNeedsAttention:\s*Boolean\(input\.analysisHasFallback\)/);
+});

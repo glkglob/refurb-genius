@@ -110,8 +110,11 @@ export type ProjectWorkflowProgressInput = {
   /** Optional photo count for richer Photos status. */
   photoCount?: number;
   /**
-   * When analysis completed with weak/fallback results needing review.
-   * Maps to user-facing "Needs attention" only — not internal terms.
+   * When Analysis is durable but non-current (stale catalogue, mock, incomplete
+   * coverage) and requires recovery. Maps to user-facing "Needs attention".
+   *
+   * IA-3-R1: MUST NOT be set for low-confidence / fallback quality review when
+   * Analysis is still authoritative/current — those are advisory signals only.
    */
   analysisNeedsAttention?: boolean;
 };

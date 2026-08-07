@@ -55,6 +55,7 @@ export {
 
 export {
   analysisCurrencyFromEvidence,
+  analysisShellFlagsFromCurrency,
   buildPhotosAnalysisWorkflowState,
   photosCurrencyFromEvidence,
   type AnalysisAuthorityEvidence,

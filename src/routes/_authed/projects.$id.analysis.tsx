@@ -16,7 +16,6 @@ import {
   runPhotoAnalysis,
   retryWeakPhotoAnalyses,
   groupAnalysesByRoom,
-  hasFallbackResults,
   countNeedingReview,
   isProductionValidAnalysisSet,
   isStaleAnalysisRelativeToCatalogue,
@@ -36,6 +35,7 @@ import {
   useSetProjectStage,
   ProjectWorkflowShell,
   progressFromProjectFlags,
+  analysisShellFlagsFromCurrency,
   buildPhotosAnalysisWorkflowState,
   resolveProjectNextAction,
 } from "@/features/projects";
@@ -81,14 +81,24 @@ function AnalysisPage() {
   );
 
   // IA-3: Photos/Analysis currency → IA-2 resolver (no second next-action algorithm).
-  const analysisNextAction = useMemo(() => {
-    const workflow = buildPhotosAnalysisWorkflowState({
-      photos: catalogue.map((p) => ({ id: p.id })),
-      analyses: results.map((r) => ({ photoId: r.photo_id, source: r.source })),
-      analysisOperationRunning: analysing || uiState === "loading",
-    });
-    return resolveProjectNextAction({ projectId: id, workflow });
-  }, [catalogue, results, analysing, uiState, id]);
+  const analysisWorkflow = useMemo(
+    () =>
+      buildPhotosAnalysisWorkflowState({
+        photos: catalogue.map((p) => ({ id: p.id })),
+        analyses: results.map((r) => ({ photoId: r.photo_id, source: r.source })),
+        analysisOperationRunning: analysing || uiState === "loading",
+      }),
+    [catalogue, results, analysing, uiState],
+  );
+  const analysisNextAction = useMemo(
+    () => resolveProjectNextAction({ projectId: id, workflow: analysisWorkflow }),
+    [id, analysisWorkflow],
+  );
+  // IA-3-R1: shell Analysis status follows currency — not fallback/quality review.
+  const analysisShellFlags = useMemo(
+    () => analysisShellFlagsFromCurrency(analysisWorkflow.analysis.currency),
+    [analysisWorkflow.analysis.currency],
+  );
 
   const loadRedesign = useCallback((projectId: string) => {
     setConceptsLoading(true);
@@ -112,7 +122,9 @@ function AnalysisPage() {
     (r: RoomAnalysis[]) => {
       // Durable success only: never set analysis_done / redesign from invalid authority.
       if (!isProductionValidAnalysisSet(r, catalogue)) {
-        setResults([]);
+        // Keep rows as non-current evidence for shell Needs attention + update_analysis
+        // (IA-3-R1). UI still uses stale_mock presentation, not ready cards.
+        setResults(catalogue.length === 0 ? [] : r);
         setAnalysing(false);
         setUiState(catalogue.length === 0 ? "no_photos" : "stale_mock");
         return;
@@ -206,7 +218,8 @@ function AnalysisPage() {
         if (persisted?.length && isStaleAnalysisRelativeToCatalogue(persisted, catalogue)) {
           // Do not present mock/stale rows as completed AI work.
           // Do not mark analysis_done. Do not generate redesign from mocks.
-          setResults([]);
+          // Keep rows so adapter currency stays non_current (IA-3-R1 shell Needs attention).
+          setResults(persisted);
           setUiState("stale_mock");
           return;
         }
@@ -243,7 +256,7 @@ function AnalysisPage() {
     try {
       const fresh = await retryWeakPhotoAnalyses({ projectId: id });
       if (!isProductionValidAnalysisSet(fresh, catalogue)) {
-        setResults([]);
+        setResults(fresh);
         setUiState("stale_mock");
         return;
       }
@@ -321,13 +334,10 @@ function AnalysisPage() {
   const shellProgress = {
     ...progressFromProjectFlags(project),
     photoCount,
-    // Stronger non-current/mock evidence overrides legacy analysis_done (IA-3).
-    analysisDone: analysisIsValid,
-    analysisNeedsAttention:
-      analysisNextAction.actionKind === "update_analysis" ||
-      (uiState === "ready"
-        ? hasFallbackResults(results) || needsReviewCount > 0
-        : uiState === "stale_mock" || uiState === "error"),
+    // IA-3-R1: Complete only when current; Needs attention only when non_current.
+    // Fallback / low-confidence remain advisory in-page — never shell stage status.
+    analysisDone: analysisShellFlags.analysisDone,
+    analysisNeedsAttention: analysisShellFlags.analysisNeedsAttention,
   };
 
   const analysisShell = (opts: {

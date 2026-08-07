@@ -30,6 +30,7 @@ export {
   buildProjectIdentitySubtitle,
   buildProjectIdentityTitle,
   analysisCurrencyFromEvidence,
+  analysisShellFlagsFromCurrency,
   buildPhotosAnalysisWorkflowState,
   buildProjectNextActionRoute,
   buildProjectWorkflowStages,

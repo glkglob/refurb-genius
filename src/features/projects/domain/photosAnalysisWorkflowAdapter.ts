@@ -144,6 +144,34 @@ export function buildPhotosAnalysisWorkflowState(
   };
 }
 
+/**
+ * IA-3-R1 — Map Analysis currency to IA-1 shell progress flags.
+ *
+ * Canonical contract:
+ * - current (incl. authoritative fallback / low-confidence review recommended)
+ *   → analysisDone + NOT Needs attention (shell Complete; resolver may advance)
+ * - non_current (stale catalogue, mock, incomplete coverage)
+ *   → analysisDone + Needs attention (shell recovery; update_analysis)
+ * - running / absent → not done, not attention (Ready / In progress by route)
+ *
+ * Low-confidence and fallback quality signals are advisory only. They MUST NOT
+ * set analysisNeedsAttention when currency is current.
+ */
+export function analysisShellFlagsFromCurrency(currency: WorkflowAuthorityCurrency): {
+  analysisDone: boolean;
+  analysisNeedsAttention: boolean;
+} {
+  switch (currency) {
+    case "current":
+      return { analysisDone: true, analysisNeedsAttention: false };
+    case "non_current":
+      return { analysisDone: true, analysisNeedsAttention: true };
+    case "running":
+    case "absent":
+      return { analysisDone: false, analysisNeedsAttention: false };
+  }
+}
+
 /** Test helper: map currency labels without importing presentation types. */
 export function isRunningCurrency(currency: WorkflowAuthorityCurrency): boolean {
   return currency === "running";
