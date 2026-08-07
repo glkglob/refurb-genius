@@ -1,7 +1,13 @@
 /**
- * Upload → Analyse → Estimate pipeline checklist for project workflow pages.
+ * Five-stage project workflow checklist presentation.
+ *
+ * Converged from the historical Upload → Analyse → Estimate checklist onto
+ * Photos → Analysis → Redesign → Estimate → Export (IA-0 / IA-1).
+ *
+ * Prefer ProjectWorkflowShell + ProjectStageNav for full shell chrome.
+ * This component remains for surfaces that only need the checklist block.
  */
-import { Check, Circle, Loader2 } from "lucide-react";
+import { Check, Circle, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@repo/ui";
 import type { PipelineStep, PipelineStepState } from "./pipeline-checklist";
 
@@ -10,17 +16,18 @@ type PipelineChecklistProps = {
   className?: string;
 };
 
-function stateLabel(state: PipelineStepState): string {
-  switch (state) {
+function stateLabel(step: PipelineStep): string {
+  if (step.statusLabel) return step.statusLabel;
+  switch (step.state) {
     case "complete":
-      return "complete";
+      return "Complete";
     case "current":
-      return "in progress";
+      return "In progress";
     case "error":
-      return "needs attention";
+      return "Needs attention";
     case "pending":
     default:
-      return "pending";
+      return "Not started";
   }
 }
 
@@ -28,7 +35,7 @@ function StepIcon({ state }: { state: PipelineStepState }) {
   if (state === "complete") {
     return (
       <span
-        className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600"
+        className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary"
         aria-hidden
       >
         <Check className="h-3.5 w-3.5" />
@@ -51,7 +58,7 @@ function StepIcon({ state }: { state: PipelineStepState }) {
         className="flex h-6 w-6 items-center justify-center rounded-full bg-destructive/15 text-destructive"
         aria-hidden
       >
-        <Circle className="h-3.5 w-3.5 fill-current" />
+        <AlertCircle className="h-3.5 w-3.5" />
       </span>
     );
   }
@@ -67,42 +74,45 @@ function StepIcon({ state }: { state: PipelineStepState }) {
 
 export function PipelineChecklist({ steps, className }: PipelineChecklistProps) {
   return (
-    <ol
-      className={cn(
-        "flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4 sm:flex-row sm:items-stretch sm:gap-0 sm:divide-x sm:divide-border/60",
-        className,
-      )}
-    >
-      {steps.map((step, index) => (
-        <li
-          key={step.id}
-          className={cn(
-            "flex flex-1 items-start gap-3 sm:px-4",
-            index === 0 && "sm:pl-0",
-            index === steps.length - 1 && "sm:pr-0",
-          )}
-          aria-current={step.state === "current" ? "step" : undefined}
-        >
-          <StepIcon state={step.state} />
-          <div className="min-w-0">
-            <p
-              className={cn(
-                "text-sm font-medium",
-                step.state === "complete" && "text-emerald-700 dark:text-emerald-400",
-                step.state === "current" && "text-foreground",
-                step.state === "pending" && "text-muted-foreground",
-                step.state === "error" && "text-destructive",
-              )}
-            >
-              {index + 1}. {step.label}
-              <span className="sr-only"> — {stateLabel(step.state)}</span>
-            </p>
-            {step.description ? (
-              <p className="mt-0.5 text-xs text-muted-foreground">{step.description}</p>
-            ) : null}
-          </div>
-        </li>
-      ))}
-    </ol>
+    <nav aria-label="Project workflow stages">
+      <ol
+        className={cn(
+          "flex flex-col gap-3 rounded-xl border border-border/60 bg-card/40 p-4 sm:flex-row sm:items-stretch sm:gap-0 sm:divide-x sm:divide-border/60",
+          className,
+        )}
+      >
+        {steps.map((step, index) => (
+          <li
+            key={step.id}
+            className={cn(
+              "flex flex-1 items-start gap-3 sm:px-3",
+              index === 0 && "sm:pl-0",
+              index === steps.length - 1 && "sm:pr-0",
+            )}
+            aria-current={step.isActive || step.state === "current" ? "step" : undefined}
+          >
+            <StepIcon state={step.state} />
+            <div className="min-w-0">
+              <p
+                className={cn(
+                  "text-sm font-medium",
+                  step.state === "complete" && "text-foreground",
+                  step.state === "current" && "text-foreground",
+                  step.state === "pending" && "text-muted-foreground",
+                  step.state === "error" && "text-destructive",
+                )}
+              >
+                {index + 1}. {step.label}
+                <span className="sr-only"> — {stateLabel(step)}</span>
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{stateLabel(step)}</p>
+              {step.description ? (
+                <p className="mt-0.5 text-xs text-muted-foreground/80">{step.description}</p>
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ol>
+    </nav>
   );
 }

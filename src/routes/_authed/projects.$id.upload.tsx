@@ -1,11 +1,10 @@
-import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
-import { PipelineChecklist } from "@/components/PipelineChecklist";
-import { buildProjectPipelineSteps } from "@/components/pipeline-checklist";
+import { ProjectWorkflowShell, progressFromProjectFlags } from "@/features/projects";
 import { formatFileSize } from "@/lib/file-utils";
 import {
   Upload,
@@ -255,7 +254,7 @@ function UploadPage() {
   const handleAnalyse = () => {
     trackEvent("ai_analysis_started", { projectId: id, photo_count: photos.length });
     setStage.mutate({ id, stage: "photos", value: true });
-    navigate({ to: "/projects/$id/analysis", params: { id } });
+    navigate({ to: "/projects/$id/analysis", params: { id }, search: { focus: undefined } });
   };
 
   const retryFailed = () => {
@@ -269,35 +268,24 @@ function UploadPage() {
 
   const uploading = uploadPhotos.isPending;
   const failedCount = batchItems.filter((i) => i.status === "failed").length;
-  const pipelineSteps = buildProjectPipelineSteps({
-    photoCount: photos.length,
-    analysisComplete: project.analysis_done,
-    estimateComplete: project.estimate_done,
-    current: "upload",
-  });
 
   return (
-    <AppLayout
-      title="Upload photos"
-      subtitle="Add photos of every room. We'll run AI analysis next."
+    <ProjectWorkflowShell
+      project={project}
+      route={{ surface: "upload" }}
+      progress={{
+        ...progressFromProjectFlags(project),
+        photoCount: photos.length,
+      }}
+      pageTitle={project.name?.trim() || "Photos"}
+      pageSubtitle="Add photos of every room. We'll run AI analysis next."
       actions={
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link to="/projects/$id" params={{ id }} search={{ tab: "overview" }}>
-              Back
-            </Link>
-          </Button>
-          <Button onClick={handleAnalyse} disabled={photos.length === 0 || uploading}>
-            <Sparkles className="h-4 w-4" /> Run AI Analysis
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button onClick={handleAnalyse} disabled={photos.length === 0 || uploading}>
+          <Sparkles className="h-4 w-4" /> Run AI Analysis
+          <ArrowRight className="h-4 w-4" />
+        </Button>
       }
     >
-      <div className="mb-5">
-        <PipelineChecklist steps={pipelineSteps} />
-      </div>
-
       {health && !health.ok ? (
         <div className="mb-4 flex items-start gap-2 rounded-md border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-100">
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -506,6 +494,6 @@ function UploadPage() {
           </div>
         </CardContent>
       </Card>
-    </AppLayout>
+    </ProjectWorkflowShell>
   );
 }

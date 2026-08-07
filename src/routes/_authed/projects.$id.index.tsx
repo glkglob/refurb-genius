@@ -2,7 +2,6 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useSuspenseQuery, useQueryClient, useQuery } from "@tanstack/react-query";
 import { z } from "zod";
-import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/LoadingState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,8 +21,8 @@ import {
   Sparkles,
   Calculator,
   FileText,
+  Palette,
   MapPin,
-  ArrowRight,
   CheckCircle2,
   Circle,
   Bed,
@@ -35,7 +34,12 @@ import {
 } from "lucide-react";
 
 import { estimatedRefurbCost, estimatedProfit } from "@/core/projects";
-import { useProjectProgress } from "@/hooks/useProjects";
+import {
+  ProjectWorkflowShell,
+  progressFromProjectFlags,
+  buildProjectWorkflowStages,
+  type ProjectWorkflowStageId,
+} from "@/features/projects";
 
 import {
   projectQueryOptions,
@@ -98,8 +102,6 @@ function ProjectDetail() {
   const { data: photos = [] } = useSuspenseQuery(photosQueryOptions(id));
   const { data: analyses = [] } = useQuery(photoAnalysisByProjectQueryOptions(id));
 
-  const progress = useProjectProgress(id);
-
   if (!project) return <Navigate to="/dashboard" />;
 
   const setTab = (newTab: z.infer<typeof TabSchema>) => {
@@ -119,43 +121,36 @@ function ProjectDetail() {
     if (t === "gallery") queryClient.prefetchQuery(galleryByProjectQueryOptions(id));
   };
 
-  const workflow = [
-    {
-      stage: "photos" as const,
-      to: "/projects/$id/upload",
-      label: "Photos",
-      desc: "Upload & AI analysis",
-      icon: Camera,
-    },
-    {
-      stage: "analysis" as const,
-      to: "/projects/$id/analysis",
-      label: "AI Analysis",
-      desc: "Room condition & scope",
-      icon: Sparkles,
-    },
-    {
-      stage: "estimate" as const,
-      to: "/projects/$id/estimate",
-      label: "Estimate",
-      desc: "Detailed refurb costs",
-      icon: Calculator,
-    },
-    {
-      stage: "report" as const,
-      to: "/projects/$id/report",
-      label: "Report",
-      desc: "Investor ready",
-      icon: FileText,
-    },
-  ] as const;
+  const stageIcons: Record<ProjectWorkflowStageId, typeof Camera> = {
+    photos: Camera,
+    analysis: Sparkles,
+    redesign: Palette,
+    estimate: Calculator,
+    export: FileText,
+  };
 
-  const nextStage = workflow.find((w) => !progress[w.stage]) ?? workflow[workflow.length - 1];
+  const stagePresentations = buildProjectWorkflowStages({
+    progress: {
+      ...progressFromProjectFlags(project),
+      photoCount: photos.length,
+    },
+    route: { surface: "overview" },
+  });
+
+  // Overview is not a stage — continuation uses existing progress flags only
+  // (no IA-2 resolver). First incomplete stage in journey order.
+  const nextStagePresentation =
+    stagePresentations.find((s) => s.status !== "Complete") ??
+    stagePresentations[stagePresentations.length - 1];
 
   return (
-    <AppLayout
-      title={project.name || project.address}
-      subtitle={`${project.address} · ${project.postcode}`}
+    <ProjectWorkflowShell
+      project={project}
+      route={{ surface: "overview" }}
+      progress={{
+        ...progressFromProjectFlags(project),
+        photoCount: photos.length,
+      }}
       actions={
         <div className="flex flex-wrap gap-2">
           <Button asChild>
@@ -172,16 +167,35 @@ function ProjectDetail() {
         </div>
       }
     >
-      {/* Property Summary */}
+      {/* Property Summary — optional fields degrade gracefully for name-only projects */}
       <Card className="mb-6">
         <CardContent className="grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-3">
-          <Detail label="Address" value={project.address} icon={MapPin} />
-          <Detail label="Postcode" value={project.postcode} />
-          <Detail label="Region" value={project.region} />
-          <Detail label="Property type" value={project.property_type} icon={Home} />
-          <Detail label="Bedrooms" value={String(project.bedrooms)} icon={Bed} />
-          <Detail label="Bathrooms" value={String(project.bathrooms)} icon={Bath} />
-          <Detail label="Size" value={`${project.size_sqm} m²`} icon={Ruler} />
+          <Detail
+            label="Address"
+            value={project.address?.trim() ? project.address : "Not set"}
+            icon={MapPin}
+          />
+          <Detail
+            label="Postcode"
+            value={project.postcode?.trim() ? project.postcode : "Not set"}
+          />
+          <Detail label="Region" value={project.region || "Not set"} />
+          <Detail label="Property type" value={project.property_type || "Not set"} icon={Home} />
+          <Detail
+            label="Bedrooms"
+            value={project.bedrooms > 0 ? String(project.bedrooms) : "Not set"}
+            icon={Bed}
+          />
+          <Detail
+            label="Bathrooms"
+            value={project.bathrooms > 0 ? String(project.bathrooms) : "Not set"}
+            icon={Bath}
+          />
+          <Detail
+            label="Size"
+            value={project.size_sqm > 0 ? `${project.size_sqm} m²` : "Not set"}
+            icon={Ruler}
+          />
           <Detail label="Status" value={project.status} />
           <Detail
             label="Created"
@@ -246,32 +260,56 @@ function ProjectDetail() {
 
         {/* Overview */}
         <TabsContent value="overview" className="mt-6 space-y-6">
-          {/* Workflow Cards - preserved from current file */}
+          {/* Five-stage workflow cards — canonical IA-0 journey (Overview is not a stage) */}
           <h2 className="text-lg font-semibold">Workflow</h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {workflow.map((w) => {
-              const done = progress[w.stage];
-              const isNext = w === nextStage && !done;
-              return (
-                <Link key={w.stage} to={w.to} params={{ id }}>
-                  <Card
-                    className={`h-full transition-shadow hover:shadow-md ${isNext ? "border-accent ring-1 ring-accent/40" : ""}`}
-                  >
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10 text-accent">
-                          <w.icon className="h-5 w-5" />
-                        </div>
-                        {done ? (
-                          <CheckCircle2 className="h-5 w-5 text-accent" />
-                        ) : (
-                          <Circle className="h-5 w-5 text-muted-foreground/40" />
-                        )}
+          <p className="text-sm text-muted-foreground -mt-2">
+            Photos → Analysis → Redesign → Estimate → Export
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            {stagePresentations.map((stage) => {
+              const Icon = stageIcons[stage.id];
+              const isNext = nextStagePresentation?.id === stage.id && stage.status !== "Complete";
+              const done = stage.status === "Complete";
+              const cardInner = (
+                <Card
+                  className={`h-full transition-shadow hover:shadow-md ${isNext ? "border-primary ring-1 ring-primary/40" : ""}`}
+                >
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <Icon className="h-5 w-5" />
                       </div>
-                      <h3 className="mt-4 font-semibold">{w.label}</h3>
-                      <p className="mt-1 text-xs text-muted-foreground">{w.desc}</p>
-                    </CardContent>
-                  </Card>
+                      {done ? (
+                        <CheckCircle2 className="h-5 w-5 text-primary" aria-hidden />
+                      ) : (
+                        <Circle className="h-5 w-5 text-muted-foreground/40" aria-hidden />
+                      )}
+                    </div>
+                    <h3 className="mt-4 font-semibold">
+                      {stage.order}. {stage.label}
+                    </h3>
+                    <p className="mt-1 text-xs text-muted-foreground">{stage.description}</p>
+                    <p className="mt-2 text-xs font-medium text-muted-foreground">{stage.status}</p>
+                  </CardContent>
+                </Card>
+              );
+
+              if (stage.destination.kind === "embedded") {
+                return (
+                  <Link
+                    key={stage.id}
+                    to="/projects/$id/analysis"
+                    params={{ id }}
+                    search={{ focus: "redesign" }}
+                  >
+                    {cardInner}
+                  </Link>
+                );
+              }
+
+              return (
+                <Link key={stage.id} to={stage.destination.to} params={{ id }}>
+                  {cardInner}
                 </Link>
               );
             })}
@@ -436,7 +474,7 @@ function ProjectDetail() {
           </Suspense>
         </TabsContent>
       </Tabs>
-    </AppLayout>
+    </ProjectWorkflowShell>
   );
 }
 

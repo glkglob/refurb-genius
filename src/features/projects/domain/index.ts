@@ -1,21 +1,6 @@
 /**
- * Projects feature — public API.
- *
- * Presentation consumers import stage mutation and IA-1 workflow shell from here.
- * Infrastructure is intentionally not re-exported.
- * List/detail/create remain on transitional @/hooks/useProjects (out of AO-1M4).
+ * Projects domain — pure workflow presentation model (IA-1).
  */
-export {
-  useSetProjectStage,
-  type SetProjectStageVariables,
-} from "./presentation/hooks/useSetProjectStage";
-
-export {
-  ProjectWorkflowShell,
-  ProjectStageNav,
-  type ProjectWorkflowShellProject,
-} from "./presentation";
-
 export {
   PROJECT_OVERVIEW_IS_WORKFLOW_STAGE,
   PROJECT_WORKFLOW_STAGE_IDS,
@@ -37,4 +22,4 @@ export {
   type ProjectWorkflowStageId,
   type ProjectWorkflowStagePresentation,
   type ProjectWorkflowStatusLabel,
-} from "./domain";
+} from "./workflowStages";

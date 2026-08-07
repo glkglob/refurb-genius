@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { trackReportExported } from "@/lib/analytics";
@@ -11,7 +11,6 @@ import { AnalysisSourceBadge } from "@/components/AnalysisSourceBadge";
 import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import {
-  ArrowLeft,
   Building2,
   Printer,
   Download,
@@ -33,7 +32,11 @@ import {
   type RoomAnalysis,
 } from "@/features/ai-upload";
 import { useProject } from "@/hooks/useProjects";
-import { useSetProjectStage } from "@/features/projects";
+import {
+  useSetProjectStage,
+  ProjectWorkflowShell,
+  progressFromProjectFlags,
+} from "@/features/projects";
 import { formatGBP } from "@/core/pricing";
 import { buildReport } from "@/core/reports";
 import {
@@ -289,36 +292,29 @@ function ReportPage() {
   });
 
   return (
-    <div className="min-h-screen w-full bg-muted/30">
-      {/* Toolbar (hidden on print) */}
-      <div className="no-print sticky top-0 z-10 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/projects/$id" params={{ id }} search={{ tab: "overview" }}>
-              <ArrowLeft className="h-4 w-4" /> Back to project
-            </Link>
+    <ProjectWorkflowShell
+      project={project}
+      route={{ surface: "report" }}
+      progress={progressFromProjectFlags(project)}
+      pageTitle={project.name?.trim() || "Export"}
+      pageSubtitle="Investor-ready export from the current estimate."
+      actions={
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => window.print()}>
+            <Printer className="h-4 w-4" /> Print
           </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => window.print()}>
-              <Printer className="h-4 w-4" /> Print
-            </Button>
-            <Button size="sm" onClick={handleExportPdf} disabled={pdfExporting}>
-              {pdfExporting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
-              {pdfExporting ? "Exporting…" : "Export PDF"}
-            </Button>
-          </div>
+          <Button size="sm" onClick={handleExportPdf} disabled={pdfExporting}>
+            {pdfExporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            {pdfExporting ? "Exporting…" : "Export PDF"}
+          </Button>
         </div>
-      </div>
-
-      <main
-        id="main-content"
-        tabIndex={-1}
-        className="print-area mx-auto max-w-5xl px-4 py-8 outline-none sm:px-8 sm:py-12"
-      >
+      }
+    >
+      <div className="print-area">
         <article className="space-y-10 rounded-xl bg-card p-6 shadow-sm sm:p-10 print:shadow-none">
           {/* Branding header */}
           <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
@@ -572,8 +568,8 @@ function ReportPage() {
             </p>
           </footer>
         </article>
-      </main>
-    </div>
+      </div>
+    </ProjectWorkflowShell>
   );
 }
 
