@@ -1,0 +1,30 @@
+packages/supabase/src/database.types.ts
+  h_7ea6129503670a 2028-2075
+src/features/ai-design/infrastructure/resolveProjectAnalysisAuthority.server.test.ts
+  h_7ea6129503670a 2,11-14,26,28,32-33,47,58-61,64-65,67,70-73,80-83,87,90-91
+src/features/ai-design/infrastructure/resolveProjectAnalysisAuthority.server.ts
+  h_7ea6129503670a 4-5,9,16,59-60,65-67,72-74,76-80,84,88
+src/lib/photos-write.test.ts
+  h_7ea6129503670a 12,27-29,39,53,117-119,121-125,128-143,164,305-306,308-310,313,341,345-347,413-419,434-436,645-647,654-655,665,675,694,720,736
+src/lib/photos-write.ts
+  h_7ea6129503670a 459-461,467-474,508-521,691,694-695,704-707,715-718,724-725
+supabase/migrations/20260807120000_replace_project_room_analyses.sql
+  h_7ea6129503670a 1-13,49,70-71,211,216-511
+supabase/tests/concurrency/project_catalogue_serialization.sh
+  h_7ea6129503670a 1-204
+supabase/tests/database/project_catalogue_serialization.test.sql
+  h_7ea6129503670a 1-208
+tests/invariants/photos-query-keys.invariant.test.ts
+  h_7ea6129503670a 38-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "3e17a9b288d9d588fd472a9d3224cef751f15dd2",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
