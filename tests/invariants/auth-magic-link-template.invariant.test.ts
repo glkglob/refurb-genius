@@ -1,5 +1,8 @@
 /**
- * P0-AUTH-1 — Tracked magic-link email template and local config contracts.
+ * P0-AUTH-1 / P0-AUTH-TEMPLATE-URL-REPAIR — Tracked magic-link email template contracts.
+ *
+ * Requires URL query separators to be literal `&` (not HTML entity `&amp;`) so
+ * Go/text template rendering and email clients do not emit unusable hrefs.
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -14,6 +17,17 @@ function read(rel: string): string {
   const full = join(ROOT, rel);
   assert.ok(existsSync(full), `missing ${rel}`);
   return readFileSync(full, "utf8");
+}
+
+/** Simulate hosted composition: RedirectTo already has a query string. */
+function composeCallbackUrl(
+  templateSnippet: string,
+  redirectTo: string,
+  tokenHash: string,
+): string {
+  return templateSnippet
+    .replace(/\{\{\s*\.RedirectTo\s*\}\}/g, redirectTo)
+    .replace(/\{\{\s*\.TokenHash\s*\}\}/g, tokenHash);
 }
 
 test("auth magic-link template — tracked file exists", () => {
@@ -33,6 +47,56 @@ test("auth magic-link template — uses RedirectTo, TokenHash, type=email", () =
   assert.match(html, /\{\{\s*\.TokenHash\s*\}\}/);
   assert.match(html, /type=email/);
   assert.match(html, /token_hash=\{\{\s*\.TokenHash\s*\}\}/);
+});
+
+test("auth magic-link template — uses raw & query separators (not &amp;)", () => {
+  const html = read(TEMPLATE);
+  // Production defect: literal &amp; in template source was delivered into the URL.
+  assert.doesNotMatch(html, /&amp;token_hash=/);
+  assert.doesNotMatch(html, /&amp;type=email/);
+  assert.match(html, /\{\{\s*\.RedirectTo\s*\}\}&token_hash=\{\{\s*\.TokenHash\s*\}\}&type=email/);
+});
+
+test("auth magic-link template — href and plain-text fallback share URL semantics", () => {
+  const html = read(TEMPLATE);
+  const hrefMatch = html.match(/href="([^"]+)"/);
+  assert.ok(hrefMatch, "anchor href present");
+  const href = hrefMatch[1];
+  // Fallback is the same composition (not inside an attribute).
+  assert.match(html, /\{\{\s*\.RedirectTo\s*\}\}&token_hash=\{\{\s*\.TokenHash\s*\}\}&type=email/);
+  assert.equal(href, "{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email");
+});
+
+test("auth magic-link template — composed URL parses with flow, token_hash, type", () => {
+  const snippet = "{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email";
+  const redirectTo = "https://www.refurbgenius.info/auth/callback?flow=magiclink";
+  const tokenHash = "test-token-hash-not-a-real-secret";
+  const composed = composeCallbackUrl(snippet, redirectTo, tokenHash);
+
+  assert.doesNotMatch(composed, /&amp;/);
+  assert.doesNotMatch(composed, /token_hash=\{\{/);
+
+  const url = new URL(composed);
+  assert.equal(url.origin, "https://www.refurbgenius.info");
+  assert.equal(url.pathname, "/auth/callback");
+  assert.equal(url.searchParams.get("flow"), "magiclink");
+  assert.equal(url.searchParams.get("token_hash"), tokenHash);
+  assert.equal(url.searchParams.get("type"), "email");
+  // No second `?` introduced when RedirectTo already has a query string.
+  assert.equal((composed.match(/\?/g) ?? []).length, 1);
+});
+
+test("auth magic-link template — composed URL with safe redirect_to remains valid", () => {
+  const snippet = "{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email";
+  const redirectTo =
+    "https://www.refurbgenius.info/auth/callback?flow=magiclink&redirect_to=%2Fprojects";
+  const composed = composeCallbackUrl(snippet, redirectTo, "placeholder-hash");
+  const url = new URL(composed);
+  assert.equal(url.searchParams.get("flow"), "magiclink");
+  assert.equal(url.searchParams.get("redirect_to"), "/projects");
+  assert.equal(url.searchParams.get("token_hash"), "placeholder-hash");
+  assert.equal(url.searchParams.get("type"), "email");
+  assert.doesNotMatch(composed, /&amp;/);
 });
 
 test("auth magic-link template — does not use ConfirmationURL", () => {
