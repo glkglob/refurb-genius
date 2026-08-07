@@ -631,9 +631,7 @@ describe("IA-2 resolveProjectNextAction — Routes", () => {
   });
 
   it("buildProjectNextActionRoute is pure and deterministic", () => {
-    expect(buildProjectNextActionRoute("abc", "redesign_focus")).toBe(
-      "/projects/abc/redesign",
-    );
+    expect(buildProjectNextActionRoute("abc", "redesign_focus")).toBe("/projects/abc/redesign");
   });
 });
 

@@ -125,14 +125,12 @@ function RedesignPage() {
       const cached = getPhotoAnalysis(id);
       const [persisted, durable] = await Promise.all([
         loadPhotoAnalysis(id).catch(() => [] as RoomAnalysis[]),
-        listRedesignConceptsServerFn({ data: { projectId: id } }).catch(() => [] as DurableRedesignConcept[]),
+        listRedesignConceptsServerFn({ data: { projectId: id } }).catch(
+          () => [] as DurableRedesignConcept[],
+        ),
       ]);
       const preferred =
-        cached && cached.length > 0
-          ? cached
-          : persisted && persisted.length > 0
-            ? persisted
-            : [];
+        cached && cached.length > 0 ? cached : persisted && persisted.length > 0 ? persisted : [];
       setAnalyses(preferred);
       setCandidates(durable ?? []);
     } catch (err) {
