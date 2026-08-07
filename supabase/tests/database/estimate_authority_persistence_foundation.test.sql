@@ -555,14 +555,19 @@ select throws_ok(
 );
 
 -- Admin select policy still exists
+-- P0-DB-1: admin SELECT is folded into the single authenticated SELECT policy
+-- (is_admin() OR owner). Separate estimates_select_admin / *_select_admin names
+-- are intentionally removed to clear multiple_permissive_policies warnings.
 select ok(
   exists (
     select 1 from pg_policies
     where schemaname = 'public'
       and tablename = 'estimates'
-      and policyname = 'estimates_select_admin'
+      and cmd = 'SELECT'
+      and 'authenticated' = any (roles)
+      and coalesce(qual, '') ilike '%is_admin%'
   ),
-  'admin select policy on estimates remains intact'
+  'admin select path on estimates remains intact (canonical policy)'
 );
 
 select ok(
@@ -570,9 +575,11 @@ select ok(
     select 1 from pg_policies
     where schemaname = 'public'
       and tablename = 'estimate_items'
-      and policyname = 'estimate_items_select_admin'
+      and cmd = 'SELECT'
+      and 'authenticated' = any (roles)
+      and coalesce(qual, '') ilike '%is_admin%'
   ),
-  'admin select policy on estimate_items remains intact'
+  'admin select path on estimate_items remains intact (canonical policy)'
 );
 
 select ok(
@@ -580,9 +587,11 @@ select ok(
     select 1 from pg_policies
     where schemaname = 'public'
       and tablename = 'estimate_rooms'
-      and policyname = 'estimate_rooms_select_admin'
+      and cmd = 'SELECT'
+      and 'authenticated' = any (roles)
+      and coalesce(qual, '') ilike '%is_admin%'
   ),
-  'admin select policy on estimate_rooms remains intact'
+  'admin select path on estimate_rooms remains intact (canonical policy)'
 );
 
 -- has_function_privilege for service_role
