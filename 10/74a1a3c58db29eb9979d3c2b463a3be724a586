@@ -1,0 +1,32 @@
+src/components/pipeline-checklist.test.ts
+  h_7ea6129503670a 46-68
+src/components/pipeline-checklist.ts
+  h_7ea6129503670a 63-66,68-72,84-85
+src/features/projects/domain/index.ts
+  h_7ea6129503670a 58
+src/features/projects/domain/photosAnalysisWorkflowAdapter.test.ts
+  h_7ea6129503670a 7,12,209-359
+src/features/projects/domain/photosAnalysisWorkflowAdapter.ts
+  h_7ea6129503670a 147-174
+src/features/projects/domain/workflowStages.test.ts
+  h_7ea6129503670a 124-153
+src/features/projects/domain/workflowStages.ts
+  h_7ea6129503670a 113-117
+src/features/projects/index.ts
+  h_7ea6129503670a 33
+src/routes/_authed/projects.$id.analysis.tsx
+  h_7ea6129503670a 38,84-101,125-127,221-222,259,337-340
+tests/invariants/project-photos-analysis-continuity.invariant.test.ts
+  h_7ea6129503670a 74-95
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "1074a1a3c58db29eb9979d3c2b463a3be724a586",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
