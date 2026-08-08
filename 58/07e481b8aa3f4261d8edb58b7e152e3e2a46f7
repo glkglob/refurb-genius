@@ -1,0 +1,24 @@
+packages/supabase/src/database.types.ts
+  h_7ea6129503670a 1346,1360,1374,1380-1386,1407,1412,1424,1429,1441,1446,2034,2036-2037,2044,2046,2048-2055,2063,2078,2083,2085-2090,2092,2164-2212,2243-2265
+src/features/ai-design/infrastructure/resolveProjectAnalysisAuthority.server.ts
+  h_7ea6129503670a 34,37-41
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts
+  h_7ea6129503670a 35-36,38,41-45
+supabase/migrations/20260808105000_reconcile_room_analysis_text_array_persistence.sql
+  h_7ea6129503670a 1-352
+supabase/tests/database/room_analysis_text_array_persistence.test.sql
+  h_7ea6129503670a 1-82
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "5807e481b8aa3f4261d8edb58b7e152e3e2a46f7",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
