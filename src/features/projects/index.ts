@@ -13,6 +13,11 @@ export {
 } from "./presentation/hooks/useSetProjectStage";
 
 export {
+  useProjectFiveStageWorkflow,
+  type ProjectFiveStageWorkflowResult,
+} from "./presentation/hooks/useProjectFiveStageWorkflow";
+
+export {
   ProjectWorkflowShell,
   ProjectStageNav,
   type ProjectWorkflowShellProject,
@@ -34,6 +39,13 @@ export {
   buildPhotosAnalysisWorkflowState,
   redesignCurrencyFromEvidence,
   redesignShellFlagsFromCurrency,
+  scopeCurrencyFromEvidence,
+  scopeShellFlagsFromCurrency,
+  estimateCurrencyFromEvidence,
+  estimateShellFlagsFromCurrency,
+  exportCurrencyFromEvidence,
+  exportShellFlagsFromCurrency,
+  composeProjectWorkflowState,
   buildProjectNextActionRoute,
   buildProjectWorkflowStages,
   isCanonicalWorkflowStatus,
@@ -67,5 +79,9 @@ export {
   type RedesignWorkflowState,
   type ResolveProjectNextActionInput,
   type ScopeWorkflowState,
+  type ScopeAuthorityEvidence,
+  type EstimateAuthorityEvidence,
+  type ExportSnapshotEvidence,
+  type ComposeProjectWorkflowStateInput,
   type WorkflowAuthorityCurrency,
 } from "./domain";

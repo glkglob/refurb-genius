@@ -374,6 +374,8 @@ export type Database = {
           finish_level: string;
           high_total: number;
           id: string;
+          /** IA-5: bound Scope revision (scope_analyses.id). */
+          input_scope_id: string | null;
           labour_total: number;
           low_total: number;
           materials_total: number;
@@ -401,6 +403,7 @@ export type Database = {
           finish_level: string;
           high_total?: number;
           id?: string;
+          input_scope_id?: string | null;
           labour_total?: number;
           low_total?: number;
           materials_total?: number;
@@ -428,6 +431,7 @@ export type Database = {
           finish_level?: string;
           high_total?: number;
           id?: string;
+          input_scope_id?: string | null;
           labour_total?: number;
           low_total?: number;
           materials_total?: number;
@@ -1457,33 +1461,43 @@ export type Database = {
       };
       scope_analyses: {
         Row: {
+          /** IA-5: Analysis catalogue identity at reconciliation. */
+          analysis_identity: string;
           created_at: string;
           id: string;
           notes: string | null;
           overall_score: number;
           property_id: string;
+          redesign_concept_id: string | null;
+          redesign_identity: string;
           region: string | null;
           summary: string | null;
           updated_at: string;
           user_id: string;
         };
         Insert: {
+          analysis_identity?: string;
           created_at?: string;
           id?: string;
           notes?: string | null;
           overall_score?: number;
           property_id: string;
+          redesign_concept_id?: string | null;
+          redesign_identity?: string;
           region?: string | null;
           summary?: string | null;
           updated_at?: string;
           user_id: string;
         };
         Update: {
+          analysis_identity?: string;
           created_at?: string;
           id?: string;
           notes?: string | null;
           overall_score?: number;
           property_id?: string;
+          redesign_concept_id?: string | null;
+          redesign_identity?: string;
           region?: string | null;
           summary?: string | null;
           updated_at?: string;
@@ -1493,6 +1507,48 @@ export type Database = {
           {
             foreignKeyName: "scope_analyses_property_id_fkey";
             columns: ["property_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      project_export_snapshots: {
+        Row: {
+          created_at: string;
+          estimate_id: string;
+          id: string;
+          kind: string;
+          project_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          estimate_id: string;
+          id?: string;
+          kind?: string;
+          project_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          estimate_id?: string;
+          id?: string;
+          kind?: string;
+          project_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "project_export_snapshots_estimate_id_fkey";
+            columns: ["estimate_id"];
+            isOneToOne: false;
+            referencedRelation: "estimates";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "project_export_snapshots_project_id_fkey";
+            columns: ["project_id"];
             isOneToOne: false;
             referencedRelation: "projects";
             referencedColumns: ["id"];
@@ -2023,6 +2079,10 @@ export type Database = {
     };
     Functions: {
       is_admin: { Args: never; Returns: boolean };
+      bind_estimate_input_scope: {
+        Args: { p_estimate_id: string; p_scope_id: string };
+        Returns: undefined;
+      };
       select_project_redesign_concept: {
         Args: { p_concept_id: string; p_project_id: string };
         Returns: {

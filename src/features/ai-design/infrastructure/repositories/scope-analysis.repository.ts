@@ -30,6 +30,15 @@ export type PersistedScopeAnalysis = {
   rooms: Array<ScopeRoomRow & { issues: ScopeIssueRow[]; items: ScopeItemRow[] }>;
 };
 
+/** IA-5 — durable Scope authority header for currentness (no rooms payload). */
+export type ScopeAuthorityHeader = {
+  id: string;
+  analysisIdentity: string;
+  redesignIdentity: string;
+  redesignConceptId: string | null;
+  createdAt: string;
+};
+
 // ──────────────────────────────────────────────────────────────
 // Save
 // ──────────────────────────────────────────────────────────────
@@ -43,7 +52,7 @@ export async function saveScopeAnalysis(
   const user = auth.getUser();
   if (!user) throw new Error("You must be signed in to save a scope analysis.");
 
-  // 1. Create main analysis record
+  // 1. Create main analysis record (IA-5 stamps upstream identities when provided)
   const { data: analysis, error: analysisError } = await supabase
     .from("scope_analyses")
     .insert({
@@ -53,6 +62,9 @@ export async function saveScopeAnalysis(
       summary: input.analysis.summary,
       region: input.region,
       notes: input.notes ?? null,
+      analysis_identity: input.analysisIdentity ?? "",
+      redesign_concept_id: input.redesignConceptId ?? null,
+      redesign_identity: input.redesignIdentity ?? "",
     })
     .select()
     .single();
@@ -160,6 +172,37 @@ export async function saveScopeAnalysis(
 // ──────────────────────────────────────────────────────────────
 // Load latest
 // ──────────────────────────────────────────────────────────────
+
+/**
+ * IA-5 — load latest Scope authority header for workflow currentness.
+ */
+export async function getLatestScopeAuthorityHeader(
+  projectId: string,
+): Promise<ScopeAuthorityHeader | null> {
+  const user = auth.getUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from("scope_analyses")
+    .select("id, analysis_identity, redesign_identity, redesign_concept_id, created_at")
+    .eq("property_id", projectId)
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+
+  return {
+    id: data.id,
+    analysisIdentity: (data as { analysis_identity?: string }).analysis_identity ?? "",
+    redesignIdentity: (data as { redesign_identity?: string }).redesign_identity ?? "",
+    redesignConceptId:
+      (data as { redesign_concept_id?: string | null }).redesign_concept_id ?? null,
+    createdAt: data.created_at,
+  };
+}
 
 export async function getLatestScopeAnalysis(
   projectId: string,

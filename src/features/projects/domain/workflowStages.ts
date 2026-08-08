@@ -125,6 +125,16 @@ export type ProjectWorkflowProgressInput = {
    * IA-4: selected Redesign exists but is non-current (Analysis catalogue changed).
    */
   redesignNeedsAttention?: boolean;
+  /**
+   * IA-5: Estimate durable but non-current (Scope changed), or Scope dependency
+   * requires reconcile_scope (surfaces on Estimate stage — not a sixth stage).
+   */
+  estimateNeedsAttention?: boolean;
+  /**
+   * IA-5: Export snapshot durable but non-current (Estimate changed).
+   * Page visit alone never sets reportDone Complete.
+   */
+  reportNeedsAttention?: boolean;
 };
 
 export type ProjectWorkflowStagePresentation = ProjectWorkflowStageDefinition & {
@@ -248,18 +258,21 @@ export function resolveStageStatus(
       return "Not started";
     }
     case "estimate": {
-      if (progress.estimateDone) return "Complete";
+      // IA-5: Complete only when estimateDone and not Needs attention (Scope/Estimate currency).
+      if (progress.estimateDone || progress.estimateNeedsAttention) {
+        return progress.estimateNeedsAttention ? "Needs attention" : "Complete";
+      }
       if (isActive) return "In progress";
-      // After analysis, Estimate may be available; do not skip Redesign in the
-      // presentation model (status Ready is not a permanent Analysis→Estimate
-      // architecture — Redesign remains stage 3 in the journey).
-      if (progress.analysisDone) return "Ready";
+      // After redesign, Estimate may be Ready; Scope reconciliation also lands here.
+      if (progress.redesignDone || progress.analysisDone) return "Ready";
       return "Not started";
     }
     case "export": {
-      if (progress.reportDone) return "Complete";
+      if (progress.reportDone || progress.reportNeedsAttention) {
+        return progress.reportNeedsAttention ? "Needs attention" : "Complete";
+      }
       if (isActive) return "In progress";
-      if (progress.estimateDone) return "Ready";
+      if (progress.estimateDone && !progress.estimateNeedsAttention) return "Ready";
       return "Not started";
     }
   }

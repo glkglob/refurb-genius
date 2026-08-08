@@ -363,6 +363,17 @@ export const PUBLIC_TABLES: DbTableRecord[] = [
     enforcementStatus: "partial",
   },
   {
+    name: "project_export_snapshots",
+    schema: "public",
+    domainId: "export-report",
+    owner: "refurb-genius",
+    purpose: "IA-5 Export/report generation evidence bound to Estimate revision",
+    tenantKey: "user_id",
+    tenantScope: "authenticated-user",
+    rlsSummary: "select/insert own; no client update/delete",
+    enforcementStatus: "partial",
+  },
+  {
     name: "deal_opportunities",
     schema: "public",
     domainId: "deal-copilot",

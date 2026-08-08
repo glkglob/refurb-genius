@@ -8,6 +8,8 @@ export {
   supabaseScopeAnalysisRepository,
   saveScopeAnalysis,
   getLatestScopeAnalysis,
+  getLatestScopeAuthorityHeader,
   type PersistedScopeAnalysis,
   type SaveScopeAnalysisInput,
+  type ScopeAuthorityHeader,
 } from "./repositories/scope-analysis.repository";

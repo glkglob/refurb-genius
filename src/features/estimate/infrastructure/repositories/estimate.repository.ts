@@ -132,6 +132,41 @@ export async function getLatestProjectEstimate(
   return { estimate, items: items ?? [] };
 }
 
+/**
+ * IA-5 — bind an Estimate to a Scope revision after authority persistence.
+ * Uses SECURITY DEFINER RPC (authority rows are not client-updatable).
+ */
+export async function bindEstimateToScope(input: {
+  estimateId: string;
+  scopeId: string;
+}): Promise<void> {
+  const user = auth.getUser();
+  if (!user) throw new Error("You must be signed in to bind an estimate.");
+
+  const { error } = await supabase.rpc("bind_estimate_input_scope", {
+    p_estimate_id: input.estimateId,
+    p_scope_id: input.scopeId,
+  });
+
+  if (error) throw new Error(error.message);
+}
+
+/** IA-5 — map persisted estimate to workflow evidence. */
+export function estimateAuthorityEvidenceFromRow(estimate: EstimateRow): {
+  id: string;
+  inputScopeId: string | null;
+  isDraft: boolean;
+} {
+  const authority = estimate.pricing_authority ?? "none";
+  const status = estimate.status ?? "draft";
+  const isDraft = status === "draft" && authority === "none";
+  return {
+    id: estimate.id,
+    inputScopeId: estimate.input_scope_id ?? null,
+    isDraft,
+  };
+}
+
 export function persistedEstimateInput(saved: PersistedProjectEstimate) {
   return {
     region: saved.estimate.region as UKRegion,
