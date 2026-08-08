@@ -28,6 +28,11 @@ describe("IA-7 global navigation contract", () => {
     expect(tos).not.toMatch(/studies|upload|analysis|redesign|estimate|report/i);
   });
 
+  it("New Analysis href is canonical /analyze", () => {
+    const item = GLOBAL_NAV_ITEMS.find((i) => i.id === "new_analysis");
+    expect(item?.to).toBe("/analyze");
+  });
+
   it("matches Dashboard only on dashboard", () => {
     expect(resolveGlobalNavArea("/dashboard")).toBe("dashboard");
     expect(isGlobalNavItemActive("/dashboard", "dashboard")).toBe(true);
@@ -53,7 +58,10 @@ describe("IA-7 global navigation contract", () => {
     }
   });
 
-  it("matches New Analysis only on project create entry", () => {
+  it("matches New Analysis on /analyze and /projects/new alias", () => {
+    expect(resolveGlobalNavArea("/analyze")).toBe("new_analysis");
+    expect(isGlobalNavItemActive("/analyze", "new_analysis")).toBe(true);
+    expect(isGlobalNavItemActive("/analyze", "projects")).toBe(false);
     expect(resolveGlobalNavArea("/projects/new")).toBe("new_analysis");
     expect(isGlobalNavItemActive("/projects/new", "new_analysis")).toBe(true);
     expect(isGlobalNavItemActive("/projects/new", "projects")).toBe(false);
@@ -76,10 +84,9 @@ describe("IA-7 global navigation contract", () => {
     expect(resolveGlobalNavArea("/settings")).toBe("settings");
   });
 
-  it("does not activate primary items for demoted Studies or legacy /analyze", () => {
+  it("does not activate primary items for demoted Studies surfaces", () => {
     expect(resolveGlobalNavArea("/studies")).toBeNull();
     expect(resolveGlobalNavArea("/studies/xyz")).toBeNull();
-    expect(resolveGlobalNavArea("/analyze")).toBeNull();
-    expect(resolveGlobalNavArea("/analyze?projectId=1")).toBeNull();
+    expect(resolveGlobalNavArea("/studies/workspace")).toBeNull();
   });
 });

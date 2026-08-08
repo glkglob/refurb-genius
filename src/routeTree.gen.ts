@@ -31,6 +31,7 @@ import { Route as AuthedProjectsIndexRouteImport } from './routes/_authed/projec
 import { Route as AuthedDealCopilotIndexRouteImport } from './routes/_authed/deal-copilot/index'
 import { Route as AuthedTradesProfileRouteImport } from './routes/_authed/trades_.profile'
 import { Route as AuthedTradesNewRouteImport } from './routes/_authed/trades_.new'
+import { Route as AuthedStudiesWorkspaceRouteImport } from './routes/_authed/studies_.workspace'
 import { Route as AuthedStudiesIdRouteImport } from './routes/_authed/studies.$id'
 import { Route as AuthedProjectsNewRouteImport } from './routes/_authed/projects.new'
 import { Route as AuthedEstimateInstantRouteImport } from './routes/_authed/estimate.instant'
@@ -155,6 +156,11 @@ const AuthedTradesNewRoute = AuthedTradesNewRouteImport.update({
   path: '/trades/new',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedStudiesWorkspaceRoute = AuthedStudiesWorkspaceRouteImport.update({
+  id: '/studies_/workspace',
+  path: '/studies/workspace',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedStudiesIdRoute = AuthedStudiesIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -254,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/estimate/instant': typeof AuthedEstimateInstantRoute
   '/projects/new': typeof AuthedProjectsNewRoute
   '/studies/$id': typeof AuthedStudiesIdRoute
+  '/studies/workspace': typeof AuthedStudiesWorkspaceRoute
   '/trades/new': typeof AuthedTradesNewRoute
   '/trades/profile': typeof AuthedTradesProfileRoute
   '/deal-copilot/': typeof AuthedDealCopilotIndexRoute
@@ -291,6 +298,7 @@ export interface FileRoutesByTo {
   '/estimate/instant': typeof AuthedEstimateInstantRoute
   '/projects/new': typeof AuthedProjectsNewRoute
   '/studies/$id': typeof AuthedStudiesIdRoute
+  '/studies/workspace': typeof AuthedStudiesWorkspaceRoute
   '/trades/new': typeof AuthedTradesNewRoute
   '/trades/profile': typeof AuthedTradesProfileRoute
   '/deal-copilot': typeof AuthedDealCopilotIndexRoute
@@ -330,6 +338,7 @@ export interface FileRoutesById {
   '/_authed/estimate/instant': typeof AuthedEstimateInstantRoute
   '/_authed/projects/new': typeof AuthedProjectsNewRoute
   '/_authed/studies/$id': typeof AuthedStudiesIdRoute
+  '/_authed/studies_/workspace': typeof AuthedStudiesWorkspaceRoute
   '/_authed/trades_/new': typeof AuthedTradesNewRoute
   '/_authed/trades_/profile': typeof AuthedTradesProfileRoute
   '/_authed/deal-copilot/': typeof AuthedDealCopilotIndexRoute
@@ -369,6 +378,7 @@ export interface FileRouteTypes {
     | '/estimate/instant'
     | '/projects/new'
     | '/studies/$id'
+    | '/studies/workspace'
     | '/trades/new'
     | '/trades/profile'
     | '/deal-copilot/'
@@ -406,6 +416,7 @@ export interface FileRouteTypes {
     | '/estimate/instant'
     | '/projects/new'
     | '/studies/$id'
+    | '/studies/workspace'
     | '/trades/new'
     | '/trades/profile'
     | '/deal-copilot'
@@ -444,6 +455,7 @@ export interface FileRouteTypes {
     | '/_authed/estimate/instant'
     | '/_authed/projects/new'
     | '/_authed/studies/$id'
+    | '/_authed/studies_/workspace'
     | '/_authed/trades_/new'
     | '/_authed/trades_/profile'
     | '/_authed/deal-copilot/'
@@ -629,6 +641,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedTradesNewRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/studies_/workspace': {
+      id: '/_authed/studies_/workspace'
+      path: '/studies/workspace'
+      fullPath: '/studies/workspace'
+      preLoaderRoute: typeof AuthedStudiesWorkspaceRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/studies/$id': {
       id: '/_authed/studies/$id'
       path: '/$id'
@@ -768,6 +787,7 @@ interface AuthedRouteChildren {
   AuthedDealCopilotNewRoute: typeof AuthedDealCopilotNewRoute
   AuthedEstimateInstantRoute: typeof AuthedEstimateInstantRoute
   AuthedProjectsNewRoute: typeof AuthedProjectsNewRoute
+  AuthedStudiesWorkspaceRoute: typeof AuthedStudiesWorkspaceRoute
   AuthedTradesNewRoute: typeof AuthedTradesNewRoute
   AuthedTradesProfileRoute: typeof AuthedTradesProfileRoute
   AuthedDealCopilotIndexRoute: typeof AuthedDealCopilotIndexRoute
@@ -794,6 +814,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedDealCopilotNewRoute: AuthedDealCopilotNewRoute,
   AuthedEstimateInstantRoute: AuthedEstimateInstantRoute,
   AuthedProjectsNewRoute: AuthedProjectsNewRoute,
+  AuthedStudiesWorkspaceRoute: AuthedStudiesWorkspaceRoute,
   AuthedTradesNewRoute: AuthedTradesNewRoute,
   AuthedTradesProfileRoute: AuthedTradesProfileRoute,
   AuthedDealCopilotIndexRoute: AuthedDealCopilotIndexRoute,

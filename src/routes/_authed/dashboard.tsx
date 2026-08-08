@@ -256,10 +256,10 @@ function DashboardContent() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild size="sm">
-                <Link to="/analyze">Start first study</Link>
+                <Link to="/analyze">New Analysis</Link>
               </Button>
               <Button asChild size="sm" variant="outline">
-                <Link to="/projects/new">Create project</Link>
+                <Link to="/studies">View studies</Link>
               </Button>
             </div>
           </CardContent>
@@ -300,7 +300,7 @@ function DashboardContent() {
           Quick actions
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <QuickActionCard icon={Calculator} label="New Study Analysis" to="/analyze" />
+          <QuickActionCard icon={Calculator} label="New Analysis" to="/analyze" />
           <QuickActionCard icon={Briefcase} label="Post a Trades Job" to="/trades/new" />
           <QuickActionCard icon={HardHat} label="Browse Marketplace" to="/trades" />
           <QuickActionCard icon={BookMarked} label="Saved Studies" to="/studies" />
@@ -331,8 +331,8 @@ function DashboardContent() {
         title="My projects"
         icon={<FolderPlus className="h-5 w-5" />}
         action={
-          <Link to="/projects/new" className="text-sm font-medium text-accent hover:underline">
-            + New project
+          <Link to="/analyze" className="text-sm font-medium text-accent hover:underline">
+            + New Analysis
           </Link>
         }
       >
@@ -347,8 +347,8 @@ function DashboardContent() {
             description="Create your first refurbishment project to start AI photo analysis and estimates."
             action={
               <Button asChild>
-                <Link to="/projects/new">
-                  <FolderPlus className="h-4 w-4" /> Create project
+                <Link to="/analyze">
+                  <FolderPlus className="h-4 w-4" /> New Analysis
                 </Link>
               </Button>
             }
@@ -373,15 +373,15 @@ function DashboardContent() {
               icon={Calculator}
               title="Refurb Estimates"
               description="AI-generated line-item cost estimates across all UK regions, attached to your properties."
-              to="/analyze"
-              cta="Start New Estimate"
+              to="/studies/workspace"
+              cta="Open feasibility workspace"
               detail="Regional pricing · 12 UK areas · Instant line items"
             />
             <LiveFeatureCard
               icon={TrendingUp}
               title="ROI Reports"
               description="Full deal analysis with GDV, yield, ROI and investor-ready PDF export."
-              to="/analyze"
+              to="/studies/workspace"
               cta="Run Full ROI Analysis"
               detail="Sensitivity analysis · Investor-ready export"
             />

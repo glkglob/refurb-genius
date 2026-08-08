@@ -21,6 +21,7 @@ export {
   ProjectWorkflowShell,
   ProjectStageNav,
   ProjectContinuationCard,
+  NewProjectEntry,
   type ProjectWorkflowShellProject,
   type ProjectContinuationCardProps,
   useProjectWorkflowOperationFlags,

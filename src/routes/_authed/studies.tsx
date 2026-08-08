@@ -74,7 +74,7 @@ function StudiesRoute() {
             </Link>
           </Button>
           <Button asChild size="touch">
-            <Link to="/projects/new">
+            <Link to="/analyze">
               <PlayCircle className="h-4 w-4" />
               New Analysis
             </Link>
@@ -143,7 +143,7 @@ function StudiesRoute() {
           description="Start a guided analysis to create immutable snapshots, ROI summaries, and investor-ready exports."
           action={
             <Button asChild size="touch">
-              <Link to="/analyze" search={projectId ? { projectId } : undefined}>
+              <Link to="/studies/workspace" search={projectId ? { projectId } : undefined}>
                 Start analysis
               </Link>
             </Button>
@@ -167,9 +167,9 @@ function StudiesRoute() {
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm" variant="outline">
                     <Link
-                      to="/analyze"
+                      to="/studies/workspace"
                       search={{ projectId: snapshot.projectId, studyId: snapshot.studyId }}
-                      title="Resume this study in the guided analyze flow"
+                      title="Resume this study in the guided feasibility workspace"
                     >
                       Resume
                     </Link>

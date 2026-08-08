@@ -227,16 +227,15 @@ const ROUTES = [
   },
   {
     surfaceId: "route.analyze",
-    area: "feasibility",
+    area: "projects",
     route: "/analyze",
     sourcePath: "src/routes/_authed/analyze.tsx",
     role: "authenticated",
     authClass: "authenticated",
     severity: "P0",
-    status: "BROKEN",
-    actualResult: "Photo capture/select broken when no project; free-text project id",
-    blocker: "p0-photo-capture-upload",
-    notes: "PR #104 unmerged",
+    notes:
+      "IA-7-R1: canonical New Analysis entry — durable project create → /projects/$id/upload. Shared NewProjectEntry with /projects/new alias.",
+    testReference: "src/routes/_authed/-projects.index.ia7.test.ts",
   },
   {
     surfaceId: "route.studies.list",
@@ -257,6 +256,18 @@ const ROUTES = [
     severity: "P0",
   },
   {
+    surfaceId: "route.studies.workspace",
+    area: "studies",
+    route: "/studies/workspace",
+    sourcePath: "src/routes/_authed/studies_.workspace.tsx",
+    role: "authenticated",
+    authClass: "authenticated",
+    severity: "P1",
+    notes:
+      "IA-7-R1: demoted guided feasibility workspace (relocated from /analyze). Compatibility deep links only; not primary global nav.",
+    testReference: "src/routes/_authed/-studies_.workspace.photo-upload.test.tsx",
+  },
+  {
     surfaceId: "route.projects.list",
     area: "projects",
     route: "/projects",
@@ -275,6 +286,7 @@ const ROUTES = [
     role: "authenticated",
     authClass: "authenticated",
     severity: "P0",
+    notes: "IA-7-R1: compatibility alias of /analyze New Analysis entry (shared NewProjectEntry).",
   },
   {
     surfaceId: "route.projects.detail",
@@ -1299,15 +1311,17 @@ ctrl({
 // CONTROLS — Photos / analyze / upload
 // ---------------------------------------------------------------------------
 const ZONE = "src/features/ai-upload/presentation/components/PhotoUploadZone.tsx";
-const ANALYZE = "src/routes/_authed/analyze.tsx";
+// IA-7-R1: guided feasibility workspace relocated from /analyze → /studies/workspace.
+// Surface IDs retain ctrl.analyze.* for inventory continuity.
+const FEASIBILITY_WORKSPACE = "src/routes/_authed/studies_.workspace.tsx";
 const UPLOAD = "src/routes/_authed/projects.$id.upload.tsx";
 
 ctrl({
   surfaceId: "ctrl.analyze.project-select",
   area: "feasibility",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Project free-text + datalist",
-  sourcePath: ANALYZE,
+  sourcePath: FEASIBILITY_WORKSPACE,
   role: "authenticated",
   operation: "set search.projectId raw text",
   status: "BROKEN",
@@ -1318,7 +1332,7 @@ ctrl({
 ctrl({
   surfaceId: "ctrl.analyze.photo.take",
   area: "photos",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Take Photo",
   sourcePath: ZONE,
   role: "authenticated",
@@ -1331,7 +1345,7 @@ ctrl({
 ctrl({
   surfaceId: "ctrl.analyze.photo.library",
   area: "photos",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Upload from Library",
   sourcePath: ZONE,
   role: "authenticated",
@@ -1344,7 +1358,7 @@ ctrl({
 ctrl({
   surfaceId: "ctrl.analyze.photo.camera-input",
   area: "photos",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Hidden camera input",
   sourcePath: ZONE,
   role: "authenticated",
@@ -1357,7 +1371,7 @@ ctrl({
 ctrl({
   surfaceId: "ctrl.analyze.photo.library-input",
   area: "photos",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Hidden library input",
   sourcePath: ZONE,
   role: "authenticated",
@@ -1367,7 +1381,7 @@ ctrl({
 ctrl({
   surfaceId: "ctrl.analyze.photo.remove",
   area: "photos",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Remove selected photo",
   sourcePath: ZONE,
   role: "authenticated",
@@ -1377,7 +1391,7 @@ ctrl({
 ctrl({
   surfaceId: "ctrl.analyze.photo.clear",
   area: "photos",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Clear selection",
   sourcePath: ZONE,
   role: "authenticated",
@@ -1387,9 +1401,9 @@ ctrl({
 ctrl({
   surfaceId: "ctrl.analyze.upload-selected",
   area: "photos",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Upload Selected",
-  sourcePath: ANALYZE,
+  sourcePath: FEASIBILITY_WORKSPACE,
   role: "authenticated",
   operation: "useUploadPhotos",
   persistence: "storage+metadata",
@@ -1402,9 +1416,9 @@ ctrl({
 ctrl({
   surfaceId: "ctrl.analyze.run-full",
   area: "feasibility",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Run Full Analysis",
-  sourcePath: ANALYZE,
+  sourcePath: FEASIBILITY_WORKSPACE,
   role: "authenticated",
   operation: "orchestrator full run",
   severity: "P0",
@@ -1412,9 +1426,9 @@ ctrl({
 ctrl({
   surfaceId: "ctrl.analyze.stage.click",
   area: "feasibility",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Guided stage checklist item click",
-  sourcePath: ANALYZE,
+  sourcePath: FEASIBILITY_WORKSPACE,
   role: "authenticated",
   operation: "orchestrator.setStage",
   severity: "P0",
@@ -1422,9 +1436,9 @@ ctrl({
 ctrl({
   surfaceId: "ctrl.analyze.retry-stage",
   area: "feasibility",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Retry stage",
-  sourcePath: ANALYZE,
+  sourcePath: FEASIBILITY_WORKSPACE,
   role: "authenticated",
   operation: "retryFromLastSuccessful",
   severity: "P0",
@@ -1432,9 +1446,9 @@ ctrl({
 ctrl({
   surfaceId: "ctrl.analyze.continue-stage",
   area: "feasibility",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Continue from last success",
-  sourcePath: ANALYZE,
+  sourcePath: FEASIBILITY_WORKSPACE,
   role: "authenticated",
   operation: "continueFromCurrentStage",
   severity: "P0",
@@ -1442,9 +1456,9 @@ ctrl({
 ctrl({
   surfaceId: "ctrl.analyze.queue-export",
   area: "export",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Queue Investor Export",
-  sourcePath: ANALYZE,
+  sourcePath: FEASIBILITY_WORKSPACE,
   role: "authenticated",
   operation: "useQueueFeasibilityExport",
   persistence: "export queue",
@@ -1453,9 +1467,9 @@ ctrl({
 ctrl({
   surfaceId: "ctrl.analyze.export-report",
   area: "export",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Export feasibility report",
-  sourcePath: ANALYZE,
+  sourcePath: FEASIBILITY_WORKSPACE,
   role: "authenticated",
   operation: "useExportFeasibilityReport",
   entitlement: "hasProAccess may apply",
@@ -1464,9 +1478,9 @@ ctrl({
 ctrl({
   surfaceId: "ctrl.analyze.open-study",
   area: "studies",
-  route: "/analyze",
+  route: "/studies/workspace",
   control: "Open study dashboard link",
-  sourcePath: ANALYZE,
+  sourcePath: FEASIBILITY_WORKSPACE,
   role: "authenticated",
   operation: "a href /studies/$id",
   severity: "P1",

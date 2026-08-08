@@ -26,7 +26,7 @@ function ProjectsIndexPage() {
       subtitle="Open a refurbishment project to continue Photos, Analysis, Redesign, Estimate, and Export."
       actions={
         <Button asChild size="sm">
-          <Link to="/projects/new">
+          <Link to="/analyze">
             <FolderPlus className="h-4 w-4" />
             New Analysis
           </Link>
@@ -51,7 +51,7 @@ function ProjectsIndexPage() {
           description="Create a project to start the five-stage refurbishment workflow."
           action={
             <Button asChild>
-              <Link to="/projects/new">
+              <Link to="/analyze">
                 <FolderPlus className="h-4 w-4" />
                 New Analysis
               </Link>

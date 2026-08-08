@@ -4,3 +4,4 @@ export {
   ProjectContinuationCard,
   type ProjectContinuationCardProps,
 } from "./ProjectContinuationCard";
+export { NewProjectEntry } from "./NewProjectEntry";

@@ -1,11 +1,11 @@
 /**
- * IA-7 — Canonical global navigation contract.
+ * IA-7 / IA-7-R1 — Canonical global navigation contract.
  *
  * Six primary product destinations only. Selected-project workflow stages
  * (Photos → Export) are NOT global destinations — they live under Projects.
  *
- * Studies and the legacy /analyze feasibility workspace remain deep-linkable
- * but are demoted from primary global navigation.
+ * New Analysis is `/analyze` (project-entry flow only).
+ * Studies (and /studies/workspace feasibility) remain deep-linkable but demoted.
  */
 
 export type GlobalNavArea =
@@ -47,9 +47,9 @@ export const GLOBAL_NAV_ITEMS: readonly GlobalNavItem[] = [
   {
     id: "new_analysis",
     label: "New Analysis",
-    // Contract-compliant entry: durable project create → Photos stage.
-    // Legacy /analyze remains a demoted feasibility workspace (not primary nav).
-    to: "/projects/new",
+    // IA-0 / IA-7-R1: /analyze is the canonical project-entry flow.
+    // /projects/new remains a compatibility alias of the same form.
+    to: "/analyze",
     description: "Create a project and start the Photos workflow",
   },
   {
@@ -76,10 +76,10 @@ export const GLOBAL_NAV_ITEMS: readonly GlobalNavItem[] = [
  * Resolve which global product area is active for a pathname.
  *
  * Product-area matching, not exact pathname equality:
+ * - /analyze activates New Analysis
+ * - /projects/new activates New Analysis (compatibility alias)
  * - /projects/$id/* activates Projects (not New Analysis)
- * - /projects/new activates New Analysis only
- * - /analyze is demoted legacy; does not light a primary item
- * - /studies is demoted; does not light a primary item
+ * - /studies/* is demoted; does not light a primary item
  */
 export function resolveGlobalNavArea(pathname: string): GlobalNavArea {
   const path = normalizePath(pathname);
@@ -88,8 +88,13 @@ export function resolveGlobalNavArea(pathname: string): GlobalNavArea {
     return "dashboard";
   }
 
-  // New Analysis entry only — not the rest of the projects subtree.
-  if (path === "/projects/new" || path.startsWith("/projects/new/")) {
+  // Canonical New Analysis entry + projects/new alias.
+  if (
+    path === "/analyze" ||
+    path.startsWith("/analyze/") ||
+    path === "/projects/new" ||
+    path.startsWith("/projects/new/")
+  ) {
     return "new_analysis";
   }
 
@@ -116,7 +121,7 @@ export function resolveGlobalNavArea(pathname: string): GlobalNavArea {
     return "settings";
   }
 
-  // Demoted / non-primary: /analyze, /studies, /admin, public routes, etc.
+  // Demoted / non-primary: /studies, /admin, public routes, etc.
   return null;
 }
 
