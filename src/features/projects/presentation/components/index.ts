@@ -4,10 +4,7 @@ export {
   type ProjectWorkflowStickyNextAction,
 } from "./ProjectWorkflowShell";
 export { ProjectStageNav } from "./ProjectStageNav";
-export {
-  MobileStickyNextAction,
-  type MobileStickyNextActionProps,
-} from "./MobileStickyNextAction";
+export { MobileStickyNextAction, type MobileStickyNextActionProps } from "./MobileStickyNextAction";
 export {
   ProjectContinuationCard,
   type ProjectContinuationCardProps,

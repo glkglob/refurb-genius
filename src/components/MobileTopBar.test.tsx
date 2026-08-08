@@ -97,9 +97,7 @@ describe("MobileTopBar IA-8 final mobile destinations", () => {
     pathname = "/projects/abc/upload";
     render(createElement(MobileTopBar));
     expect(screen.getByTestId("mobile-nav-projects").getAttribute("data-active")).toBe("true");
-    expect(screen.getByTestId("mobile-nav-new_analysis").getAttribute("data-active")).toBe(
-      "false",
-    );
+    expect(screen.getByTestId("mobile-nav-new_analysis").getAttribute("data-active")).toBe("false");
   });
 
   it("does not place Studies or stage labels in primary mobile nav", () => {
