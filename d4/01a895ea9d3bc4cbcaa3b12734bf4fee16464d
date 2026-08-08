@@ -1,0 +1,22 @@
+src/components/MobileTopBar.test.tsx
+  h_7ea6129503670a 2,5,12,24-25,34,37-87,89-92,105-106
+src/components/MobileTopBar.tsx
+  h_7ea6129503670a 1-12,14-20,22-28,31-35,37-50,52,55-58,67,69-70,73,75,80-162
+src/features/navigation/globalNav.test.ts
+  h_7ea6129503670a 2-11,101-113
+src/features/navigation/globalNav.ts
+  h_7ea6129503670a 132-165
+src/features/navigation/index.ts
+  h_7ea6129503670a 3-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "d401a895ea9d3bc4cbcaa3b12734bf4fee16464d",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
