@@ -48,11 +48,19 @@ export type ResolveProjectNextActionInput = {
 
 /**
  * Build a project-scoped workflow route without React/router.
- * Never returns `/projects/$id/redesign` (IA-4) or primary `/scope` continuation.
+ * IA-4: Redesign surfaces use first-class `/projects/$id/redesign`.
+ * Never returns primary `/scope` continuation.
  */
 export function buildProjectNextActionRoute(
   projectId: string,
-  surface: "overview" | "upload" | "analysis" | "redesign_focus" | "estimate" | "report",
+  surface:
+    | "overview"
+    | "upload"
+    | "analysis"
+    | "redesign"
+    | "redesign_focus"
+    | "estimate"
+    | "report",
 ): string {
   const id = projectId;
   switch (surface) {
@@ -62,9 +70,10 @@ export function buildProjectNextActionRoute(
       return `/projects/${id}/upload`;
     case "analysis":
       return `/projects/${id}/analysis`;
+    case "redesign":
     case "redesign_focus":
-      // IA-1/IA-4 transitional surface — not a first-class redesign route.
-      return `/projects/${id}/analysis?focus=redesign`;
+      // IA-4 canonical Redesign route (redesign_focus retained as alias for callers).
+      return `/projects/${id}/redesign`;
     case "estimate":
       return `/projects/${id}/estimate`;
     case "report":

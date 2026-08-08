@@ -32,6 +32,8 @@ export {
   analysisCurrencyFromEvidence,
   analysisShellFlagsFromCurrency,
   buildPhotosAnalysisWorkflowState,
+  redesignCurrencyFromEvidence,
+  redesignShellFlagsFromCurrency,
   buildProjectNextActionRoute,
   buildProjectWorkflowStages,
   isCanonicalWorkflowStatus,

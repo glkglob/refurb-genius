@@ -69,12 +69,11 @@ test("IA-2 action kinds include locked Scope and In-progress contracts", () => {
   }
 });
 
-test("IA-2 does not introduce first-class /redesign route", () => {
-  assert.equal(
-    existsSync(join(ROOT, "src/routes/_authed/projects.$id.redesign.tsx")),
-    false,
-    "IA-4 owns /projects/$id/redesign",
-  );
+test("IA-4 resolver Redesign routes use first-class /redesign", () => {
+  const src = read("src/features/projects/domain/resolveProjectNextAction.ts");
+  assert.match(src, /\/projects\/\$\{id\}\/redesign/);
+  assert.doesNotMatch(src, /analysis\?focus=redesign/);
+  assert.equal(existsSync(join(ROOT, "src/routes/_authed/projects.$id.redesign.tsx")), true);
 });
 
 test("IA-2 — only one resolveProjectNextAction definition under src", () => {

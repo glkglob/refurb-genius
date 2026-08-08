@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, redirect } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import { AnalysisCard } from "@/components/AnalysisCard";
-import { RedesignCard } from "@/components/RedesignCard";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Sparkles, ArrowRight, AlertCircle, RefreshCw, Camera } from "lucide-react";
 import { toast } from "sonner";
@@ -23,12 +22,6 @@ import {
   usePhotos,
   type RoomAnalysis,
 } from "@/features/ai-upload";
-import {
-  generateRedesignConcepts,
-  clearRedesignConceptsCache,
-  type RedesignConcept,
-  REDESIGN_CONCEPTS,
-} from "@/features/ai-design";
 import { DISCLAIMER } from "@/core/reports";
 import { useProject } from "@/hooks/useProjects";
 import {
@@ -44,9 +37,18 @@ import { trackEvent } from "@/lib/analytics";
 export const Route = createFileRoute("/_authed/projects/$id/analysis")({
   head: () => ({ meta: [{ title: "AI analysis — Refurb Genius" }] }),
   validateSearch: (search: Record<string, unknown>) => ({
-    // Transitional Redesign focus until IA-4 first-class route (no /redesign path).
+    // Compatibility: historical Redesign focus — see beforeLoad redirect.
     focus: search.focus === "redesign" ? ("redesign" as const) : undefined,
   }),
+  beforeLoad: ({ params, search }) => {
+    // IA-4: converge transitional Analysis?focus=redesign → first-class Redesign.
+    if (search.focus === "redesign") {
+      throw redirect({
+        to: "/projects/$id/redesign",
+        params: { id: params.id },
+      });
+    }
+  },
   component: AnalysisPage,
 });
 
@@ -58,7 +60,6 @@ function toCatalogue(photos: Array<{ id: string; url: string; name: string }>) {
 
 function AnalysisPage() {
   const { id } = Route.useParams();
-  const { focus } = Route.useSearch();
   const { data: project, isLoading: projectLoading, error: projectError } = useProject(id);
   const { data: projectPhotos, isLoading: photosLoading } = usePhotos(id);
   const setStage = useSetProjectStage();
@@ -66,9 +67,6 @@ function AnalysisPage() {
   const [retrying, setRetrying] = useState(false);
   const [analysing, setAnalysing] = useState(false);
   const [results, setResults] = useState<RoomAnalysis[]>([]);
-  const [concepts, setConcepts] = useState<RedesignConcept[]>(REDESIGN_CONCEPTS);
-  const [conceptsLoading, setConceptsLoading] = useState(false);
-  const [redesignError, setRedesignError] = useState<string | null>(null);
 
   const catalogue = useMemo(() => toCatalogue(projectPhotos ?? []), [projectPhotos]);
   const catalogueFingerprint = useMemo(() => catalogueIdentityFingerprint(catalogue), [catalogue]);
@@ -100,27 +98,9 @@ function AnalysisPage() {
     [analysisWorkflow.analysis.currency],
   );
 
-  const loadRedesign = useCallback((projectId: string) => {
-    setConceptsLoading(true);
-    setRedesignError(null);
-    generateRedesignConcepts({ projectId })
-      .then((generated) => {
-        setConcepts(generated);
-        setConceptsLoading(false);
-      })
-      .catch((err) => {
-        setConceptsLoading(false);
-        const msg = err instanceof Error ? err.message : "Could not generate redesign concepts.";
-        setRedesignError(msg);
-        toast.error("Redesign concepts unavailable", {
-          description: "Using default suggestions. You can retry later.",
-        });
-      });
-  }, []);
-
   const afterValidAnalysis = useCallback(
     (r: RoomAnalysis[]) => {
-      // Durable success only: never set analysis_done / redesign from invalid authority.
+      // Durable success only: never set analysis_done from invalid authority.
       if (!isProductionValidAnalysisSet(r, catalogue)) {
         // Keep rows as non-current evidence for shell Needs attention + update_analysis
         // (IA-3-R1). UI still uses stale_mock presentation, not ready cards.
@@ -143,10 +123,9 @@ function AnalysisPage() {
           total: r.length,
         });
       }
-
-      loadRedesign(id);
+      // IA-4: Redesign generation/selection lives on /projects/$id/redesign only.
     },
-    [catalogue, id, loadRedesign, setStage],
+    [catalogue, id, setStage],
   );
 
   const runFreshAnalysis = useCallback(async () => {
@@ -168,15 +147,6 @@ function AnalysisPage() {
     }
   }, [afterValidAnalysis, id, photoCount]);
 
-  // IA-1 transitional Redesign focus: scroll to embedded redesign without a /redesign route.
-  useEffect(() => {
-    if (focus !== "redesign" || uiState !== "ready") return;
-    const el = document.getElementById("project-redesign");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  }, [focus, uiState]);
-
   useEffect(() => {
     let cancelled = false;
 
@@ -188,7 +158,6 @@ function AnalysisPage() {
 
     setResults([]);
     setUiState("loading");
-    setConcepts(REDESIGN_CONCEPTS);
 
     // Gate: no photos → no analysis, no analysis_done, no redesign generation.
     if (catalogue.length === 0) {
@@ -264,23 +233,6 @@ function AnalysisPage() {
       setUiState("ready");
       setStage.mutate({ id, stage: "analysis", value: true });
 
-      clearRedesignConceptsCache(id);
-      setConceptsLoading(true);
-      setRedesignError(null);
-      try {
-        const regenerated = await generateRedesignConcepts({ projectId: id });
-        setConcepts(regenerated);
-      } catch (regenErr) {
-        const msg =
-          regenErr instanceof Error ? regenErr.message : "Could not regenerate redesign concepts.";
-        setRedesignError(msg);
-        toast.error("Redesign concepts unavailable", {
-          description: "Analyses were updated. Redesign suggestions may be stale until retry.",
-        });
-      } finally {
-        setConceptsLoading(false);
-      }
-
       const stillNeedReview = countNeedingReview(fresh);
       if (stillNeedReview > 0) {
         trackEvent("analysis_fallback", {
@@ -326,10 +278,7 @@ function AnalysisPage() {
   if (!project) return <Navigate to="/dashboard" />;
 
   // IA-1-R1: every project-aware Analysis state keeps the shared workflow shell.
-  const workflowRoute =
-    focus === "redesign"
-      ? ({ surface: "analysis", focus: "redesign" } as const)
-      : ({ surface: "analysis" } as const);
+  const workflowRoute = { surface: "analysis" } as const;
 
   const shellProgress = {
     ...progressFromProjectFlags(project),
@@ -443,14 +392,17 @@ function AnalysisPage() {
             Re-analyse weak photos
           </Button>
         ) : null}
-        {analysisIsValid && analysisNextAction.actionKind === "create_redesign" ? (
+        {analysisIsValid &&
+        (analysisNextAction.actionKind === "create_redesign" ||
+          analysisNextAction.actionKind === "select_redesign" ||
+          analysisNextAction.actionKind === "update_redesign") ? (
           <>
             {/*
-                IA-3: primary continuation from resolver (create_redesign).
-                Transitional Redesign surface until IA-4 — never skip to Estimate.
+                IA-4: primary continuation → first-class Redesign route.
+                Never skip to Estimate as canonical Analysis continuation.
               */}
             <Button asChild>
-              <Link to="/projects/$id/analysis" params={{ id }} search={{ focus: "redesign" }}>
+              <Link to="/projects/$id/redesign" params={{ id }}>
                 {analysisNextAction.label}
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
@@ -461,13 +413,6 @@ function AnalysisPage() {
               </Link>
             </Button>
           </>
-        ) : analysisIsValid && analysisNextAction.actionKind === "select_redesign" ? (
-          <Button asChild>
-            <Link to="/projects/$id/analysis" params={{ id }} search={{ focus: "redesign" }}>
-              {analysisNextAction.label}
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
-          </Button>
         ) : null}
       </div>
     ),
@@ -528,56 +473,17 @@ function AnalysisPage() {
         ) : null}
 
         {analysisIsValid ? (
-          <div id="project-redesign" className="mt-12 scroll-mt-24">
-            <div className="mb-5 flex items-end justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold tracking-tight text-foreground">
-                  AI redesign concepts
-                </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Six visual directions generated from your hero photo. Pick the one that matches
-                  your buyer or tenant.
-                </p>
-              </div>
-              <Badge variant="outline" className="hidden sm:inline-flex">
-                <Sparkles className="mr-1 h-3 w-3 text-accent" />
-                {conceptsLoading ? "Generating…" : "Concept previews"}
-              </Badge>
-            </div>
-
-            {redesignError ? (
-              <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                Redesign generation failed: {redesignError} (showing defaults)
-              </div>
-            ) : null}
-
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-              {concepts.map((c) => (
-                <RedesignCard key={c.style} concept={c} beforePhotoUrl={results[0]?.photo_url} />
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {analysisIsValid ? (
           <Card className="mt-8 border-dashed">
             <CardContent className="flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
               <div>
-                <h3 className="text-base font-semibold text-foreground">
-                  Ready for cost estimate?
-                </h3>
+                <h3 className="text-base font-semibold text-foreground">Continue to Redesign</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Generate a UK refurbishment cost estimate based on this analysis. AI suggestions
-                  pre-fill scope — they never silently overwrite your edits.
+                  Generate and select a refurbishment concept on the Redesign stage before Estimate.
                 </p>
               </div>
-              <Button
-                asChild
-                size="lg"
-                onClick={() => trackEvent("estimate_generated", { projectId: id })}
-              >
-                <Link to="/projects/$id/estimate" params={{ id }} search={{ from: undefined }}>
-                  View estimate <ArrowRight className="ml-1 h-4 w-4" />
+              <Button asChild size="lg">
+                <Link to="/projects/$id/redesign" params={{ id }}>
+                  Open Redesign <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
             </CardContent>

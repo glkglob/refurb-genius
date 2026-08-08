@@ -40,6 +40,7 @@ import { Route as AuthedTradesJobIdEditRouteImport } from './routes/_authed/trad
 import { Route as AuthedProjectsIdUploadRouteImport } from './routes/_authed/projects.$id.upload'
 import { Route as AuthedProjectsIdScopeRouteImport } from './routes/_authed/projects.$id.scope'
 import { Route as AuthedProjectsIdReportRouteImport } from './routes/_authed/projects.$id.report'
+import { Route as AuthedProjectsIdRedesignRouteImport } from './routes/_authed/projects.$id.redesign'
 import { Route as AuthedProjectsIdEstimateRouteImport } from './routes/_authed/projects.$id.estimate'
 import { Route as AuthedProjectsIdAnalysisRouteImport } from './routes/_authed/projects.$id.analysis'
 import { Route as AuthedDealCopilotOpportunityIdEditRouteImport } from './routes/_authed/deal-copilot/$opportunityId.edit'
@@ -199,6 +200,12 @@ const AuthedProjectsIdReportRoute = AuthedProjectsIdReportRouteImport.update({
   path: '/projects/$id/report',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedProjectsIdRedesignRoute =
+  AuthedProjectsIdRedesignRouteImport.update({
+    id: '/projects/$id/redesign',
+    path: '/projects/$id/redesign',
+    getParentRoute: () => AuthedRoute,
+  } as any)
 const AuthedProjectsIdEstimateRoute =
   AuthedProjectsIdEstimateRouteImport.update({
     id: '/projects/$id/estimate',
@@ -247,6 +254,7 @@ export interface FileRoutesByFullPath {
   '/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
   '/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
   '/projects/$id/estimate': typeof AuthedProjectsIdEstimateRoute
+  '/projects/$id/redesign': typeof AuthedProjectsIdRedesignRoute
   '/projects/$id/report': typeof AuthedProjectsIdReportRoute
   '/projects/$id/scope': typeof AuthedProjectsIdScopeRoute
   '/projects/$id/upload': typeof AuthedProjectsIdUploadRoute
@@ -282,6 +290,7 @@ export interface FileRoutesByTo {
   '/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
   '/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
   '/projects/$id/estimate': typeof AuthedProjectsIdEstimateRoute
+  '/projects/$id/redesign': typeof AuthedProjectsIdRedesignRoute
   '/projects/$id/report': typeof AuthedProjectsIdReportRoute
   '/projects/$id/scope': typeof AuthedProjectsIdScopeRoute
   '/projects/$id/upload': typeof AuthedProjectsIdUploadRoute
@@ -319,6 +328,7 @@ export interface FileRoutesById {
   '/_authed/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
   '/_authed/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
   '/_authed/projects/$id/estimate': typeof AuthedProjectsIdEstimateRoute
+  '/_authed/projects/$id/redesign': typeof AuthedProjectsIdRedesignRoute
   '/_authed/projects/$id/report': typeof AuthedProjectsIdReportRoute
   '/_authed/projects/$id/scope': typeof AuthedProjectsIdScopeRoute
   '/_authed/projects/$id/upload': typeof AuthedProjectsIdUploadRoute
@@ -356,6 +366,7 @@ export interface FileRouteTypes {
     | '/deal-copilot/$opportunityId/edit'
     | '/projects/$id/analysis'
     | '/projects/$id/estimate'
+    | '/projects/$id/redesign'
     | '/projects/$id/report'
     | '/projects/$id/scope'
     | '/projects/$id/upload'
@@ -391,6 +402,7 @@ export interface FileRouteTypes {
     | '/deal-copilot/$opportunityId/edit'
     | '/projects/$id/analysis'
     | '/projects/$id/estimate'
+    | '/projects/$id/redesign'
     | '/projects/$id/report'
     | '/projects/$id/scope'
     | '/projects/$id/upload'
@@ -427,6 +439,7 @@ export interface FileRouteTypes {
     | '/_authed/deal-copilot/$opportunityId/edit'
     | '/_authed/projects/$id/analysis'
     | '/_authed/projects/$id/estimate'
+    | '/_authed/projects/$id/redesign'
     | '/_authed/projects/$id/report'
     | '/_authed/projects/$id/scope'
     | '/_authed/projects/$id/upload'
@@ -667,6 +680,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedProjectsIdReportRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/projects/$id/redesign': {
+      id: '/_authed/projects/$id/redesign'
+      path: '/projects/$id/redesign'
+      fullPath: '/projects/$id/redesign'
+      preLoaderRoute: typeof AuthedProjectsIdRedesignRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/projects/$id/estimate': {
       id: '/_authed/projects/$id/estimate'
       path: '/projects/$id/estimate'
@@ -734,6 +754,7 @@ interface AuthedRouteChildren {
   AuthedDealCopilotIndexRoute: typeof AuthedDealCopilotIndexRoute
   AuthedProjectsIdAnalysisRoute: typeof AuthedProjectsIdAnalysisRoute
   AuthedProjectsIdEstimateRoute: typeof AuthedProjectsIdEstimateRoute
+  AuthedProjectsIdRedesignRoute: typeof AuthedProjectsIdRedesignRoute
   AuthedProjectsIdReportRoute: typeof AuthedProjectsIdReportRoute
   AuthedProjectsIdScopeRoute: typeof AuthedProjectsIdScopeRoute
   AuthedProjectsIdUploadRoute: typeof AuthedProjectsIdUploadRoute
@@ -758,6 +779,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedDealCopilotIndexRoute: AuthedDealCopilotIndexRoute,
   AuthedProjectsIdAnalysisRoute: AuthedProjectsIdAnalysisRoute,
   AuthedProjectsIdEstimateRoute: AuthedProjectsIdEstimateRoute,
+  AuthedProjectsIdRedesignRoute: AuthedProjectsIdRedesignRoute,
   AuthedProjectsIdReportRoute: AuthedProjectsIdReportRoute,
   AuthedProjectsIdScopeRoute: AuthedProjectsIdScopeRoute,
   AuthedProjectsIdUploadRoute: AuthedProjectsIdUploadRoute,

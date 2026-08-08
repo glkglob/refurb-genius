@@ -48,12 +48,25 @@ export const redesignProvider: RedesignProvider = {
     if (cached) return cached;
 
     // Server re-resolves durable analysis authority; do not send client analyses.
-    const concepts = await generateRedesignConceptsServerFn({
+    // IA-4: server persists candidates and returns durable rows; strip to concept shape for legacy callers.
+    const durable = await generateRedesignConceptsServerFn({
       data: {
         projectId: input.projectId,
         styles: input.styles,
       },
     });
+
+    const concepts: RedesignConcept[] = durable.map((d) => ({
+      style: d.style,
+      tagline: d.tagline,
+      palette: d.palette,
+      flooring: d.flooring,
+      lighting: d.lighting,
+      furniture: d.furniture,
+      afterGradient: d.afterGradient,
+      ...(d.afterImageUrl ? { afterImageUrl: d.afterImageUrl } : {}),
+      ...(d.estimatedCostUplift ? { estimatedCostUplift: d.estimatedCostUplift } : {}),
+    }));
 
     cache.set(input.projectId, concepts);
     return concepts;

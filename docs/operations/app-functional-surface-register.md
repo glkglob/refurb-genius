@@ -17,11 +17,11 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 
 | Metric | Count |
 | --- | ---: |
-| Routes | 34 |
+| Routes | 35 |
 | Controls | 182 |
 | Backend operations | 48 |
 | External integrations | 15 |
-| **Total surfaces** | **279** |
+| **Total surfaces** | **280** |
 
 ### Status totals
 
@@ -34,7 +34,7 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 | BLOCKED_CONFIGURATION | 1 |
 | BLOCKED_EXTERNAL | 0 |
 | INTENTIONALLY_HIDDEN | 1 |
-| NOT_TESTED | 260 |
+| NOT_TESTED | 261 |
 
 ## Routes
 
@@ -59,6 +59,7 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 | `route.projects.detail` | `/projects/$id` | authenticated | `src/routes/_authed/projects.$id.index.tsx` | NOT_TESTED | P0 |
 | `route.projects.upload` | `/projects/$id/upload` | authenticated | `src/routes/_authed/projects.$id.upload.tsx` | PARTIAL | P0 |
 | `route.projects.analysis` | `/projects/$id/analysis` | authenticated | `src/routes/_authed/projects.$id.analysis.tsx` | NOT_TESTED | P0 |
+| `route.projects.redesign` | `/projects/$id/redesign` | authenticated | `src/routes/_authed/projects.$id.redesign.tsx` | NOT_TESTED | P0 |
 | `route.projects.scope` | `/projects/$id/scope` | authenticated | `src/routes/_authed/projects.$id.scope.tsx` | NOT_TESTED | P0 |
 | `route.projects.estimate` | `/projects/$id/estimate` | authenticated | `src/routes/_authed/projects.$id.estimate.tsx` | NOT_TESTED | P0 |
 | `route.projects.report` | `/projects/$id/report` | authenticated | `src/routes/_authed/projects.$id.report.tsx` | NOT_TESTED | P0 |

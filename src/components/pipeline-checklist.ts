@@ -93,7 +93,7 @@ export function buildProjectPipelineSteps(input: {
       case "analysis":
         return { surface: "analysis" };
       case "redesign":
-        return { surface: "analysis", focus: "redesign" };
+        return { surface: "redesign" };
       case "estimate":
         return { surface: "estimate" };
       case "export":

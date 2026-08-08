@@ -39,6 +39,9 @@ function buildAnalysisContext(analyses: RoomAnalysis[]): string {
 
 const TEXT_SYSTEM_PROMPT = `You are a senior UK interior design consultant specialising in property refurbishment for investors and landlords (2026).
 Given a property condition summary and requested design style, produce a practical, tenant/buyer-appealing redesign concept.
+
+Truthfulness (mandatory): treat output as a refurbishment concept, not a guaranteed buildable construction design. Preserve identifiable property geometry where possible — windows, doors, room layout, major structural features, and perspective. Do not invent structural alterations (new openings, removed walls, layout changes) unless the brief explicitly requests them.
+
 Think step-by-step about durability, light, flow and low maintenance for UK homes. Return ONLY a JSON object with these exact fields (no extra keys, no prose outside JSON):
 
 {

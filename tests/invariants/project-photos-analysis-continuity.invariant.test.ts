@@ -53,12 +53,11 @@ test("IA-3 Photos and Analysis routes consume canonical resolver", () => {
   assert.match(upload, /buildPhotosAnalysisWorkflowState/);
   assert.match(analysis, /resolveProjectNextAction/);
   assert.match(analysis, /buildPhotosAnalysisWorkflowState/);
-  // Must not skip Redesign as permanent primary continuation.
-  assert.match(analysis, /create_redesign|focus: "redesign"|focus: 'redesign'/);
+  // IA-4: Analysis continuation uses first-class Redesign route (not Estimate shortcut).
+  assert.match(analysis, /create_redesign|\/projects\/\$id\/redesign/);
 });
 
-test("IA-3 does not introduce first-class /redesign or Scope provenance migration", () => {
-  assert.equal(existsSync(join(ROOT, "src/routes/_authed/projects.$id.redesign.tsx")), false);
+test("IA-3 photos adapter does not invent Scope/Estimate provenance fields", () => {
   // Lexical: adapter must not invent redesign_done or estimate/export provenance fields.
   const adapter = read("src/features/projects/domain/photosAnalysisWorkflowAdapter.ts");
   assert.doesNotMatch(adapter, /redesign_done|estimate_fingerprint|export_fingerprint/);

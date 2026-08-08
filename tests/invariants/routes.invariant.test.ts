@@ -53,6 +53,7 @@ const AUTHENTICATED_ROUTES: [string, string][] = [
   ["_authed/projects.$id.upload.tsx", "/projects/:id/upload"],
   ["_authed/projects.$id.estimate.tsx", "/projects/:id/estimate"],
   ["_authed/projects.$id.analysis.tsx", "/projects/:id/analysis"],
+  ["_authed/projects.$id.redesign.tsx", "/projects/:id/redesign"],
   ["_authed/projects.$id.report.tsx", "/projects/:id/report"],
   ["_authed/deal-copilot/index.tsx", "/deal-copilot"],
   ["_authed/deal-copilot/new.tsx", "/deal-copilot/new"],

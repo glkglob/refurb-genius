@@ -296,19 +296,6 @@ function ProjectDetail() {
                 </Card>
               );
 
-              if (stage.destination.kind === "embedded") {
-                return (
-                  <Link
-                    key={stage.id}
-                    to="/projects/$id/analysis"
-                    params={{ id }}
-                    search={{ focus: "redesign" }}
-                  >
-                    {cardInner}
-                  </Link>
-                );
-              }
-
               return (
                 <Link key={stage.id} to={stage.destination.to} params={{ id }}>
                   {cardInner}

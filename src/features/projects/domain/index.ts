@@ -62,3 +62,10 @@ export {
   type DurablePhotoIdentity,
   type PhotosAnalysisAdapterInput,
 } from "./photosAnalysisWorkflowAdapter";
+
+export {
+  redesignCurrencyFromEvidence,
+  redesignShellFlagsFromCurrency,
+  type RedesignAdapterInput,
+  type RedesignCandidateEvidence,
+} from "./redesignWorkflowAdapter";

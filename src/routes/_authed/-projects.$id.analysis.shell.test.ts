@@ -85,10 +85,10 @@ describe("IA-1-R1 Analysis shell continuity", () => {
     expect(SRC).not.toMatch(/id:\s*["']upload["']\s*,\s*label:\s*["']Upload["']/);
   });
 
-  it("does not introduce a first-class /redesign route", () => {
-    expect(SRC).toMatch(/focus:\s*["']redesign["']/);
-    expect(SRC).not.toMatch(/to:\s*["']\/projects\/\$id\/redesign["']/);
-    expect(SRC).not.toMatch(/projects\.\$id\.redesign/);
+  it("IA-4: Analysis Create Redesign continues to first-class /redesign", () => {
+    expect(SRC).toMatch(/to:\s*["']\/projects\/\$id\/redesign["']/);
+    expect(SRC).toMatch(/beforeLoad/);
+    expect(SRC).toMatch(/redirect/);
   });
 
   it("only allows bare AppLayout when project identity is unavailable", () => {

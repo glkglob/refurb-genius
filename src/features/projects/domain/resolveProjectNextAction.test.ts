@@ -164,7 +164,7 @@ describe("IA-2 resolveProjectNextAction — Redesign", () => {
       stage: "redesign",
       status: "Ready",
       actionKind: "create_redesign",
-      route: `/projects/${PROJECT_ID}/analysis?focus=redesign`,
+      route: `/projects/${PROJECT_ID}/redesign`,
       reason: "redesign_required",
     });
   });
@@ -211,7 +211,7 @@ describe("IA-2 resolveProjectNextAction — Redesign", () => {
       stage: "redesign",
       status: "In progress",
       actionKind: "view_stage_progress",
-      route: `/projects/${PROJECT_ID}/analysis?focus=redesign`,
+      route: `/projects/${PROJECT_ID}/redesign`,
       label: "View Redesign Progress",
     });
   });
@@ -574,7 +574,7 @@ describe("IA-2 resolveProjectNextAction — Purity", () => {
 });
 
 describe("IA-2 resolveProjectNextAction — Routes", () => {
-  it("emits exact canonical routes and never /redesign or primary /scope", () => {
+  it("emits exact canonical routes including first-class /redesign, never primary /scope", () => {
     const cases: Array<{ w: ProjectWorkflowState; route: string }> = [
       {
         w: state({
@@ -604,7 +604,7 @@ describe("IA-2 resolveProjectNextAction — Routes", () => {
           estimate: { currency: "absent" },
           export: { currency: "absent" },
         }),
-        route: `/projects/${PROJECT_ID}/analysis?focus=redesign`,
+        route: `/projects/${PROJECT_ID}/redesign`,
       },
       {
         w: state({
@@ -624,16 +624,14 @@ describe("IA-2 resolveProjectNextAction — Routes", () => {
     for (const c of cases) {
       const r = resolve(c.w);
       expect(r.route).toBe(c.route);
-      expect(r.route).not.toMatch(/\/redesign$/);
       expect(r.route).not.toMatch(/\/scope$/);
       expect(r.route).not.toContain("/scope");
+      expect(r.route).not.toContain("focus=redesign");
     }
   });
 
   it("buildProjectNextActionRoute is pure and deterministic", () => {
-    expect(buildProjectNextActionRoute("abc", "redesign_focus")).toBe(
-      "/projects/abc/analysis?focus=redesign",
-    );
+    expect(buildProjectNextActionRoute("abc", "redesign_focus")).toBe("/projects/abc/redesign");
   });
 });
 

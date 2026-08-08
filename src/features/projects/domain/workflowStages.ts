@@ -74,9 +74,8 @@ export const PROJECT_WORKFLOW_STAGES: readonly ProjectWorkflowStageDefinition[] 
     order: 3,
     label: "Redesign",
     description: "Style concepts",
-    // IA-4 owns `/projects/$id/redesign`. Until then, navigation targets the
-    // existing embedded Redesign surface on Analysis (no dead route).
-    hasImplementedRoute: false,
+    // IA-4: first-class `/projects/$id/redesign`.
+    hasImplementedRoute: true,
   },
   {
     id: "estimate",
@@ -117,6 +116,15 @@ export type ProjectWorkflowProgressInput = {
    * Analysis is still authoritative/current — those are advisory signals only.
    */
   analysisNeedsAttention?: boolean;
+  /**
+   * IA-4: selected Redesign is current against current Analysis.
+   * Without redesignDone, Redesign never reports Complete.
+   */
+  redesignDone?: boolean;
+  /**
+   * IA-4: selected Redesign exists but is non-current (Analysis catalogue changed).
+   */
+  redesignNeedsAttention?: boolean;
 };
 
 export type ProjectWorkflowStagePresentation = ProjectWorkflowStageDefinition & {
@@ -130,13 +138,12 @@ export type ProjectWorkflowStagePresentation = ProjectWorkflowStageDefinition & 
   destination: ProjectWorkflowDestination;
 };
 
-export type ProjectWorkflowDestination =
-  | { kind: "route"; to: ProjectWorkflowRouteTo }
-  | { kind: "embedded"; host: "analysis"; focus: "redesign" };
+export type ProjectWorkflowDestination = { kind: "route"; to: ProjectWorkflowRouteTo };
 
 export type ProjectWorkflowRouteTo =
   | "/projects/$id/upload"
   | "/projects/$id/analysis"
+  | "/projects/$id/redesign"
   | "/projects/$id/estimate"
   | "/projects/$id/report";
 
@@ -144,7 +151,8 @@ export type ProjectWorkflowRouteTo =
 export type ProjectWorkflowRouteContext =
   | { surface: "overview" }
   | { surface: "upload" }
-  | { surface: "analysis"; focus?: "redesign" }
+  | { surface: "analysis" }
+  | { surface: "redesign" }
   | { surface: "estimate" }
   | { surface: "scope" }
   | { surface: "report" }
@@ -161,7 +169,9 @@ export function resolveActiveWorkflowStage(
     case "upload":
       return "photos";
     case "analysis":
-      return context.focus === "redesign" ? "redesign" : "analysis";
+      return "analysis";
+    case "redesign":
+      return "redesign";
     case "estimate":
     case "scope":
       // Professional Scope is Estimate-family depth (IA-9), not a sixth stage.
@@ -176,9 +186,7 @@ export function resolveActiveWorkflowStage(
 }
 
 /**
- * Destination for a stage. Redesign intentionally does not invent
- * `/projects/$id/redesign` (IA-4). It points at the embedded Analysis surface
- * with a focus hint so navigation is never a dead link.
+ * Destination for a stage. IA-4: Redesign is first-class `/projects/$id/redesign`.
  */
 export function stageDestination(stageId: ProjectWorkflowStageId): ProjectWorkflowDestination {
   switch (stageId) {
@@ -187,7 +195,7 @@ export function stageDestination(stageId: ProjectWorkflowStageId): ProjectWorkfl
     case "analysis":
       return { kind: "route", to: "/projects/$id/analysis" };
     case "redesign":
-      return { kind: "embedded", host: "analysis", focus: "redesign" };
+      return { kind: "route", to: "/projects/$id/redesign" };
     case "estimate":
       return { kind: "route", to: "/projects/$id/estimate" };
     case "export":
@@ -231,7 +239,10 @@ export function resolveStageStatus(
       return "Not started";
     }
     case "redesign": {
-      // No redesign completion authority in IA-1 — never claim Complete.
+      // IA-4: Complete only with durable selected authority current for Analysis.
+      if (progress.redesignDone) {
+        return progress.redesignNeedsAttention ? "Needs attention" : "Complete";
+      }
       if (isActive) return "In progress";
       if (progress.analysisDone) return "Ready";
       return "Not started";
