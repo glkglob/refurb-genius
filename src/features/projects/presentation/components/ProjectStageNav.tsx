@@ -6,7 +6,11 @@
  *
  * IA-8 mobile: horizontally scrollable stage rail with scroll-snap, larger
  * touch targets, and text status (colour is never the sole signal).
+ *
+ * IA-8-VR-R2: heading stays outside the scroller; stage items alone scroll;
+ * active stage is scrolled into full view on mount/route change.
  */
+import { useLayoutEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { Check, Circle, AlertCircle } from "lucide-react";
 import { cn } from "@repo/ui";
@@ -81,80 +85,111 @@ function stageLinkProps(projectId: string, stage: ProjectWorkflowStagePresentati
 }
 
 export function ProjectStageNav({ projectId, stages, className }: ProjectStageNavProps) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const activeItemRef = useRef<HTMLLIElement | null>(null);
+  const activeId = stages.find((s) => s.isActive)?.id;
+
+  // Keep the current stage fully visible in the local scroller (not the page).
+  useLayoutEffect(() => {
+    const scroller = scrollerRef.current;
+    const item = activeItemRef.current;
+    if (!scroller || !item) return;
+
+    const scrollerWidth = scroller.clientWidth;
+    const itemLeft = item.offsetLeft;
+    const itemWidth = item.offsetWidth;
+    // Centre active item when possible so label + status stay fully readable.
+    const target = itemLeft - (scrollerWidth - itemWidth) / 2;
+    const maxScroll = Math.max(0, scroller.scrollWidth - scrollerWidth);
+    const nextLeft = Math.max(0, Math.min(target, maxScroll));
+    if (typeof scroller.scrollTo === "function") {
+      scroller.scrollTo({ left: nextLeft, behavior: "auto" });
+    } else {
+      scroller.scrollLeft = nextLeft;
+    }
+  }, [activeId, projectId]);
+
   return (
     <nav
       aria-label="Project workflow stages"
       data-testid="project-stage-nav"
-      className={cn(
-        // Local horizontal scroll only — must not cause whole-page overflow.
-        "relative overflow-x-auto overscroll-x-contain rounded-xl border border-border/60 bg-card/40 p-2 sm:p-4",
-        "scroll-smooth [scrollbar-width:thin]",
-        className,
-      )}
+      className={cn("relative rounded-xl border border-border/60 bg-card/40 p-2 sm:p-4", className)}
     >
-      <p className="mb-2 px-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:hidden">
+      {/* Heading is fixed — never inside the horizontal scroller (IA-8-VR-R2). */}
+      <p
+        className="mb-2 px-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:hidden"
+        data-testid="project-stage-nav-heading"
+      >
         Stages · swipe to see all five
       </p>
-      <ol
+
+      <div
+        ref={scrollerRef}
+        data-testid="project-stage-nav-scroller"
         className={cn(
-          "flex min-w-min flex-row items-stretch gap-1 sm:w-full sm:gap-0",
-          // Local rail scroll with snap; whole page must not overflow.
+          // Local horizontal scroll only — must not cause whole-page overflow.
+          "overflow-x-auto overscroll-x-contain scroll-smooth [scrollbar-width:thin]",
           "snap-x snap-mandatory sm:snap-none",
+          // Room so edge items can sit fully in view when snapped.
+          "scroll-pl-1 scroll-pr-1",
         )}
       >
-        {stages.map((stage, index) => {
-          const link = stageLinkProps(projectId, stage);
-          return (
-            <li
-              key={stage.id}
-              className={cn(
-                "relative flex shrink-0 snap-start sm:min-w-0 sm:flex-1",
-                // Wide enough for full canonical labels (e.g. "3. Redesign") — no destructive ellipsis.
-                "min-w-[8.75rem] sm:max-w-none",
-                index < stages.length - 1 &&
-                  "after:absolute after:right-0 after:top-3.5 after:hidden after:h-px after:w-2 after:bg-border sm:after:block",
-              )}
-            >
-              <Link
-                to={link.to}
-                params={link.params}
-                search={link.search}
+        <ol className={cn("flex min-w-min flex-row items-stretch gap-1.5 sm:w-full sm:gap-0")}>
+          {stages.map((stage, index) => {
+            const link = stageLinkProps(projectId, stage);
+            return (
+              <li
+                key={stage.id}
+                ref={stage.isActive ? activeItemRef : undefined}
                 className={cn(
-                  "flex w-full min-h-12 flex-col gap-1 rounded-lg px-2.5 py-2 transition-colors",
-                  "hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                  stage.isActive && "bg-primary/10 ring-1 ring-primary/30",
+                  "relative flex shrink-0 sm:min-w-0 sm:flex-1",
+                  // Fixed mobile width: full "3. Redesign" + status readable; snap centres active.
+                  "w-[9rem] snap-center sm:w-auto sm:max-w-none",
+                  index < stages.length - 1 &&
+                    "after:absolute after:right-0 after:top-3.5 after:hidden after:h-px after:w-2 after:bg-border sm:after:block",
                 )}
-                aria-current={stage.isActive ? "step" : undefined}
-                aria-label={`${stage.order}. ${stage.label}, ${stage.status}`}
-                data-testid={`stage-nav-${stage.id}`}
-                data-active={stage.isActive ? "true" : "false"}
               >
-                <div className="flex items-center gap-2">
-                  {statusIcon(stage.status, stage.isActive)}
-                  <span
-                    className={cn(
-                      // Never truncate canonical stage names on mobile.
-                      "whitespace-nowrap text-sm font-medium",
-                      stage.isActive && "text-foreground",
-                      !stage.isActive && stage.status === "Complete" && "text-foreground",
-                      !stage.isActive &&
-                        stage.status !== "Complete" &&
-                        stage.status !== "Needs attention" &&
-                        "text-muted-foreground",
-                      stage.status === "Needs attention" && "text-destructive",
-                    )}
-                  >
-                    <span className="tabular-nums text-muted-foreground">{stage.order}.</span>{" "}
-                    {stage.label}
-                  </span>
-                </div>
-                {/* Status as text — colour is not the sole signal */}
-                <span className="pl-9 text-xs text-muted-foreground">{stage.status}</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ol>
+                <Link
+                  to={link.to}
+                  params={link.params}
+                  search={link.search}
+                  className={cn(
+                    "flex w-full min-h-12 flex-col gap-1 rounded-lg px-2.5 py-2 transition-colors",
+                    "hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                    stage.isActive && "bg-primary/10 ring-1 ring-primary/30",
+                  )}
+                  aria-current={stage.isActive ? "step" : undefined}
+                  aria-label={`${stage.order}. ${stage.label}, ${stage.status}`}
+                  data-testid={`stage-nav-${stage.id}`}
+                  data-active={stage.isActive ? "true" : "false"}
+                >
+                  <div className="flex items-center gap-2">
+                    {statusIcon(stage.status, stage.isActive)}
+                    <span
+                      className={cn(
+                        // Never truncate canonical stage names on mobile.
+                        "whitespace-nowrap text-sm font-medium",
+                        stage.isActive && "text-foreground",
+                        !stage.isActive && stage.status === "Complete" && "text-foreground",
+                        !stage.isActive &&
+                          stage.status !== "Complete" &&
+                          stage.status !== "Needs attention" &&
+                          "text-muted-foreground",
+                        stage.status === "Needs attention" && "text-destructive",
+                      )}
+                    >
+                      <span className="tabular-nums text-muted-foreground">{stage.order}.</span>{" "}
+                      {stage.label}
+                    </span>
+                  </div>
+                  {/* Status as text — colour is not the sole signal */}
+                  <span className="pl-9 text-xs text-muted-foreground">{stage.status}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </nav>
   );
 }

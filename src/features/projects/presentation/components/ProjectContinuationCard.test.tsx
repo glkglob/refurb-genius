@@ -162,4 +162,43 @@ describe("ProjectContinuationCard", () => {
       "update_analysis",
     );
   });
+
+  it("IA-8-VR-R2: no large saturated primary media block when no cover image exists", () => {
+    useProjectFiveStageWorkflow.mockReturnValue({
+      loading: false,
+      workflow: {},
+      nextAction: {
+        stage: "photos",
+        status: "Not started",
+        actionKind: "add_photos",
+        route: "/projects/proj-1/upload",
+        label: "Add Photos",
+        reason: "photos_missing",
+      },
+      shellProgress: {
+        photosDone: false,
+        analysisDone: false,
+        analysisNeedsAttention: false,
+        redesignDone: false,
+        redesignNeedsAttention: false,
+        estimateDone: false,
+        estimateNeedsAttention: false,
+        reportDone: false,
+        reportNeedsAttention: false,
+      },
+      reload: vi.fn(),
+    });
+    const { container } = render(createElement(ProjectContinuationCard, { project: baseProject }));
+    const media = screen.getByTestId("project-card-media");
+    expect(media.getAttribute("data-media")).toBe("placeholder");
+    // Must not use full-height saturated primary/teal empty gradient.
+    expect(media.className).not.toMatch(/from-primary/);
+    expect(media.className).not.toMatch(/\bh-20\b/);
+    expect(media.className).not.toMatch(/\bh-28\b/);
+    expect(container.innerHTML).not.toMatch(
+      /h-20 bg-gradient-to-br from-primary via-primary to-accent/,
+    );
+    // Project name remains primary content.
+    expect(screen.getByText("Victorian Terrace")).toBeTruthy();
+  });
 });

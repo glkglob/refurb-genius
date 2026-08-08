@@ -6,7 +6,7 @@
  */
 import { Link } from "@tanstack/react-router";
 import { memo } from "react";
-import { ArrowRight, CheckCircle2, Loader2, MapPin } from "lucide-react";
+import { ArrowRight, Building2, CheckCircle2, Loader2, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -85,7 +85,19 @@ function ProjectContinuationCardComponent({ project }: ProjectContinuationCardPr
       data-testid="project-continuation-card"
       data-project-id={project.id}
     >
-      <div className="h-20 bg-gradient-to-br from-primary via-primary to-accent/90" />
+      {/*
+        IA-8-VR-R2: Dashboard data contract has no project cover/photo URL.
+        Do not render a large empty primary/teal block (reads as broken image).
+        Compact neutral branded strip keeps cards intentional without inventing media.
+      */}
+      <div
+        className="flex h-12 items-center justify-center border-b border-border/50 bg-muted/40"
+        data-testid="project-card-media"
+        data-media="placeholder"
+        aria-hidden
+      >
+        <Building2 className="h-5 w-5 text-muted-foreground/70" />
+      </div>
       <CardContent className="space-y-4 p-5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
