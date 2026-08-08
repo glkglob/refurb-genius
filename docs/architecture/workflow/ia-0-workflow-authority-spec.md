@@ -1716,16 +1716,25 @@ Residual carried from IA-5 (Overview / Photos `progressFromProjectFlags` present
 
 ## IA-7 — Global navigation convergence
 
-**Status: Planned / Next** — requires explicit authorisation.
+**Status: Completed on main** (PR #120; verified implementation head `d401a895ea9d3bc4cbcaa3b12734bf4fee16464d`; merge SHA `e8678f638e1f697908705b816d58562a5bcbe10c`; no database migrations; production deployment `dpl_Bt1net31pNBzSxXoWnkEKo1hKEnY` on `www.refurbgenius.info` serving merged main).
 
-- Projects canonical;
-- Studies demoted;
-- New Analysis standardised;
-- six-item navigation.
+Proved:
+
+- one canonical `GLOBAL_NAV_ITEMS` authority with exact six destinations:
+  Dashboard `/dashboard`, Projects `/projects`, New Analysis `/analyze`,
+  Deal Copilot `/deal-copilot`, Trades / Marketplace `/trades`, Settings `/settings`;
+- desktop Sidebar six-item IA; mobile bounded More menu (Deal Copilot, Settings, Sign out)
+  without implementing IA-8 final mobile architecture;
+- `/analyze` as canonical Project-entry form (shared `NewProjectEntry`); durable Project
+  before `/projects/$id/upload`; Projects becomes global context after entry;
+- Studies demoted / distinct / compatibility-only (`/studies`, `/studies/workspace` precedence);
+- selected-project five-stage workflow remains separate under Projects; IA-5 / IA-6 unchanged.
 
 ## IA-8 — Mobile refinement
 
-- compact mobile navigation;
+**Status: Planned / Next** — requires explicit authorisation.
+
+- compact mobile navigation (target form refinement beyond IA-7 reachability);
 - project progress;
 - sticky primary action;
 - responsive accessibility.

@@ -17,7 +17,10 @@
 - ✅ **IA-2** Canonical Next-Action Resolver **Completed** on main (pure `resolveProjectNextAction`; UI consumer migration remains IA-6)
 - ✅ **IA-3** Photos → Analysis Continuity **Completed** on main (durable photo catalogue currentness; Analysis publication safety; resolver adapters; shell status consistency)
 - ✅ **IA-4** First-Class Redesign **Completed** on main (`/projects/$id/redesign`; durable candidates; atomic selection; DML seal; schema reconcile)
-- 🔜 **IA-5** Full Five-Stage Continuity — **Planned / Next** (**not started**)
+- ✅ **IA-5** Full Five-Stage Continuity **Completed** on main (PR #117; authority + currentness chain)
+- ✅ **IA-6** Dashboard + Overview Continuation **Completed** on main (PR #119; no migrations)
+- ✅ **IA-7** Global Navigation Convergence **Completed** on main (PR #120; verified head `d401a89`; merge `e8678f6`; six-destination IA; `/analyze` project entry; mobile More reachability; Studies demoted)
+- 🔜 **IA-8** Mobile Refinement and Production Readiness — **Planned / Next** (**not started**)
 
 ---
 
