@@ -257,6 +257,17 @@ const ROUTES = [
     severity: "P0",
   },
   {
+    surfaceId: "route.projects.list",
+    area: "projects",
+    route: "/projects",
+    sourcePath: "src/routes/_authed/projects.index.tsx",
+    role: "authenticated",
+    authClass: "authenticated",
+    severity: "P0",
+    notes: "IA-7 canonical Projects browse surface",
+    testReference: "src/routes/_authed/-projects.index.ia7.test.ts",
+  },
+  {
     surfaceId: "route.projects.new",
     area: "projects",
     route: "/projects/new",

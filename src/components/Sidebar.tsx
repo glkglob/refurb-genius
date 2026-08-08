@@ -1,6 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
+  FolderKanban,
   FolderPlus,
   Settings,
   Building2,
@@ -8,19 +9,25 @@ import {
   LineChart,
   Briefcase,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useSignOut } from "@/features/auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  GLOBAL_NAV_ITEMS,
+  isGlobalNavItemActive,
+  type GlobalNavItemId,
+} from "@/features/navigation";
 
-const items = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/analyze", label: "New Study", icon: FolderPlus },
-  { to: "/studies", label: "Studies", icon: FolderPlus },
-  { to: "/deal-copilot", label: "Deal Copilot", icon: LineChart },
-  { to: "/trades", label: "Trades", icon: Briefcase },
-  { to: "/settings", label: "Settings", icon: Settings },
-];
+const NAV_ICONS: Record<GlobalNavItemId, LucideIcon> = {
+  dashboard: LayoutDashboard,
+  projects: FolderKanban,
+  new_analysis: FolderPlus,
+  deal_copilot: LineChart,
+  trades_marketplace: Briefcase,
+  settings: Settings,
+};
 
 function getInitials(nameOrEmail: string | null | undefined): string {
   if (!nameOrEmail) return "U";
@@ -31,14 +38,6 @@ function getInitials(nameOrEmail: string | null | undefined): string {
   const parts = trimmed.split(/\s+/).filter(Boolean);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return trimmed[0].toUpperCase();
-}
-
-function isActivePath(pathname: string, href: string) {
-  if (href === "/") {
-    return pathname === href;
-  }
-
-  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 export function Sidebar() {
@@ -64,13 +63,17 @@ export function Sidebar() {
           Refurb<span className="text-accent">Genius</span>
         </span>
       </div>
-      <nav className="flex-1 space-y-1 p-3">
-        {items.map((item) => {
-          const active = isActivePath(pathname, item.to);
+      <nav className="flex-1 space-y-1 p-3" aria-label="Primary">
+        {GLOBAL_NAV_ITEMS.map((item) => {
+          const active = isGlobalNavItemActive(pathname, item.id);
+          const Icon = NAV_ICONS[item.id];
           return (
             <Link
-              key={item.to}
+              key={item.id}
               to={item.to}
+              aria-current={active ? "page" : undefined}
+              data-testid={`global-nav-${item.id}`}
+              data-active={active ? "true" : "false"}
               className={cn(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                 active
@@ -78,7 +81,7 @@ export function Sidebar() {
                   : "text-muted-foreground hover:bg-secondary hover:text-foreground",
               )}
             >
-              <item.icon className="h-4 w-4" />
+              <Icon className="h-4 w-4 shrink-0" aria-hidden />
               {item.label}
             </Link>
           );

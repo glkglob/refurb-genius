@@ -27,6 +27,7 @@ import { Route as AuthedMarketplaceRouteImport } from './routes/_authed/marketpl
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as AuthedAnalyzeRouteImport } from './routes/_authed/analyze'
 import { Route as AuthedAdminRouteImport } from './routes/_authed/admin'
+import { Route as AuthedProjectsIndexRouteImport } from './routes/_authed/projects.index'
 import { Route as AuthedDealCopilotIndexRouteImport } from './routes/_authed/deal-copilot/index'
 import { Route as AuthedTradesProfileRouteImport } from './routes/_authed/trades_.profile'
 import { Route as AuthedTradesNewRouteImport } from './routes/_authed/trades_.new'
@@ -132,6 +133,11 @@ const AuthedAnalyzeRoute = AuthedAnalyzeRouteImport.update({
 const AuthedAdminRoute = AuthedAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedProjectsIndexRoute = AuthedProjectsIndexRouteImport.update({
+  id: '/projects/',
+  path: '/projects/',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedDealCopilotIndexRoute = AuthedDealCopilotIndexRouteImport.update({
@@ -251,6 +257,7 @@ export interface FileRoutesByFullPath {
   '/trades/new': typeof AuthedTradesNewRoute
   '/trades/profile': typeof AuthedTradesProfileRoute
   '/deal-copilot/': typeof AuthedDealCopilotIndexRoute
+  '/projects/': typeof AuthedProjectsIndexRoute
   '/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
   '/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
   '/projects/$id/estimate': typeof AuthedProjectsIdEstimateRoute
@@ -287,6 +294,7 @@ export interface FileRoutesByTo {
   '/trades/new': typeof AuthedTradesNewRoute
   '/trades/profile': typeof AuthedTradesProfileRoute
   '/deal-copilot': typeof AuthedDealCopilotIndexRoute
+  '/projects': typeof AuthedProjectsIndexRoute
   '/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
   '/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
   '/projects/$id/estimate': typeof AuthedProjectsIdEstimateRoute
@@ -325,6 +333,7 @@ export interface FileRoutesById {
   '/_authed/trades_/new': typeof AuthedTradesNewRoute
   '/_authed/trades_/profile': typeof AuthedTradesProfileRoute
   '/_authed/deal-copilot/': typeof AuthedDealCopilotIndexRoute
+  '/_authed/projects/': typeof AuthedProjectsIndexRoute
   '/_authed/deal-copilot/$opportunityId/edit': typeof AuthedDealCopilotOpportunityIdEditRoute
   '/_authed/projects/$id/analysis': typeof AuthedProjectsIdAnalysisRoute
   '/_authed/projects/$id/estimate': typeof AuthedProjectsIdEstimateRoute
@@ -363,6 +372,7 @@ export interface FileRouteTypes {
     | '/trades/new'
     | '/trades/profile'
     | '/deal-copilot/'
+    | '/projects/'
     | '/deal-copilot/$opportunityId/edit'
     | '/projects/$id/analysis'
     | '/projects/$id/estimate'
@@ -399,6 +409,7 @@ export interface FileRouteTypes {
     | '/trades/new'
     | '/trades/profile'
     | '/deal-copilot'
+    | '/projects'
     | '/deal-copilot/$opportunityId/edit'
     | '/projects/$id/analysis'
     | '/projects/$id/estimate'
@@ -436,6 +447,7 @@ export interface FileRouteTypes {
     | '/_authed/trades_/new'
     | '/_authed/trades_/profile'
     | '/_authed/deal-copilot/'
+    | '/_authed/projects/'
     | '/_authed/deal-copilot/$opportunityId/edit'
     | '/_authed/projects/$id/analysis'
     | '/_authed/projects/$id/estimate'
@@ -587,6 +599,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AuthedAdminRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/projects/': {
+      id: '/_authed/projects/'
+      path: '/projects'
+      fullPath: '/projects/'
+      preLoaderRoute: typeof AuthedProjectsIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/deal-copilot/': {
@@ -752,6 +771,7 @@ interface AuthedRouteChildren {
   AuthedTradesNewRoute: typeof AuthedTradesNewRoute
   AuthedTradesProfileRoute: typeof AuthedTradesProfileRoute
   AuthedDealCopilotIndexRoute: typeof AuthedDealCopilotIndexRoute
+  AuthedProjectsIndexRoute: typeof AuthedProjectsIndexRoute
   AuthedProjectsIdAnalysisRoute: typeof AuthedProjectsIdAnalysisRoute
   AuthedProjectsIdEstimateRoute: typeof AuthedProjectsIdEstimateRoute
   AuthedProjectsIdRedesignRoute: typeof AuthedProjectsIdRedesignRoute
@@ -777,6 +797,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedTradesNewRoute: AuthedTradesNewRoute,
   AuthedTradesProfileRoute: AuthedTradesProfileRoute,
   AuthedDealCopilotIndexRoute: AuthedDealCopilotIndexRoute,
+  AuthedProjectsIndexRoute: AuthedProjectsIndexRoute,
   AuthedProjectsIdAnalysisRoute: AuthedProjectsIdAnalysisRoute,
   AuthedProjectsIdEstimateRoute: AuthedProjectsIdEstimateRoute,
   AuthedProjectsIdRedesignRoute: AuthedProjectsIdRedesignRoute,

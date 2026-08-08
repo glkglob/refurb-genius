@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { z } from "zod";
 import {
@@ -109,7 +109,7 @@ const STAGE_META: ReadonlyArray<{
 ];
 
 export const Route = createFileRoute("/_authed/analyze")({
-  head: () => ({ meta: [{ title: "New Study Analysis — Refurb Genius" }] }),
+  head: () => ({ meta: [{ title: "Feasibility workspace — Refurb Genius" }] }),
   validateSearch: (search: Record<string, unknown>) => searchSchema.parse(search),
   component: AnalyzeRoute,
 });
@@ -257,26 +257,48 @@ function AnalyzeRoute() {
 
   return (
     <AppLayout
-      title="Unified Feasibility Study"
-      subtitle="Upload photos, run AI analysis, model ROI, and export investor-grade outputs in one guided flow."
+      title="Feasibility workspace"
+      subtitle="Legacy guided feasibility flow. Canonical New Analysis creates a project and continues in the five-stage project workflow."
       actions={
-        <Button
-          onClick={handleRunFullAnalysis}
-          disabled={!selectedProject || photos.length === 0 || orchestrator.isRunning}
-          size="touch"
-        >
-          {orchestrator.isRunning ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Running full analysis...
-            </>
+        <div className="flex flex-wrap gap-2">
+          {selectedProject ? (
+            <Button asChild size="touch" variant="default">
+              <Link
+                to="/projects/$id/upload"
+                params={{ id: selectedProject.id }}
+                data-testid="analyze-continue-project-workflow"
+              >
+                <Camera className="h-4 w-4" />
+                Continue in project Photos
+              </Link>
+            </Button>
           ) : (
-            <>
-              <PlayCircle className="h-4 w-4" />
-              Run Full Analysis
-            </>
+            <Button asChild size="touch" variant="default">
+              <Link to="/projects/new" data-testid="analyze-new-project-entry">
+                <ArrowRight className="h-4 w-4" />
+                New Analysis
+              </Link>
+            </Button>
           )}
-        </Button>
+          <Button
+            onClick={handleRunFullAnalysis}
+            disabled={!selectedProject || photos.length === 0 || orchestrator.isRunning}
+            size="touch"
+            variant="outline"
+          >
+            {orchestrator.isRunning ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Running full analysis...
+              </>
+            ) : (
+              <>
+                <PlayCircle className="h-4 w-4" />
+                Run Full Analysis
+              </>
+            )}
+          </Button>
+        </div>
       }
     >
       {showCelebration && (

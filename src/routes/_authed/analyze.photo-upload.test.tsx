@@ -23,6 +23,8 @@ vi.mock("@tanstack/react-router", () => ({
     useSearch: () => useSearch(),
   }),
   useNavigate: () => navigate,
+  Link: ({ children, to, ...rest }: { children?: ReactNode; to: string; [key: string]: unknown }) =>
+    createElement("a", { href: typeof to === "string" ? to : "#", ...rest }, children),
 }));
 
 vi.mock("@/features/feasibility", () => ({

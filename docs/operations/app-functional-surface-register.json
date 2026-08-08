@@ -43,11 +43,11 @@
     "notes": "No surface marked WORKING. Controls inventoried individually. Routes reconciled against routeTree.gen.ts fullPaths. Perfect AST control discovery is NOT claimed."
   },
   "counts": {
-    "routes": 35,
+    "routes": 36,
     "controls": 182,
     "backendOperations": 48,
     "externalIntegrations": 15,
-    "totalSurfaces": 280,
+    "totalSurfaces": 281,
     "byStatus": {
       "WORKING": 0,
       "BROKEN": 7,
@@ -56,10 +56,10 @@
       "BLOCKED_CONFIGURATION": 1,
       "BLOCKED_EXTERNAL": 0,
       "INTENTIONALLY_HIDDEN": 1,
-      "NOT_TESTED": 261
+      "NOT_TESTED": 262
     },
     "byKind": {
-      "route": 35,
+      "route": 36,
       "control": 182,
       "backend": 48,
       "integration": 15
@@ -378,6 +378,27 @@
       "area": "studies",
       "route": "/studies/$id",
       "sourcePath": "src/routes/_authed/studies.$id.tsx",
+      "role": "authenticated",
+      "authClass": "authenticated"
+    },
+    {
+      "preconditions": [],
+      "testReference": "src/routes/_authed/-projects.index.ia7.test.ts",
+      "blocker": null,
+      "notes": "IA-7 canonical Projects browse surface",
+      "entitlement": "none",
+      "kind": "route",
+      "control": "Route /projects",
+      "operation": "Render and serve /projects",
+      "persistence": "none",
+      "expectedResult": "Route loads with correct auth class",
+      "actualResult": "Static inventory only; runtime not verified",
+      "status": "NOT_TESTED",
+      "severity": "P0",
+      "surfaceId": "route.projects.list",
+      "area": "projects",
+      "route": "/projects",
+      "sourcePath": "src/routes/_authed/projects.index.tsx",
       "role": "authenticated",
       "authClass": "authenticated"
     },
