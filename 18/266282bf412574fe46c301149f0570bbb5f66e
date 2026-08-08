@@ -1,0 +1,38 @@
+src/features/projects/domain/explainProjectNextActionReason.test.ts
+  h_7ea6129503670a 1-84
+src/features/projects/domain/explainProjectNextActionReason.ts
+  h_7ea6129503670a 1-49
+src/features/projects/domain/index.ts
+  h_7ea6129503670a 98-103
+src/features/projects/index.ts
+  h_7ea6129503670a 23,25,53-55
+src/features/projects/presentation/components/ProjectContinuationCard.test.tsx
+  h_7ea6129503670a 1-165
+src/features/projects/presentation/components/ProjectContinuationCard.tsx
+  h_7ea6129503670a 1-208
+src/features/projects/presentation/components/index.ts
+  h_7ea6129503670a 3-6
+src/features/projects/presentation/index.ts
+  h_7ea6129503670a 4,6
+src/routes/_authed/-projects.$id.overview.ia6.test.ts
+  h_7ea6129503670a 1-49
+src/routes/_authed/dashboard.test.tsx
+  h_7ea6129503670a 77-78
+src/routes/_authed/dashboard.tsx
+  h_7ea6129503670a 13,359
+src/routes/_authed/projects.$id.index.tsx
+  h_7ea6129503670a 33-35,41,43,108-112,140-150,152,156-161,167,170-201,303-363,372-375,377,380-386,395-396,405-411
+src/routes/_authed/projects.$id.upload.tsx
+  h_7ea6129503670a 356-358,361-363
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "18266282bf412574fe46c301149f0570bbb5f66e",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
