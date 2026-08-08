@@ -1,0 +1,36 @@
+scripts/probe-ia5-r1-authority.sql
+  h_7ea6129503670a 141,145,147-148
+scripts/probe-ia5-r2-current-estimate.sql
+  h_7ea6129503670a 1-146
+src/features/estimate/domain/estimateAuthority.test.ts
+  h_7ea6129503670a 1-56
+src/features/estimate/domain/estimateAuthority.ts
+  h_7ea6129503670a 1-47
+src/features/estimate/domain/index.ts
+  h_7ea6129503670a 24-28
+src/features/estimate/infrastructure/index.ts
+  h_7ea6129503670a 16-17
+src/features/estimate/infrastructure/repositories/estimate.repository.ts
+  h_7ea6129503670a 19-24,112-116,119,124,131,134-140,178,181-183,188
+src/features/projects/presentation/hooks/useProjectFiveStageWorkflow.ts
+  h_7ea6129503670a 68,78-92
+supabase/migrations/20260808140000_ia5_r2_semantic_current_estimate.sql
+  h_7ea6129503670a 1-465
+supabase/tests/database/ia5_r2_semantic_current_estimate.test.sql
+  h_7ea6129503670a 1-72
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 85
+tests/invariants/project-five-stage-continuity.invariant.test.ts
+  h_7ea6129503670a 122-139
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "9a7fb71d49e1b22b7a9282cbf7f2a065d72c3a99",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
