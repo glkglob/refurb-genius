@@ -20,7 +20,8 @@
 - ✅ **IA-5** Full Five-Stage Continuity **Completed** on main (PR #117; authority + currentness chain)
 - ✅ **IA-6** Dashboard + Overview Continuation **Completed** on main (PR #119; no migrations)
 - ✅ **IA-7** Global Navigation Convergence **Completed** on main (PR #120; verified head `d401a89`; merge `e8678f6`; six-destination IA; `/analyze` project entry; mobile More reachability; Studies demoted)
-- 🔜 **IA-8** Mobile Refinement and Production Readiness — **Planned / Next** (**not started**)
+- ✅ **IA-8** Mobile Refinement and Production Readiness **Completed** on main (PR #121; owner-approved head `4fb2448`; merge `95311f2`; no migrations; production verified on `www.refurbgenius.info`)
+- 🔜 **Public Beta Final Go/No-Go Review** — **Next programme gate** (not IA-9 implementation)
 
 ---
 

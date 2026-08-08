@@ -1732,12 +1732,28 @@ Proved:
 
 ## IA-8 — Mobile refinement
 
-**Status: Planned / Next** — requires explicit authorisation.
+**Status: Completed on main** (PR #121; owner-approved implementation head `4fb2448fc978b27be54a85d6ec1258814f209e76`; merge SHA `95311f22fceb733df0e1126ce1f88b1f0e51f3b5`; no database migrations; production deployment `dpl_BELU13dh9bZ4kuYgEEJrSBspTCyU` on `www.refurbgenius.info` serving merged main `95311f2`; owner visual sign-off APPROVED WITH P2 DEFERRED).
 
-- compact mobile navigation (target form refinement beyond IA-7 reachability);
-- project progress;
-- sticky primary action;
-- responsive accessibility.
+Proved:
+
+- mobile primary nav contract: Home | Projects | + New | Copilot | More
+  (More: Trades / Marketplace, Settings, Sign out; opaque overlays);
+- Dashboard prioritises project continuation ahead of empty commercial metrics;
+- Project cards use compact neutral no-image placeholder (no large blank teal media);
+- customer-facing Overview copy (`Track progress and continue your refurbishment`);
+  internal architecture wording removed;
+- five-stage mobile stage rail: fixed STAGES heading; items-only horizontal scroll;
+  Photos | Analysis | Redesign | Estimate | Export fully readable at 320/390;
+- Analysis trust presentation separates workflow completion from review quality;
+- Estimate mobile single dominant Review Scope CTA (`reconcile_scope` unchanged);
+- sticky next-action presentation-only; resolver / authority / currentness unchanged;
+- light/dark production coherence; desktop Sidebar six destinations retained.
+
+Deferred P2 (post-beta polish, not blocking): dense “Not set” metadata; further light-theme
+polish; minor stage-carousel neighbouring-item aesthetics.
+
+Next programme gate: **Public Beta Final Go/No-Go Review** (data/product correctness such as
+duplicate fixture names and £0 refurb values). **IA-9 is not authorised.**
 
 ## IA-9 — Scope / Estimate professional depth
 
