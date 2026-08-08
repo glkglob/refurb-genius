@@ -31,6 +31,9 @@ vi.mock("./logger", () => ({
 const sanitizeMock = vi.fn();
 vi.mock("./pdfSafeColors", () => ({
   sanitizeClonedDocumentForPdf: (...args: unknown[]) => sanitizeMock(...args),
+  uninstallPdfSafeComputedStyleHook: vi.fn(),
+  forcePdfSafeDocumentChrome: vi.fn(),
+  installPdfSafeComputedStyleHook: vi.fn(),
 }));
 
 describe("exportReportPdf oklch compatibility wiring", () => {
@@ -92,6 +95,21 @@ describe("exportReportPdf oklch compatibility wiring", () => {
 
     const { exportReportPdf } = await import("./exportPdf");
     await expect(exportReportPdf({ element: root })).rejects.toThrow(/oklch/i);
+    expect(jsPdfSave).not.toHaveBeenCalled();
+
+    root.remove();
+  });
+
+  it("IA-5-R4B: oklab renderer failures also settle without PDF save", async () => {
+    html2canvasMock.mockRejectedValue(
+      new Error('Attempting to parse an unsupported color function "oklab"'),
+    );
+    const root = document.createElement("div");
+    root.className = "print-area";
+    document.body.appendChild(root);
+
+    const { exportReportPdf } = await import("./exportPdf");
+    await expect(exportReportPdf({ element: root })).rejects.toThrow(/oklab/i);
     expect(jsPdfSave).not.toHaveBeenCalled();
 
     root.remove();

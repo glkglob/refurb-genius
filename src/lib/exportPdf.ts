@@ -9,13 +9,15 @@
 // This module is async-imported only when the user clicks "Export PDF" so
 // html2canvas + jspdf are not part of the main bundle.
 //
-// IA-5-R3B: design-system tokens use CSS oklch(); html2canvas 1.4.x cannot
-// parse them. Clone-only sanitisation (see pdfSafeColors) converts/flattens
-// colours before the renderer runs — live app styling is unchanged.
+// IA-5-R3B/R4B: design-system tokens use CSS oklch(); utilities emit
+// color-mix which Chromium often resolves to oklab(). html2canvas 1.4.x
+// cannot parse those Color-4 functions. Clone-only sanitisation
+// (see pdfSafeColors) converts/flattens colours before the renderer runs —
+// live app styling is unchanged.
 
 import { addDiagnosticBreadcrumb } from "./sentry";
 import { logger } from "./logger";
-import { sanitizeClonedDocumentForPdf } from "./pdfSafeColors";
+import { sanitizeClonedDocumentForPdf, uninstallPdfSafeComputedStyleHook } from "./pdfSafeColors";
 
 export type ExportPdfOptions = {
   /** Element to capture. Defaults to `document.querySelector('.print-area')`. */
@@ -73,28 +75,53 @@ export async function exportReportPdf(options: ExportPdfOptions = {}): Promise<v
     addDiagnosticBreadcrumb("pdf:export:rendering-canvas");
     onProgress?.("rendering-canvas");
 
-    // Race canvas rendering against timeout
-    const canvas = await Promise.race([
-      html2canvas(element, {
-        scale,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: "#ffffff",
-        onclone(clonedDoc, clonedElement) {
-          // Clone-only: rewrite/flatten oklch design tokens so html2canvas
-          // never attempts to parse CSS Color 4 functions.
-          sanitizeClonedDocumentForPdf(clonedDoc, {
-            sourceDoc: document,
-            liveRoot: element,
-            clonedRoot: clonedElement as HTMLElement,
-          });
-          if (clonedDoc.body) {
-            clonedDoc.body.style.background = "#ffffff";
-          }
-        },
-      }),
-      timeoutPromise,
-    ]);
+    // Race canvas rendering against timeout. Temporary getComputedStyle hook
+    // (installed inside sanitize) is always removed after capture.
+    let canvas: HTMLCanvasElement;
+    try {
+      canvas = await Promise.race([
+        html2canvas(element, {
+          scale,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: "#ffffff",
+          onclone(clonedDoc, clonedElement) {
+            // Clone-only: rewrite/flatten Color-4 tokens (oklch/oklab/color-mix)
+            // + scoped getComputedStyle hook so html2canvas parseColor never sees
+            // Chromium's oklab serialisation of theme colours.
+            try {
+              sanitizeClonedDocumentForPdf(clonedDoc, {
+                sourceDoc: document,
+                liveRoot: element,
+                clonedRoot: clonedElement as HTMLElement,
+              });
+            } catch (sanitizeErr) {
+              logger.error("[pdf] colour sanitiser failed", {
+                error: sanitizeErr instanceof Error ? sanitizeErr.message : String(sanitizeErr),
+              });
+              throw sanitizeErr;
+            }
+            if (clonedDoc.documentElement instanceof HTMLElement) {
+              clonedDoc.documentElement.style.setProperty(
+                "background-color",
+                "#ffffff",
+                "important",
+              );
+              clonedDoc.documentElement.style.setProperty("background", "#ffffff", "important");
+              clonedDoc.documentElement.style.setProperty("color", "rgb(17, 24, 39)", "important");
+            }
+            if (clonedDoc.body) {
+              clonedDoc.body.style.setProperty("background-color", "#ffffff", "important");
+              clonedDoc.body.style.setProperty("background", "#ffffff", "important");
+              clonedDoc.body.style.setProperty("color", "rgb(17, 24, 39)", "important");
+            }
+          },
+        }),
+        timeoutPromise,
+      ]);
+    } finally {
+      uninstallPdfSafeComputedStyleHook();
+    }
 
     const imgData = canvas.toDataURL("image/jpeg", 0.92);
     const imgWidthPx = canvas.width;
