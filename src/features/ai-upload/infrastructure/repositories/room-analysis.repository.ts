@@ -32,12 +32,17 @@ function isAnalysisSource(value: unknown): value is AnalysisSource {
 }
 
 /**
- * Map migration-built jsonb columns (generated as Json) to domain string[].
+ * Map durable room_analyses list columns to domain string[].
+ * Accepts PostgREST/jsonb historical Json arrays and canonical text[] (string[]).
  */
-export function jsonToStringArray(value: Json | null | undefined): string[] {
+export function jsonToStringArray(value: Json | string[] | null | undefined): string[] {
   if (value == null) return [];
   if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === "string");
+  const out: string[] = [];
+  for (const item of value) {
+    if (typeof item === "string") out.push(item);
+  }
+  return out;
 }
 
 const cache = new Map<string, RoomAnalysis[]>();

@@ -31,10 +31,14 @@ function isAnalysisSource(value: unknown): value is AnalysisSource {
   return typeof value === "string" && VALID_SOURCES.has(value);
 }
 
-function jsonToStringArray(value: Json | null | undefined): string[] {
+function jsonToStringArray(value: Json | string[] | null | undefined): string[] {
   if (value == null) return [];
   if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === "string");
+  const out: string[] = [];
+  for (const item of value) {
+    if (typeof item === "string") out.push(item);
+  }
+  return out;
 }
 
 /** Pure row map — mirrors browser repository without importing browser clients. */
