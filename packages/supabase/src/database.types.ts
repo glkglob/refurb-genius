@@ -1347,7 +1347,7 @@ export type Database = {
           is_selected: boolean;
           photo_id: string | null;
           project_id: string;
-          style: string | null;
+          style: string;
           title: string;
           updated_at: string;
           user_id: string;
@@ -1361,7 +1361,7 @@ export type Database = {
           is_selected?: boolean;
           photo_id?: string | null;
           project_id: string;
-          style?: string | null;
+          style: string;
           title: string;
           updated_at?: string;
           user_id: string;
@@ -1375,12 +1375,19 @@ export type Database = {
           is_selected?: boolean;
           photo_id?: string | null;
           project_id?: string;
-          style?: string | null;
+          style?: string;
           title?: string;
           updated_at?: string;
           user_id?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "redesign_concepts_photo_id_fkey";
+            columns: ["photo_id"];
+            isOneToOne: false;
+            referencedRelation: "photos";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "redesign_concepts_project_id_fkey";
             columns: ["project_id"];
@@ -1401,12 +1408,12 @@ export type Database = {
           photo_name: string;
           photo_url: string;
           project_id: string;
-          recommended_works: Json;
+          recommended_works: string[];
           refurbishment_level: string;
           room_type: string;
           source: string;
           user_id: string;
-          visible_issues: Json;
+          visible_issues: string[];
         };
         Insert: {
           ai_summary?: string;
@@ -1418,12 +1425,12 @@ export type Database = {
           photo_name: string;
           photo_url: string;
           project_id: string;
-          recommended_works?: Json;
+          recommended_works?: string[];
           refurbishment_level: string;
           room_type: string;
           source?: string;
           user_id: string;
-          visible_issues?: Json;
+          visible_issues?: string[];
         };
         Update: {
           ai_summary?: string;
@@ -1435,12 +1442,12 @@ export type Database = {
           photo_name?: string;
           photo_url?: string;
           project_id?: string;
-          recommended_works?: Json;
+          recommended_works?: string[];
           refurbishment_level?: string;
           room_type?: string;
           source?: string;
           user_id?: string;
-          visible_issues?: Json;
+          visible_issues?: string[];
         };
         Relationships: [
           {
@@ -2122,86 +2129,38 @@ export type Database = {
           user_id: string;
         };
       };
-      select_project_redesign_concept: {
-        Args: { p_concept_id: string; p_project_id: string };
-        Returns: {
-          analysis_identity: string;
-          created_at: string;
-          description: string | null;
-          id: string;
-          image_url: string | null;
-          is_selected: boolean;
-          photo_id: string | null;
-          project_id: string;
-          style: string | null;
-          title: string;
-          updated_at: string;
-          user_id: string;
-        };
-      };
-      replace_project_redesign_candidates: {
-        Args: { p_concepts: Json; p_project_id: string };
-        Returns: {
-          analysis_identity: string;
-          created_at: string;
-          description: string | null;
-          id: string;
-          image_url: string | null;
-          is_selected: boolean;
-          photo_id: string | null;
-          project_id: string;
-          style: string | null;
-          title: string;
-          updated_at: string;
-          user_id: string;
-        }[];
-      };
-      replace_project_room_analyses: {
-        Args: { p_analyses: Json; p_project_id: string };
-        Returns: {
-          ai_summary: string;
-          condition_level: string;
-          confidence_score: number;
-          created_at: string;
-          id: string;
-          photo_id: string | null;
-          photo_name: string;
-          photo_url: string;
-          project_id: string;
-          recommended_works: Json;
-          refurbishment_level: string;
-          room_type: string;
-          source: string;
-          user_id: string;
-          visible_issues: Json;
-        }[];
-      };
       create_project_photo_metadata: {
         Args: {
-          p_project_id: string;
+          p_name: string;
           p_photo_id: string;
+          p_project_id: string;
+          p_size: number;
           p_storage_path: string;
           p_url: string;
-          p_name: string;
-          p_size: number;
         };
         Returns: {
           id: string;
-          project_id: string;
-          user_id: string;
-          storage_path: string;
-          url: string;
           name: string;
+          project_id: string;
           size: number;
+          storage_path: string;
           uploaded_at: string;
+          url: string;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "photos";
+          isOneToOne: true;
+          isSetofReturn: false;
         };
       };
       delete_project_photo_metadata: {
         Args: { p_photo_id: string };
         Returns: {
           id: string;
-          storage_path: string;
           project_id: string;
+          storage_path: string;
         }[];
       };
       get_current_project_analysis_authority: {
@@ -2216,13 +2175,19 @@ export type Database = {
           photo_name: string;
           photo_url: string;
           project_id: string;
-          recommended_works: Json;
+          recommended_works: string[];
           refurbishment_level: string;
           room_type: string;
           source: string;
           user_id: string;
-          visible_issues: Json;
+          visible_issues: string[];
         }[];
+        SetofOptions: {
+          from: "*";
+          to: "room_analyses";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
       };
       measured_boq_catalog_assert_parent_draft: {
         Args: { p_revision: string };
@@ -2295,6 +2260,55 @@ export type Database = {
         };
         Returns: Json;
       };
+      replace_project_redesign_candidates: {
+        Args: { p_concepts: Json; p_project_id: string };
+        Returns: {
+          analysis_identity: string;
+          created_at: string;
+          description: string | null;
+          id: string;
+          image_url: string | null;
+          is_selected: boolean;
+          photo_id: string | null;
+          project_id: string;
+          style: string;
+          title: string;
+          updated_at: string;
+          user_id: string;
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "redesign_concepts";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
+      replace_project_room_analyses: {
+        Args: { p_analyses: Json; p_project_id: string };
+        Returns: {
+          ai_summary: string;
+          condition_level: string;
+          confidence_score: number;
+          created_at: string;
+          id: string;
+          photo_id: string | null;
+          photo_name: string;
+          photo_url: string;
+          project_id: string;
+          recommended_works: string[];
+          refurbishment_level: string;
+          room_type: string;
+          source: string;
+          user_id: string;
+          visible_issues: string[];
+        }[];
+        SetofOptions: {
+          from: "*";
+          to: "room_analyses";
+          isOneToOne: false;
+          isSetofReturn: true;
+        };
+      };
       resolve_share_link: {
         Args: { p_token: string };
         Returns: {
@@ -2324,6 +2338,29 @@ export type Database = {
           p_revision_id: string;
         };
         Returns: Json;
+      };
+      select_project_redesign_concept: {
+        Args: { p_concept_id: string; p_project_id: string };
+        Returns: {
+          analysis_identity: string;
+          created_at: string;
+          description: string | null;
+          id: string;
+          image_url: string | null;
+          is_selected: boolean;
+          photo_id: string | null;
+          project_id: string;
+          style: string;
+          title: string;
+          updated_at: string;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "redesign_concepts";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       uuid_v7: { Args: never; Returns: string };
     };
