@@ -1,0 +1,20 @@
+src/features/projects/presentation/components/ProjectContinuationCard.test.tsx
+  h_7ea6129503670a 165-203
+src/features/projects/presentation/components/ProjectContinuationCard.tsx
+  h_7ea6129503670a 9,88-100
+src/features/projects/presentation/components/ProjectStageNav.test.tsx
+  h_7ea6129503670a 95-122
+src/features/projects/presentation/components/ProjectStageNav.tsx
+  h_7ea6129503670a 9-11,13,88-111,116,118-122,125-128,130-131,133-134,137-143,145-149,152-192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "4fb2448fc978b27be54a85d6ec1258814f209e76",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
