@@ -73,6 +73,19 @@ describe("MobileTopBar IA-8 final mobile destinations", () => {
     expect(within(settings).getByText("Settings")).toBeTruthy();
   });
 
+  it("More menu surface uses shared bg-popover (opaque theme token; IA-8-R1)", async () => {
+    render(createElement(MobileTopBar));
+    await openMoreMenu();
+    const menu = await screen.findByRole("menu");
+    // Runtime opacity is enforced by Tailwind @theme registration of --color-popover;
+    // the menu must keep the design-system surface class (not bg-white / transparent).
+    expect(menu.className).toMatch(/\bbg-popover\b/);
+    expect(menu.className).toMatch(/\btext-popover-foreground\b/);
+    expect(menu.className).not.toMatch(/\bbg-transparent\b/);
+    expect(menu.className).not.toMatch(/\bbg-white\b/);
+    expect(menu.className).toMatch(/\bz-50\b/);
+  });
+
   it("does not hard-code a second nav route map (reuses GLOBAL_NAV_ITEMS helpers)", () => {
     const src = readFileSync(join(__dirname, "MobileTopBar.tsx"), "utf8");
     expect(src).toMatch(/getMobilePrimaryNavItems|getMobileMoreNavItems/);
