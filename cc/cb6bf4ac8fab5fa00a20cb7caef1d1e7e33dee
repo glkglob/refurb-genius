@@ -1,0 +1,20 @@
+src/components/RedesignCard.tsx
+  h_7ea6129503670a 125-126
+src/routes/_authed/-projects.$id.redesign.shell.test.ts
+  h_7ea6129503670a 1-92
+src/routes/_authed/projects.$id.redesign.tsx
+  h_7ea6129503670a 289,294-299,366-371,373,378-381
+tests/invariants/project-first-class-redesign.invariant.test.ts
+  h_7ea6129503670a 103-120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "cccb6bf4ac8fab5fa00a20cb7caef1d1e7e33dee",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
