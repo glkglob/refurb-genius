@@ -57,6 +57,16 @@ test("IA-3 Photos and Analysis routes consume canonical resolver", () => {
   assert.match(analysis, /create_redesign|\/projects\/\$id\/redesign/);
 });
 
+test("IA-5-R3A Photos route uses durable Analysis currency for shell and next action", () => {
+  const upload = read("src/routes/_authed/projects.$id.upload.tsx");
+  // Must load durable analyses (not hardcode analyses: []).
+  assert.match(upload, /loadPhotoAnalysis|getPhotoAnalysis/);
+  assert.match(upload, /analysisShellFlagsFromCurrency/);
+  assert.match(upload, /analysisNeedsAttention/);
+  // Must not force empty analysis evidence for the resolver.
+  assert.doesNotMatch(upload, /analyses:\s*\[\s*\]/);
+});
+
 test("IA-3 photos adapter does not invent Scope/Estimate provenance fields", () => {
   // Lexical: adapter must not invent redesign_done or estimate/export provenance fields.
   const adapter = read("src/features/projects/domain/photosAnalysisWorkflowAdapter.ts");

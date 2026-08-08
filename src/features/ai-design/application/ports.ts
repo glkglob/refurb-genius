@@ -21,6 +21,10 @@ export type SaveScopeAnalysisCommand = {
   analysis: ScopeAnalysisResult;
   region: string;
   notes?: string;
+  /**
+   * IA-5-R1: provenance is server-derived by save_project_scope_analysis.
+   * Do not send analysis_identity / redesign_* as write authority.
+   */
 };
 
 export interface ScopeAnalysisRepository {

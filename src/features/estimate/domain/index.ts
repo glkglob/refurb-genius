@@ -21,6 +21,11 @@ export type {
 } from "./types";
 export type { GenerateEstimateInput, AIGeneratedRoom, AIGeneratedItem } from "./aiEstimate.types";
 export { lineItemsTotal, isActionableEstimate } from "./rules";
+export {
+  isAuthoritativePricingAuthority,
+  selectCurrentAuthorityEstimateRow,
+  type EstimateAuthorityRowLike,
+} from "./estimateAuthority";
 
 export {
   runPricingEngine,

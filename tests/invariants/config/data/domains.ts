@@ -184,6 +184,22 @@ export const DATA_DOMAINS: DataDomain[] = [
     persistenceKind: "persistent",
   },
   {
+    id: "export-report",
+    label: "Project Export / report authority",
+    owner: "refurb-genius",
+    tables: ["project_export_snapshots"],
+    storageBuckets: [],
+    sourceOfTruth: "project_export_snapshots bound to estimates",
+    persistenceLayer: "src/features/export infrastructure",
+    tenantScope: "authenticated-user",
+    lifecycle: "IA-5 Export Complete only when snapshot matches current Estimate",
+    maturity: "live",
+    enforcementStatus: "partial",
+    persistenceKind: "persistent",
+    notes:
+      "IA-5: RLS owner select/insert; snapshot Completeness is application + provenance adapters.",
+  },
+  {
     id: "deal-copilot",
     label: "Deal Copilot opportunities & chat",
     owner: "deal-copilot",

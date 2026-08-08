@@ -5,7 +5,11 @@ import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/LoadingState";
 import { AIEstimateBuilder } from "@/components/AIEstimateBuilder";
 import { EstimateBuilder } from "@/components/EstimateBuilder";
-import { ProjectWorkflowShell, progressFromProjectFlags } from "@/features/projects";
+import {
+  ProjectWorkflowShell,
+  progressFromProjectFlags,
+  useProjectFiveStageWorkflow,
+} from "@/features/projects";
 import {
   Badge,
   Button,
@@ -56,7 +60,7 @@ import {
 import { runRoiEngine, type RoiRiskLevel as RiskLevel } from "@/features/roi";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { saveAuthorityCategoryEstimateServerFn } from "@/features/estimate";
+import { bindEstimateToScope, saveAuthorityCategoryEstimateServerFn } from "@/features/estimate";
 import { projectKeys } from "@/lib/queries/projects";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -118,6 +122,9 @@ function EstimatePage() {
 function EstimateContent({ id, project }: { id: string; project: ProjectWithProgress }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const fiveStage = useProjectFiveStageWorkflow(id);
+  const shellProgress = fiveStage.shellProgress ?? progressFromProjectFlags(project);
+  const nextAction = fiveStage.nextAction;
   const { from } = Route.useSearch();
 
   // Read scope rooms from sessionStorage when navigating from scope analysis
@@ -275,12 +282,30 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
         return;
       }
 
-      // Success: rotate key and navigate.
+      // Success: rotate key, bind Scope provenance (IA-5), navigate.
       idempotencyKeyRef.current = null;
       lastIntentRef.current = "";
 
+      const estimateId =
+        typeof response.data?.estimateId === "string" ? response.data.estimateId : null;
+      if (estimateId && fiveStage.scopeId) {
+        try {
+          await bindEstimateToScope({ estimateId, scopeId: fiveStage.scopeId });
+        } catch (bindErr) {
+          logger.error("[estimates] IA-5 scope bind failed", { error: String(bindErr) });
+          toast.error(
+            "Estimate saved but could not bind to current Scope. Review Scope and update estimate.",
+          );
+          await fiveStage.reload();
+          return;
+        }
+      } else if (!fiveStage.scopeId) {
+        toast.message("Review Scope before treating this Estimate as current.");
+      }
+
       await queryClient.invalidateQueries({ queryKey: projectKeys.byId(id) });
       await queryClient.invalidateQueries({ queryKey: projectKeys.all, exact: true });
+      await fiveStage.reload();
       navigate({ to: "/projects/$id/report", params: { id } });
     } catch (err) {
       // Input-validator / unexpected transport failures.
@@ -289,21 +314,55 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
     }
   }
 
+  const needsScopeReconcile =
+    nextAction?.actionKind === "reconcile_scope" ||
+    fiveStage.workflow?.scope.currency === "absent" ||
+    fiveStage.workflow?.scope.currency === "non_current";
+
   return (
     <ProjectWorkflowShell
       project={project}
       route={{ surface: "estimate" }}
-      progress={progressFromProjectFlags(project)}
+      progress={shellProgress}
       pageTitle={project.name?.trim() || "Estimate"}
       pageSubtitle="Region, condition and finish-aware UK refurbishment calculator."
       actions={
-        <Button asChild>
-          <Link to="/projects/$id/report" params={{ id }} onClick={handleReportClick}>
-            View investor report <ArrowRight className="ml-1 h-4 w-4" />
-          </Link>
-        </Button>
+        needsScopeReconcile ? (
+          <Button asChild>
+            <Link to="/projects/$id/scope" params={{ id }}>
+              Review Scope <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild>
+            <Link to="/projects/$id/report" params={{ id }} onClick={handleReportClick}>
+              {nextAction?.actionKind === "update_estimate"
+                ? "Update Estimate & report"
+                : "View investor report"}{" "}
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
+        )
       }
     >
+      {needsScopeReconcile ? (
+        <Card className="mb-6 border-amber-500/40 bg-amber-500/5">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Scope needs review</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Align Scope with the current Analysis and selected Redesign before treating the
+                Estimate as current. Scope is not a separate journey stage.
+              </p>
+            </div>
+            <Button asChild className="shrink-0">
+              <Link to="/projects/$id/scope" params={{ id }}>
+                Review Scope
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
       <Tabs defaultValue={scopeRooms ? "ai" : "quick"}>
         <TabsList className="mb-6 flex h-auto flex-wrap gap-1">
           <TabsTrigger value="quick">

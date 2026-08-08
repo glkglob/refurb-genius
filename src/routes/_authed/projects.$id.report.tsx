@@ -33,9 +33,9 @@ import {
 } from "@/features/ai-upload";
 import { useProject } from "@/hooks/useProjects";
 import {
-  useSetProjectStage,
   ProjectWorkflowShell,
   progressFromProjectFlags,
+  useProjectFiveStageWorkflow,
 } from "@/features/projects";
 import { formatGBP } from "@/core/pricing";
 import { buildReport } from "@/core/reports";
@@ -44,6 +44,7 @@ import {
   persistedEstimateInput,
   type PersistedProjectEstimate,
 } from "@/features/estimate";
+import { saveExportSnapshot } from "@/features/export/infrastructure";
 
 export const Route = createFileRoute("/_authed/projects/$id/report")({
   head: () => ({ meta: [{ title: "Investor report — Refurb Genius" }] }),
@@ -54,7 +55,7 @@ function ReportPage() {
   const { id } = Route.useParams();
   const { data: project, isLoading: projectLoading, error: projectError } = useProject(id);
   const { data: photos = [] } = usePhotos(id);
-  const setStage = useSetProjectStage();
+  const fiveStage = useProjectFiveStageWorkflow(id);
   const [analysis, setAnalysis] = useState<RoomAnalysis[]>(() => getPhotoAnalysis(id) ?? []);
   const analysisProjectIdRef = useRef(id);
   const [savedEstimate, setSavedEstimate] = useState<PersistedProjectEstimate | null>(null);
@@ -94,6 +95,23 @@ function ReportPage() {
           }
         },
       });
+
+      // IA-5: durable Export snapshot bound to current Estimate (download alone ≠ Complete).
+      const estimateId = savedEstimate?.estimate.id ?? fiveStage.estimateId;
+      if (estimateId) {
+        try {
+          await saveExportSnapshot({ projectId: id, estimateId, kind: "investor_report" });
+          await fiveStage.reload();
+        } catch (snapErr) {
+          logger.error("[export] IA-5 snapshot save failed", { error: String(snapErr) });
+          toast.error("PDF exported, but Export authority could not be recorded. Try again.");
+          setPdfProgress(null);
+          return;
+        }
+      } else {
+        toast.message("PDF exported. Build a current Estimate before Export is Complete.");
+      }
+
       toast.success("Report exported successfully!", { id: toastId });
       trackReportExported("project-report");
       setPdfProgress(null);
@@ -105,7 +123,7 @@ function ReportPage() {
     } finally {
       setPdfExporting(false);
     }
-  }, [pdfExporting, project]);
+  }, [pdfExporting, project, savedEstimate, fiveStage, id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -142,11 +160,12 @@ function ReportPage() {
       }
     };
 
+    // IA-5: page visit MUST NOT set report_done / Export Complete.
+    // Export Completeness requires a durable snapshot bound to current Estimate.
     if (analysisProjectIdRef.current !== id) {
       analysisProjectIdRef.current = id;
       setAnalysis([]);
       void resolveAnalysis();
-      if (!project.report_done) setStage.mutate({ id, stage: "report", value: true });
       return () => {
         cancelled = true;
       };
@@ -154,12 +173,9 @@ function ReportPage() {
 
     void resolveAnalysis();
 
-    if (!project.report_done) setStage.mutate({ id, stage: "report", value: true });
-
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, project, photos]);
 
   useEffect(() => {
@@ -291,11 +307,13 @@ function ReportPage() {
     year: "numeric",
   });
 
+  const shellProgress = fiveStage.shellProgress ?? progressFromProjectFlags(project);
+
   return (
     <ProjectWorkflowShell
       project={project}
       route={{ surface: "report" }}
-      progress={progressFromProjectFlags(project)}
+      progress={shellProgress}
       pageTitle={project.name?.trim() || "Export"}
       pageSubtitle="Investor-ready export from the current estimate."
       actions={

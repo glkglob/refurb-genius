@@ -1,7 +1,11 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppLayout } from "@/components/AppLayout";
-import { ProjectWorkflowShell, progressFromProjectFlags } from "@/features/projects";
+import {
+  ProjectWorkflowShell,
+  progressFromProjectFlags,
+  useProjectFiveStageWorkflow,
+} from "@/features/projects";
 import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import { Badge, Button, Card, CardContent, Checkbox, Label, Textarea } from "@repo/ui";
@@ -144,6 +148,7 @@ function ScopeContent({
 }) {
   const navigate = useNavigate();
   const { data: photos = [], isLoading: photosLoading } = usePhotos(id);
+  const fiveStage = useProjectFiveStageWorkflow(id);
   const scopeAnalysis = useScopeAnalysis();
   const { data: savedAnalysis, isLoading: savedLoading } = useSavedScopeAnalysis(id);
   const saveScopeMutation = useSaveScopeAnalysis();
@@ -202,7 +207,7 @@ function ScopeContent({
             `Analysis complete — ${data.rooms.length} rooms, ${data.rooms.reduce((s, r) => s + r.issues.length, 0)} issues detected`,
           );
 
-          // Auto-save to database
+          // IA-5-R1: content only — server derives Analysis + Redesign provenance.
           saveScopeMutation.mutate(
             {
               projectId: id,
@@ -213,10 +218,18 @@ function ScopeContent({
             {
               onSuccess: () => {
                 toast.success("Scope analysis saved");
+                void fiveStage.reload();
               },
               onError: (err) => {
                 logger.error("[scope] Failed to save scope analysis", { error: String(err) });
-                toast.error("Analysis complete but failed to save — results are visible above");
+                const msg = err instanceof Error ? err.message : String(err);
+                if (/analysis_not_current|redesign_not_current|stale/i.test(msg)) {
+                  toast.error(
+                    "Scope could not be published: Analysis or selected Redesign is not current.",
+                  );
+                } else {
+                  toast.error("Analysis complete but failed to save — results are visible above");
+                }
               },
             },
           );
@@ -287,13 +300,15 @@ function ScopeContent({
     navigate({ to: "/projects/$id/estimate", params: { id }, search: { from: "scope" } });
   }
 
+  const shellProgress = fiveStage.shellProgress ?? progressFromProjectFlags(project);
+
   return (
     <ProjectWorkflowShell
       project={project}
       route={{ surface: "scope" }}
-      progress={progressFromProjectFlags(project)}
+      progress={shellProgress}
       pageTitle={project.name?.trim() || "Scope"}
-      pageSubtitle="Photo-based condition assessment with costed scope of works."
+      pageSubtitle="Professional editor of the same canonical Scope authority (not a sixth journey stage)."
       actions={
         result ? (
           <div className="flex gap-2">
@@ -311,7 +326,7 @@ function ScopeContent({
               )}
             </Button>
             <Button onClick={handleOpenEstimateBuilder}>
-              Open estimate builder <ArrowRight className="ml-1 h-4 w-4" />
+              Continue to Estimate <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
           </div>
         ) : undefined

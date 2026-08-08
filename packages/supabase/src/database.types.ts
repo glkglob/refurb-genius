@@ -374,6 +374,7 @@ export type Database = {
           finish_level: string;
           high_total: number;
           id: string;
+          input_scope_id: string | null;
           labour_total: number;
           low_total: number;
           materials_total: number;
@@ -401,6 +402,7 @@ export type Database = {
           finish_level: string;
           high_total?: number;
           id?: string;
+          input_scope_id?: string | null;
           labour_total?: number;
           low_total?: number;
           materials_total?: number;
@@ -428,6 +430,7 @@ export type Database = {
           finish_level?: string;
           high_total?: number;
           id?: string;
+          input_scope_id?: string | null;
           labour_total?: number;
           low_total?: number;
           materials_total?: number;
@@ -453,6 +456,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "measured_boq_catalog_revisions";
             referencedColumns: ["catalog_revision"];
+          },
+          {
+            foreignKeyName: "estimates_input_scope_id_fkey";
+            columns: ["input_scope_id"];
+            isOneToOne: false;
+            referencedRelation: "scope_analyses";
+            referencedColumns: ["id"];
           },
           {
             foreignKeyName: "estimates_project_id_fkey";
@@ -1169,6 +1179,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      project_export_snapshots: {
+        Row: {
+          created_at: string;
+          estimate_id: string;
+          id: string;
+          kind: string;
+          project_id: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          estimate_id: string;
+          id?: string;
+          kind?: string;
+          project_id: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          estimate_id?: string;
+          id?: string;
+          kind?: string;
+          project_id?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "project_export_snapshots_estimate_id_fkey";
+            columns: ["estimate_id"];
+            isOneToOne: false;
+            referencedRelation: "estimates";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "project_export_snapshots_project_id_fkey";
+            columns: ["project_id"];
+            isOneToOne: false;
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       projects: {
         Row: {
           address: string;
@@ -1464,33 +1516,42 @@ export type Database = {
       };
       scope_analyses: {
         Row: {
+          analysis_identity: string;
           created_at: string;
           id: string;
           notes: string | null;
           overall_score: number;
           property_id: string;
+          redesign_concept_id: string | null;
+          redesign_identity: string;
           region: string | null;
           summary: string | null;
           updated_at: string;
           user_id: string;
         };
         Insert: {
+          analysis_identity?: string;
           created_at?: string;
           id?: string;
           notes?: string | null;
           overall_score?: number;
           property_id: string;
+          redesign_concept_id?: string | null;
+          redesign_identity?: string;
           region?: string | null;
           summary?: string | null;
           updated_at?: string;
           user_id: string;
         };
         Update: {
+          analysis_identity?: string;
           created_at?: string;
           id?: string;
           notes?: string | null;
           overall_score?: number;
           property_id?: string;
+          redesign_concept_id?: string | null;
+          redesign_identity?: string;
           region?: string | null;
           summary?: string | null;
           updated_at?: string;
@@ -2029,6 +2090,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      bind_estimate_input_scope: {
+        Args: { p_estimate_id: string; p_scope_id: string };
+        Returns: undefined;
+      };
       create_project_photo_metadata: {
         Args: {
           p_name: string;
@@ -2088,6 +2153,35 @@ export type Database = {
           isOneToOne: false;
           isSetofReturn: true;
         };
+      };
+      ia5_derive_current_analysis_identity: {
+        Args: { p_project_id: string; p_uid: string };
+        Returns: string;
+      };
+      ia5_is_authoritative_estimate_pricing: {
+        Args: { p_pricing_authority: string };
+        Returns: boolean;
+      };
+      ia5_resolve_current_estimate_id: {
+        Args: {
+          p_current_scope_id: string;
+          p_project_id: string;
+          p_uid: string;
+        };
+        Returns: string;
+      };
+      ia5_resolve_current_scope_id: {
+        Args: {
+          p_analysis_identity: string;
+          p_project_id: string;
+          p_redesign_identity: string;
+          p_uid: string;
+        };
+        Returns: string;
+      };
+      ia5_resolve_current_scope_id_for_project: {
+        Args: { p_project_id: string; p_uid: string };
+        Returns: string;
       };
       is_admin: { Args: never; Returns: boolean };
       measured_boq_catalog_assert_parent_draft: {
@@ -2160,6 +2254,23 @@ export type Database = {
           p_revision_id: string;
         };
         Returns: Json;
+      };
+      publish_project_export_snapshot: {
+        Args: { p_estimate_id: string; p_kind?: string; p_project_id: string };
+        Returns: {
+          created_at: string;
+          estimate_id: string;
+          id: string;
+          kind: string;
+          project_id: string;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "project_export_snapshots";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       replace_project_redesign_candidates: {
         Args: { p_concepts: Json; p_project_id: string };
@@ -2239,6 +2350,36 @@ export type Database = {
           p_revision_id: string;
         };
         Returns: Json;
+      };
+      save_project_scope_analysis: {
+        Args: {
+          p_notes: string;
+          p_overall_score: number;
+          p_project_id: string;
+          p_region: string;
+          p_rooms: Json;
+          p_summary: string;
+        };
+        Returns: {
+          analysis_identity: string;
+          created_at: string;
+          id: string;
+          notes: string | null;
+          overall_score: number;
+          property_id: string;
+          redesign_concept_id: string | null;
+          redesign_identity: string;
+          region: string | null;
+          summary: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "scope_analyses";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       select_project_redesign_concept: {
         Args: { p_concept_id: string; p_project_id: string };

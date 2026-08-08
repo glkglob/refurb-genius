@@ -286,12 +286,17 @@ function RedesignPage() {
     actions: (
       <div className="flex flex-wrap gap-2">
         {primaryIsProgress || generating ? (
-          <Button disabled>
+          <Button disabled data-testid="redesign-generate" aria-busy="true">
             <RefreshCw className="mr-1 h-4 w-4 animate-spin" />
             {generating ? "Generating concepts…" : primaryLabel}
           </Button>
         ) : primaryIsCreate ? (
-          <Button onClick={() => void handleGenerate()} disabled={generating}>
+          <Button
+            onClick={() => void handleGenerate()}
+            disabled={generating}
+            data-testid="redesign-generate"
+            aria-label={`${primaryLabel} — generate concepts from current Analysis`}
+          >
             <Sparkles className="mr-1 h-4 w-4" />
             {primaryLabel}
           </Button>
@@ -358,14 +363,22 @@ function RedesignPage() {
             title="No redesign concepts yet"
             description="Generate style concepts from your current Analysis. You will choose one before Redesign is complete."
             action={
-              <Button onClick={() => void handleGenerate()} disabled={generating}>
+              <Button
+                onClick={() => void handleGenerate()}
+                disabled={generating}
+                data-testid="redesign-generate"
+                aria-label={`${primaryLabel} — generate concepts from current Analysis`}
+              >
                 <Sparkles className="mr-1 h-4 w-4" />
-                Create Redesign
+                {primaryLabel}
               </Button>
             }
           />
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div
+            className="grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+            data-testid="redesign-candidates"
+          >
             {candidates.map((c) => (
               <RedesignCard
                 key={c.id}

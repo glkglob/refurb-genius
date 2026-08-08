@@ -17,7 +17,6 @@ const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const STAGE_MUTATION_ROUTES = [
   "src/routes/_authed/projects.$id.upload.tsx",
   "src/routes/_authed/projects.$id.analysis.tsx",
-  "src/routes/_authed/projects.$id.report.tsx",
 ] as const;
 
 /**
@@ -28,7 +27,14 @@ const STAGE_MUTATION_ROUTES = [
  */
 const ESTIMATE_ROUTE = "src/routes/_authed/projects.$id.estimate.tsx";
 
-const ROUTES = [...STAGE_MUTATION_ROUTES, ESTIMATE_ROUTE] as const;
+/**
+ * IA-5 Export/report route:
+ * - Export Complete requires durable snapshot bound to current Estimate
+ * - page visit must NOT set report_done via useSetProjectStage
+ */
+const REPORT_ROUTE = "src/routes/_authed/projects.$id.report.tsx";
+
+const ROUTES = [...STAGE_MUTATION_ROUTES, ESTIMATE_ROUTE, REPORT_ROUTE] as const;
 
 const HOOK = "src/features/projects/presentation/hooks/useSetProjectStage.ts";
 const REPO = "src/features/projects/infrastructure/projectStageRepository.ts";
@@ -119,6 +125,21 @@ test("project stage — estimate route does not call useSetProjectStage (4C2B RP
     /stage:\s*["']estimate["']/,
     `${ESTIMATE_ROUTE} must not mark estimate stage from the browser`,
   );
+});
+
+test("project stage — report route does not call useSetProjectStage (IA-5 snapshot owns Export)", () => {
+  const text = read(REPORT_ROUTE);
+  assert.doesNotMatch(
+    text,
+    /useSetProjectStage/,
+    `${REPORT_ROUTE} must not use useSetProjectStage; Export Complete is snapshot-bound`,
+  );
+  assert.doesNotMatch(
+    text,
+    /stage:\s*["']report["']/,
+    `${REPORT_ROUTE} must not mark report stage from the browser`,
+  );
+  assert.match(text, /saveExportSnapshot/, `${REPORT_ROUTE} must persist export snapshots`);
 });
 
 for (const route of ROUTES) {

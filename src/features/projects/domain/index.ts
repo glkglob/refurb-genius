@@ -69,3 +69,29 @@ export {
   type RedesignAdapterInput,
   type RedesignCandidateEvidence,
 } from "./redesignWorkflowAdapter";
+
+export {
+  scopeCurrencyFromEvidence,
+  scopeShellFlagsFromCurrency,
+  type ScopeAdapterInput,
+  type ScopeAuthorityEvidence,
+} from "./scopeWorkflowAdapter";
+
+export {
+  estimateCurrencyFromEvidence,
+  estimateShellFlagsFromCurrency,
+  type EstimateAdapterInput,
+  type EstimateAuthorityEvidence,
+} from "./estimateWorkflowAdapter";
+
+export {
+  exportCurrencyFromEvidence,
+  exportShellFlagsFromCurrency,
+  type ExportAdapterInput,
+  type ExportSnapshotEvidence,
+} from "./exportWorkflowAdapter";
+
+export {
+  composeProjectWorkflowState,
+  type ComposeProjectWorkflowStateInput,
+} from "./composeProjectWorkflowState";
