@@ -77,4 +77,19 @@ describe("ProjectStageNav", () => {
     // Photos Complete appears in aria-label and visible status line
     expect(screen.getAllByText("Complete").length).toBeGreaterThan(0);
   });
+
+  it("IA-8-VR-R1: canonical stage names are fully present without truncate class", () => {
+    const { container } = render(<ProjectStageNav projectId="proj-1" stages={stages} />);
+    // Full names must remain available as text nodes (no ellipsis truncation).
+    for (const name of ["Photos", "Analysis", "Redesign", "Estimate", "Export"]) {
+      expect(screen.getByText(name)).toBeTruthy();
+    }
+    const source = container.innerHTML;
+    // Label spans use whitespace-nowrap; stage names must not sit on .truncate.
+    expect(source).toMatch(/whitespace-nowrap/);
+    const truncating = [...container.querySelectorAll(".truncate")];
+    for (const el of truncating) {
+      expect(el.textContent).not.toMatch(/Photos|Analysis|Redesign|Estimate|Export/);
+    }
+  });
 });

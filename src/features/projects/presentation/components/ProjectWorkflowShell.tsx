@@ -106,8 +106,8 @@ export function ProjectWorkflowShell({
           Project workflow
         </p>
         {route.surface === "overview" ? (
-          <p className="text-xs text-muted-foreground">
-            Overview is the project home — not a workflow stage
+          <p className="text-xs text-muted-foreground" data-testid="overview-workflow-hint">
+            Track progress and continue your refurbishment
           </p>
         ) : activeStage ? (
           <p

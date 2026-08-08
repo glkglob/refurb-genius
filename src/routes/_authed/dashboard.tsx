@@ -189,10 +189,89 @@ function DashboardContent() {
       ? jobsState.jobs.reduce((sum, j) => sum + (j.budgetMax ?? j.budgetMin ?? 0), 0)
       : null;
   const projectCount = projects.length;
+  // Empty commercial metrics must not dominate the first mobile viewport (IA-8-VR-R1).
+  const commercialEmpty =
+    jobsState.status !== "loading" &&
+    interestsState.status !== "loading" &&
+    jobCount === 0 &&
+    interestCount === 0 &&
+    (totalBudgetPosted === null || totalBudgetPosted === 0);
+
+  const projectsSection = (
+    <DashboardSection
+      title="My projects"
+      icon={<FolderPlus className="h-5 w-5" />}
+      action={
+        <Link to="/analyze" className="text-sm font-medium text-accent hover:underline">
+          + New Analysis
+        </Link>
+      }
+      className="mb-0"
+    >
+      {projectsLoading ? (
+        <div className="py-4 text-center text-sm text-muted-foreground">Loading your projects…</div>
+      ) : projects.length === 0 ? (
+        <EmptyState
+          icon={FolderPlus}
+          title="No projects yet"
+          description="Create your first refurbishment project to start AI photo analysis and estimates."
+          action={
+            <Button asChild>
+              <Link to="/analyze">
+                <FolderPlus className="h-4 w-4" /> New Analysis
+              </Link>
+            </Button>
+          }
+        />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {projects.slice(0, 6).map((p) => (
+            <ProjectContinuationCard key={p.id} project={p} />
+          ))}
+        </div>
+      )}
+    </DashboardSection>
+  );
+
+  const commercialStats = (
+    <div
+      className={cn(
+        commercialEmpty
+          ? // Compact strip when empty — do not fill first mobile viewport with zeros.
+            "grid grid-cols-3 gap-2 sm:grid-cols-3 lg:grid-cols-3"
+          : "grid gap-4 sm:grid-cols-2 lg:grid-cols-3",
+      )}
+      data-testid="dashboard-commercial-metrics"
+      data-empty={commercialEmpty ? "true" : "false"}
+    >
+      <StatCard
+        label="Active trades jobs"
+        value={jobsState.status === "loading" ? "…" : String(jobCount)}
+        icon={Briefcase}
+        subLabel="open listings"
+        compact={commercialEmpty}
+      />
+      <StatCard
+        label="Saved opportunities"
+        value={interestsState.status === "loading" ? "…" : String(interestCount)}
+        icon={HandshakeIcon}
+        subLabel="interests expressed"
+        compact={commercialEmpty}
+      />
+      <StatCard
+        label="Total budget posted"
+        value={formatBudgetTotal(totalBudgetPosted, jobsState.status === "loading")}
+        icon={DollarSign}
+        subLabel="across all jobs"
+        compact={commercialEmpty}
+      />
+    </div>
+  );
+
   return (
     <AppLayout
       title="Dashboard"
-      subtitle="Manage refurbishment projects, trades jobs, and feasibility work from one premium workspace."
+      subtitle="Continue your refurbishment projects, then manage trades and feasibility work."
     >
       {showOnboardingCard && (
         <Card className="mb-6 border-accent/40 bg-accent/10">
@@ -266,49 +345,37 @@ function DashboardContent() {
         </Card>
       )}
 
-      {/* Section 1 — Stats */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          label="Active trades jobs"
-          value={jobsState.status === "loading" ? "…" : String(jobCount)}
-          icon={Briefcase}
-          subLabel="open listings"
-        />
-        <StatCard
-          label="Saved opportunities"
-          value={interestsState.status === "loading" ? "…" : String(interestCount)}
-          icon={HandshakeIcon}
-          subLabel="interests expressed"
-        />
-        <StatCard
-          label="Total budget posted"
-          value={formatBudgetTotal(totalBudgetPosted, jobsState.status === "loading")}
-          icon={DollarSign}
-          subLabel="across all jobs"
-        />
-        <StatCard
-          label="Projects"
-          value={projectsLoading ? "…" : String(projectCount)}
-          icon={FolderPlus}
-          subLabel="refurb projects"
-        />
+      {/*
+        IA-8-VR-R1 mobile hierarchy:
+        1) Projects / continuation (core Photos→Export journey)
+        2) Quick actions for that journey
+        3) Commercial metrics (compact when empty)
+        4) Trades / interests detail
+      */}
+      <div className="mb-6" data-testid="dashboard-projects-section">
+        {projectsSection}
       </div>
 
-      {/* Section 2 — Quick actions */}
       <div className="mb-8">
         <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
           Quick actions
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <QuickActionCard icon={Calculator} label="New Analysis" to="/analyze" />
+          <QuickActionCard icon={FolderPlus} label="Create Project" to="/projects/new" />
+          <QuickActionCard icon={BookMarked} label="Saved Studies" to="/studies" />
           <QuickActionCard icon={Briefcase} label="Post a Trades Job" to="/trades/new" />
           <QuickActionCard icon={HardHat} label="Browse Marketplace" to="/trades" />
-          <QuickActionCard icon={BookMarked} label="Saved Studies" to="/studies" />
-          <QuickActionCard icon={FolderPlus} label="Create Project" to="/projects/new" />
         </div>
       </div>
 
-      {/* Section 3 — My Trades Jobs */}
+      <div className="mb-8">
+        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground">
+          Marketplace activity
+        </h2>
+        {commercialStats}
+      </div>
+
       <DashboardSection
         title="My trades jobs"
         icon={<Briefcase className="h-5 w-5" />}
@@ -321,48 +388,10 @@ function DashboardContent() {
         <TradesJobsTable state={jobsState} onUpdate={applyUpdate} />
       </DashboardSection>
 
-      {/* Section 4 — My Interests */}
       <DashboardSection title="My interests" icon={<HandshakeIcon className="h-5 w-5" />}>
         <MyInterestsTable state={interestsState} />
       </DashboardSection>
 
-      {/* Section 5 — My Projects (was placeholder) */}
-      <DashboardSection
-        title="My projects"
-        icon={<FolderPlus className="h-5 w-5" />}
-        action={
-          <Link to="/analyze" className="text-sm font-medium text-accent hover:underline">
-            + New Analysis
-          </Link>
-        }
-      >
-        {projectsLoading ? (
-          <div className="py-4 text-center text-sm text-muted-foreground">
-            Loading your projects…
-          </div>
-        ) : projects.length === 0 ? (
-          <EmptyState
-            icon={FolderPlus}
-            title="No projects yet"
-            description="Create your first refurbishment project to start AI photo analysis and estimates."
-            action={
-              <Button asChild>
-                <Link to="/analyze">
-                  <FolderPlus className="h-4 w-4" /> New Analysis
-                </Link>
-              </Button>
-            }
-          />
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.slice(0, 6).map((p) => (
-              <ProjectContinuationCard key={p.id} project={p} />
-            ))}
-          </div>
-        )}
-      </DashboardSection>
-
-      {/* Section 6 — Feasibility features */}
       <section>
         <Card className="border-border/60 bg-card/70 p-6">
           <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
@@ -724,24 +753,39 @@ function StatCard({
   value,
   subLabel,
   icon: Icon,
+  compact = false,
 }: {
   label: string;
   value: string | number;
   subLabel?: string;
   icon?: typeof Calculator;
+  /** When true, reduce visual weight for empty commercial metrics (IA-8-VR-R1). */
+  compact?: boolean;
 }) {
   return (
-    <Card className="border border-border/60 bg-card/75 p-5">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground">
+    <Card className={cn("border border-border/60 bg-card/75", compact ? "p-3 sm:p-4" : "p-5")}>
+      <div className="flex items-center justify-between gap-1">
+        <p
+          className={cn(
+            "font-medium uppercase tracking-[0.5px] text-muted-foreground",
+            compact ? "text-[10px] leading-tight" : "text-xs",
+          )}
+        >
           {label}
         </p>
-        {Icon && <Icon className="h-4 w-4 text-accent" />}
+        {Icon && !compact ? <Icon className="h-4 w-4 shrink-0 text-accent" /> : null}
       </div>
-      <p className="mt-3 text-3xl font-semibold tracking-tighter text-foreground tabular-nums">
+      <p
+        className={cn(
+          "font-semibold tracking-tighter text-foreground tabular-nums",
+          compact ? "mt-1.5 text-xl sm:text-2xl" : "mt-3 text-3xl",
+        )}
+      >
         {value}
       </p>
-      {subLabel && <p className="mt-0.5 text-xs text-muted-foreground">{subLabel}</p>}
+      {subLabel && !compact ? (
+        <p className="mt-0.5 text-xs text-muted-foreground">{subLabel}</p>
+      ) : null}
     </Card>
   );
 }

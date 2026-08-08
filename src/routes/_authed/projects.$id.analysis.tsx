@@ -78,6 +78,15 @@ function AnalysisPage() {
     () => isProductionValidAnalysisSet(results, catalogue),
     [results, catalogue],
   );
+  const hasFallbackResults = useMemo(() => results.some((r) => r.source === "fallback"), [results]);
+  const avgConfidencePct = useMemo(() => {
+    if (results.length === 0) return null;
+    const sum = results.reduce(
+      (acc, r) => acc + (typeof r.confidence_score === "number" ? r.confidence_score : 0),
+      0,
+    );
+    return Math.round((sum / results.length) * 100);
+  }, [results]);
 
   // IA-3: Photos/Analysis currency → IA-2 resolver (no second next-action algorithm).
   const analysisWorkflow = useMemo(
@@ -493,7 +502,45 @@ function AnalysisPage() {
     ),
     children: (
       <>
-        {needsReviewCount > 0 ? (
+        {/*
+          IA-8-VR-R1: separate workflow completion from result quality.
+          Shell may show Analysis · Complete while confidence/fallback still needs review.
+        */}
+        {analysisIsValid ? (
+          <Card className="mb-5 border-border/70" data-testid="analysis-trust-summary">
+            <CardContent className="space-y-3 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" data-testid="analysis-workflow-status">
+                  Workflow: Complete
+                </Badge>
+                <span className="text-sm text-muted-foreground">Analysis processed</span>
+              </div>
+              {needsReviewCount > 0 ? (
+                <div
+                  className="rounded-md border border-amber-300/50 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100"
+                  data-testid="analysis-review-quality"
+                >
+                  <p className="font-medium">Review recommended</p>
+                  <p className="mt-1">
+                    {needsReviewCount === 1
+                      ? "1 result needs review"
+                      : `${needsReviewCount} results need review`}
+                    {avgConfidencePct !== null ? ` · ${avgConfidencePct}% average confidence` : ""}
+                    {hasFallbackResults ? " · Fallback analysis present" : ""}
+                  </p>
+                  <p className="mt-1 text-xs opacity-90">
+                    You can continue, but review these results before relying on them for Scope or
+                    pricing.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground" data-testid="analysis-review-quality">
+                  No photos currently flagged for human review.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ) : needsReviewCount > 0 ? (
           <div className="mb-5 flex items-start gap-2 rounded-md border border-amber-300/50 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
@@ -548,17 +595,29 @@ function AnalysisPage() {
         ) : null}
 
         {analysisIsValid ? (
-          <Card className="mt-8 border-dashed">
+          <Card className="mt-8 border-dashed" data-testid="analysis-continue-card">
             <CardContent className="flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
               <div>
                 <h3 className="text-base font-semibold text-foreground">Continue to Redesign</h3>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Generate and select a refurbishment concept on the Redesign stage before Estimate.
+                  {needsReviewCount > 0
+                    ? "Continuation is available. Review is still recommended before relying on Scope or pricing outputs."
+                    : "Generate and select a refurbishment concept on the Redesign stage before Estimate."}
                 </p>
               </div>
-              <Button asChild size="lg">
+              {/*
+                Mobile: primary continuation is the sticky CTA (when present).
+                Desktop: show in-card primary. Avoid two equal primaries on mobile.
+              */}
+              <Button
+                asChild
+                size="lg"
+                variant={needsReviewCount > 0 ? "outline" : "default"}
+                className={analysisSticky ? "hidden md:inline-flex" : undefined}
+              >
                 <Link to="/projects/$id/redesign" params={{ id }}>
-                  Open Redesign <ArrowRight className="ml-1 h-4 w-4" />
+                  {analysisNextAction.label || "Open Redesign"}{" "}
+                  <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
               </Button>
             </CardContent>

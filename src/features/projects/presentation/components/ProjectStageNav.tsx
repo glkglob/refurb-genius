@@ -95,7 +95,13 @@ export function ProjectStageNav({ projectId, stages, className }: ProjectStageNa
       <p className="mb-2 px-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:hidden">
         Stages · swipe to see all five
       </p>
-      <ol className="flex min-w-min flex-row items-stretch gap-1 sm:w-full sm:gap-0">
+      <ol
+        className={cn(
+          "flex min-w-min flex-row items-stretch gap-1 sm:w-full sm:gap-0",
+          // Local rail scroll with snap; whole page must not overflow.
+          "snap-x snap-mandatory sm:snap-none",
+        )}
+      >
         {stages.map((stage, index) => {
           const link = stageLinkProps(projectId, stage);
           return (
@@ -103,8 +109,8 @@ export function ProjectStageNav({ projectId, stages, className }: ProjectStageNa
               key={stage.id}
               className={cn(
                 "relative flex shrink-0 snap-start sm:min-w-0 sm:flex-1",
-                // Compact cards on narrow phones; expand on sm+.
-                "min-w-[6.75rem] max-w-[9rem] sm:max-w-none",
+                // Wide enough for full canonical labels (e.g. "3. Redesign") — no destructive ellipsis.
+                "min-w-[8.75rem] sm:max-w-none",
                 index < stages.length - 1 &&
                   "after:absolute after:right-0 after:top-3.5 after:hidden after:h-px after:w-2 after:bg-border sm:after:block",
               )}
@@ -114,7 +120,7 @@ export function ProjectStageNav({ projectId, stages, className }: ProjectStageNa
                 params={link.params}
                 search={link.search}
                 className={cn(
-                  "flex w-full min-h-12 flex-col gap-1 rounded-lg px-2 py-2 transition-colors",
+                  "flex w-full min-h-12 flex-col gap-1 rounded-lg px-2.5 py-2 transition-colors",
                   "hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   stage.isActive && "bg-primary/10 ring-1 ring-primary/30",
                 )}
@@ -127,7 +133,8 @@ export function ProjectStageNav({ projectId, stages, className }: ProjectStageNa
                   {statusIcon(stage.status, stage.isActive)}
                   <span
                     className={cn(
-                      "truncate text-sm font-medium",
+                      // Never truncate canonical stage names on mobile.
+                      "whitespace-nowrap text-sm font-medium",
                       stage.isActive && "text-foreground",
                       !stage.isActive && stage.status === "Complete" && "text-foreground",
                       !stage.isActive &&
