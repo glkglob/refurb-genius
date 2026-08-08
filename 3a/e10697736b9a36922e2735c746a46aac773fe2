@@ -1,0 +1,52 @@
+src/components/AppLayout.tsx
+  h_7ea6129503670a 27,35,37,39,43-45
+src/components/EstimateTable.tsx
+  h_7ea6129503670a 56-58
+src/components/MobileTopBar.test.tsx
+  h_7ea6129503670a 2,48-49,54-56,58-62,65,68,70,72,78,83-89,95-110,113
+src/components/MobileTopBar.tsx
+  h_7ea6129503670a 4,6,10,29,32,34-38,40-41,43,45,49,51,53-54,57-64,71,79-82,84-87,89,95,100,103-112,119,123,128-141,152,155,157-158,161-166,168
+src/features/navigation/globalNav.test.ts
+  h_7ea6129503670a 13,102,105,108-122
+src/features/navigation/globalNav.ts
+  h_7ea6129503670a 2,9-13,38,147,149-150,153,156,159-161,163
+src/features/projects/presentation/components/MobileStickyNextAction.test.tsx
+  h_7ea6129503670a 1-37
+src/features/projects/presentation/components/MobileStickyNextAction.tsx
+  h_7ea6129503670a 1-86
+src/features/projects/presentation/components/NewProjectEntry.tsx
+  h_7ea6129503670a 105,107,266-274,278,286
+src/features/projects/presentation/components/ProjectContinuationCard.tsx
+  h_7ea6129503670a 91-92,146,151-157,168-173,178-183,194,205
+src/features/projects/presentation/components/ProjectStageNav.tsx
+  h_7ea6129503670a 2,6-8,28,38,48,58,67,87,89-91,95-98,105-107,109,117,123-124,145
+src/features/projects/presentation/components/ProjectWorkflowShell.tsx
+  h_7ea6129503670a 2,8,25,35-36,49-54,66,84-90,112-120,130-133
+src/features/projects/presentation/components/index.ts
+  h_7ea6129503670a 1-5,7-10
+src/features/projects/presentation/index.ts
+  h_7ea6129503670a 6,8,10
+src/routes/_authed/projects.$id.analysis.tsx
+  h_7ea6129503670a 320-329,339,355-360,379-384,387-394,403,436-458,461
+src/routes/_authed/projects.$id.estimate.tsx
+  h_7ea6129503670a 329-347
+src/routes/_authed/projects.$id.index.tsx
+  h_7ea6129503670a 168-182
+src/routes/_authed/projects.$id.redesign.tsx
+  h_7ea6129503670a 237-251,259,274-277,280-285,294,310-350,354
+src/routes/_authed/projects.$id.report.tsx
+  h_7ea6129503670a 319-326
+src/routes/_authed/projects.$id.upload.tsx
+  h_7ea6129503670a 371-382
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "3ae10697736b9a36922e2735c746a46aac773fe2",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
