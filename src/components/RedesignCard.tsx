@@ -122,6 +122,8 @@ export function RedesignCard({
             disabled={selectDisabled || selected}
             onClick={onSelect}
             aria-pressed={selected}
+            data-testid="redesign-select"
+            data-selected={selected ? "true" : "false"}
           >
             {selected ? "Selected concept" : selectLabel}
           </Button>

@@ -100,3 +100,21 @@ test("IA-4-R2 write path sealed via DEFINER RPCs and DML revoke", () => {
   assert.match(seal, /select_project_redesign_concept/);
   assert.match(seal, /GRANT SELECT ON TABLE public\.redesign_concepts TO authenticated/);
 });
+
+test("IA-5-R4A redesign UI wires generate+select through sealed server authority", () => {
+  const page = read("src/routes/_authed/projects.$id.redesign.tsx");
+  assert.match(page, /generateRedesignConceptsServerFn/);
+  assert.match(page, /selectRedesignConceptServerFn/);
+  assert.match(page, /listRedesignConceptsServerFn/);
+  assert.match(page, /data-testid=["']redesign-generate["']/);
+  assert.match(page, /generate concepts from current Analysis/);
+  assert.match(page, /Select Redesign/);
+  // Generation alone never Completes — user must select.
+  assert.match(page, /generation alone[\s\S]*does not advance the workflow/i);
+  assert.doesNotMatch(page, /redesign_done\s*=\s*true/);
+
+  const server = read("src/features/ai-design/presentation/serverFns.ts");
+  assert.match(server, /resolveCurrentProjectAnalysisAuthority/);
+  assert.match(server, /replaceRedesignCandidates/);
+  assert.match(server, /selectDurableRedesignConcept/);
+});
