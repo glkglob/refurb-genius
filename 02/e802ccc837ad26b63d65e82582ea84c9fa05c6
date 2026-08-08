@@ -1,0 +1,34 @@
+src/features/projects/index.ts
+  h_7ea6129503670a 26-35
+src/features/projects/presentation/hooks/useProjectFiveStageWorkflow.running.test.ts
+  h_7ea6129503670a 1-92
+src/features/projects/presentation/hooks/useProjectFiveStageWorkflow.ts
+  h_7ea6129503670a 28,54-55,136-137,157-162,164-174,186-187
+src/features/projects/presentation/hooks/useProjectWorkflowOperationFlags.ts
+  h_7ea6129503670a 1-26
+src/features/projects/presentation/index.ts
+  h_7ea6129503670a 13-26
+src/features/projects/presentation/projectWorkflowOperationRegistry.test.ts
+  h_7ea6129503670a 1-174
+src/features/projects/presentation/projectWorkflowOperationRegistry.ts
+  h_7ea6129503670a 1-249
+src/routes/_authed/-projects.ia6-r1.running.contract.test.ts
+  h_7ea6129503670a 1-39
+src/routes/_authed/projects.$id.analysis.tsx
+  h_7ea6129503670a 34,142-145,202-204,219-221,249-251
+src/routes/_authed/projects.$id.redesign.tsx
+  h_7ea6129503670a 40,164-167
+src/routes/_authed/projects.$id.upload.tsx
+  h_7ea6129503670a 12,272-279
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "02e802ccc837ad26b63d65e82582ea84c9fa05c6",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
