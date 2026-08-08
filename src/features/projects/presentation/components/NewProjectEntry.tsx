@@ -102,8 +102,9 @@ export function NewProjectEntry() {
 
   return (
     <Card>
-      <CardContent className="p-6 sm:p-8">
+      <CardContent className="p-4 sm:p-8">
         <form
+          id="new-analysis-entry-form"
           className="space-y-6"
           onSubmit={handleSubmit}
           noValidate
@@ -262,10 +263,19 @@ export function NewProjectEntry() {
             </div>
           )}
 
-          <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
+          {/*
+            IA-8: mobile sticky submit stays reachable while scrolling optional
+            fields / software keyboard. Uses sticky (not fixed) so it works inside
+            the authenticated layout scroll container. Desktop is a normal row.
+          */}
+          <div
+            className="sticky bottom-0 z-20 -mx-4 mt-2 flex flex-col-reverse gap-2 border-t border-border bg-background/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:mt-0 sm:flex-row sm:justify-end sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none"
+            data-testid="new-analysis-actions"
+          >
             <Button
               type="button"
               variant="outline"
+              className="h-12 sm:h-10"
               onClick={() => navigate({ to: "/dashboard" })}
               disabled={createProject.isPending}
             >
@@ -273,6 +283,7 @@ export function NewProjectEntry() {
             </Button>
             <Button
               type="submit"
+              className="h-12 flex-1 text-base sm:h-10 sm:flex-none sm:text-sm"
               disabled={createProject.isPending}
               data-testid="new-analysis-submit"
             >

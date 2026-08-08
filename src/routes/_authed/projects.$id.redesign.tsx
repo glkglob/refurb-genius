@@ -234,7 +234,21 @@ function RedesignPage() {
     redesignNeedsAttention: redesignFlags.redesignNeedsAttention,
   };
 
-  const shell = (opts: { pageSubtitle: string; actions?: ReactNode; children: ReactNode }) => (
+  const shell = (opts: {
+    pageSubtitle: string;
+    actions?: ReactNode;
+    stickyNextAction?: {
+      label: string;
+      href?: string;
+      onClick?: () => void;
+      actionKind?: string;
+      disabled?: boolean;
+      loading?: boolean;
+      variant?: "default" | "outline";
+      testId?: string;
+    } | null;
+    children: ReactNode;
+  }) => (
     <ProjectWorkflowShell
       project={project}
       route={{ surface: "redesign" }}
@@ -242,6 +256,7 @@ function RedesignPage() {
       pageTitle={project.name?.trim() || "Redesign"}
       pageSubtitle={opts.pageSubtitle}
       actions={opts.actions}
+      stickyNextAction={opts.stickyNextAction}
     >
       {opts.children}
     </ProjectWorkflowShell>
@@ -256,8 +271,18 @@ function RedesignPage() {
 
   // A. Analysis unavailable / non-current
   if (!analysisIsValid || photosAnalysisWorkflow.analysis.currency !== "current") {
+    const analysisLabel =
+      photosAnalysisWorkflow.analysis.currency === "non_current"
+        ? "Update Analysis"
+        : "Go to Analysis";
     return shell({
       pageSubtitle: "Analysis required before Redesign",
+      stickyNextAction: {
+        label: analysisLabel,
+        href: `/projects/${id}/analysis`,
+        actionKind: "update_analysis",
+        testId: "redesign-primary-cta-sticky",
+      },
       children: (
         <EmptyState
           icon={AlertCircle}
@@ -266,9 +291,7 @@ function RedesignPage() {
           action={
             <Button asChild>
               <Link to="/projects/$id/analysis" params={{ id }} search={{ focus: undefined }}>
-                {photosAnalysisWorkflow.analysis.currency === "non_current"
-                  ? "Update Analysis"
-                  : "Go to Analysis"}
+                {analysisLabel}
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
@@ -284,9 +307,51 @@ function RedesignPage() {
     nextAction.actionKind === "create_redesign" || nextAction.actionKind === "update_redesign";
   const primaryIsProgress = nextAction.actionKind === "view_stage_progress";
 
+  const redesignSticky =
+    primaryIsProgress || generating
+      ? {
+          label: generating ? "Generating concepts…" : primaryLabel,
+          onClick: () => undefined,
+          actionKind: nextAction.actionKind,
+          disabled: true,
+          loading: true,
+          testId: "redesign-primary-cta-sticky",
+        }
+      : primaryIsCreate
+        ? {
+            label: primaryLabel,
+            onClick: () => void handleGenerate(),
+            actionKind: nextAction.actionKind,
+            disabled: generating,
+            loading: generating,
+            testId: "redesign-primary-cta-sticky",
+          }
+        : primaryIsSelect
+          ? {
+              label: primaryLabel,
+              // Selection is performed on-page; sticky points users to the rail.
+              onClick: () => {
+                document
+                  .querySelector("[data-testid='project-stage-nav']")
+                  ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+              },
+              actionKind: nextAction.actionKind,
+              variant: "outline" as const,
+              testId: "redesign-primary-cta-sticky",
+            }
+          : nextAction.route
+            ? {
+                label: primaryLabel,
+                href: nextAction.route,
+                actionKind: nextAction.actionKind,
+                testId: "redesign-primary-cta-sticky",
+              }
+            : null;
+
   return shell({
     pageSubtitle:
       "Choose a refurbishment concept. Generated ideas are proposals until you select one.",
+    stickyNextAction: redesignSticky,
     actions: (
       <div className="flex flex-wrap gap-2">
         {primaryIsProgress || generating ? (
