@@ -1,0 +1,74 @@
+packages/supabase/src/database.types.ts
+  h_7ea6129503670a 377-378,406,434,1464-1465,1471-1472,1479,1485-1486,1493,1499-1500,1516-1557,2082-2085
+src/features/ai-design/application/ports.ts
+  h_7ea6129503670a 24-30
+src/features/ai-design/infrastructure/index.ts
+  h_7ea6129503670a 11,14
+src/features/ai-design/infrastructure/repositories/scope-analysis.repository.ts
+  h_7ea6129503670a 33-41,55,65-67,176-206
+src/features/estimate/infrastructure/index.ts
+  h_7ea6129503670a 14-15
+src/features/estimate/infrastructure/repositories/estimate.repository.ts
+  h_7ea6129503670a 135-169
+src/features/export/infrastructure/exportSnapshot.repository.ts
+  h_7ea6129503670a 1-72
+src/features/export/infrastructure/index.ts
+  h_7ea6129503670a 4-8
+src/features/projects/domain/composeProjectWorkflowState.test.ts
+  h_7ea6129503670a 1-169
+src/features/projects/domain/composeProjectWorkflowState.ts
+  h_7ea6129503670a 1-126
+src/features/projects/domain/estimateWorkflowAdapter.test.ts
+  h_7ea6129503670a 1-54
+src/features/projects/domain/estimateWorkflowAdapter.ts
+  h_7ea6129503670a 1-78
+src/features/projects/domain/exportWorkflowAdapter.test.ts
+  h_7ea6129503670a 1-45
+src/features/projects/domain/exportWorkflowAdapter.ts
+  h_7ea6129503670a 1-63
+src/features/projects/domain/index.ts
+  h_7ea6129503670a 72-97
+src/features/projects/domain/scopeWorkflowAdapter.test.ts
+  h_7ea6129503670a 1-65
+src/features/projects/domain/scopeWorkflowAdapter.ts
+  h_7ea6129503670a 1-92
+src/features/projects/domain/workflowStages.ts
+  h_7ea6129503670a 128-137,261-264,266-267,271-273,275
+src/features/projects/index.ts
+  h_7ea6129503670a 15-19,42-48,82-85
+src/features/projects/presentation/hooks/useProjectFiveStageWorkflow.ts
+  h_7ea6129503670a 1-185
+src/features/projects/presentation/index.ts
+  h_7ea6129503670a 6-10
+src/routes/_authed/projects.$id.estimate.tsx
+  h_7ea6129503670a 8-12,63,125-127,285,289-305,308,317-321,326,330-345,348-365
+src/routes/_authed/projects.$id.report.tsx
+  h_7ea6129503670a 38,47,58,98-114,126,163-164,310-311,316
+src/routes/_authed/projects.$id.scope.tsx
+  h_7ea6129503670a 4-8,151,210-212,219-221,226,301-302,307,309,327
+supabase/migrations/20260808120000_ia5_five_stage_continuity_provenance.sql
+  h_7ea6129503670a 1-171
+tests/invariants/config/data/database-inventory.ts
+  h_7ea6129503670a 365-375
+tests/invariants/config/data/domains.ts
+  h_7ea6129503670a 186-201
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 83
+tests/invariants/data-architecture-registry.invariant.test.ts
+  h_7ea6129503670a 292
+tests/invariants/project-five-stage-continuity.invariant.test.ts
+  h_7ea6129503670a 1-86
+tests/invariants/project-stage-mutation-presentation.invariant.test.ts
+  h_7ea6129503670a 30-37,130-144
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "e793685671152d30dafb77155b80190031333da7",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
