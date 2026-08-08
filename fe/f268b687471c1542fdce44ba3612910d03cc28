@@ -1,0 +1,24 @@
+src/features/export/infrastructure/imageEmbedder.ts
+  h_7ea6129503670a 11-14,19-26
+src/lib/exportPdf.test.ts
+  h_7ea6129503670a 1-99
+src/lib/exportPdf.ts
+  h_7ea6129503670a 11-14,18,83-89,91-93
+src/lib/pdfSafeColors.test.ts
+  h_7ea6129503670a 1-138
+src/lib/pdfSafeColors.ts
+  h_7ea6129503670a 1-433
+tests/invariants/config/frozen-path-allowlists.ts
+  h_7ea6129503670a 24,36-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "fef268b687471c1542fdce44ba3612910d03cc28",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
