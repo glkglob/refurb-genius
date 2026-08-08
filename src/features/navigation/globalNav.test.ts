@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { GLOBAL_NAV_ITEMS, isGlobalNavItemActive, resolveGlobalNavArea } from "./globalNav";
+import {
+  GLOBAL_NAV_ITEMS,
+  MOBILE_MORE_NAV_IDS,
+  MOBILE_PRIMARY_NAV_IDS,
+  getGlobalNavItem,
+  getMobileMoreNavItems,
+  getMobilePrimaryNavItems,
+  isGlobalNavItemActive,
+  resolveGlobalNavArea,
+} from "./globalNav";
 
 describe("IA-7 global navigation contract", () => {
   it("exposes exactly six primary destinations in locked order", () => {
@@ -88,5 +97,18 @@ describe("IA-7 global navigation contract", () => {
     expect(resolveGlobalNavArea("/studies")).toBeNull();
     expect(resolveGlobalNavArea("/studies/xyz")).toBeNull();
     expect(resolveGlobalNavArea("/studies/workspace")).toBeNull();
+  });
+
+  it("mobile primary + more presentation still covers all six canonical destinations", () => {
+    const primary = getMobilePrimaryNavItems();
+    const more = getMobileMoreNavItems();
+    const dashboard = getGlobalNavItem("dashboard");
+    const allIds = [dashboard.id, ...primary.map((i) => i.id), ...more.map((i) => i.id)];
+    expect(new Set(allIds).size).toBe(6);
+    expect(allIds).toEqual(expect.arrayContaining(GLOBAL_NAV_ITEMS.map((i) => i.id)));
+    expect(MOBILE_PRIMARY_NAV_IDS).toEqual(["projects", "trades_marketplace", "new_analysis"]);
+    expect(MOBILE_MORE_NAV_IDS).toEqual(["deal_copilot", "settings"]);
+    expect(more.map((i) => i.to)).toEqual(["/deal-copilot", "/settings"]);
+    expect(getGlobalNavItem("new_analysis").to).toBe("/analyze");
   });
 });

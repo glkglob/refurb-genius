@@ -129,6 +129,40 @@ export function isGlobalNavItemActive(pathname: string, itemId: GlobalNavItemId)
   return resolveGlobalNavArea(pathname) === itemId;
 }
 
+export function getGlobalNavItem(id: GlobalNavItemId): GlobalNavItem {
+  const item = GLOBAL_NAV_ITEMS.find((entry) => entry.id === id);
+  if (!item) {
+    throw new Error(`Unknown global nav item: ${id}`);
+  }
+  return item;
+}
+
+/**
+ * IA-7-R2 — Bounded mobile presentation only (not IA-8 final structure).
+ *
+ * Primary row keeps the densest existing destinations.
+ * Secondary "More" menu exposes remaining canonical destinations so all six
+ * remain reachable without inventing a second route authority.
+ */
+export const MOBILE_PRIMARY_NAV_IDS = [
+  "projects",
+  "trades_marketplace",
+  "new_analysis",
+] as const satisfies readonly GlobalNavItemId[];
+
+export const MOBILE_MORE_NAV_IDS = [
+  "deal_copilot",
+  "settings",
+] as const satisfies readonly GlobalNavItemId[];
+
+export function getMobilePrimaryNavItems(): GlobalNavItem[] {
+  return MOBILE_PRIMARY_NAV_IDS.map((id) => getGlobalNavItem(id));
+}
+
+export function getMobileMoreNavItems(): GlobalNavItem[] {
+  return MOBILE_MORE_NAV_IDS.map((id) => getGlobalNavItem(id));
+}
+
 function normalizePath(pathname: string): string {
   if (!pathname) return "/";
   // Strip query/hash if ever passed; collapse trailing slash except root.
