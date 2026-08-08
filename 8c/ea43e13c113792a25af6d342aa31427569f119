@@ -1,0 +1,16 @@
+docs/architecture/future-roadmap.md
+  h_7ea6129503670a 23-24
+docs/architecture/workflow/ia-0-workflow-authority-spec.md
+  h_7ea6129503670a 1735,1737-1756
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "8cea43e13c113792a25af6d342aa31427569f119",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
