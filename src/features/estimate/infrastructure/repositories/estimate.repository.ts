@@ -16,6 +16,12 @@ import type {
   EstimateRepository as EstimateRepositoryPort,
   SavedEstimateRef,
 } from "../../application/ports";
+import {
+  isAuthoritativePricingAuthority,
+  selectCurrentAuthorityEstimateRow,
+} from "../../domain/estimateAuthority";
+
+export { isAuthoritativePricingAuthority, selectCurrentAuthorityEstimateRow };
 
 type EstimateRow = Database["public"]["Tables"]["estimates"]["Row"];
 type EstimateItemRow = Database["public"]["Tables"]["estimate_items"]["Row"];
@@ -103,23 +109,35 @@ export async function saveProjectEstimate(
   return { estimate, items: items ?? [] };
 }
 
+/**
+ * Prefer semantic current Estimate when currentScopeId is known.
+ * Falls back to latest authoritative row (may be non_current vs Scope), then
+ * latest any row for draft-only projects.
+ */
 export async function getLatestProjectEstimate(
   projectId: string,
+  currentScopeId?: string | null,
 ): Promise<PersistedProjectEstimate | null> {
   const user = auth.getUser();
   if (!user) return null;
 
-  const { data: estimate, error: estimateError } = await supabase
+  const { data: rows, error: estimateError } = await supabase
     .from("estimates")
     .select("*")
     .eq("project_id", projectId)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(40);
 
   if (estimateError) throw new Error(estimateError.message);
+  if (!rows || rows.length === 0) return null;
+
+  const estimate =
+    selectCurrentAuthorityEstimateRow(rows, currentScopeId) ??
+    rows.find((e) => isAuthoritativePricingAuthority(e.pricing_authority)) ??
+    rows[0];
+
   if (!estimate) return null;
 
   const { data: items, error: itemsError } = await supabase
@@ -157,14 +175,17 @@ export function estimateAuthorityEvidenceFromRow(estimate: EstimateRow): {
   id: string;
   inputScopeId: string | null;
   isDraft: boolean;
+  isAuthoritative: boolean;
 } {
   const authority = estimate.pricing_authority ?? "none";
-  const status = estimate.status ?? "draft";
-  const isDraft = status === "draft" && authority === "none";
+  const isAuthoritative = isAuthoritativePricingAuthority(authority);
+  // Non-authority (pricing_authority = none) is draft for currentness.
+  const isDraft = !isAuthoritative;
   return {
     id: estimate.id,
     inputScopeId: estimate.input_scope_id ?? null,
     isDraft,
+    isAuthoritative,
   };
 }
 

@@ -119,3 +119,21 @@ test("IA-5-R1 Export publication uses server RPC", () => {
   assert.match(mig, /estimate_project_mismatch/);
   assert.match(mig, /save_project_scope_analysis/);
 });
+
+test("IA-5-R2 Export current Estimate is semantic not newest-row only", () => {
+  const mig = read("supabase/migrations/20260808140000_ia5_r2_semantic_current_estimate.sql");
+  assert.match(mig, /ia5_resolve_current_estimate_id/);
+  assert.match(mig, /ia5_is_authoritative_estimate_pricing/);
+  assert.match(mig, /category-engine/);
+  assert.match(mig, /measured-boq-engine/);
+  assert.match(mig, /input_scope_id/);
+  const domain = read("src/features/estimate/domain/estimateAuthority.ts");
+  assert.match(domain, /selectCurrentAuthorityEstimateRow/);
+  assert.match(domain, /isAuthoritativePricingAuthority/);
+  // Browser repository re-exports domain helpers but must not hardcode markers.
+  const browserRepo = read(
+    "src/features/estimate/infrastructure/repositories/estimate.repository.ts",
+  );
+  assert.match(browserRepo, /selectCurrentAuthorityEstimateRow/);
+  assert.doesNotMatch(browserRepo, /category-engine/);
+});

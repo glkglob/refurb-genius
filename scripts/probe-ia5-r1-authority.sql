@@ -138,13 +138,14 @@ BEGIN
   END IF;
   RAISE NOTICE 'CURRENT_SCOPE_BIND: OK';
 
-  -- New estimate E2 (append-only)
+  -- New estimate E2 (append-only) — later created_at so CASE A ordering is deterministic
   INSERT INTO public.estimates (
     project_id, user_id, region, condition_level, finish_level,
     labour_total, materials_total, subtotal, contingency, vat_amount, low_total, mid_total, high_total, timeline_weeks,
-    pricing_authority, pricing_policy_version, status, input_scope_id
+    pricing_authority, pricing_policy_version, status, input_scope_id, created_at
   ) VALUES (
-    p1, u1, 'London', 'average', 'standard', 5,5,10,0,0,10,10,10,2, 'category-engine', 'category-engine-v1', 'draft', s2.id
+    p1, u1, 'London', 'average', 'standard', 5,5,10,0,0,10,10,10,2, 'category-engine', 'category-engine-v1', 'draft', s2.id,
+    clock_timestamp() + interval '1 second'
   ) RETURNING id INTO e2;
 
   IF e1 = e2 THEN

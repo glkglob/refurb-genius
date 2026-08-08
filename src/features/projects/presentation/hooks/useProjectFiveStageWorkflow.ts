@@ -65,17 +65,31 @@ export function useProjectFiveStageWorkflow(projectId: string): ProjectFiveStage
     setLoading(true);
     try {
       const cached = getPhotoAnalysis(projectId);
-      const [persisted, durable, scope, est, snap] = await Promise.all([
+      const [persisted, durable, scope, snap] = await Promise.all([
         loadPhotoAnalysis(projectId).catch(() => [] as RoomAnalysis[]),
         listRedesignConceptsServerFn({ data: { projectId } }).catch(
           () => [] as DurableRedesignConcept[],
         ),
         getLatestScopeAuthorityHeader(projectId).catch(() => null),
-        getLatestProjectEstimate(projectId).catch(() => null),
         getLatestExportSnapshot(projectId).catch(() => null),
       ]);
       const preferred =
         cached && cached.length > 0 ? cached : persisted && persisted.length > 0 ? persisted : [];
+      const analysisIdentity = [...preferred]
+        .map((a) => a.photo_id)
+        .filter((id): id is string => Boolean(id))
+        .sort()
+        .join("\u0001");
+      const selectedId = (durable ?? []).find((c) => c.isSelected)?.id ?? null;
+      // IA-5-R2: only pass Scope id when it matches current Analysis + selected Redesign.
+      const currentScopeId =
+        scope &&
+        selectedId &&
+        scope.analysisIdentity === analysisIdentity &&
+        scope.redesignIdentity === selectedId
+          ? scope.id
+          : null;
+      const est = await getLatestProjectEstimate(projectId, currentScopeId).catch(() => null);
       setAnalyses(preferred);
       setCandidates(durable ?? []);
       setScopeHeader(scope);

@@ -13,6 +13,8 @@ export {
   getLatestProjectEstimate,
   bindEstimateToScope,
   estimateAuthorityEvidenceFromRow,
+  isAuthoritativePricingAuthority,
+  selectCurrentAuthorityEstimateRow,
   persistedEstimateInput,
   saveAIEstimate,
   getLatestRoomEstimate,
