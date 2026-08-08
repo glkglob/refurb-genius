@@ -8,9 +8,14 @@
 //
 // This module is async-imported only when the user clicks "Export PDF" so
 // html2canvas + jspdf are not part of the main bundle.
+//
+// IA-5-R3B: design-system tokens use CSS oklch(); html2canvas 1.4.x cannot
+// parse them. Clone-only sanitisation (see pdfSafeColors) converts/flattens
+// colours before the renderer runs — live app styling is unchanged.
 
 import { addDiagnosticBreadcrumb } from "./sentry";
 import { logger } from "./logger";
+import { sanitizeClonedDocumentForPdf } from "./pdfSafeColors";
 
 export type ExportPdfOptions = {
   /** Element to capture. Defaults to `document.querySelector('.print-area')`. */
@@ -75,11 +80,17 @@ export async function exportReportPdf(options: ExportPdfOptions = {}): Promise<v
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#ffffff",
-        onclone(clonedDoc) {
-          clonedDoc.querySelectorAll<HTMLElement>(".no-print").forEach((el) => {
-            el.style.display = "none";
+        onclone(clonedDoc, clonedElement) {
+          // Clone-only: rewrite/flatten oklch design tokens so html2canvas
+          // never attempts to parse CSS Color 4 functions.
+          sanitizeClonedDocumentForPdf(clonedDoc, {
+            sourceDoc: document,
+            liveRoot: element,
+            clonedRoot: clonedElement as HTMLElement,
           });
-          clonedDoc.body.style.background = "#ffffff";
+          if (clonedDoc.body) {
+            clonedDoc.body.style.background = "#ffffff";
+          }
         },
       }),
       timeoutPromise,
