@@ -1,0 +1,165 @@
+/**
+ * IA-6 — Dashboard continuation card uses canonical five-stage hook + resolver.
+ */
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { createElement } from "react";
+import { ProjectContinuationCard } from "./ProjectContinuationCard";
+import type { Project } from "@/core/projects";
+
+const useProjectFiveStageWorkflow = vi.fn();
+
+vi.mock("../hooks/useProjectFiveStageWorkflow", () => ({
+  useProjectFiveStageWorkflow: (...args: unknown[]) => useProjectFiveStageWorkflow(...args),
+}));
+
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({
+    children,
+    to,
+    ...rest
+  }: {
+    children?: React.ReactNode;
+    to: string;
+    [key: string]: unknown;
+  }) => createElement("a", { href: typeof to === "string" ? to : "#", ...rest }, children),
+}));
+
+const baseProject = {
+  id: "proj-1",
+  name: "Victorian Terrace",
+  region: "London",
+  status: "active",
+  purchase_price: 250_000,
+  estimated_gdv: 350_000,
+  size_sqm: 85,
+  bedrooms: 3,
+  bathrooms: 1,
+  address: "1 High St",
+  postcode: "E1 1AA",
+  property_type: "Terraced",
+  photos_done: true,
+  analysis_done: true,
+  estimate_done: true,
+  report_done: true,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  user_id: "u1",
+} as unknown as Project;
+
+beforeEach(() => {
+  useProjectFiveStageWorkflow.mockReset();
+});
+
+describe("ProjectContinuationCard", () => {
+  it("shows loading CTA while five-stage state loads", () => {
+    useProjectFiveStageWorkflow.mockReturnValue({
+      loading: true,
+      workflow: null,
+      nextAction: null,
+      shellProgress: null,
+      reload: vi.fn(),
+    });
+    render(createElement(ProjectContinuationCard, { project: baseProject }));
+    expect(screen.getByRole("button", { name: /Loading/i })).toBeTruthy();
+    expect(screen.getByText(/Loading workflow status/i)).toBeTruthy();
+    expect(useProjectFiveStageWorkflow).toHaveBeenCalledWith("proj-1");
+  });
+
+  it("renders resolver CTA and route for add_photos — not legacy flags", () => {
+    useProjectFiveStageWorkflow.mockReturnValue({
+      loading: false,
+      workflow: {},
+      nextAction: {
+        stage: "photos",
+        status: "Not started",
+        actionKind: "add_photos",
+        route: "/projects/proj-1/upload",
+        label: "Add Photos",
+        reason: "photos_missing",
+      },
+      shellProgress: {
+        photosDone: false,
+        analysisDone: false,
+        analysisNeedsAttention: false,
+        redesignDone: false,
+        redesignNeedsAttention: false,
+        estimateDone: false,
+        estimateNeedsAttention: false,
+        reportDone: false,
+        reportNeedsAttention: false,
+      },
+      reload: vi.fn(),
+    });
+    render(createElement(ProjectContinuationCard, { project: baseProject }));
+    const cta = screen.getByTestId("workflow-continue-cta");
+    expect(cta.getAttribute("href")).toBe("/projects/proj-1/upload");
+    expect(cta.getAttribute("data-action-kind")).toBe("add_photos");
+    expect(cta.textContent).toMatch(/Add Photos/i);
+    // Legacy flags were all true — card must not claim Complete without current authorities.
+    expect(screen.queryByText(/^Complete$/)).toBeNull();
+  });
+
+  it("renders view_completed_project when resolver says complete", () => {
+    useProjectFiveStageWorkflow.mockReturnValue({
+      loading: false,
+      workflow: {},
+      nextAction: {
+        stage: "export",
+        status: "Complete",
+        actionKind: "view_completed_project",
+        route: "/projects/proj-1",
+        label: "View Project",
+        reason: "project_complete",
+      },
+      shellProgress: {
+        photosDone: true,
+        analysisDone: true,
+        analysisNeedsAttention: false,
+        redesignDone: true,
+        redesignNeedsAttention: false,
+        estimateDone: true,
+        estimateNeedsAttention: false,
+        reportDone: true,
+        reportNeedsAttention: false,
+      },
+      reload: vi.fn(),
+    });
+    render(createElement(ProjectContinuationCard, { project: baseProject }));
+    const cta = screen.getByTestId("workflow-continue-cta");
+    expect(cta.getAttribute("data-action-kind")).toBe("view_completed_project");
+    expect(screen.getByText(/All stages current/i)).toBeTruthy();
+  });
+
+  it("shows needs-attention explanation from resolver reason", () => {
+    useProjectFiveStageWorkflow.mockReturnValue({
+      loading: false,
+      workflow: {},
+      nextAction: {
+        stage: "analysis",
+        status: "Needs attention",
+        actionKind: "update_analysis",
+        route: "/projects/proj-1/analysis",
+        label: "Update Analysis",
+        reason: "analysis_non_current",
+      },
+      shellProgress: {
+        photosDone: true,
+        analysisDone: true,
+        analysisNeedsAttention: true,
+        redesignDone: false,
+        redesignNeedsAttention: false,
+        estimateDone: false,
+        estimateNeedsAttention: false,
+        reportDone: false,
+        reportNeedsAttention: false,
+      },
+      reload: vi.fn(),
+    });
+    render(createElement(ProjectContinuationCard, { project: baseProject }));
+    expect(screen.getByTestId("next-action-reason").textContent).toMatch(/Photos changed/i);
+    expect(screen.getByTestId("workflow-continue-cta").getAttribute("data-action-kind")).toBe(
+      "update_analysis",
+    );
+  });
+});

@@ -95,3 +95,9 @@ export {
   composeProjectWorkflowState,
   type ComposeProjectWorkflowStateInput,
 } from "./composeProjectWorkflowState";
+
+export {
+  explainProjectNextActionReason,
+  workflowAllStagesComplete,
+  workflowHasNeedsAttention,
+} from "./explainProjectNextActionReason";

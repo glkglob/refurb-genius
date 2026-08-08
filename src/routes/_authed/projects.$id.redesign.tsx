@@ -37,6 +37,7 @@ import {
   redesignCurrencyFromEvidence,
   redesignShellFlagsFromCurrency,
   resolveProjectNextAction,
+  withProjectWorkflowOperationRunning,
 } from "@/features/projects";
 
 export const Route = createFileRoute("/_authed/projects/$id/redesign")({
@@ -160,7 +161,10 @@ function RedesignPage() {
     setGenerating(true);
     setError(null);
     try {
-      const next = await generateRedesignConceptsServerFn({ data: { projectId: id } });
+      // IA-6-R1: publish cross-route running for Dashboard/Overview view_stage_progress.
+      const next = await withProjectWorkflowOperationRunning(id, "redesign", () =>
+        generateRedesignConceptsServerFn({ data: { projectId: id } }),
+      );
       setCandidates(next);
       toast.success("Redesign concepts ready — select one to continue.");
     } catch (err) {
