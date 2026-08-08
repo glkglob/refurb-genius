@@ -36,7 +36,9 @@ IA-3 (Photos → Analysis Continuity) is **Completed** on main (durable photo ca
 
 IA-4 (First-Class Redesign) is **Completed** on main (`/projects/$id/redesign`, atomic selection, write-path seal, schema reconcile).
 
-IA-5 (Full Five-Stage Continuity) is **Planned / Next** and **MUST NOT** begin until explicitly authorised.
+IA-5 (Full Five-Stage Continuity) is **Completed** on main (PR #117; verified implementation head `81299098f730340062c3e662a07b06b95a22c533`; merge `21ce580a225a44614c63414c3382f561d640ec95`; migrations `20260808120000` / `20260808130000` / `20260808140000`; production Estimate authority + Export snapshot + `view_completed_project` re-verified under IA-5-MR1).
+
+IA-6 (Dashboard + Overview Continuation) is **Planned / Next** and **MUST NOT** begin until explicitly authorised. Residual for IA-6: Overview / Photos `progressFromProjectFlags` presentation convergence.
 
 ---
 

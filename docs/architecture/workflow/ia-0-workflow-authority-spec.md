@@ -1694,21 +1694,27 @@ with:
 
 ## IA-5 — Full five-stage continuity
 
-**Status: Planned / Next** — not started; requires explicit authorisation.
+**Status: Completed on main** (PR #117; verified implementation head `81299098f730340062c3e662a07b06b95a22c533`; merge SHA `21ce580a225a44614c63414c3382f561d640ec95`; migrations `20260808120000` / `20260808130000` / `20260808140000`; production Estimate category-authority + Export snapshot after PDF + all-current resolver `view_completed_project` re-verified under IA-5-MR1 Production Estimate Authority Runtime Configuration Repair).
 
-Prove:
+Proved:
 
 > **Photos → Analysis → Redesign → Estimate → Export**
 
-including stale recovery.
+including stale recovery (bounded production photo invalidation → Analysis non-current / `update_analysis` earliest action).
 
 ## IA-6 — Dashboard + Overview
+
+**Status: Planned / Next** — requires explicit authorisation.
 
 Resolver-driven:
 
 - Continue where you left off;
 - project status;
 - progress.
+
+Residual carried from IA-5:
+
+- Overview / Photos `progressFromProjectFlags` presentation convergence (presentation only; not authority for stage/RPC).
 
 ## IA-7 — Global navigation convergence
 
