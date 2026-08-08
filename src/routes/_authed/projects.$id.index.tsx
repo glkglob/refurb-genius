@@ -29,15 +29,18 @@ import {
   Bath,
   Ruler,
   Home,
-  BarChart3,
   Image as ImageIcon,
+  ArrowRight,
+  Loader2,
+  AlertTriangle,
 } from "lucide-react";
 
 import { estimatedRefurbCost, estimatedProfit } from "@/core/projects";
 import {
   ProjectWorkflowShell,
-  progressFromProjectFlags,
+  useProjectFiveStageWorkflow,
   buildProjectWorkflowStages,
+  explainProjectNextActionReason,
   type ProjectWorkflowStageId,
 } from "@/features/projects";
 
@@ -102,6 +105,11 @@ function ProjectDetail() {
   const { data: photos = [] } = useSuspenseQuery(photosQueryOptions(id));
   const { data: analyses = [] } = useQuery(photoAnalysisByProjectQueryOptions(id));
 
+  // IA-6: Overview consumes canonical five-stage state + resolver only.
+  // Legacy project *_done flags must not control status or continuation.
+  // Hook before any early return (Rules of Hooks).
+  const fiveStage = useProjectFiveStageWorkflow(id);
+
   if (!project) return <Navigate to="/dashboard" />;
 
   const setTab = (newTab: z.infer<typeof TabSchema>) => {
@@ -129,38 +137,68 @@ function ProjectDetail() {
     export: FileText,
   };
 
+  const shellProgress = fiveStage.shellProgress
+    ? { ...fiveStage.shellProgress, photoCount: photos.length }
+    : {
+        // Loading: never paint false Complete from legacy *_done flags.
+        photosDone: photos.length > 0,
+        analysisDone: false,
+        estimateDone: false,
+        reportDone: false,
+        photoCount: photos.length,
+      };
+
   const stagePresentations = buildProjectWorkflowStages({
-    progress: {
-      ...progressFromProjectFlags(project),
-      photoCount: photos.length,
-    },
+    progress: shellProgress,
     route: { surface: "overview" },
   });
 
-  // Overview is not a stage. Legacy presentation continuation (first incomplete
-  // stage by status) remains until IA-6 Dashboard/Overview convergence.
-  // Authoritative next-action decisions live in resolveProjectNextAction (IA-2);
-  // this route does not own a second resolver algorithm.
-  const nextStagePresentation =
-    stagePresentations.find((s) => s.status !== "Complete") ??
-    stagePresentations[stagePresentations.length - 1];
+  const nextAction = fiveStage.nextAction;
+  const nextExplanation = nextAction ? explainProjectNextActionReason(nextAction.reason) : "";
+  const isCompletedProject = nextAction?.actionKind === "view_completed_project";
+  const nextStagePresentation = nextAction
+    ? stagePresentations.find((s) => s.id === nextAction.stage)
+    : stagePresentations.find((s) => s.status !== "Complete");
 
   return (
     <ProjectWorkflowShell
       project={project}
       route={{ surface: "overview" }}
-      progress={{
-        ...progressFromProjectFlags(project),
-        photoCount: photos.length,
-      }}
+      progress={shellProgress}
       actions={
         <div className="flex flex-wrap gap-2">
-          <Button asChild>
-            <Link to="/analyze" search={{ projectId: id }}>
-              Analyze project
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
+          {fiveStage.loading || !nextAction ? (
+            <Button disabled size="sm" aria-busy="true">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              Loading next step
+            </Button>
+          ) : nextAction.actionKind === "view_stage_progress" ? (
+            <Button asChild size="sm" variant="outline">
+              <a
+                href={nextAction.route}
+                data-testid="overview-primary-cta"
+                data-action-kind={nextAction.actionKind}
+              >
+                {nextAction.label}
+              </a>
+            </Button>
+          ) : (
+            <Button asChild size="sm">
+              <a
+                href={nextAction.route}
+                data-testid="overview-primary-cta"
+                data-action-kind={nextAction.actionKind}
+              >
+                {nextAction.label}
+                {nextAction.actionKind !== "view_completed_project" ? (
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4" aria-hidden />
+                )}
+              </a>
+            </Button>
+          )}
+          <Button asChild variant="outline" size="sm">
             <Link to="/studies" search={{ projectId: id }}>
               Saved studies
             </Link>
@@ -262,6 +300,67 @@ function ProjectDetail() {
 
         {/* Overview */}
         <TabsContent value="overview" className="mt-6 space-y-6">
+          {/* Canonical continuation — resolver authority only (IA-6) */}
+          <Card
+            className={
+              isCompletedProject
+                ? "border-accent/40 bg-accent/5"
+                : nextAction?.status === "Needs attention"
+                  ? "border-destructive/30 bg-destructive/5"
+                  : "border-border/60"
+            }
+            data-testid="overview-continuation-panel"
+          >
+            <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 space-y-1">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {isCompletedProject ? "Project complete" : "Continue workflow"}
+                </p>
+                <h2 className="text-lg font-semibold text-foreground">
+                  {fiveStage.loading
+                    ? "Loading next action…"
+                    : isCompletedProject
+                      ? "All five stages are current"
+                      : (nextAction?.label ?? "Continue")}
+                </h2>
+                {nextExplanation ? (
+                  <p className="text-sm text-muted-foreground" data-testid="overview-next-reason">
+                    {nextAction?.status === "Needs attention" ? (
+                      <span className="mr-1.5 inline-flex items-center gap-1 text-destructive">
+                        <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+                        Needs attention
+                      </span>
+                    ) : null}
+                    {nextExplanation}
+                  </p>
+                ) : null}
+              </div>
+              <div className="shrink-0">
+                {fiveStage.loading || !nextAction ? (
+                  <Button disabled aria-busy="true">
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                    Loading
+                  </Button>
+                ) : (
+                  <Button asChild>
+                    <a
+                      href={nextAction.route}
+                      data-testid="overview-continue-cta"
+                      data-action-kind={nextAction.actionKind}
+                    >
+                      {nextAction.label}
+                      {nextAction.actionKind === "view_completed_project" ? (
+                        <CheckCircle2 className="h-4 w-4" aria-hidden />
+                      ) : (
+                        <ArrowRight className="h-4 w-4" aria-hidden />
+                      )}
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Five-stage workflow cards — canonical IA-0 journey (Overview is not a stage) */}
           <h2 className="text-lg font-semibold">Workflow</h2>
           <p className="text-sm text-muted-foreground -mt-2">
@@ -270,11 +369,21 @@ function ProjectDetail() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             {stagePresentations.map((stage) => {
               const Icon = stageIcons[stage.id];
-              const isNext = nextStagePresentation?.id === stage.id && stage.status !== "Complete";
+              const isNext =
+                nextStagePresentation?.id === stage.id &&
+                !isCompletedProject &&
+                stage.status !== "Complete";
               const done = stage.status === "Complete";
+              const needsAttention = stage.status === "Needs attention";
               const cardInner = (
                 <Card
-                  className={`h-full transition-shadow hover:shadow-md ${isNext ? "border-primary ring-1 ring-primary/40" : ""}`}
+                  className={`h-full transition-shadow hover:shadow-md ${
+                    isNext
+                      ? "border-primary ring-1 ring-primary/40"
+                      : needsAttention
+                        ? "border-destructive/40"
+                        : ""
+                  }`}
                 >
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between">
@@ -283,6 +392,8 @@ function ProjectDetail() {
                       </div>
                       {done ? (
                         <CheckCircle2 className="h-5 w-5 text-primary" aria-hidden />
+                      ) : needsAttention ? (
+                        <AlertTriangle className="h-5 w-5 text-destructive" aria-hidden />
                       ) : (
                         <Circle className="h-5 w-5 text-muted-foreground/40" aria-hidden />
                       )}
@@ -291,7 +402,13 @@ function ProjectDetail() {
                       {stage.order}. {stage.label}
                     </h3>
                     <p className="mt-1 text-xs text-muted-foreground">{stage.description}</p>
-                    <p className="mt-2 text-xs font-medium text-muted-foreground">{stage.status}</p>
+                    <p
+                      className={`mt-2 text-xs font-medium ${
+                        needsAttention ? "text-destructive" : "text-muted-foreground"
+                      }`}
+                    >
+                      {stage.status}
+                    </p>
                   </CardContent>
                 </Card>
               );

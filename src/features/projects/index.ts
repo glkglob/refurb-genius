@@ -20,7 +20,9 @@ export {
 export {
   ProjectWorkflowShell,
   ProjectStageNav,
+  ProjectContinuationCard,
   type ProjectWorkflowShellProject,
+  type ProjectContinuationCardProps,
 } from "./presentation";
 
 export {
@@ -48,6 +50,9 @@ export {
   composeProjectWorkflowState,
   buildProjectNextActionRoute,
   buildProjectWorkflowStages,
+  explainProjectNextActionReason,
+  workflowAllStagesComplete,
+  workflowHasNeedsAttention,
   isCanonicalWorkflowStatus,
   isProjectNextActionKind,
   photosCurrencyFromEvidence,

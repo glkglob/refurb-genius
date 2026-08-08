@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useProjects } from "@/hooks/useProjects";
-import { ProjectCard } from "@/components/ProjectCard";
+import { ProjectContinuationCard } from "@/features/projects";
 import {
   consumeNewUserOnboarding,
   hasCompletedFirstStudy as readFirstStudyCelebration,
@@ -356,7 +356,7 @@ function DashboardContent() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {projects.slice(0, 6).map((p) => (
-              <ProjectCard key={p.id} project={p} />
+              <ProjectContinuationCard key={p.id} project={p} />
             ))}
           </div>
         )}

@@ -1,7 +1,9 @@
 export {
   ProjectWorkflowShell,
   ProjectStageNav,
+  ProjectContinuationCard,
   type ProjectWorkflowShellProject,
+  type ProjectContinuationCardProps,
 } from "./components";
 
 export {

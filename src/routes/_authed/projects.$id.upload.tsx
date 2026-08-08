@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/EmptyState";
 import {
   ProjectWorkflowShell,
-  progressFromProjectFlags,
   buildPhotosAnalysisWorkflowState,
   analysisShellFlagsFromCurrency,
   resolveProjectNextAction,
@@ -354,13 +353,14 @@ function UploadPage() {
       project={project}
       route={{ surface: "upload" }}
       progress={{
-        ...progressFromProjectFlags(project),
-        photoCount: photos.length,
-        // Prefer durable catalogue evidence over legacy photos_done alone.
-        photosDone: photos.length > 0 || project.photos_done,
-        // IA-5-R3A: Analysis shell status follows catalogue currency, not analysis_done alone.
+        // IA-6 residual: never paint Estimate/Export Complete from legacy *_done flags.
+        // Photos/Analysis come from durable catalogue currency (IA-3 / IA-5-R3A).
+        photosDone: photos.length > 0,
         analysisDone: analysisShellFlags.analysisDone,
         analysisNeedsAttention: analysisShellFlags.analysisNeedsAttention,
+        estimateDone: false,
+        reportDone: false,
+        photoCount: photos.length,
       }}
       pageTitle={project.name?.trim() || "Photos"}
       pageSubtitle="Add photos of every room. We'll run AI analysis next."

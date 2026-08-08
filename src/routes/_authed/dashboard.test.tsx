@@ -74,8 +74,8 @@ vi.mock("@/components/DashboardSection", () => ({
   }) => createElement("section", { "data-testid": `section-${title}` }, children),
 }));
 
-vi.mock("@/components/ProjectCard", () => ({
-  ProjectCard: () => createElement("div", { "data-testid": "project-card" }),
+vi.mock("@/features/projects", () => ({
+  ProjectContinuationCard: () => createElement("div", { "data-testid": "project-card" }),
 }));
 
 vi.mock("@/components/EmptyState", () => ({
