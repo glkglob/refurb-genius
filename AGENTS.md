@@ -38,7 +38,9 @@ IA-4 (First-Class Redesign) is **Completed** on main (`/projects/$id/redesign`, 
 
 IA-5 (Full Five-Stage Continuity) is **Completed** on main (PR #117; verified implementation head `81299098f730340062c3e662a07b06b95a22c533`; merge `21ce580a225a44614c63414c3382f561d640ec95`; migrations `20260808120000` / `20260808130000` / `20260808140000`; production Estimate authority + Export snapshot + `view_completed_project` re-verified under IA-5-MR1).
 
-IA-6 (Dashboard + Overview Continuation) is **Planned / Next** and **MUST NOT** begin until explicitly authorised. Residual for IA-6: Overview / Photos `progressFromProjectFlags` presentation convergence.
+IA-6 (Dashboard + Overview Continuation) is **Completed** on main (PR #119; verified head `02e802ccc837ad26b63d65e82582ea84c9fa05c6`; merge `2d83375209e266e5953e0edd71de3e8b16a92574`; no migrations). Dashboard and Overview consume canonical five-stage workflow + resolver; legacy progress flags are non-authoritative on those surfaces; transient running state is project-scoped and non-authoritative.
+
+IA-7 (Global Navigation Convergence) is **Planned / Next** and **MUST NOT** begin until explicitly authorised.
 
 ---
 

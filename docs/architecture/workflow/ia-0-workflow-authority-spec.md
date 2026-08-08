@@ -1704,19 +1704,19 @@ including stale recovery (bounded production photo invalidation → Analysis non
 
 ## IA-6 — Dashboard + Overview
 
-**Status: Planned / Next** — requires explicit authorisation.
+**Status: Completed on main** (PR #119; verified implementation head `02e802ccc837ad26b63d65e82582ea84c9fa05c6`; merge SHA `2d83375209e266e5953e0edd71de3e8b16a92574`; no database migrations).
 
-Resolver-driven:
+Proved on Dashboard and Project Overview:
 
-- Continue where you left off;
-- project status;
-- progress.
+- canonical continuation via `useProjectFiveStageWorkflow` → `composeProjectWorkflowState` → `resolveProjectNextAction`;
+- durable state parity with the resolver (including legacy `*_done` flags non-authoritative);
+- transient in-progress continuation (`view_stage_progress`) via project-scoped operation registry (non-authoritative; does not survive full page refresh without a durable job identity).
 
-Residual carried from IA-5:
-
-- Overview / Photos `progressFromProjectFlags` presentation convergence (presentation only; not authority for stage/RPC).
+Residual carried from IA-5 (Overview / Photos `progressFromProjectFlags` presentation) is closed for IA-6 target surfaces.
 
 ## IA-7 — Global navigation convergence
+
+**Status: Planned / Next** — requires explicit authorisation.
 
 - Projects canonical;
 - Studies demoted;
