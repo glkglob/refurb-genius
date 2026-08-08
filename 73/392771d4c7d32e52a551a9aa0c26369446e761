@@ -1,0 +1,20 @@
+packages/ui/src/components/dropdown-menu.opaque-surface.test.tsx
+  h_7ea6129503670a 1-28
+src/components/MobileTopBar.test.tsx
+  h_7ea6129503670a 76-88
+src/styles.css
+  h_7ea6129503670a 14-17,24,27-82
+tests/invariants/overlay-opaque-surface.invariant.test.ts
+  h_7ea6129503670a 1-96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "73392771d4c7d32e52a551a9aa0c26369446e761",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
