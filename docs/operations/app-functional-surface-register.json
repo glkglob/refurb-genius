@@ -43,23 +43,23 @@
     "notes": "No surface marked WORKING. Controls inventoried individually. Routes reconciled against routeTree.gen.ts fullPaths. Perfect AST control discovery is NOT claimed."
   },
   "counts": {
-    "routes": 35,
+    "routes": 37,
     "controls": 182,
     "backendOperations": 48,
     "externalIntegrations": 15,
-    "totalSurfaces": 280,
+    "totalSurfaces": 282,
     "byStatus": {
       "WORKING": 0,
-      "BROKEN": 7,
+      "BROKEN": 6,
       "PARTIAL": 10,
       "INACCESSIBLE": 0,
       "BLOCKED_CONFIGURATION": 1,
       "BLOCKED_EXTERNAL": 0,
       "INTENTIONALLY_HIDDEN": 1,
-      "NOT_TESTED": 261
+      "NOT_TESTED": 264
     },
     "byKind": {
-      "route": 35,
+      "route": 37,
       "control": 182,
       "backend": 48,
       "integration": 15
@@ -320,20 +320,20 @@
     },
     {
       "preconditions": [],
-      "testReference": null,
-      "blocker": "p0-photo-capture-upload",
-      "notes": "PR #104 unmerged",
+      "testReference": "src/routes/_authed/-projects.index.ia7.test.ts",
+      "blocker": null,
+      "notes": "IA-7-R1: canonical New Analysis entry — durable project create → /projects/$id/upload. Shared NewProjectEntry with /projects/new alias.",
       "entitlement": "none",
       "kind": "route",
       "control": "Route /analyze",
       "operation": "Render and serve /analyze",
       "persistence": "none",
       "expectedResult": "Route loads with correct auth class",
-      "actualResult": "Photo capture/select broken when no project; free-text project id",
-      "status": "BROKEN",
+      "actualResult": "Static inventory only; runtime not verified",
+      "status": "NOT_TESTED",
       "severity": "P0",
       "surfaceId": "route.analyze",
-      "area": "feasibility",
+      "area": "projects",
       "route": "/analyze",
       "sourcePath": "src/routes/_authed/analyze.tsx",
       "role": "authenticated",
@@ -383,9 +383,51 @@
     },
     {
       "preconditions": [],
+      "testReference": "src/routes/_authed/-studies_.workspace.photo-upload.test.tsx",
+      "blocker": null,
+      "notes": "IA-7-R1: demoted guided feasibility workspace (relocated from /analyze). Compatibility deep links only; not primary global nav.",
+      "entitlement": "none",
+      "kind": "route",
+      "control": "Route /studies/workspace",
+      "operation": "Render and serve /studies/workspace",
+      "persistence": "none",
+      "expectedResult": "Route loads with correct auth class",
+      "actualResult": "Static inventory only; runtime not verified",
+      "status": "NOT_TESTED",
+      "severity": "P1",
+      "surfaceId": "route.studies.workspace",
+      "area": "studies",
+      "route": "/studies/workspace",
+      "sourcePath": "src/routes/_authed/studies_.workspace.tsx",
+      "role": "authenticated",
+      "authClass": "authenticated"
+    },
+    {
+      "preconditions": [],
+      "testReference": "src/routes/_authed/-projects.index.ia7.test.ts",
+      "blocker": null,
+      "notes": "IA-7 canonical Projects browse surface",
+      "entitlement": "none",
+      "kind": "route",
+      "control": "Route /projects",
+      "operation": "Render and serve /projects",
+      "persistence": "none",
+      "expectedResult": "Route loads with correct auth class",
+      "actualResult": "Static inventory only; runtime not verified",
+      "status": "NOT_TESTED",
+      "severity": "P0",
+      "surfaceId": "route.projects.list",
+      "area": "projects",
+      "route": "/projects",
+      "sourcePath": "src/routes/_authed/projects.index.tsx",
+      "role": "authenticated",
+      "authClass": "authenticated"
+    },
+    {
+      "preconditions": [],
       "testReference": null,
       "blocker": null,
-      "notes": null,
+      "notes": "IA-7-R1: compatibility alias of /analyze New Analysis entry (shared NewProjectEntry).",
       "entitlement": "none",
       "kind": "route",
       "control": "Route /projects/new",
@@ -2356,9 +2398,9 @@
       "severity": "P0",
       "surfaceId": "ctrl.analyze.project-select",
       "area": "feasibility",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Project free-text + datalist",
-      "sourcePath": "src/routes/_authed/analyze.tsx",
+      "sourcePath": "src/routes/_authed/studies_.workspace.tsx",
       "role": "authenticated"
     },
     {
@@ -2376,7 +2418,7 @@
       "severity": "P0",
       "surfaceId": "ctrl.analyze.photo.take",
       "area": "photos",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Take Photo",
       "sourcePath": "src/features/ai-upload/presentation/components/PhotoUploadZone.tsx",
       "role": "authenticated"
@@ -2396,7 +2438,7 @@
       "severity": "P0",
       "surfaceId": "ctrl.analyze.photo.library",
       "area": "photos",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Upload from Library",
       "sourcePath": "src/features/ai-upload/presentation/components/PhotoUploadZone.tsx",
       "role": "authenticated"
@@ -2416,7 +2458,7 @@
       "severity": "P0",
       "surfaceId": "ctrl.analyze.photo.camera-input",
       "area": "photos",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Hidden camera input",
       "sourcePath": "src/features/ai-upload/presentation/components/PhotoUploadZone.tsx",
       "role": "authenticated"
@@ -2436,7 +2478,7 @@
       "severity": "P0",
       "surfaceId": "ctrl.analyze.photo.library-input",
       "area": "photos",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Hidden library input",
       "sourcePath": "src/features/ai-upload/presentation/components/PhotoUploadZone.tsx",
       "role": "authenticated"
@@ -2456,7 +2498,7 @@
       "severity": "P1",
       "surfaceId": "ctrl.analyze.photo.remove",
       "area": "photos",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Remove selected photo",
       "sourcePath": "src/features/ai-upload/presentation/components/PhotoUploadZone.tsx",
       "role": "authenticated"
@@ -2476,7 +2518,7 @@
       "severity": "P1",
       "surfaceId": "ctrl.analyze.photo.clear",
       "area": "photos",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Clear selection",
       "sourcePath": "src/features/ai-upload/presentation/components/PhotoUploadZone.tsx",
       "role": "authenticated"
@@ -2496,9 +2538,9 @@
       "severity": "P0",
       "surfaceId": "ctrl.analyze.upload-selected",
       "area": "photos",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Upload Selected",
-      "sourcePath": "src/routes/_authed/analyze.tsx",
+      "sourcePath": "src/routes/_authed/studies_.workspace.tsx",
       "role": "authenticated"
     },
     {
@@ -2516,9 +2558,9 @@
       "severity": "P0",
       "surfaceId": "ctrl.analyze.run-full",
       "area": "feasibility",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Run Full Analysis",
-      "sourcePath": "src/routes/_authed/analyze.tsx",
+      "sourcePath": "src/routes/_authed/studies_.workspace.tsx",
       "role": "authenticated"
     },
     {
@@ -2536,9 +2578,9 @@
       "severity": "P0",
       "surfaceId": "ctrl.analyze.stage.click",
       "area": "feasibility",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Guided stage checklist item click",
-      "sourcePath": "src/routes/_authed/analyze.tsx",
+      "sourcePath": "src/routes/_authed/studies_.workspace.tsx",
       "role": "authenticated"
     },
     {
@@ -2556,9 +2598,9 @@
       "severity": "P0",
       "surfaceId": "ctrl.analyze.retry-stage",
       "area": "feasibility",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Retry stage",
-      "sourcePath": "src/routes/_authed/analyze.tsx",
+      "sourcePath": "src/routes/_authed/studies_.workspace.tsx",
       "role": "authenticated"
     },
     {
@@ -2576,9 +2618,9 @@
       "severity": "P0",
       "surfaceId": "ctrl.analyze.continue-stage",
       "area": "feasibility",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Continue from last success",
-      "sourcePath": "src/routes/_authed/analyze.tsx",
+      "sourcePath": "src/routes/_authed/studies_.workspace.tsx",
       "role": "authenticated"
     },
     {
@@ -2596,9 +2638,9 @@
       "severity": "P1",
       "surfaceId": "ctrl.analyze.queue-export",
       "area": "export",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Queue Investor Export",
-      "sourcePath": "src/routes/_authed/analyze.tsx",
+      "sourcePath": "src/routes/_authed/studies_.workspace.tsx",
       "role": "authenticated"
     },
     {
@@ -2616,9 +2658,9 @@
       "severity": "P1",
       "surfaceId": "ctrl.analyze.export-report",
       "area": "export",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Export feasibility report",
-      "sourcePath": "src/routes/_authed/analyze.tsx",
+      "sourcePath": "src/routes/_authed/studies_.workspace.tsx",
       "role": "authenticated"
     },
     {
@@ -2636,9 +2678,9 @@
       "severity": "P1",
       "surfaceId": "ctrl.analyze.open-study",
       "area": "studies",
-      "route": "/analyze",
+      "route": "/studies/workspace",
       "control": "Open study dashboard link",
-      "sourcePath": "src/routes/_authed/analyze.tsx",
+      "sourcePath": "src/routes/_authed/studies_.workspace.tsx",
       "role": "authenticated"
     },
     {

@@ -1,5 +1,5 @@
 /**
- * P0-PHOTO-1 — /analyze photo selection and upload gating.
+ * P0-PHOTO-1 — /studies/workspace photo selection and upload gating.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -23,6 +23,8 @@ vi.mock("@tanstack/react-router", () => ({
     useSearch: () => useSearch(),
   }),
   useNavigate: () => navigate,
+  Link: ({ children, to, ...rest }: { children?: ReactNode; to: string; [key: string]: unknown }) =>
+    createElement("a", { href: typeof to === "string" ? to : "#", ...rest }, children),
 }));
 
 vi.mock("@/features/feasibility", () => ({
@@ -85,7 +87,7 @@ vi.mock("sonner", () => ({
 }));
 
 import { PhotoUploadBatchError, PhotoWriteError, type ProjectPhoto } from "@/features/ai-upload";
-import { Route } from "./analyze";
+import { Route } from "./studies_.workspace";
 
 const PROJECT_A = {
   id: "proj-aaa",
@@ -212,7 +214,7 @@ describe("analyze photo upload flow", () => {
 
     await waitFor(() => {
       expect(navigate).toHaveBeenCalledWith({
-        to: "/analyze",
+        to: "/studies/workspace",
         search: {
           projectId: "proj-aaa",
           studyId: "study-123",

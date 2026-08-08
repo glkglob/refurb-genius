@@ -17,24 +17,24 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 
 | Metric | Count |
 | --- | ---: |
-| Routes | 35 |
+| Routes | 37 |
 | Controls | 182 |
 | Backend operations | 48 |
 | External integrations | 15 |
-| **Total surfaces** | **280** |
+| **Total surfaces** | **282** |
 
 ### Status totals
 
 | Status | Count |
 | --- | ---: |
 | WORKING | 0 |
-| BROKEN | 7 |
+| BROKEN | 6 |
 | PARTIAL | 10 |
 | INACCESSIBLE | 0 |
 | BLOCKED_CONFIGURATION | 1 |
 | BLOCKED_EXTERNAL | 0 |
 | INTENTIONALLY_HIDDEN | 1 |
-| NOT_TESTED | 261 |
+| NOT_TESTED | 264 |
 
 ## Routes
 
@@ -52,9 +52,11 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 | `route.trades.public` | `/trades` | public | `src/routes/trades.tsx` | PARTIAL | P1 |
 | `route.trades.job-detail` | `/trades/$jobId` | public | `src/routes/trades_.$jobId.tsx` | NOT_TESTED | P1 |
 | `route.dashboard` | `/dashboard` | authenticated | `src/routes/_authed/dashboard.tsx` | NOT_TESTED | P0 |
-| `route.analyze` | `/analyze` | authenticated | `src/routes/_authed/analyze.tsx` | BROKEN | P0 |
+| `route.analyze` | `/analyze` | authenticated | `src/routes/_authed/analyze.tsx` | NOT_TESTED | P0 |
 | `route.studies.list` | `/studies` | authenticated | `src/routes/_authed/studies.tsx` | NOT_TESTED | P0 |
 | `route.studies.detail` | `/studies/$id` | authenticated | `src/routes/_authed/studies.$id.tsx` | NOT_TESTED | P0 |
+| `route.studies.workspace` | `/studies/workspace` | authenticated | `src/routes/_authed/studies_.workspace.tsx` | NOT_TESTED | P1 |
+| `route.projects.list` | `/projects` | authenticated | `src/routes/_authed/projects.index.tsx` | NOT_TESTED | P0 |
 | `route.projects.new` | `/projects/new` | authenticated | `src/routes/_authed/projects.new.tsx` | NOT_TESTED | P0 |
 | `route.projects.detail` | `/projects/$id` | authenticated | `src/routes/_authed/projects.$id.index.tsx` | NOT_TESTED | P0 |
 | `route.projects.upload` | `/projects/$id/upload` | authenticated | `src/routes/_authed/projects.$id.upload.tsx` | PARTIAL | P0 |
@@ -168,8 +170,8 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 
 | surfaceId | control | route | status | severity | blocker |
 | --- | --- | --- | --- | --- | --- |
-| `ctrl.analyze.queue-export` | Queue Investor Export | `/analyze` | NOT_TESTED | P1 | — |
-| `ctrl.analyze.export-report` | Export feasibility report | `/analyze` | NOT_TESTED | P1 | — |
+| `ctrl.analyze.queue-export` | Queue Investor Export | `/studies/workspace` | NOT_TESTED | P1 | — |
+| `ctrl.analyze.export-report` | Export feasibility report | `/studies/workspace` | NOT_TESTED | P1 | — |
 | `ctrl.report.print` | Print report | `/projects/$id/report` | NOT_TESTED | P2 | — |
 | `ctrl.report.export-pdf` | Export PDF | `/projects/$id/report` | NOT_TESTED | P0 | — |
 | `ctrl.report.back-project` | Back to project | `/projects/$id/report` | NOT_TESTED | P2 | — |
@@ -178,11 +180,11 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 
 | surfaceId | control | route | status | severity | blocker |
 | --- | --- | --- | --- | --- | --- |
-| `ctrl.analyze.project-select` | Project free-text + datalist | `/analyze` | BROKEN | P0 | free-text-project-id |
-| `ctrl.analyze.run-full` | Run Full Analysis | `/analyze` | NOT_TESTED | P0 | — |
-| `ctrl.analyze.stage.click` | Guided stage checklist item click | `/analyze` | NOT_TESTED | P0 | — |
-| `ctrl.analyze.retry-stage` | Retry stage | `/analyze` | NOT_TESTED | P0 | — |
-| `ctrl.analyze.continue-stage` | Continue from last success | `/analyze` | NOT_TESTED | P0 | — |
+| `ctrl.analyze.project-select` | Project free-text + datalist | `/studies/workspace` | BROKEN | P0 | free-text-project-id |
+| `ctrl.analyze.run-full` | Run Full Analysis | `/studies/workspace` | NOT_TESTED | P0 | — |
+| `ctrl.analyze.stage.click` | Guided stage checklist item click | `/studies/workspace` | NOT_TESTED | P0 | — |
+| `ctrl.analyze.retry-stage` | Retry stage | `/studies/workspace` | NOT_TESTED | P0 | — |
+| `ctrl.analyze.continue-stage` | Continue from last success | `/studies/workspace` | NOT_TESTED | P0 | — |
 | `ctrl.analysis.retry-weak` | Retry weak analyses | `/projects/$id/analysis` | NOT_TESTED | P1 | — |
 | `ctrl.analysis.continue-estimate` | Continue to estimate | `/projects/$id/analysis` | NOT_TESTED | P0 | — |
 | `ctrl.scope.generate` | Generate/save scope analysis | `/projects/$id/scope` | NOT_TESTED | P0 | — |
@@ -243,13 +245,13 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 
 | surfaceId | control | route | status | severity | blocker |
 | --- | --- | --- | --- | --- | --- |
-| `ctrl.analyze.photo.take` | Take Photo | `/analyze` | BROKEN | P0 | isLoading-gated-on-project |
-| `ctrl.analyze.photo.library` | Upload from Library | `/analyze` | BROKEN | P0 | isLoading-gated-on-project |
-| `ctrl.analyze.photo.camera-input` | Hidden camera input | `/analyze` | BROKEN | P0 | camera-multiple-attribute |
-| `ctrl.analyze.photo.library-input` | Hidden library input | `/analyze` | NOT_TESTED | P0 | — |
-| `ctrl.analyze.photo.remove` | Remove selected photo | `/analyze` | NOT_TESTED | P1 | — |
-| `ctrl.analyze.photo.clear` | Clear selection | `/analyze` | NOT_TESTED | P1 | — |
-| `ctrl.analyze.upload-selected` | Upload Selected | `/analyze` | PARTIAL | P0 | analyze-upload-ux |
+| `ctrl.analyze.photo.take` | Take Photo | `/studies/workspace` | BROKEN | P0 | isLoading-gated-on-project |
+| `ctrl.analyze.photo.library` | Upload from Library | `/studies/workspace` | BROKEN | P0 | isLoading-gated-on-project |
+| `ctrl.analyze.photo.camera-input` | Hidden camera input | `/studies/workspace` | BROKEN | P0 | camera-multiple-attribute |
+| `ctrl.analyze.photo.library-input` | Hidden library input | `/studies/workspace` | NOT_TESTED | P0 | — |
+| `ctrl.analyze.photo.remove` | Remove selected photo | `/studies/workspace` | NOT_TESTED | P1 | — |
+| `ctrl.analyze.photo.clear` | Clear selection | `/studies/workspace` | NOT_TESTED | P1 | — |
+| `ctrl.analyze.upload-selected` | Upload Selected | `/studies/workspace` | PARTIAL | P0 | analyze-upload-ux |
 | `ctrl.upload.camera` | Take Photo | `/projects/$id/upload` | NOT_TESTED | P0 | — |
 | `ctrl.upload.library` | Choose Files | `/projects/$id/upload` | NOT_TESTED | P0 | — |
 | `ctrl.upload.camera-input` | Hidden camera input | `/projects/$id/upload` | NOT_TESTED | P0 | — |
@@ -317,7 +319,7 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 
 | surfaceId | control | route | status | severity | blocker |
 | --- | --- | --- | --- | --- | --- |
-| `ctrl.analyze.open-study` | Open study dashboard link | `/analyze` | NOT_TESTED | P1 | — |
+| `ctrl.analyze.open-study` | Open study dashboard link | `/studies/workspace` | NOT_TESTED | P1 | — |
 | `ctrl.studies.filter-project` | Project filter input/datalist | `/studies` | NOT_TESTED | P1 | — |
 | `ctrl.studies.open` | Open study | `/studies` | NOT_TESTED | P0 | — |
 | `ctrl.studies.list.duplicate` | Duplicate (per-card) | `/studies` | NOT_TESTED | P1 | — |
@@ -425,7 +427,6 @@ Exceptions allowlist: [`app-functional-surface-exceptions.json`](./app-functiona
 
 ## Confirmed P0 BROKEN surfaces
 
-- `route.analyze` — Photo capture/select broken when no project; free-text project id (blocker: p0-photo-capture-upload)
 - `ctrl.analyze.project-select` — Unresolved free-text values possible (blocker: free-text-project-id)
 - `ctrl.analyze.photo.take` — Disabled when !selectedProject via isLoading (blocker: isLoading-gated-on-project)
 - `ctrl.analyze.photo.library` — Disabled when no project (blocker: isLoading-gated-on-project)

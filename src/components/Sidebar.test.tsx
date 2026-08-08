@@ -45,6 +45,33 @@ beforeEach(() => {
   signOut.mockResolvedValue(undefined);
 });
 
+describe("Sidebar IA-7 global navigation", () => {
+  it("renders the six canonical primary destinations", () => {
+    render(createElement(Sidebar));
+    expect(screen.getByTestId("global-nav-dashboard")).toBeTruthy();
+    expect(screen.getByTestId("global-nav-projects")).toBeTruthy();
+    expect(screen.getByTestId("global-nav-new_analysis")).toBeTruthy();
+    expect(screen.getByTestId("global-nav-deal_copilot")).toBeTruthy();
+    expect(screen.getByTestId("global-nav-trades_marketplace")).toBeTruthy();
+    expect(screen.getByTestId("global-nav-settings")).toBeTruthy();
+    expect(screen.getByText("Projects")).toBeTruthy();
+    expect(screen.getByText("New Analysis")).toBeTruthy();
+    expect(screen.getByText("Trades / Marketplace")).toBeTruthy();
+  });
+
+  it("does not expose Studies as a primary nav item", () => {
+    render(createElement(Sidebar));
+    expect(screen.queryByText("Studies")).toBeNull();
+    expect(screen.queryByText("New Study")).toBeNull();
+  });
+
+  it("marks Dashboard active on /dashboard", () => {
+    render(createElement(Sidebar));
+    expect(screen.getByTestId("global-nav-dashboard").getAttribute("data-active")).toBe("true");
+    expect(screen.getByTestId("global-nav-projects").getAttribute("data-active")).toBe("false");
+  });
+});
+
 describe("Sidebar sign-out (AO-1S1)", () => {
   it("renders the Sign out control", () => {
     render(createElement(Sidebar));

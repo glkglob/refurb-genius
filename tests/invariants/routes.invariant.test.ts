@@ -46,6 +46,7 @@ const AUTHENTICATED_ROUTES: [string, string][] = [
   ["_authed/dashboard.tsx", "/dashboard"],
   ["_authed/analyze.tsx", "/analyze"],
   ["_authed/studies.tsx", "/studies"],
+  ["_authed/studies_.workspace.tsx", "/studies/workspace"],
   ["_authed/settings.tsx", "/settings"],
   ["_authed/admin.tsx", "/admin"],
   ["_authed/projects.new.tsx", "/projects/new"],

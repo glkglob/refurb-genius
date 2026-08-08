@@ -63,17 +63,37 @@ function StudiesRoute() {
 
   return (
     <AppLayout
-      title="Study Dashboard"
-      subtitle="Resume analyses, manage snapshot lifecycle, and export investor-ready reports."
+      title="Feasibility studies"
+      subtitle="Compatibility workspace for feasibility snapshots. Projects is the canonical product destination."
       actions={
-        <Button asChild size="touch">
-          <Link to="/analyze" search={projectId ? { projectId } : undefined}>
-            <PlayCircle className="h-4 w-4" />
-            New Study
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="touch" variant="outline">
+            <Link to="/projects">
+              <FileText className="h-4 w-4" />
+              Projects
+            </Link>
+          </Button>
+          <Button asChild size="touch">
+            <Link to="/analyze">
+              <PlayCircle className="h-4 w-4" />
+              New Analysis
+            </Link>
+          </Button>
+        </div>
       }
     >
+      <Card className="mb-4 border-border/60 bg-muted/30">
+        <CardContent className="p-4 text-sm text-muted-foreground">
+          Studies remain available for deep links and snapshot management. Prefer{" "}
+          <Link
+            to="/projects"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            Projects
+          </Link>{" "}
+          for the five-stage refurbishment workflow.
+        </CardContent>
+      </Card>
       <Card className="mb-6 border-border/60 bg-card/70">
         <CardHeader>
           <CardTitle className="text-base">Project filter</CardTitle>
@@ -123,7 +143,7 @@ function StudiesRoute() {
           description="Start a guided analysis to create immutable snapshots, ROI summaries, and investor-ready exports."
           action={
             <Button asChild size="touch">
-              <Link to="/analyze" search={projectId ? { projectId } : undefined}>
+              <Link to="/studies/workspace" search={projectId ? { projectId } : undefined}>
                 Start analysis
               </Link>
             </Button>
@@ -147,9 +167,9 @@ function StudiesRoute() {
                 <div className="flex flex-wrap gap-2">
                   <Button asChild size="sm" variant="outline">
                     <Link
-                      to="/analyze"
+                      to="/studies/workspace"
                       search={{ projectId: snapshot.projectId, studyId: snapshot.studyId }}
-                      title="Resume this study in the guided analyze flow"
+                      title="Resume this study in the guided feasibility workspace"
                     >
                       Resume
                     </Link>
