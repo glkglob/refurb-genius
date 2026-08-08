@@ -115,6 +115,7 @@ export async function getLatestProjectEstimate(
     .eq("project_id", projectId)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(1)
     .maybeSingle();
 

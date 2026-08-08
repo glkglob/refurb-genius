@@ -207,18 +207,13 @@ function ScopeContent({
             `Analysis complete — ${data.rooms.length} rooms, ${data.rooms.reduce((s, r) => s + r.issues.length, 0)} issues detected`,
           );
 
-          // Auto-save with IA-5 provenance (Analysis + selected Redesign identities).
-          const analysisIdentity = fiveStage.currentAnalysisIdentity;
-          const redesignId = fiveStage.selectedRedesignId;
+          // IA-5-R1: content only — server derives Analysis + Redesign provenance.
           saveScopeMutation.mutate(
             {
               projectId: id,
               analysis: data,
               region: project.region,
               notes: notes || undefined,
-              analysisIdentity,
-              redesignConceptId: redesignId,
-              redesignIdentity: redesignId ?? "",
             },
             {
               onSuccess: () => {
@@ -227,7 +222,14 @@ function ScopeContent({
               },
               onError: (err) => {
                 logger.error("[scope] Failed to save scope analysis", { error: String(err) });
-                toast.error("Analysis complete but failed to save — results are visible above");
+                const msg = err instanceof Error ? err.message : String(err);
+                if (/analysis_not_current|redesign_not_current|stale/i.test(msg)) {
+                  toast.error(
+                    "Scope could not be published: Analysis or selected Redesign is not current.",
+                  );
+                } else {
+                  toast.error("Analysis complete but failed to save — results are visible above");
+                }
               },
             },
           );

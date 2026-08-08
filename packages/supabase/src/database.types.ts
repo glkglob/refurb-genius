@@ -2083,6 +2083,45 @@ export type Database = {
         Args: { p_estimate_id: string; p_scope_id: string };
         Returns: undefined;
       };
+      save_project_scope_analysis: {
+        Args: {
+          p_project_id: string;
+          p_overall_score: number;
+          p_summary: string;
+          p_region: string;
+          p_notes: string;
+          p_rooms: Json;
+        };
+        Returns: {
+          analysis_identity: string;
+          created_at: string;
+          id: string;
+          notes: string | null;
+          overall_score: number;
+          property_id: string;
+          redesign_concept_id: string | null;
+          redesign_identity: string;
+          region: string | null;
+          summary: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+      };
+      publish_project_export_snapshot: {
+        Args: {
+          p_project_id: string;
+          p_estimate_id: string;
+          p_kind?: string;
+        };
+        Returns: {
+          created_at: string;
+          estimate_id: string;
+          id: string;
+          kind: string;
+          project_id: string;
+          user_id: string;
+        };
+      };
       select_project_redesign_concept: {
         Args: { p_concept_id: string; p_project_id: string };
         Returns: {

@@ -78,9 +78,44 @@ test("IA-5 estimate uses five-stage workflow and Review Scope", () => {
   assert.match(estimate, /bindEstimateToScope/);
 });
 
-test("IA-5 scope stamps analysis and redesign identities", () => {
+test("IA-5 scope is professional editor not a sixth stage", () => {
   const scope = read("src/routes/_authed/projects.$id.scope.tsx");
-  assert.match(scope, /analysisIdentity/);
-  assert.match(scope, /redesignIdentity/);
   assert.match(scope, /not a sixth journey stage/i);
+});
+
+test("IA-5-R1 Scope publication uses server RPC not client provenance", () => {
+  const repo = read(
+    "src/features/ai-design/infrastructure/repositories/scope-analysis.repository.ts",
+  );
+  assert.match(repo, /save_project_scope_analysis/);
+  assert.doesNotMatch(
+    repo,
+    /analysis_identity:\s*input\.analysisIdentity/,
+    "must not client-stamp analysis_identity",
+  );
+  assert.doesNotMatch(
+    repo,
+    /redesign_identity:\s*input\.redesignIdentity/,
+    "must not client-stamp redesign_identity",
+  );
+  const route = read("src/routes/_authed/projects.$id.scope.tsx");
+  assert.doesNotMatch(route, /analysisIdentity\s*:/, "route must not submit analysisIdentity");
+  assert.doesNotMatch(route, /redesignIdentity\s*:/, "route must not submit redesignIdentity");
+});
+
+test("IA-5-R1 Export publication uses server RPC", () => {
+  const repo = read("src/features/export/infrastructure/exportSnapshot.repository.ts");
+  assert.match(repo, /publish_project_export_snapshot/);
+  assert.doesNotMatch(
+    repo,
+    /\.from\(["']project_export_snapshots["']\)\s*\.insert/,
+    "must not direct-insert export snapshots",
+  );
+  const mig = read(
+    "supabase/migrations/20260808130000_ia5_r1_downstream_authority_publication.sql",
+  );
+  assert.match(mig, /stale_scope/);
+  assert.match(mig, /stale_estimate/);
+  assert.match(mig, /estimate_project_mismatch/);
+  assert.match(mig, /save_project_scope_analysis/);
 });

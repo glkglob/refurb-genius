@@ -1,7 +1,7 @@
 /**
- * IA-5 — durable Export snapshot persistence (browser context).
- * Completing Export requires a snapshot bound to the current Estimate.
- * Page view / download alone is not Complete.
+ * IA-5-R1 — durable Export snapshot persistence (browser context).
+ * Publication via publish_project_export_snapshot SECURITY DEFINER RPC.
+ * Direct client INSERT is sealed.
  */
 import { supabase } from "@/platform/supabase/browser";
 import { auth } from "@/lib/auth";
@@ -41,6 +41,10 @@ export async function getLatestExportSnapshot(
   };
 }
 
+/**
+ * Publish Export snapshot bound to the CURRENT Estimate for the project.
+ * Server rejects stale estimate_id and cross-project estimate associations.
+ */
 export async function saveExportSnapshot(input: {
   projectId: string;
   estimateId: string;
@@ -49,24 +53,28 @@ export async function saveExportSnapshot(input: {
   const user = auth.getUser();
   if (!user) throw new Error("You must be signed in to save an export snapshot.");
 
-  const { data, error } = await supabase
-    .from("project_export_snapshots")
-    .insert({
-      project_id: input.projectId,
-      user_id: user.id,
-      estimate_id: input.estimateId,
-      kind: input.kind ?? "investor_report",
-    })
-    .select("id, estimate_id, project_id, created_at, kind")
-    .single();
+  const { data, error } = await supabase.rpc("publish_project_export_snapshot", {
+    p_project_id: input.projectId,
+    p_estimate_id: input.estimateId,
+    p_kind: input.kind ?? "investor_report",
+  });
 
   if (error) throw new Error(error.message);
+  if (!data) throw new Error("Export publication returned no row.");
+
+  const row = data as {
+    id: string;
+    estimate_id: string;
+    project_id: string;
+    created_at: string;
+    kind: string;
+  };
 
   return {
-    id: data.id,
-    estimateId: data.estimate_id,
-    projectId: data.project_id,
-    createdAt: data.created_at,
-    kind: data.kind,
+    id: row.id,
+    estimateId: row.estimate_id,
+    projectId: row.project_id,
+    createdAt: row.created_at,
+    kind: row.kind,
   };
 }

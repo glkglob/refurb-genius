@@ -22,12 +22,9 @@ export type SaveScopeAnalysisCommand = {
   region: string;
   notes?: string;
   /**
-   * IA-5 provenance — required for current Scope authority.
-   * Server/client should stamp from authoritative Analysis + selected Redesign.
+   * IA-5-R1: provenance is server-derived by save_project_scope_analysis.
+   * Do not send analysis_identity / redesign_* as write authority.
    */
-  analysisIdentity?: string;
-  redesignConceptId?: string | null;
-  redesignIdentity?: string;
 };
 
 export interface ScopeAnalysisRepository {

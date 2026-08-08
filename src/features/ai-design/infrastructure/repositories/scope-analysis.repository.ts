@@ -1,6 +1,8 @@
 /**
  * AI-design slice — Scope analysis persistence (browser context).
- * Moved from `src/lib/scopeAnalysis.ts` (now a shim).
+ *
+ * IA-5-R1: publication via save_project_scope_analysis SECURITY DEFINER RPC.
+ * Client submits content only; server derives Analysis + Redesign provenance.
  */
 import { supabase } from "@/platform/supabase/browser";
 import type { Database } from "@repo/supabase";
@@ -15,10 +17,6 @@ import type {
   ScopeAnalysisRepository as ScopeAnalysisRepositoryPort,
 } from "../../application/ports";
 import { auth } from "@/lib/auth";
-
-// ──────────────────────────────────────────────────────────────
-// Row types
-// ──────────────────────────────────────────────────────────────
 
 type ScopeAnalysisRow = Database["public"]["Tables"]["scope_analyses"]["Row"];
 type ScopeRoomRow = Database["public"]["Tables"]["scope_analysis_rooms"]["Row"];
@@ -39,139 +37,96 @@ export type ScopeAuthorityHeader = {
   createdAt: string;
 };
 
-// ──────────────────────────────────────────────────────────────
-// Save
-// ──────────────────────────────────────────────────────────────
-
 /** Legacy alias — prefer `SaveScopeAnalysisCommand` from application ports. */
 export type SaveScopeAnalysisInput = SaveScopeAnalysisCommand;
 
+function roomsToJson(rooms: ScopeRoom[]): unknown[] {
+  return rooms.map((room) => ({
+    room: room.room,
+    area_sqm: room.area_sqm ?? null,
+    condition_summary: room.condition_summary ?? "",
+    issues: (room.issues ?? []).map((issue) => ({
+      category: issue.category,
+      description: issue.description,
+      severity: issue.severity,
+      recommended_action: issue.recommended_action,
+    })),
+    recommended_items: (room.recommended_items ?? []).map((item) => ({
+      name: item.name,
+      category: item.category,
+      quantity: item.quantity,
+      unit: item.unit,
+      base_unit_cost: item.base_unit_cost,
+      notes: item.notes ?? null,
+    })),
+  }));
+}
+
+/**
+ * IA-5-R1: publish Scope via server-derived provenance RPC.
+ * Does not accept client analysis_identity / redesign_* write authority.
+ */
 export async function saveScopeAnalysis(
   input: SaveScopeAnalysisInput,
 ): Promise<PersistedScopeAnalysis> {
   const user = auth.getUser();
   if (!user) throw new Error("You must be signed in to save a scope analysis.");
 
-  // 1. Create main analysis record (IA-5 stamps upstream identities when provided)
-  const { data: analysis, error: analysisError } = await supabase
-    .from("scope_analyses")
-    .insert({
-      user_id: user.id,
-      property_id: input.projectId,
-      overall_score: input.analysis.overall_score,
-      summary: input.analysis.summary,
-      region: input.region,
-      notes: input.notes ?? null,
-      analysis_identity: input.analysisIdentity ?? "",
-      redesign_concept_id: input.redesignConceptId ?? null,
-      redesign_identity: input.redesignIdentity ?? "",
-    })
-    .select()
-    .single();
+  const { data: header, error } = await supabase.rpc("save_project_scope_analysis", {
+    p_project_id: input.projectId,
+    p_overall_score: input.analysis.overall_score,
+    p_summary: input.analysis.summary,
+    p_region: input.region,
+    p_notes: input.notes ?? "",
+    p_rooms: roomsToJson(input.analysis.rooms) as never,
+  });
 
-  if (analysisError) throw new Error(analysisError.message);
+  if (error) throw new Error(error.message);
+  if (!header) throw new Error("Scope publication returned no row.");
 
-  // 2. Insert rooms
-  const roomInserts = input.analysis.rooms.map((room, idx) => ({
-    scope_analysis_id: analysis.id,
-    room_name: room.room,
-    area_sqm: room.area_sqm ?? null,
-    condition_summary: room.condition_summary,
-    display_order: idx,
-  }));
+  const analysis = header as ScopeAnalysisRow;
 
-  const { data: dbRooms, error: roomsError } = await supabase
+  // Load tree for return shape (SELECT under RLS).
+  const { data: rooms, error: roomsError } = await supabase
     .from("scope_analysis_rooms")
-    .insert(roomInserts)
-    .select();
+    .select("*")
+    .eq("scope_analysis_id", analysis.id)
+    .order("display_order", { ascending: true });
 
-  if (roomsError) {
-    // Rollback the analysis record
-    await supabase.from("scope_analyses").delete().eq("id", analysis.id);
-    throw new Error(roomsError.message);
+  if (roomsError) throw new Error(roomsError.message);
+  if (!rooms || rooms.length === 0) {
+    return { analysis, rooms: [] };
   }
 
-  // 3. Insert issues + items for each room
-  const roomsByOrder = new Map(dbRooms.map((r) => [r.display_order, r]));
-
-  const allIssueInserts: Array<Database["public"]["Tables"]["scope_analysis_issues"]["Insert"]> =
-    [];
-  const allItemInserts: Array<Database["public"]["Tables"]["scope_analysis_items"]["Insert"]> = [];
-
-  for (const [roomIdx, room] of input.analysis.rooms.entries()) {
-    const dbRoom = roomsByOrder.get(roomIdx);
-    if (!dbRoom) continue;
-
-    for (const [issueIdx, issue] of room.issues.entries()) {
-      allIssueInserts.push({
-        room_id: dbRoom.id,
-        description: issue.description,
-        severity: issue.severity,
-        category: issue.category,
-        recommended_action: issue.recommended_action,
-        display_order: issueIdx,
-      });
-    }
-
-    for (const [itemIdx, item] of room.recommended_items.entries()) {
-      allItemInserts.push({
-        room_id: dbRoom.id,
-        name: item.name,
-        category: item.category,
-        quantity: item.quantity,
-        unit: item.unit,
-        base_unit_cost: item.base_unit_cost,
-        notes: item.notes ?? null,
-        display_order: itemIdx,
-      });
-    }
-  }
-
-  let dbIssues: ScopeIssueRow[] = [];
-  let dbItems: ScopeItemRow[] = [];
-
-  if (allIssueInserts.length > 0) {
-    const { data, error } = await supabase
+  const roomIds = rooms.map((r) => r.id);
+  const [issuesResult, itemsResult] = await Promise.all([
+    supabase
       .from("scope_analysis_issues")
-      .insert(allIssueInserts)
-      .select();
-    if (error) {
-      // Cascade: deleting analysis also deletes rooms → issues/items
-      await supabase.from("scope_analyses").delete().eq("id", analysis.id);
-      throw new Error(error.message);
-    }
-    dbIssues = data ?? [];
-  }
-
-  if (allItemInserts.length > 0) {
-    const { data, error } = await supabase
+      .select("*")
+      .in("room_id", roomIds)
+      .order("display_order", { ascending: true }),
+    supabase
       .from("scope_analysis_items")
-      .insert(allItemInserts)
-      .select();
-    if (error) {
-      await supabase.from("scope_analyses").delete().eq("id", analysis.id);
-      throw new Error(error.message);
-    }
-    dbItems = data ?? [];
-  }
+      .select("*")
+      .in("room_id", roomIds)
+      .order("display_order", { ascending: true }),
+  ]);
 
-  // Group issues & items by room
-  const issuesByRoom = groupBy(dbIssues, (i) => i.room_id);
-  const itemsByRoom = groupBy(dbItems, (i) => i.room_id);
+  if (issuesResult.error) throw new Error(issuesResult.error.message);
+  if (itemsResult.error) throw new Error(itemsResult.error.message);
+
+  const issuesByRoom = groupBy(issuesResult.data ?? [], (i) => i.room_id);
+  const itemsByRoom = groupBy(itemsResult.data ?? [], (i) => i.room_id);
 
   return {
     analysis,
-    rooms: dbRooms.map((r) => ({
+    rooms: rooms.map((r) => ({
       ...r,
       issues: issuesByRoom.get(r.id) ?? [],
       items: itemsByRoom.get(r.id) ?? [],
     })),
   };
 }
-
-// ──────────────────────────────────────────────────────────────
-// Load latest
-// ──────────────────────────────────────────────────────────────
 
 /**
  * IA-5 — load latest Scope authority header for workflow currentness.
@@ -196,10 +151,9 @@ export async function getLatestScopeAuthorityHeader(
 
   return {
     id: data.id,
-    analysisIdentity: (data as { analysis_identity?: string }).analysis_identity ?? "",
-    redesignIdentity: (data as { redesign_identity?: string }).redesign_identity ?? "",
-    redesignConceptId:
-      (data as { redesign_concept_id?: string | null }).redesign_concept_id ?? null,
+    analysisIdentity: data.analysis_identity ?? "",
+    redesignIdentity: data.redesign_identity ?? "",
+    redesignConceptId: data.redesign_concept_id ?? null,
     createdAt: data.created_at,
   };
 }
@@ -222,7 +176,6 @@ export async function getLatestScopeAnalysis(
   if (analysisError) throw new Error(analysisError.message);
   if (!analysis) return null;
 
-  // Fetch rooms
   const { data: rooms, error: roomsError } = await supabase
     .from("scope_analysis_rooms")
     .select("*")
@@ -232,7 +185,6 @@ export async function getLatestScopeAnalysis(
   if (roomsError) throw new Error(roomsError.message);
   if (!rooms || rooms.length === 0) return null;
 
-  // Fetch issues + items for all rooms in this analysis
   const roomIds = rooms.map((r) => r.id);
 
   const [issuesResult, itemsResult] = await Promise.all([
@@ -254,7 +206,6 @@ export async function getLatestScopeAnalysis(
   const issuesByRoom = groupBy(issuesResult.data ?? [], (i) => i.room_id);
   const itemsByRoom = groupBy(itemsResult.data ?? [], (i) => i.room_id);
 
-  // Reconstruct the ScopeAnalysisResult shape expected by the UI
   const scopeRooms: ScopeRoom[] = rooms.map((room) => ({
     room: room.room_name,
     area_sqm: room.area_sqm ?? undefined,
@@ -285,10 +236,6 @@ export async function getLatestScopeAnalysis(
     rooms: scopeRooms,
   };
 }
-
-// ──────────────────────────────────────────────────────────────
-// Helpers
-// ──────────────────────────────────────────────────────────────
 
 function groupBy<T>(items: T[], keyFn: (item: T) => string): Map<string, T[]> {
   const map = new Map<string, T[]>();
