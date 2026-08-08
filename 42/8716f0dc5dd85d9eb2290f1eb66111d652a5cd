@@ -1,0 +1,32 @@
+src/features/projects/presentation/components/ProjectStageNav.test.tsx
+  h_7ea6129503670a 80-94
+src/features/projects/presentation/components/ProjectStageNav.tsx
+  h_7ea6129503670a 98-104,112-113,123,136-137
+src/features/projects/presentation/components/ProjectWorkflowShell.test.tsx
+  h_7ea6129503670a 1-78
+src/features/projects/presentation/components/ProjectWorkflowShell.tsx
+  h_7ea6129503670a 109-110
+src/routes/_authed/dashboard.hierarchy.test.ts
+  h_7ea6129503670a 1-40
+src/routes/_authed/dashboard.tsx
+  h_7ea6129503670a 192-270,274,348-356,365-366,372-378,756,762-763,766-773,776,778-783,786-788
+src/routes/_authed/projects.$id.analysis.trust.test.ts
+  h_7ea6129503670a 1-29
+src/routes/_authed/projects.$id.analysis.tsx
+  h_7ea6129503670a 81-89,505-543,598,603-605,608-617,619-620
+src/routes/_authed/projects.$id.estimate.cta.test.ts
+  h_7ea6129503670a 1-29
+src/routes/_authed/projects.$id.estimate.tsx
+  h_7ea6129503670a 368-371,374,376-377,380-389
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "428716f0dc5dd85d9eb2290f1eb66111d652a5cd",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
