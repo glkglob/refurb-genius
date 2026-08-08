@@ -326,6 +326,25 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
       progress={shellProgress}
       pageTitle={project.name?.trim() || "Estimate"}
       pageSubtitle="Region, condition and finish-aware UK refurbishment calculator."
+      stickyNextAction={
+        needsScopeReconcile
+          ? {
+              label:
+                nextAction?.actionKind === "reconcile_scope" ? nextAction.label : "Review Scope",
+              href: `/projects/${id}/scope`,
+              actionKind: nextAction?.actionKind ?? "reconcile_scope",
+              testId: "estimate-primary-cta-sticky",
+            }
+          : {
+              label:
+                nextAction?.actionKind === "update_estimate"
+                  ? "Update Estimate & report"
+                  : (nextAction?.label ?? "View investor report"),
+              href: nextAction?.route ?? `/projects/${id}/report`,
+              actionKind: nextAction?.actionKind,
+              testId: "estimate-primary-cta-sticky",
+            }
+      }
       actions={
         needsScopeReconcile ? (
           <Button asChild>

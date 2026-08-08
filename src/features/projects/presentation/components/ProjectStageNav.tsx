@@ -1,8 +1,11 @@
 /**
- * IA-1 — Shared five-stage project workflow navigation.
+ * IA-1 / IA-8 — Shared five-stage project workflow navigation.
  *
  * Presentation chrome only. Does not resolve next actions (IA-2), mutate
  * workflow state, or create a first-class Redesign route (IA-4).
+ *
+ * IA-8 mobile: horizontally scrollable stage rail with scroll-snap, larger
+ * touch targets, and text status (colour is never the sole signal).
  */
 import { Link } from "@tanstack/react-router";
 import { Check, Circle, AlertCircle } from "lucide-react";
@@ -22,7 +25,7 @@ function statusIcon(status: ProjectWorkflowStatusLabel, isActive: boolean) {
   if (status === "Complete") {
     return (
       <span
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary"
         aria-hidden
       >
         <Check className="h-3.5 w-3.5" />
@@ -32,7 +35,7 @@ function statusIcon(status: ProjectWorkflowStatusLabel, isActive: boolean) {
   if (status === "Needs attention") {
     return (
       <span
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-destructive/15 text-destructive"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-destructive/15 text-destructive"
         aria-hidden
       >
         <AlertCircle className="h-3.5 w-3.5" />
@@ -42,7 +45,7 @@ function statusIcon(status: ProjectWorkflowStatusLabel, isActive: boolean) {
   if (isActive || status === "In progress") {
     return (
       <span
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary ring-2 ring-primary/30"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary ring-2 ring-primary/30"
         aria-hidden
       >
         <Circle className="h-3 w-3 fill-current" />
@@ -52,7 +55,7 @@ function statusIcon(status: ProjectWorkflowStatusLabel, isActive: boolean) {
   if (status === "Ready") {
     return (
       <span
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-primary/40 bg-background text-primary"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-primary/40 bg-background text-primary"
         aria-hidden
       >
         <Circle className="h-3 w-3" />
@@ -61,7 +64,7 @@ function statusIcon(status: ProjectWorkflowStatusLabel, isActive: boolean) {
   }
   return (
     <span
-      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
       aria-hidden
     >
       <Circle className="h-3 w-3" />
@@ -81,21 +84,29 @@ export function ProjectStageNav({ projectId, stages, className }: ProjectStageNa
   return (
     <nav
       aria-label="Project workflow stages"
+      data-testid="project-stage-nav"
       className={cn(
-        "overflow-x-auto rounded-xl border border-border/60 bg-card/40 p-3 sm:p-4",
+        // Local horizontal scroll only — must not cause whole-page overflow.
+        "relative overflow-x-auto overscroll-x-contain rounded-xl border border-border/60 bg-card/40 p-2 sm:p-4",
+        "scroll-smooth [scrollbar-width:thin]",
         className,
       )}
     >
-      <ol className="flex min-w-min flex-row items-stretch gap-0 sm:w-full">
+      <p className="mb-2 px-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:hidden">
+        Stages · swipe to see all five
+      </p>
+      <ol className="flex min-w-min flex-row items-stretch gap-1 sm:w-full sm:gap-0">
         {stages.map((stage, index) => {
           const link = stageLinkProps(projectId, stage);
           return (
             <li
               key={stage.id}
               className={cn(
-                "relative flex min-w-[7.5rem] flex-1 sm:min-w-0",
+                "relative flex shrink-0 snap-start sm:min-w-0 sm:flex-1",
+                // Compact cards on narrow phones; expand on sm+.
+                "min-w-[6.75rem] max-w-[9rem] sm:max-w-none",
                 index < stages.length - 1 &&
-                  "after:absolute after:right-0 after:top-3 after:hidden after:h-px after:w-3 after:bg-border sm:after:block",
+                  "after:absolute after:right-0 after:top-3.5 after:hidden after:h-px after:w-2 after:bg-border sm:after:block",
               )}
             >
               <Link
@@ -103,12 +114,14 @@ export function ProjectStageNav({ projectId, stages, className }: ProjectStageNa
                 params={link.params}
                 search={link.search}
                 className={cn(
-                  "flex w-full min-h-11 flex-col gap-1 rounded-lg px-2 py-1.5 transition-colors",
+                  "flex w-full min-h-12 flex-col gap-1 rounded-lg px-2 py-2 transition-colors",
                   "hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   stage.isActive && "bg-primary/10 ring-1 ring-primary/30",
                 )}
                 aria-current={stage.isActive ? "step" : undefined}
                 aria-label={`${stage.order}. ${stage.label}, ${stage.status}`}
+                data-testid={`stage-nav-${stage.id}`}
+                data-active={stage.isActive ? "true" : "false"}
               >
                 <div className="flex items-center gap-2">
                   {statusIcon(stage.status, stage.isActive)}
@@ -129,7 +142,7 @@ export function ProjectStageNav({ projectId, stages, className }: ProjectStageNa
                   </span>
                 </div>
                 {/* Status as text — colour is not the sole signal */}
-                <span className="pl-8 text-xs text-muted-foreground">{stage.status}</span>
+                <span className="pl-9 text-xs text-muted-foreground">{stage.status}</span>
               </Link>
             </li>
           );

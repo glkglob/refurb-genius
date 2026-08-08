@@ -1,11 +1,16 @@
 /**
- * IA-7 / IA-7-R1 — Canonical global navigation contract.
+ * IA-7 / IA-7-R1 / IA-8 — Canonical global navigation contract.
  *
  * Six primary product destinations only. Selected-project workflow stages
  * (Photos → Export) are NOT global destinations — they live under Projects.
  *
  * New Analysis is `/analyze` (project-entry flow only).
  * Studies (and /studies/workspace feasibility) remain deep-linkable but demoted.
+ *
+ * IA-8 final mobile presentation:
+ *   Home | Projects | + New | Copilot | More
+ * More: Trades / Marketplace, Settings, Sign out
+ * Destinations always derive from GLOBAL_NAV_ITEMS (no second route map).
  */
 
 export type GlobalNavArea =
@@ -30,6 +35,7 @@ export type GlobalNavItem = {
 
 /**
  * Locked primary global destinations (order matters).
+ * Desktop Sidebar uses this set verbatim.
  */
 export const GLOBAL_NAV_ITEMS: readonly GlobalNavItem[] = [
   {
@@ -138,20 +144,23 @@ export function getGlobalNavItem(id: GlobalNavItemId): GlobalNavItem {
 }
 
 /**
- * IA-7-R2 — Bounded mobile presentation only (not IA-8 final structure).
+ * IA-8 — Final mobile primary row presentation.
  *
- * Primary row keeps the densest existing destinations.
- * Secondary "More" menu exposes remaining canonical destinations so all six
- * remain reachable without inventing a second route authority.
+ * Home | Projects | + New | Copilot
+ * (More menu holds remaining canonical destinations + Sign out.)
  */
 export const MOBILE_PRIMARY_NAV_IDS = [
+  "dashboard",
   "projects",
-  "trades_marketplace",
   "new_analysis",
+  "deal_copilot",
 ] as const satisfies readonly GlobalNavItemId[];
 
+/**
+ * IA-8 — Destinations inside the mobile More menu (plus Sign out in chrome).
+ */
 export const MOBILE_MORE_NAV_IDS = [
-  "deal_copilot",
+  "trades_marketplace",
   "settings",
 ] as const satisfies readonly GlobalNavItemId[];
 

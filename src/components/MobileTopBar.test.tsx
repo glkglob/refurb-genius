@@ -1,5 +1,5 @@
 /**
- * AO-1S1 + IA-7-R2 — MobileTopBar sign-out and canonical mobile destinations.
+ * AO-1S1 + IA-7-R2 + IA-8 — MobileTopBar final mobile IA and sign-out.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
@@ -45,45 +45,72 @@ async function openMoreMenu() {
   await screen.findByRole("menu");
 }
 
-describe("MobileTopBar IA-7-R2 canonical mobile destinations", () => {
-  it("exposes primary mobile destinations from canonical nav authority", () => {
+describe("MobileTopBar IA-8 final mobile destinations", () => {
+  it("exposes Home | Projects | + New | Copilot primary row from canonical authority", () => {
     render(createElement(MobileTopBar));
     expect(screen.getByTestId("mobile-nav-dashboard").getAttribute("href")).toBe("/dashboard");
     expect(screen.getByTestId("mobile-nav-projects").getAttribute("href")).toBe("/projects");
-    expect(screen.getByTestId("mobile-nav-trades_marketplace").getAttribute("href")).toBe(
-      "/trades",
-    );
     expect(screen.getByTestId("mobile-nav-new_analysis").getAttribute("href")).toBe("/analyze");
+    expect(screen.getByTestId("mobile-nav-deal_copilot").getAttribute("href")).toBe(
+      "/deal-copilot",
+    );
     expect(screen.getByTestId("mobile-nav-more")).toBeTruthy();
+    // + New is visually distinct but remains navigation-only (href only).
+    expect(screen.getByTestId("mobile-nav-new_analysis").textContent).toMatch(/\+?\s*New/i);
+    expect(screen.getByLabelText("Home")).toBeTruthy();
+    expect(screen.getByLabelText("New Analysis")).toBeTruthy();
+    expect(screen.getByLabelText("Deal Copilot")).toBeTruthy();
   });
 
-  it("exposes Deal Copilot and Settings through More menu using canonical routes", async () => {
+  it("exposes Trades / Marketplace and Settings through More menu", async () => {
     render(createElement(MobileTopBar));
     await openMoreMenu();
-    const copilot = await screen.findByTestId("mobile-nav-deal_copilot");
+    const trades = await screen.findByTestId("mobile-nav-trades_marketplace");
     const settings = await screen.findByTestId("mobile-nav-settings");
-    expect(copilot.getAttribute("href")).toBe("/deal-copilot");
+    expect(trades.getAttribute("href")).toBe("/trades");
     expect(settings.getAttribute("href")).toBe("/settings");
-    expect(within(copilot).getByText("Deal Copilot")).toBeTruthy();
+    expect(within(trades).getByText("Trades / Marketplace")).toBeTruthy();
     expect(within(settings).getByText("Settings")).toBeTruthy();
   });
 
   it("does not hard-code a second nav route map (reuses GLOBAL_NAV_ITEMS helpers)", () => {
     const src = readFileSync(join(__dirname, "MobileTopBar.tsx"), "utf8");
-    expect(src).toMatch(/getMobilePrimaryNavItems|getMobileMoreNavItems|getGlobalNavItem/);
+    expect(src).toMatch(/getMobilePrimaryNavItems|getMobileMoreNavItems/);
     expect(src).toMatch(/@\/features\/navigation/);
     expect(src).not.toMatch(/to:\s*["']\/studies["']/);
   });
 
-  it("marks New Analysis active on /analyze primary control", () => {
+  it("marks Home active on /dashboard and New Analysis active on /analyze", () => {
+    pathname = "/dashboard";
+    const { unmount } = render(createElement(MobileTopBar));
+    expect(screen.getByTestId("mobile-nav-dashboard").getAttribute("data-active")).toBe("true");
+    expect(screen.getByTestId("mobile-nav-projects").getAttribute("data-active")).toBe("false");
+    unmount();
+
     pathname = "/analyze";
     render(createElement(MobileTopBar));
     expect(screen.getByTestId("mobile-nav-new_analysis").getAttribute("data-active")).toBe("true");
     expect(screen.getByTestId("mobile-nav-projects").getAttribute("data-active")).toBe("false");
   });
+
+  it("marks Projects active on selected-project routes", () => {
+    pathname = "/projects/abc/upload";
+    render(createElement(MobileTopBar));
+    expect(screen.getByTestId("mobile-nav-projects").getAttribute("data-active")).toBe("true");
+    expect(screen.getByTestId("mobile-nav-new_analysis").getAttribute("data-active")).toBe(
+      "false",
+    );
+  });
+
+  it("does not place Studies or stage labels in primary mobile nav", () => {
+    render(createElement(MobileTopBar));
+    const primary = screen.getByTestId("mobile-primary-nav").textContent ?? "";
+    expect(primary).not.toMatch(/Studies/i);
+    expect(primary).not.toMatch(/Photos|Analysis|Redesign|Estimate|Export/i);
+  });
 });
 
-describe("MobileTopBar sign-out (AO-1S1 + IA-7-R2 More menu)", () => {
+describe("MobileTopBar sign-out (AO-1S1 + IA-8 More menu)", () => {
   it("renders Sign out inside More menu with accessible label", async () => {
     render(createElement(MobileTopBar));
     await openMoreMenu();

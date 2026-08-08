@@ -1,10 +1,11 @@
 /**
- * IA-1 — Shared project workflow shell.
+ * IA-1 / IA-8 — Shared project workflow shell.
  *
  * Provides:
  * - persistent project identity from route/domain project data
  * - five-stage workflow navigation + status presentation
  * - slot for route content and existing primary actions
+ * - IA-8 mobile sticky next-action (optional; resolver-driven only)
  *
  * Does NOT own: DB mutations, AI ops, invalidation, Scope/Estimate/Export
  * generation, or next-action resolution (IA-2).
@@ -21,6 +22,7 @@ import {
   type ProjectWorkflowRouteContext,
 } from "../../domain/workflowStages";
 import { ProjectStageNav } from "./ProjectStageNav";
+import { MobileStickyNextAction, type MobileStickyNextActionProps } from "./MobileStickyNextAction";
 
 export type ProjectWorkflowShellProject = {
   id: string;
@@ -29,6 +31,8 @@ export type ProjectWorkflowShellProject = {
   postcode?: string | null;
   property_type?: string | null;
 };
+
+export type ProjectWorkflowStickyNextAction = Omit<MobileStickyNextActionProps, "className">;
 
 type ProjectWorkflowShellProps = {
   project: ProjectWorkflowShellProject;
@@ -42,6 +46,12 @@ type ProjectWorkflowShellProps = {
   pageSubtitle?: string;
   /** When false, hide the five-stage nav (rare; default true). */
   showStageNav?: boolean;
+  /**
+   * IA-8 — optional sticky next action for mobile only.
+   * Must reuse canonical resolver labels/routes or stage mutation handlers.
+   * When set, header actions hide on mobile to avoid duplicate CTAs.
+   */
+  stickyNextAction?: ProjectWorkflowStickyNextAction | null;
   children: ReactNode;
 };
 
@@ -53,6 +63,7 @@ export function ProjectWorkflowShell({
   pageTitle,
   pageSubtitle,
   showStageNav = true,
+  stickyNextAction = null,
   children,
 }: ProjectWorkflowShellProps) {
   const identityTitle = buildProjectIdentityTitle(project);
@@ -70,7 +81,13 @@ export function ProjectWorkflowShell({
           .join(" · ") || undefined);
 
   const shellActions = (
-    <div className="flex flex-wrap items-center gap-2">
+    <div
+      className={
+        stickyNextAction
+          ? "hidden flex-wrap items-center gap-2 md:flex"
+          : "flex flex-wrap items-center gap-2"
+      }
+    >
       {route.surface !== "overview" ? (
         <Button asChild variant="outline" size="sm">
           <Link to="/projects/$id" params={{ id: project.id }} search={{ tab: "overview" }}>
@@ -92,6 +109,15 @@ export function ProjectWorkflowShell({
           <p className="text-xs text-muted-foreground">
             Overview is the project home — not a workflow stage
           </p>
+        ) : activeStage ? (
+          <p
+            className="text-xs text-muted-foreground md:hidden"
+            data-testid="mobile-active-stage-hint"
+          >
+            Current stage: <span className="font-medium text-foreground">{activeStage.label}</span>
+            {" · "}
+            {activeStage.status}
+          </p>
         ) : null}
       </div>
 
@@ -101,7 +127,10 @@ export function ProjectWorkflowShell({
         </div>
       ) : null}
 
-      {children}
+      {/* Reserve space so sticky CTA never permanently covers content. */}
+      <div className={stickyNextAction ? "pb-24 md:pb-0" : undefined}>{children}</div>
+
+      {stickyNextAction ? <MobileStickyNextAction {...stickyNextAction} /> : null}
     </AppLayout>
   );
 }

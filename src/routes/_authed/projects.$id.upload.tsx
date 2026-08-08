@@ -368,6 +368,18 @@ function UploadPage() {
       }}
       pageTitle={project.name?.trim() || "Photos"}
       pageSubtitle="Add photos of every room. We'll run AI analysis next."
+      stickyNextAction={{
+        label: photosNextAction.label,
+        onClick: handlePrimaryContinuation,
+        actionKind: photosNextAction.actionKind,
+        disabled:
+          uploading ||
+          photosNextAction.actionKind === "view_stage_progress" ||
+          (!continueToAnalysis && photos.length === 0),
+        loading: photosNextAction.actionKind === "view_stage_progress",
+        variant: photosNextAction.actionKind === "view_stage_progress" ? "outline" : "default",
+        testId: "photos-primary-cta-sticky",
+      }}
       actions={
         continueToAnalysis ? (
           <Button onClick={handlePrimaryContinuation} disabled={uploading}>

@@ -3,8 +3,11 @@ export {
   ProjectStageNav,
   ProjectContinuationCard,
   NewProjectEntry,
+  MobileStickyNextAction,
   type ProjectWorkflowShellProject,
+  type ProjectWorkflowStickyNextAction,
   type ProjectContinuationCardProps,
+  type MobileStickyNextActionProps,
 } from "./components";
 
 export {

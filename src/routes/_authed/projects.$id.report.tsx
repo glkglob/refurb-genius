@@ -316,6 +316,14 @@ function ReportPage() {
       progress={shellProgress}
       pageTitle={project.name?.trim() || "Export"}
       pageSubtitle="Investor-ready export from the current estimate."
+      stickyNextAction={{
+        label: pdfExporting ? "Exporting…" : "Export PDF",
+        onClick: () => void handleExportPdf(),
+        actionKind: fiveStage.nextAction?.actionKind,
+        disabled: pdfExporting,
+        loading: pdfExporting,
+        testId: "export-primary-cta-sticky",
+      }}
       actions={
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => window.print()}>

@@ -317,6 +317,16 @@ function AnalysisPage() {
   const analysisShell = (opts: {
     pageSubtitle: string;
     actions?: ReactNode;
+    stickyNextAction?: {
+      label: string;
+      href?: string;
+      onClick?: () => void;
+      actionKind?: string;
+      disabled?: boolean;
+      loading?: boolean;
+      variant?: "default" | "outline";
+      testId?: string;
+    } | null;
     children: ReactNode;
   }) => (
     <ProjectWorkflowShell
@@ -326,6 +336,7 @@ function AnalysisPage() {
       pageTitle={project.name?.trim() || "Analysis"}
       pageSubtitle={opts.pageSubtitle}
       actions={opts.actions}
+      stickyNextAction={opts.stickyNextAction}
     >
       {opts.children}
     </ProjectWorkflowShell>
@@ -341,6 +352,12 @@ function AnalysisPage() {
   if (uiState === "no_photos") {
     return analysisShell({
       pageSubtitle: "Upload photos before analysis",
+      stickyNextAction: {
+        label: "Upload project photos",
+        href: `/projects/${id}/upload`,
+        actionKind: "add_photos",
+        testId: "analysis-primary-cta-sticky",
+      },
       children: (
         <EmptyState
           icon={Camera}
@@ -359,8 +376,22 @@ function AnalysisPage() {
   }
 
   if (uiState === "stale_mock") {
+    const staleLabel = analysing
+      ? "Analysing…"
+      : analysisNextAction.actionKind === "update_analysis" ||
+          analysisNextAction.actionKind === "analyse_photos"
+        ? analysisNextAction.label
+        : "Analyse uploaded photos";
     return analysisShell({
       pageSubtitle: "Re-analysis required",
+      stickyNextAction: {
+        label: staleLabel,
+        onClick: () => void runFreshAnalysis(),
+        actionKind: analysisNextAction.actionKind,
+        disabled: analysing || retrying,
+        loading: analysing,
+        testId: "analysis-primary-cta-sticky",
+      },
       children: (
         <EmptyState
           icon={AlertCircle}
@@ -369,12 +400,7 @@ function AnalysisPage() {
           action={
             <Button onClick={() => void runFreshAnalysis()} disabled={analysing || retrying}>
               <Sparkles className="mr-1 h-4 w-4" />
-              {analysing
-                ? "Analysing…"
-                : analysisNextAction.actionKind === "update_analysis" ||
-                    analysisNextAction.actionKind === "analyse_photos"
-                  ? analysisNextAction.label
-                  : "Analyse uploaded photos"}
+              {staleLabel}
             </Button>
           }
         />
@@ -407,8 +433,32 @@ function AnalysisPage() {
     });
   }
 
+  const analysisSticky =
+    analysisIsValid &&
+    (analysisNextAction.actionKind === "create_redesign" ||
+      analysisNextAction.actionKind === "select_redesign" ||
+      analysisNextAction.actionKind === "update_redesign")
+      ? {
+          label: analysisNextAction.label,
+          href: `/projects/${id}/redesign`,
+          actionKind: analysisNextAction.actionKind,
+          testId: "analysis-primary-cta-sticky",
+        }
+      : analysisNextAction.actionKind === "analyse_photos" ||
+          analysisNextAction.actionKind === "update_analysis"
+        ? {
+            label: analysisNextAction.label,
+            onClick: () => void runFreshAnalysis(),
+            actionKind: analysisNextAction.actionKind,
+            disabled: analysing || retrying,
+            loading: analysing,
+            testId: "analysis-primary-cta-sticky",
+          }
+        : null;
+
   return analysisShell({
     pageSubtitle: "Room-by-room condition assessment with recommended works.",
+    stickyNextAction: analysisSticky,
     actions: (
       <div className="flex flex-wrap gap-2">
         {needsReviewCount > 0 && analysisIsValid ? (
