@@ -1,0 +1,16 @@
+src/components/MobileTopBar.test.tsx
+  h_7ea6129503670a 100
+src/features/projects/presentation/components/index.ts
+  h_7ea6129503670a 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "006b6a5261d737f7a7e55dcd0a72f5239f8b3921",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
