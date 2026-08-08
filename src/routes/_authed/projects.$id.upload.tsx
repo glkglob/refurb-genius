@@ -8,6 +8,7 @@ import {
   ProjectWorkflowShell,
   progressFromProjectFlags,
   buildPhotosAnalysisWorkflowState,
+  analysisShellFlagsFromCurrency,
   resolveProjectNextAction,
 } from "@/features/projects";
 import { formatFileSize } from "@/lib/file-utils";
@@ -30,6 +31,8 @@ import {
   usePhotos,
   useUploadPhotos,
   useRemovePhoto,
+  getPhotoAnalysis,
+  loadPhotoAnalysis,
   isImageFile,
   formatPhotoUploadBatchError,
   formatPhotoUploadError,
@@ -40,6 +43,7 @@ import {
   type PhotoUploadItemEvent,
   type PhotoUploadItemState,
   type PhotoWriteStage,
+  type RoomAnalysis,
   MAX_PHOTOS_PER_BATCH,
   MAX_PHOTO_BYTES,
   MAX_CONCURRENT_PHOTO_UPLOADS,
@@ -105,6 +109,8 @@ function UploadPage() {
 
   const { data: project, isLoading: projectLoading, error: projectError } = useProject(id);
   const { data: photos = [] } = usePhotos(id);
+  // IA-5-R3A: durable Analysis evidence for catalogue-bound currentness on Photos.
+  const [roomAnalyses, setRoomAnalyses] = useState<RoomAnalysis[]>([]);
   const uploadPhotos = useUploadPhotos(id);
   const removePhoto = useRemovePhoto(id);
   const setStage = useSetProjectStage();
@@ -118,6 +124,35 @@ function UploadPage() {
       cancelled = true;
     };
   }, []);
+
+  // Refresh Analysis evidence when project or photo catalogue changes (photo add/remove).
+  const photoCatalogueKey = useMemo(
+    () =>
+      [...photos]
+        .map((p) => p.id)
+        .filter(Boolean)
+        .sort()
+        .join("\u0001"),
+    [photos],
+  );
+  useEffect(() => {
+    let cancelled = false;
+    const cached = getPhotoAnalysis(id);
+    if (cached?.length) {
+      setRoomAnalyses(cached);
+    }
+    void loadPhotoAnalysis(id)
+      .then((rows) => {
+        if (!cancelled && rows?.length) setRoomAnalyses(rows);
+        if (!cancelled && !rows?.length && !cached?.length) setRoomAnalyses([]);
+      })
+      .catch(() => {
+        if (!cancelled && !cached?.length) setRoomAnalyses([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, photoCatalogueKey]);
 
   const updateBatchItem = useCallback((uiId: string, patch: Partial<LocalUploadItem>) => {
     setBatchItems((prev) =>
@@ -135,17 +170,29 @@ function UploadPage() {
 
   const uploading = uploadPhotos.isPending;
 
-  // IA-3: primary continuation from Photos uses the canonical IA-2 resolver.
-  // Hooks must run before any early return. Analysis rows are not loaded here —
-  // absent Analysis is correct once durable photos exist (analyse_photos).
-  const photosNextAction = useMemo(() => {
-    const workflow = buildPhotosAnalysisWorkflowState({
-      photos: photos.map((p) => ({ id: p.id })),
-      photosOperationRunning: uploading,
-      analyses: [],
-    });
-    return resolveProjectNextAction({ projectId: id, workflow });
-  }, [photos, uploading, id]);
+  // IA-3 / IA-5-R3A: Photos + Analysis currency for resolver and shell.
+  // Durable analyses must participate so adding a photo stales Analysis and
+  // exposes update_analysis (existence of analysis_done must not imply current).
+  const photosAnalysisWorkflow = useMemo(
+    () =>
+      buildPhotosAnalysisWorkflowState({
+        photos: photos.map((p) => ({ id: p.id })),
+        photosOperationRunning: uploading,
+        analyses: roomAnalyses.map((a) => ({
+          photoId: a.photo_id,
+          source: a.source,
+        })),
+      }),
+    [photos, uploading, roomAnalyses],
+  );
+  const photosNextAction = useMemo(
+    () => resolveProjectNextAction({ projectId: id, workflow: photosAnalysisWorkflow }),
+    [id, photosAnalysisWorkflow],
+  );
+  const analysisShellFlags = useMemo(
+    () => analysisShellFlagsFromCurrency(photosAnalysisWorkflow.analysis.currency),
+    [photosAnalysisWorkflow.analysis.currency],
+  );
 
   if (projectLoading) {
     return (
@@ -270,10 +317,21 @@ function UploadPage() {
     void handleFiles(event.target.files);
   };
 
-  const handleAnalyse = () => {
-    trackEvent("ai_analysis_started", { projectId: id, photo_count: photos.length });
+  const handlePrimaryContinuation = () => {
+    if (
+      photosNextAction.actionKind === "analyse_photos" ||
+      photosNextAction.actionKind === "update_analysis"
+    ) {
+      trackEvent("ai_analysis_started", { projectId: id, photo_count: photos.length });
+    }
     setStage.mutate({ id, stage: "photos", value: true });
-    navigate({ to: "/projects/$id/analysis", params: { id }, search: { focus: undefined } });
+    // Follow resolver route (analysis for analyse/update; redesign when Analysis current).
+    const route = photosNextAction.route;
+    if (route.includes("/redesign")) {
+      void navigate({ to: "/projects/$id/redesign", params: { id } });
+      return;
+    }
+    void navigate({ to: "/projects/$id/analysis", params: { id }, search: { focus: undefined } });
   };
 
   const retryFailed = () => {
@@ -300,12 +358,15 @@ function UploadPage() {
         photoCount: photos.length,
         // Prefer durable catalogue evidence over legacy photos_done alone.
         photosDone: photos.length > 0 || project.photos_done,
+        // IA-5-R3A: Analysis shell status follows catalogue currency, not analysis_done alone.
+        analysisDone: analysisShellFlags.analysisDone,
+        analysisNeedsAttention: analysisShellFlags.analysisNeedsAttention,
       }}
       pageTitle={project.name?.trim() || "Photos"}
       pageSubtitle="Add photos of every room. We'll run AI analysis next."
       actions={
         continueToAnalysis ? (
-          <Button onClick={handleAnalyse} disabled={uploading}>
+          <Button onClick={handlePrimaryContinuation} disabled={uploading}>
             <Sparkles className="h-4 w-4" />
             {photosNextAction.label}
             <ArrowRight className="h-4 w-4" />
@@ -316,7 +377,7 @@ function UploadPage() {
             {photosNextAction.label}
           </Button>
         ) : (
-          <Button disabled={uploading || photos.length === 0} onClick={handleAnalyse}>
+          <Button disabled={uploading || photos.length === 0} onClick={handlePrimaryContinuation}>
             <Sparkles className="h-4 w-4" />
             {photosNextAction.label}
             <ArrowRight className="h-4 w-4" />

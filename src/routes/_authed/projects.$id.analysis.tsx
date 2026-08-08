@@ -185,15 +185,30 @@ function AnalysisPage() {
         }
 
         if (persisted?.length && isStaleAnalysisRelativeToCatalogue(persisted, catalogue)) {
-          // Do not present mock/stale rows as completed AI work.
-          // Do not mark analysis_done. Do not generate redesign from mocks.
-          // Keep rows so adapter currency stays non_current (IA-3-R1 shell Needs attention).
+          // Keep rows so adapter currency stays non_current while recovery runs
+          // (IA-3-R1 shell Needs attention). Do not treat mock/stale as Complete.
           setResults(persisted);
-          setUiState("stale_mock");
+          // IA-5-R3A: catalogue drift recovery — re-run vision+persist for full current
+          // catalogue so Update Analysis from Photos is a single product path (no silent
+          // Complete from legacy flags; no second manual click required on this surface).
+          setAnalysing(true);
+          setUiState("loading");
+          trackEvent("ai_analysis_started", { projectId: id, reason: "catalogue_stale" });
+          try {
+            const r = await runPhotoAnalysis({ projectId: id });
+            if (cancelled) return;
+            afterValidAnalysis(r);
+          } catch (err: unknown) {
+            if (cancelled) return;
+            setAnalysing(false);
+            setUiState("stale_mock");
+            toast.error(err instanceof Error ? err.message : "Analysis failed. Please try again.");
+          }
           return;
         }
 
         // No valid persisted analysis and photos exist → run real analysis.
+        setAnalysing(true);
         trackEvent("ai_analysis_started", { projectId: id });
         const r = await runPhotoAnalysis({ projectId: id });
         if (cancelled) return;
