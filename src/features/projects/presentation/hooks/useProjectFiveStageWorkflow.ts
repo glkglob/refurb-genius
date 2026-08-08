@@ -25,6 +25,7 @@ import {
   type ProjectNextAction,
   type ProjectWorkflowState,
 } from "../../domain";
+import { useProjectWorkflowOperationFlags } from "./useProjectWorkflowOperationFlags";
 
 export type ProjectFiveStageWorkflowResult = {
   loading: boolean;
@@ -50,6 +51,8 @@ export type ProjectFiveStageWorkflowResult = {
 
 export function useProjectFiveStageWorkflow(projectId: string): ProjectFiveStageWorkflowResult {
   const { data: projectPhotos, isLoading: photosLoading } = usePhotos(projectId);
+  // IA-6-R1: cross-route transient operation signals (not initial data loading).
+  const operationFlags = useProjectWorkflowOperationFlags(projectId);
   const [loading, setLoading] = useState(true);
   const [analyses, setAnalyses] = useState<RoomAnalysis[]>([]);
   const [candidates, setCandidates] = useState<DurableRedesignConcept[]>([]);
@@ -130,6 +133,8 @@ export function useProjectFiveStageWorkflow(projectId: string): ProjectFiveStage
   );
 
   const workflow = useMemo(() => {
+    // Loading evidence ≠ operation running. Keep workflow null while hydrating so
+    // consumers show Loading, not view_stage_progress.
     if (loading || photosLoading) return null;
     return composeProjectWorkflowState({
       photos,
@@ -149,8 +154,24 @@ export function useProjectFiveStageWorkflow(projectId: string): ProjectFiveStage
         : null,
       estimate: estimate ? estimateAuthorityEvidenceFromRow(estimate.estimate) : null,
       exportSnapshot: exportSnap ? { id: exportSnap.id, estimateId: exportSnap.estimateId } : null,
+      photosOperationRunning: operationFlags.photosOperationRunning,
+      analysisOperationRunning: operationFlags.analysisOperationRunning,
+      redesignOperationRunning: operationFlags.redesignOperationRunning,
+      scopeOperationRunning: operationFlags.scopeOperationRunning,
+      estimateOperationRunning: operationFlags.estimateOperationRunning,
+      exportOperationRunning: operationFlags.exportOperationRunning,
     });
-  }, [loading, photosLoading, photos, analyses, candidates, scopeHeader, estimate, exportSnap]);
+  }, [
+    loading,
+    photosLoading,
+    photos,
+    analyses,
+    candidates,
+    scopeHeader,
+    estimate,
+    exportSnap,
+    operationFlags,
+  ]);
 
   const nextAction = useMemo(() => {
     if (!workflow) return null;
@@ -162,6 +183,8 @@ export function useProjectFiveStageWorkflow(projectId: string): ProjectFiveStage
     const estFlags = estimateShellFlagsFromCurrency(workflow.estimate.currency);
     const expFlags = exportShellFlagsFromCurrency(workflow.export.currency);
     // Redesign/analysis flags already mapped by currency patterns.
+    // Running stages are not Complete and not Needs attention in shell progress
+    // (In progress is represented via isActive / resolver CTA, not done flags).
     const analysisDone =
       workflow.analysis.currency === "current" || workflow.analysis.currency === "non_current";
     const redesignDone =

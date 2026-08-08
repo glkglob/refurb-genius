@@ -23,6 +23,16 @@ export {
   ProjectContinuationCard,
   type ProjectWorkflowShellProject,
   type ProjectContinuationCardProps,
+  useProjectWorkflowOperationFlags,
+  beginProjectWorkflowOperation,
+  endProjectWorkflowOperation,
+  getProjectWorkflowOperationFlags,
+  resetProjectWorkflowOperationRegistryForTests,
+  setProjectWorkflowOperationRunning,
+  subscribeProjectWorkflowOperations,
+  withProjectWorkflowOperationRunning,
+  type ProjectWorkflowOperationFlags,
+  type ProjectWorkflowOperationStage,
 } from "./presentation";
 
 export {

@@ -9,6 +9,7 @@ import {
   buildPhotosAnalysisWorkflowState,
   analysisShellFlagsFromCurrency,
   resolveProjectNextAction,
+  withProjectWorkflowOperationRunning,
 } from "@/features/projects";
 import { formatFileSize } from "@/lib/file-utils";
 import {
@@ -268,11 +269,14 @@ function UploadPage() {
     };
 
     try {
-      await uploadPhotos.mutateAsync({
-        files,
-        onItemState,
-        concurrency: MAX_CONCURRENT_PHOTO_UPLOADS,
-      });
+      // IA-6-R1: publish cross-route photos running signal for view_stage_progress.
+      await withProjectWorkflowOperationRunning(id, "photos", () =>
+        uploadPhotos.mutateAsync({
+          files,
+          onItemState,
+          concurrency: MAX_CONCURRENT_PHOTO_UPLOADS,
+        }),
+      );
       toast.success(files.length === 1 ? "Photo uploaded." : `${files.length} photos uploaded.`);
       setBatchItems((prev) =>
         prev.map((item) =>

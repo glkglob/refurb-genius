@@ -31,6 +31,7 @@ import {
   analysisShellFlagsFromCurrency,
   buildPhotosAnalysisWorkflowState,
   resolveProjectNextAction,
+  withProjectWorkflowOperationRunning,
 } from "@/features/projects";
 import { trackEvent } from "@/lib/analytics";
 
@@ -138,7 +139,10 @@ function AnalysisPage() {
     setUiState("loading");
     trackEvent("ai_analysis_started", { projectId: id });
     try {
-      const r = await runPhotoAnalysis({ projectId: id });
+      // IA-6-R1: publish cross-route running so Dashboard/Overview can resolve view_stage_progress.
+      const r = await withProjectWorkflowOperationRunning(id, "analysis", () =>
+        runPhotoAnalysis({ projectId: id }),
+      );
       afterValidAnalysis(r);
     } catch (err: unknown) {
       setAnalysing(false);
@@ -195,7 +199,9 @@ function AnalysisPage() {
           setUiState("loading");
           trackEvent("ai_analysis_started", { projectId: id, reason: "catalogue_stale" });
           try {
-            const r = await runPhotoAnalysis({ projectId: id });
+            const r = await withProjectWorkflowOperationRunning(id, "analysis", () =>
+              runPhotoAnalysis({ projectId: id }),
+            );
             if (cancelled) return;
             afterValidAnalysis(r);
           } catch (err: unknown) {
@@ -210,7 +216,9 @@ function AnalysisPage() {
         // No valid persisted analysis and photos exist → run real analysis.
         setAnalysing(true);
         trackEvent("ai_analysis_started", { projectId: id });
-        const r = await runPhotoAnalysis({ projectId: id });
+        const r = await withProjectWorkflowOperationRunning(id, "analysis", () =>
+          runPhotoAnalysis({ projectId: id }),
+        );
         if (cancelled) return;
         afterValidAnalysis(r);
       } catch (err: unknown) {
@@ -238,7 +246,9 @@ function AnalysisPage() {
       retry_count: needsReviewCount,
     });
     try {
-      const fresh = await retryWeakPhotoAnalyses({ projectId: id });
+      const fresh = await withProjectWorkflowOperationRunning(id, "analysis", () =>
+        retryWeakPhotoAnalyses({ projectId: id }),
+      );
       if (!isProductionValidAnalysisSet(fresh, catalogue)) {
         setResults(fresh);
         setUiState("stale_mock");
