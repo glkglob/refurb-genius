@@ -165,6 +165,21 @@ function ProjectDetail() {
       project={project}
       route={{ surface: "overview" }}
       progress={shellProgress}
+      stickyNextAction={
+        !fiveStage.loading && nextAction
+          ? {
+              label: nextAction.label,
+              href: nextAction.route,
+              actionKind: nextAction.actionKind,
+              variant:
+                nextAction.actionKind === "view_stage_progress" ||
+                nextAction.actionKind === "view_completed_project"
+                  ? "outline"
+                  : "default",
+              testId: "overview-primary-cta-sticky",
+            }
+          : null
+      }
       actions={
         <div className="flex flex-wrap gap-2">
           {fiveStage.loading || !nextAction ? (

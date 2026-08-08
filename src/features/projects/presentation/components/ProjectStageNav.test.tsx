@@ -77,4 +77,47 @@ describe("ProjectStageNav", () => {
     // Photos Complete appears in aria-label and visible status line
     expect(screen.getAllByText("Complete").length).toBeGreaterThan(0);
   });
+
+  it("IA-8-VR-R1: canonical stage names are fully present without truncate class", () => {
+    const { container } = render(<ProjectStageNav projectId="proj-1" stages={stages} />);
+    // Full names must remain available as text nodes (no ellipsis truncation).
+    for (const name of ["Photos", "Analysis", "Redesign", "Estimate", "Export"]) {
+      expect(screen.getByText(name)).toBeTruthy();
+    }
+    const source = container.innerHTML;
+    // Label spans use whitespace-nowrap; stage names must not sit on .truncate.
+    expect(source).toMatch(/whitespace-nowrap/);
+    const truncating = [...container.querySelectorAll(".truncate")];
+    for (const el of truncating) {
+      expect(el.textContent).not.toMatch(/Photos|Analysis|Redesign|Estimate|Export/);
+    }
+  });
+
+  it("IA-8-VR-R2: stage heading stays outside the horizontal scroller", () => {
+    render(<ProjectStageNav projectId="proj-1" stages={stages} />);
+    const nav = screen.getByTestId("project-stage-nav");
+    const heading = screen.getByTestId("project-stage-nav-heading");
+    const scroller = screen.getByTestId("project-stage-nav-scroller");
+    expect(nav.contains(heading)).toBe(true);
+    expect(nav.contains(scroller)).toBe(true);
+    // Heading must not be a descendant of the scroller (would clip on swipe).
+    expect(scroller.contains(heading)).toBe(false);
+    expect(heading.textContent).toMatch(/swipe to see all five/i);
+    // Scroller owns overflow-x; outer nav does not.
+    expect(scroller.className).toMatch(/overflow-x-auto/);
+    expect(nav.className).not.toMatch(/overflow-x-auto/);
+  });
+
+  it("IA-8-VR-R2: scroller uses snap contract and fixed mobile stage widths", () => {
+    const { container } = render(<ProjectStageNav projectId="proj-1" stages={stages} />);
+    const scroller = screen.getByTestId("project-stage-nav-scroller");
+    expect(scroller.className).toMatch(/snap-x/);
+    expect(scroller.className).toMatch(/snap-mandatory/);
+    const items = container.querySelectorAll("ol > li");
+    expect(items.length).toBe(5);
+    for (const item of items) {
+      expect(item.className).toMatch(/snap-center/);
+      expect(item.className).toMatch(/w-\[9rem\]/);
+    }
+  });
 });

@@ -10,7 +10,7 @@ import {
   resolveGlobalNavArea,
 } from "./globalNav";
 
-describe("IA-7 global navigation contract", () => {
+describe("IA-7 / IA-8 global navigation contract", () => {
   it("exposes exactly six primary destinations in locked order", () => {
     expect(GLOBAL_NAV_ITEMS.map((i) => i.id)).toEqual([
       "dashboard",
@@ -99,16 +99,27 @@ describe("IA-7 global navigation contract", () => {
     expect(resolveGlobalNavArea("/studies/workspace")).toBeNull();
   });
 
-  it("mobile primary + more presentation still covers all six canonical destinations", () => {
+  it("IA-8 mobile primary + more covers all six canonical destinations", () => {
     const primary = getMobilePrimaryNavItems();
     const more = getMobileMoreNavItems();
-    const dashboard = getGlobalNavItem("dashboard");
-    const allIds = [dashboard.id, ...primary.map((i) => i.id), ...more.map((i) => i.id)];
+    const allIds = [...primary.map((i) => i.id), ...more.map((i) => i.id)];
     expect(new Set(allIds).size).toBe(6);
     expect(allIds).toEqual(expect.arrayContaining(GLOBAL_NAV_ITEMS.map((i) => i.id)));
-    expect(MOBILE_PRIMARY_NAV_IDS).toEqual(["projects", "trades_marketplace", "new_analysis"]);
-    expect(MOBILE_MORE_NAV_IDS).toEqual(["deal_copilot", "settings"]);
-    expect(more.map((i) => i.to)).toEqual(["/deal-copilot", "/settings"]);
+    // Final public-beta mobile structure: Home | Projects | + New | Copilot | More
+    expect(MOBILE_PRIMARY_NAV_IDS).toEqual([
+      "dashboard",
+      "projects",
+      "new_analysis",
+      "deal_copilot",
+    ]);
+    expect(MOBILE_MORE_NAV_IDS).toEqual(["trades_marketplace", "settings"]);
+    expect(primary.map((i) => i.to)).toEqual([
+      "/dashboard",
+      "/projects",
+      "/analyze",
+      "/deal-copilot",
+    ]);
+    expect(more.map((i) => i.to)).toEqual(["/trades", "/settings"]);
     expect(getGlobalNavItem("new_analysis").to).toBe("/analyze");
   });
 });

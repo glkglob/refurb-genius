@@ -1,0 +1,40 @@
+/**
+ * IA-8-VR-R1 — Dashboard prioritises refurb projects over empty commercial metrics.
+ */
+import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+const SRC = readFileSync(join(__dirname, "dashboard.tsx"), "utf8");
+
+describe("Dashboard product hierarchy (IA-8-VR-R1)", () => {
+  it("renders projects section before commercial metrics in the page tree", () => {
+    // In the returned tree, projectsSection is mounted before commercialStats.
+    const returnIdx = SRC.indexOf("return (");
+    const tree = SRC.slice(returnIdx);
+    const projectsIdx = tree.indexOf("{projectsSection}");
+    const metricsIdx = tree.indexOf("{commercialStats}");
+    expect(projectsIdx).toBeGreaterThan(-1);
+    expect(metricsIdx).toBeGreaterThan(-1);
+    expect(projectsIdx).toBeLessThan(metricsIdx);
+    expect(tree).toMatch(/data-testid="dashboard-projects-section"/);
+    expect(SRC).toMatch(/data-testid="dashboard-commercial-metrics"/);
+  });
+
+  it("compacts empty commercial metrics instead of full-height zero cards only", () => {
+    expect(SRC).toMatch(/commercialEmpty/);
+    expect(SRC).toMatch(/compact=\{commercialEmpty\}/);
+    expect(SRC).toMatch(/Marketplace activity/);
+  });
+
+  it("orders core journey quick actions before trades marketplace actions", () => {
+    const newAnalysis = SRC.indexOf('label="New Analysis"');
+    const createProject = SRC.indexOf('label="Create Project"');
+    const postJob = SRC.indexOf('label="Post a Trades Job"');
+    expect(newAnalysis).toBeGreaterThan(-1);
+    expect(createProject).toBeGreaterThan(-1);
+    expect(postJob).toBeGreaterThan(-1);
+    expect(newAnalysis).toBeLessThan(createProject);
+    expect(createProject).toBeLessThan(postJob);
+  });
+});

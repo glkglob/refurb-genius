@@ -326,6 +326,25 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
       progress={shellProgress}
       pageTitle={project.name?.trim() || "Estimate"}
       pageSubtitle="Region, condition and finish-aware UK refurbishment calculator."
+      stickyNextAction={
+        needsScopeReconcile
+          ? {
+              label:
+                nextAction?.actionKind === "reconcile_scope" ? nextAction.label : "Review Scope",
+              href: `/projects/${id}/scope`,
+              actionKind: nextAction?.actionKind ?? "reconcile_scope",
+              testId: "estimate-primary-cta-sticky",
+            }
+          : {
+              label:
+                nextAction?.actionKind === "update_estimate"
+                  ? "Update Estimate & report"
+                  : (nextAction?.label ?? "View investor report"),
+              href: nextAction?.route ?? `/projects/${id}/report`,
+              actionKind: nextAction?.actionKind,
+              testId: "estimate-primary-cta-sticky",
+            }
+      }
       actions={
         needsScopeReconcile ? (
           <Button asChild>
@@ -346,17 +365,28 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
       }
     >
       {needsScopeReconcile ? (
-        <Card className="mb-6 border-amber-500/40 bg-amber-500/5">
+        <Card
+          className="mb-6 border-amber-500/40 bg-amber-500/5"
+          data-testid="estimate-needs-attention"
+        >
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-medium text-foreground">Scope needs review</p>
+              <p className="text-sm font-medium text-foreground">Needs attention</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Align Scope with the current Analysis and selected Redesign before treating the
-                Estimate as current. Scope is not a separate journey stage.
+                Review Scope against the current Analysis and selected Redesign before updating this
+                Estimate.
               </p>
             </div>
-            <Button asChild className="shrink-0">
-              <Link to="/projects/$id/scope" params={{ id }}>
+            {/*
+              IA-8-VR-R1: one dominant Review Scope CTA on mobile (sticky bar).
+              Keep an in-card button only from md+ where sticky chrome is hidden.
+            */}
+            <Button asChild className="hidden shrink-0 md:inline-flex">
+              <Link
+                to="/projects/$id/scope"
+                params={{ id }}
+                data-testid="estimate-review-scope-inline"
+              >
                 Review Scope
               </Link>
             </Button>

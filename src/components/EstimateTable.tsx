@@ -53,7 +53,9 @@ export function EstimateTable({
         <TableBody>
           {items.map((i) => (
             <TableRow key={i.category}>
-              <TableCell className="font-medium text-foreground">{i.category}</TableCell>
+              <TableCell className="max-w-[10rem] break-words font-medium text-foreground sm:max-w-none">
+                {i.category}
+              </TableCell>
               <TableCell className="text-right">{formatGBP(i.labour)}</TableCell>
               <TableCell className="text-right">{formatGBP(i.materials)}</TableCell>
               {showWeeks && (
