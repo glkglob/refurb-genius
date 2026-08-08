@@ -1,0 +1,18 @@
+src/routes/_authed/projects.$id.analysis.tsx
+  h_7ea6129503670a 188-189,191-206,211
+src/routes/_authed/projects.$id.upload.tsx
+  h_7ea6129503670a 11,34-35,46,112-113,128-156,173-195,320-326,328-334,361-363,369,380
+tests/invariants/project-photos-analysis-continuity.invariant.test.ts
+  h_7ea6129503670a 60-69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "cc9fcb5f5d1441e16942c1eba20f7d902bfa3e6a",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
