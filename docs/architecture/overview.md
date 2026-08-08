@@ -29,13 +29,14 @@ this overview plus Phase 0 evidence as higher priority until those docs are upda
 | **IA-1** | Shared Project Workflow Shell                                   | **Completed**                 | Governed by IA-0; shared shell on main                                                 |
 | **IA-2** | Canonical Next-Action Resolver                                  | **Completed**                 | Pure `resolveProjectNextAction` on main; no broad UI consumer migration (IA-6)         |
 | **IA-3** | Photos → Analysis Continuity                                    | **Completed**                 | Durable photo catalogue + Analysis currentness + resolver adapters on main             |
-| **IA-4** | First-Class Redesign                                            | **Planned / Next**            | Governed by IA-0; first-class `/projects/$id/redesign` — **not started**               |
+| **IA-4** | First-Class Redesign                                            | **Completed**                 | First-class `/projects/$id/redesign`; atomic selection; write-path seal; schema reconcile |
+| **IA-5** | Full Five-Stage Continuity                                      | **Planned / Next**            | Photos → Analysis → Redesign → Estimate → Export continuity — **not started**           |
 
 Controlling journey: **Photos → Analysis → Redesign → Estimate → Export**.
 
 IA-1 through IA-10 **MUST NOT** introduce conflicting workflow, Scope, provenance, resolver, entitlement, navigation, design or trust semantics. Material changes to locked IA-0 rules require architecture review.
 
-**IA-4 MUST NOT begin until explicitly authorised.**
+**IA-5 MUST NOT begin until explicitly authorised.**
 
 ---
 

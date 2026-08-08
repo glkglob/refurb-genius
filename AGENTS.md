@@ -34,7 +34,9 @@ IA-2 (Canonical Next-Action Resolver) is **Completed** on main (`resolveProjectN
 
 IA-3 (Photos → Analysis Continuity) is **Completed** on main (durable photo catalogue + Analysis currentness + resolver adapters).
 
-IA-4 (First-Class Redesign) is **Planned / Next** and **MUST NOT** begin until explicitly authorised.
+IA-4 (First-Class Redesign) is **Completed** on main (`/projects/$id/redesign`, atomic selection, write-path seal, schema reconcile).
+
+IA-5 (Full Five-Stage Continuity) is **Planned / Next** and **MUST NOT** begin until explicitly authorised.
 
 ---
 

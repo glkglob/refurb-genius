@@ -1676,7 +1676,9 @@ No navigation dead end.
 
 ## IA-4 — First-class Redesign
 
-Implement:
+**Status: Completed on main** (PR #116; atomic selection, write-path seal, schema reconcile).
+
+Implements:
 
 `/projects/$id/redesign`
 
@@ -1684,12 +1686,15 @@ with:
 
 - Analysis context;
 - concept generation;
-- selection;
+- explicit selection;
 - comparison;
 - truthfulness;
-- persisted authority.
+- durable single selected authority bound by `analysis_identity`;
+- database uniqueness and sealed selection write path.
 
 ## IA-5 — Full five-stage continuity
+
+**Status: Planned / Next** — not started; requires explicit authorisation.
 
 Prove:
 

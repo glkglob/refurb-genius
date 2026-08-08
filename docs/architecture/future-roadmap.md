@@ -16,7 +16,8 @@
 - ✅ **IA-1** Shared Project Workflow Shell **Completed** on main (five-stage shell)
 - ✅ **IA-2** Canonical Next-Action Resolver **Completed** on main (pure `resolveProjectNextAction`; UI consumer migration remains IA-6)
 - ✅ **IA-3** Photos → Analysis Continuity **Completed** on main (durable photo catalogue currentness; Analysis publication safety; resolver adapters; shell status consistency)
-- 🔜 **IA-4** First-Class Redesign — **Planned / Next** (**not started**)
+- ✅ **IA-4** First-Class Redesign **Completed** on main (`/projects/$id/redesign`; durable candidates; atomic selection; DML seal; schema reconcile)
+- 🔜 **IA-5** Full Five-Stage Continuity — **Planned / Next** (**not started**)
 
 ---
 
