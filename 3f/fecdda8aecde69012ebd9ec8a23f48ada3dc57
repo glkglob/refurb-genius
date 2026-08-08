@@ -1,0 +1,18 @@
+AGENTS.md
+  h_7ea6129503670a 39-41
+CLAUDE.md
+  h_7ea6129503670a 10
+docs/architecture/workflow/ia-0-workflow-authority-spec.md
+  h_7ea6129503670a 1697,1699,1703,1707-1708,1715-1718
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "3ffecdda8aecde69012ebd9ec8a23f48ada3dc57",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
