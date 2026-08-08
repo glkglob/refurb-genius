@@ -1,0 +1,42 @@
+docs/operations/app-functional-surface-register.json
+  h_7ea6129503670a 46,50,59,62,384-404
+docs/operations/app-functional-surface-register.md
+  h_7ea6129503670a 20,24,37,58
+scripts/build-functional-surface-register.mjs
+  h_7ea6129503670a 259-269
+src/components/MobileTopBar.tsx
+  h_7ea6129503670a 2,6-9,20,33-44,55,57,67
+src/components/Sidebar.test.tsx
+  h_7ea6129503670a 48-74
+src/components/Sidebar.tsx
+  h_7ea6129503670a 4,12,17-21,23-30,66-69,72,74-76,84
+src/features/navigation/globalNav.test.ts
+  h_7ea6129503670a 1-85
+src/features/navigation/globalNav.ts
+  h_7ea6129503670a 1-133
+src/features/navigation/index.ts
+  h_7ea6129503670a 1-8
+src/routeTree.gen.ts
+  h_7ea6129503670a 30,138-142,260,297,336,375,412,450,604-610,774,800
+src/routes/_authed/-projects.index.ia7.test.ts
+  h_7ea6129503670a 1-38
+src/routes/_authed/analyze.photo-upload.test.tsx
+  h_7ea6129503670a 26-27
+src/routes/_authed/analyze.tsx
+  h_7ea6129503670a 1,112,260-261,263-274,276-281,283-301
+src/routes/_authed/projects.index.tsx
+  h_7ea6129503670a 1-70
+src/routes/_authed/studies.tsx
+  h_7ea6129503670a 66-67,69-82,85-96
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "a33e6a3385a9e2b577ce635b72e7fe4ff6c4fe4f",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
