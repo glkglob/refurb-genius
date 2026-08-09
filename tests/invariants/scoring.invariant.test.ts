@@ -12,6 +12,7 @@ import type { DealScoreInput } from "@repo/services";
 import {
   standardFlipInput,
   standardFlipExpected,
+  standardFlipManualUnderwritingExpected,
   TOLERANCE,
 } from "../../src/test/fixtures/deal-copilot/standard-flip";
 
@@ -106,12 +107,13 @@ test("valid input returns score in expected range [1–10]", () => {
 });
 
 test("regression — standardFlip investment_score matches known expected value", () => {
+  // scoreDealOpportunity uses customer refurbBudget (manual underwriting path), not mid_total.
   const result = scoreDealOpportunity(COMPLETE_INPUT);
 
   assert.ok(result.roiResult !== null, "roiResult must exist for regression check");
 
   const score = result.roiResult.investment_score;
-  const expected = standardFlipExpected.score.investment_score;
+  const expected = standardFlipManualUnderwritingExpected.investment_score;
 
   assert.ok(
     Math.abs(score - expected) <= TOLERANCE,
@@ -124,9 +126,11 @@ test("regression — standardFlip recommendation matches known expected value", 
 
   assert.equal(
     result.recommendation,
-    standardFlipExpected.score.recommendation,
-    `Regression: recommendation changed from "${standardFlipExpected.score.recommendation}" to "${result.recommendation}"`,
+    standardFlipManualUnderwritingExpected.recommendation,
+    `Regression: recommendation changed from "${standardFlipManualUnderwritingExpected.recommendation}" to "${result.recommendation}"`,
   );
+  // pricing-authoritative analyzeDeal path keeps Reject via score field on standardFlipExpected too
+  assert.equal(standardFlipExpected.score.recommendation, "Reject");
 });
 
 test("invalid input (zero/negative numbers) does not silently score", () => {

@@ -10,9 +10,15 @@ import {
 } from "@repo/services";
 import type { ParsedDealFormData } from "@repo/types";
 
-import { analyzeDeal } from "../../src/lib/deal-copilot/dealAnalysis";
-import { heavyRefurbInput } from "../../src/test/fixtures/deal-copilot/edge-cases";
-import { standardFlipInput } from "../../src/test/fixtures/deal-copilot/standard-flip";
+import { analyzeDeal, isPricingAuthoritative } from "../../src/lib/deal-copilot/dealAnalysis";
+import {
+  emptyPricingScopeInput,
+  heavyRefurbInput,
+} from "../../src/test/fixtures/deal-copilot/edge-cases";
+import {
+  PRICING_AUTHORITY_CATEGORIES,
+  standardFlipInput,
+} from "../../src/test/fixtures/deal-copilot/standard-flip";
 
 function buildPricingInput(formData: ParsedDealFormData): PricingEngineInputs {
   return {
@@ -44,6 +50,7 @@ function assertPricingAuthorityInvariant(formData: ParsedDealFormData): void {
   assert.equal(analysis.ready, true, "Expected analyzeDeal() to produce a ready analysis.");
   assert.ok(analysis.pricing, "Expected analyzeDeal() to include pricing output.");
   assert.ok(analysis.roi, "Expected analyzeDeal() to include ROI output.");
+  assert.ok(analysis.pricing.mid_total > 0, "Authoritative mid_total must be positive.");
   assert.equal(
     analysis.roi.inputs.refurb_budget,
     analysis.pricing.mid_total,
@@ -52,7 +59,7 @@ function assertPricingAuthorityInvariant(formData: ParsedDealFormData): void {
   assert.notEqual(
     analysis.roi.inputs.refurb_budget,
     formData.refurbBudget,
-    "Invariant regression: ROI must not consume the user-entered refurb budget.",
+    "Invariant regression: ROI must not consume the user-entered refurb budget when pricing is authoritative.",
   );
 }
 
@@ -60,13 +67,37 @@ function escapeForRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-test("ROI consumes only pricing.mid_total in analyzeDeal()", () => {
+test("ROI consumes only pricing.mid_total in analyzeDeal() when categories are meaningful", () => {
+  assert.ok(
+    (standardFlipInput.selectedCategories?.length ?? 0) > 0,
+    "standardFlipInput must have non-empty categories for pricing-authority tests",
+  );
   assertPricingAuthorityInvariant(standardFlipInput);
   assertPricingAuthorityInvariant(heavyRefurbInput);
 });
 
-test("pricing.mid_total remains defined, numeric, and positive", () => {
-  // Provide real categories so the engine produces a non-zero cost.
+test("empty pricing scope cannot become authoritative", () => {
+  const analysis = analyzeDeal(emptyPricingScopeInput);
+  assert.equal(analysis.ready, false, "Empty categories must not produce ready analysis");
+  assert.equal(analysis.pricing, null, "Empty categories must not expose authoritative pricing");
+  assert.equal(analysis.roi, null, "Empty categories must not emit ROI with engine zero");
+  assert.equal(isPricingAuthoritative([], { mid_total: 0 }), false);
+  assert.equal(isPricingAuthoritative(PRICING_AUTHORITY_CATEGORIES, { mid_total: 0 }), false);
+  assert.equal(isPricingAuthoritative(PRICING_AUTHORITY_CATEGORIES, { mid_total: 43771 }), true);
+});
+
+test("mid_total zero is non-authoritative even if pricing object returned", () => {
+  // Empty categories force mid_total 0 from engine — analyzeDeal must not ready.
+  const zeroScope: ParsedDealFormData = {
+    ...standardFlipInput,
+    selectedCategories: [],
+  };
+  const analysis = analyzeDeal(zeroScope);
+  assert.equal(analysis.ready, false);
+  assert.equal(analysis.roi, null);
+});
+
+test("pricing.mid_total remains defined, numeric, and positive with categories", () => {
   const pricing = runPricingEngine({
     ...buildPricingInput(standardFlipInput),
     selected_categories: ["Kitchen", "Bathroom", "Flooring"],

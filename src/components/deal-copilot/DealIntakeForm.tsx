@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Calculator, CheckCircle2, CircleAlert, Loader2, Zap } from "lucide-react";
-import { toast } from "sonner";
 import { trackDealAnalyzed } from "@/lib/analytics";
 
 import { useGenerateEstimate } from "@/features/estimate";
@@ -21,14 +20,14 @@ import {
   type DealScoreInput,
   type DealScoreResult,
 } from "@/core/dealCopilot";
-import { analyzeDeal } from "@/lib/deal-copilot/dealAnalysis";
+import { analyzeDeal, isPricingAuthoritative } from "@/lib/deal-copilot/dealAnalysis";
 import { validateFormData } from "@/lib/deal-copilot/dealValidation";
-import { DealScoreCard } from "@/components/deal-copilot/DealScoreCard";
 import { DealMetricsGrid } from "@/components/deal-copilot/DealMetricsGrid";
 import { DealRiskFlags } from "@/components/deal-copilot/DealRiskFlags";
 import { DealEstimateSection } from "@/components/deal-copilot/DealEstimateSection";
 import { DealAcquisitionCosts } from "@/components/deal-copilot/DealAcquisitionCosts";
 import { Button } from "@repo/ui";
+import type { RoiEngineResult } from "@repo/services";
 
 type DealFormState = {
   title: string;
@@ -107,8 +106,10 @@ export function DealIntakeForm() {
   // AI estimate via native TS serverFn (OpenAI). Declare early so useEffects below can reference without TDZ.
   const generateAiEstimate = useGenerateEstimate();
 
-  // Run full analysis first — pricing.mid_total is the only authoritative refurb budget
-  // for recommendation scoring (never use a parallel ROI based solely on user budget).
+  // Customer-entered underwriting assumption (never replaced by engine zero).
+  const customerRefurbBudget = useMemo(() => parseMoney(form.refurbBudget), [form.refurbBudget]);
+
+  // validateFormData requires rent for full parse; used only to attempt pricing path.
   const validationResult = useMemo(
     () =>
       validateFormData({
@@ -124,6 +125,8 @@ export function DealIntakeForm() {
     [form],
   );
 
+  // Pricing-authoritative analysis only when categories + positive mid_total (DC-R1 Model A).
+  // Current UI does not supply categories → analyzeDeal remains non-ready; manual path owns UI.
   const analysis = useMemo(() => {
     if (!validationResult.valid) {
       return null;
@@ -131,11 +134,23 @@ export function DealIntakeForm() {
     return analyzeDeal(validationResult.data);
   }, [validationResult]);
 
+  const pricingAuthoritative = Boolean(
+    analysis?.ready &&
+    analysis.pricing &&
+    isPricingAuthoritative(
+      validationResult.valid ? validationResult.data.selectedCategories : [],
+      analysis.pricing,
+    ),
+  );
+
+  // Effective underwriting refurb: mid_total only when pricing is authoritative; else customer.
+  const effectiveRefurbBudget = pricingAuthoritative
+    ? Number(analysis!.pricing!.mid_total)
+    : customerRefurbBudget;
+
+  // Score / Save readiness: use effective refurb so score agrees with displayed metrics.
+  // Save payload still persists customer-entered refurb (see handleSaveOpportunity).
   const scoreInput = useMemo<DealScoreInput>(() => {
-    const engineRefurb =
-      analysis?.ready && analysis.pricing?.mid_total != null
-        ? Number(analysis.pricing.mid_total)
-        : null;
     return {
       title: form.title.trim(),
       listingUrl: form.listingUrl.trim() || undefined,
@@ -143,15 +158,19 @@ export function DealIntakeForm() {
       purchasePrice: parseMoney(form.purchasePrice),
       estimatedGdv: parseMoney(form.estimatedGdv),
       expectedMonthlyRent: parseMoney(form.expectedMonthlyRent),
-      // Prefer engine mid_total when analysis is ready so score and metrics agree.
-      refurbBudget: engineRefurb ?? parseMoney(form.refurbBudget),
+      refurbBudget: effectiveRefurbBudget,
       holdingCosts: parseMoney(form.holdingCosts) ?? 0,
       region: form.region,
       propertyCondition: form.propertyCondition,
     };
-  }, [form, analysis]);
+  }, [form, effectiveRefurbBudget]);
 
   const score = useMemo<DealScoreResult>(() => scoreDealOpportunity(scoreInput), [scoreInput]);
+
+  // Single displayed ROI source — pricing path or manual score path (no dual formulas).
+  const displayRoi: RoiEngineResult | null = pricingAuthoritative
+    ? (analysis?.roi ?? null)
+    : (score.roiResult ?? null);
 
   // Basic telemetry for key user actions (Phase 3)
   useEffect(() => {
@@ -213,6 +232,7 @@ export function DealIntakeForm() {
       return;
     }
 
+    // Persist CUSTOMER-ENTERED underwriting assumptions only (no engine mid_total / zero).
     const opportunity = createDealOpportunity({
       title: scoreInput.title,
       listingUrl: scoreInput.listingUrl,
@@ -220,7 +240,7 @@ export function DealIntakeForm() {
       purchasePrice: scoreInput.purchasePrice,
       estimatedGdv: scoreInput.estimatedGdv,
       expectedMonthlyRent: scoreInput.expectedMonthlyRent,
-      refurbBudget: scoreInput.refurbBudget,
+      refurbBudget: customerRefurbBudget,
     });
 
     if (hasSameDealOpportunityInputs(savedOpportunity, opportunity)) {
@@ -347,32 +367,36 @@ export function DealIntakeForm() {
           </CardContent>
         </Card>
 
-        {/* Full analysis results below form, inside left column */}
-        {analysis && analysis.ready && (
+        {/* Single-source underwriting results — metrics and acquisition share effectiveRefurb */}
+        {displayRoi ? (
           <div className="space-y-6">
-            <DealMetricsGrid roi={analysis.roi} />
+            {!pricingAuthoritative ? (
+              <p className="text-xs text-muted-foreground">
+                Using your refurb budget
+                {customerRefurbBudget != null ? ` (${formatGBP(customerRefurbBudget)})` : ""}.
+                Pricing estimate unavailable — category-based engine estimate not available.
+              </p>
+            ) : null}
+            <DealMetricsGrid roi={displayRoi} />
             <DealAcquisitionCosts
               purchasePrice={parseMoney(form.purchasePrice)}
               estimatedGdv={parseMoney(form.estimatedGdv)}
-              refurbBudget={
-                analysis.pricing?.mid_total != null
-                  ? Number(analysis.pricing.mid_total)
-                  : parseMoney(form.refurbBudget)
-              }
+              refurbBudget={effectiveRefurbBudget}
               holdingCosts={parseMoney(form.holdingCosts)}
             />
-            <DealRiskFlags roi={analysis.roi} />
-            <DealEstimateSection pricing={analysis.pricing} />
+            <DealRiskFlags roi={displayRoi} />
+            {pricingAuthoritative && analysis?.pricing ? (
+              <DealEstimateSection pricing={analysis.pricing} />
+            ) : null}
           </div>
-        )}
-        {!analysis?.ready ? (
+        ) : (
           <DealAcquisitionCosts
             purchasePrice={parseMoney(form.purchasePrice)}
             estimatedGdv={parseMoney(form.estimatedGdv)}
-            refurbBudget={parseMoney(form.refurbBudget)}
+            refurbBudget={customerRefurbBudget}
             holdingCosts={parseMoney(form.holdingCosts)}
           />
-        ) : null}
+        )}
 
         {/* AI estimate via native TypeScript + OpenAI pipeline */}
         <div className="mt-4 border-t pt-4">
@@ -561,7 +585,7 @@ function DealScorePanel({
 
         <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
           SDLT and full acquisition appraisal appear in the main column when purchase price is set.
-          ROI above uses the deterministic pricing engine only.
+          ROI above uses the shared deterministic ROI engine with your underwriting assumptions.
         </p>
 
         <button

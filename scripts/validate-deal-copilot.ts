@@ -90,16 +90,33 @@ async function loadModules() {
       property_size_sqm: formData.propertySize || 100,
     };
 
-    const pricing = runPricingEngine(pricingInput);
+    const selectedCategories = formData.selectedCategories || [];
 
-    // CRITICAL: Pricing failure blocks ROI (financial invariant enforcement)
-    if (!pricing || pricing.mid_total == null) {
+    // DC-R1: empty categories never become pricing authority
+    if (selectedCategories.length === 0) {
       return {
         score,
         pricing: null,
         roi: null,
         ready: false,
-        errors: ["Pricing engine did not return a valid result — ROI calculation blocked"],
+        errors: ["Pricing scope empty — category-based pricing not authoritative"],
+      };
+    }
+
+    const pricing = runPricingEngine({
+      ...pricingInput,
+      selected_categories: selectedCategories,
+    });
+
+    // CRITICAL: Meaningful mid_total only — no fallback to user refurbBudget
+    const mid = pricing?.mid_total;
+    if (!pricing || mid == null || typeof mid !== "number" || !Number.isFinite(mid) || mid <= 0) {
+      return {
+        score,
+        pricing: null,
+        roi: null,
+        ready: false,
+        errors: ["Pricing engine did not return a meaningful mid_total — ROI calculation blocked"],
       };
     }
 
