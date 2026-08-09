@@ -34,10 +34,11 @@
 
 ## Operations
 
-| Document                                                               | Description                                |
-| ---------------------------------------------------------------------- | ------------------------------------------ |
-| [Beta Operations Playbook](./operations/beta-operations-playbook.md)   | Monitoring, incident response, deployment  |
-| [AI Operational Governance](./operations/ai-operational-governance.md) | AI pipeline safety, rate limits, fallbacks |
+| Document                                                                                     | Description                                                         |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [Public Beta Launch Authorisation](./operations/public-beta-launch-authorization.md)         | **IN FORCE** — Controlled Public Beta GO (2026-08-09); baseline SHA |
+| [Beta Operations Playbook](./operations/beta-operations-playbook.md)                         | Monitoring, incident response, deployment                           |
+| [AI Operational Governance](./operations/ai-operational-governance.md)                       | AI pipeline safety, rate limits, fallbacks                          |
 
 ## Product & QA
 

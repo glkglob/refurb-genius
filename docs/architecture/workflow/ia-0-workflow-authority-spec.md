@@ -1752,8 +1752,28 @@ Proved:
 Deferred P2 (post-beta polish, not blocking): dense “Not set” metadata; further light-theme
 polish; minor stage-carousel neighbouring-item aesthetics.
 
-Next programme gate: **Public Beta Final Go/No-Go Review** (data/product correctness such as
-duplicate fixture names and £0 refurb values). **IA-9 is not authorised.**
+## Public Beta Final Go/No-Go — GO (2026-08-09)
+
+**Status: Controlled Public Beta AUTHORISED.**
+
+| Item | Value |
+| ---- | ----- |
+| Decision | **GO** |
+| Product baseline | `8e181527f2c73f81554121c7ed517f24500366a6` (R2 merge / PR #123) |
+| R1 merge (prior) | `363efd8cc92ddbf9594ecd61600290980df8015f` |
+| R2 authorised head | `bf38a9496279504c7ed35cd79765b2abaf74b719` |
+| Production deployment | `dpl_7byGcC4A4v94qNcRqvFHVcGeM2uE` |
+| Domain | https://www.refurbgenius.info |
+| P0 / P1 core at decision | 0 / 0 |
+| Formal record | [public-beta-launch-authorization.md](../../operations/public-beta-launch-authorization.md) |
+
+Post-IA-8 repair gates completed before GO: PUBLIC-BETA-R1 (zero-refurb truthfulness),
+PUBLIC-BETA-R2 (workflow authority completion: Scope gate, Estimate primary authority,
+name-only Estimate, Export snapshot + Estimate→Export invalidation), each with
+independent verification and production verification.
+
+**IA-9 is not authorised by Public Beta GO.** Next programme mode: controlled beta
+observation. Select subsequent product work from beta evidence, not sequence inertia.
 
 ## IA-9 — Scope / Estimate professional depth
 

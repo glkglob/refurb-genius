@@ -23,20 +23,26 @@ this overview plus Phase 0 evidence as higher priority until those docs are upda
 
 ### IA programme (product workflow)
 
-| Phase    | Title                                                           | Status                        | Canonical specification                                                                |
-| -------- | --------------------------------------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------- |
-| **IA-0** | Workflow Authority, Provenance, State, Resolver, Design & Trust | **Completed / Locked v1.0.1** | [workflow/ia-0-workflow-authority-spec.md](./workflow/ia-0-workflow-authority-spec.md) |
-| **IA-1** | Shared Project Workflow Shell                                   | **Completed**                 | Governed by IA-0; shared shell on main                                                 |
-| **IA-2** | Canonical Next-Action Resolver                                  | **Completed**                 | Pure `resolveProjectNextAction` on main; no broad UI consumer migration (IA-6)         |
-| **IA-3** | Photos → Analysis Continuity                                    | **Completed**                 | Durable photo catalogue + Analysis currentness + resolver adapters on main             |
-| **IA-4** | First-Class Redesign                                            | **Completed**                 | First-class `/projects/$id/redesign`; atomic selection; write-path seal; schema reconcile |
-| **IA-5** | Full Five-Stage Continuity                                      | **Planned / Next**            | Photos → Analysis → Redesign → Estimate → Export continuity — **not started**           |
+| Phase    | Title                                                           | Status                              | Canonical specification                                                                |
+| -------- | --------------------------------------------------------------- | ----------------------------------- | -------------------------------------------------------------------------------------- |
+| **IA-0** | Workflow Authority, Provenance, State, Resolver, Design & Trust | **Completed / Locked v1.0.1**       | [workflow/ia-0-workflow-authority-spec.md](./workflow/ia-0-workflow-authority-spec.md) |
+| **IA-1** | Shared Project Workflow Shell                                   | **Completed**                       | Governed by IA-0; shared shell on main                                                 |
+| **IA-2** | Canonical Next-Action Resolver                                  | **Completed**                       | Pure `resolveProjectNextAction` on main                                                |
+| **IA-3** | Photos → Analysis Continuity                                    | **Completed**                       | Durable photo catalogue + Analysis currentness + resolver adapters on main             |
+| **IA-4** | First-Class Redesign                                            | **Completed**                       | First-class `/projects/$id/redesign`; atomic selection; write-path seal; schema reconcile |
+| **IA-5** | Full Five-Stage Continuity                                      | **Completed**                       | Photos → Analysis → Redesign → Estimate → Export continuity on main                    |
+| **IA-6** | Dashboard + Overview Continuation                               | **Completed**                       | Canonical continuation on Dashboard / Overview                                         |
+| **IA-7** | Global Navigation Convergence                                   | **Completed**                       | Six-destination global IA; `/analyze` project entry                                    |
+| **IA-8** | Mobile Refinement and Production Readiness                      | **Completed**                       | Mobile primary nav + production readiness                                              |
+| **Public Beta** | Controlled Public Beta                                    | **AUTHORISED (GO 2026-08-09)**      | [public-beta-launch-authorization.md](../operations/public-beta-launch-authorization.md); product baseline `8e181527f2c73f81554121c7ed517f24500366a6` |
+| **IA-9** | Scope / Estimate professional depth                             | **Planned / NOT AUTHORISED**        | Governed by IA-0; requires separate explicit authorisation                             |
+| **IA-10**| Export + commercial refinement                                  | **Planned / NOT AUTHORISED**        | Governed by IA-0; requires separate explicit authorisation                             |
 
 Controlling journey: **Photos → Analysis → Redesign → Estimate → Export**.
 
 IA-1 through IA-10 **MUST NOT** introduce conflicting workflow, Scope, provenance, resolver, entitlement, navigation, design or trust semantics. Material changes to locked IA-0 rules require architecture review.
 
-**IA-5 MUST NOT begin until explicitly authorised.**
+**IA-9 and IA-10 MUST NOT begin until explicitly authorised.** Public Beta GO does not authorise IA-9.
 
 ---
 

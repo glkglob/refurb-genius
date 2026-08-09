@@ -4,6 +4,12 @@
 
 **Audience:** Operations team, engineering on-call, support staff
 
+**Launch authority:** [Public Beta Launch Authorisation](./public-beta-launch-authorization.md) —
+Controlled Public Beta **GO** (2026-08-09); product baseline
+`8e181527f2c73f81554121c7ed517f24500366a6`; production `dpl_7byGcC4A4v94qNcRqvFHVcGeM2uE`
+on https://www.refurbgenius.info. P0/P1 escalation thresholds and P2 carry-forward register
+live in that record.
+
 ---
 
 ## Quick Start: Daily Operational Checks

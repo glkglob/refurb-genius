@@ -1,6 +1,6 @@
 # Future Roadmap
 
-## Current State (June 2026)
+## Current State (August 2026)
 
 - ✅ Real workspace monorepo operational (8 packages)
 - ✅ Four extraction phases completed
@@ -11,7 +11,7 @@
 - ✅ Feature slices migrated: `estimate`, `ai-upload`, `ai-design`
 - ✅ Platform boundary: OpenAI, Supabase, PostHog via `src/platform/`
 - ✅ UI migration in progress: 17/46 components migrated to `@repo/ui`
-- 🔄 **Active**: UI migration (29 remaining); legacy shim cleanup; `export` + `gallery` slices
+- 🔄 **Active programme mode**: **Controlled Public Beta + Observation** (not IA-9 implementation)
 - ✅ **IA-0** Workflow Authority Specification **LOCKED v1.0.1** — [workflow/ia-0-workflow-authority-spec.md](./workflow/ia-0-workflow-authority-spec.md) (governs IA-1–IA-10; IA-0-CL1 clarifies `reconcile_scope` + `view_stage_progress`)
 - ✅ **IA-1** Shared Project Workflow Shell **Completed** on main (five-stage shell)
 - ✅ **IA-2** Canonical Next-Action Resolver **Completed** on main (pure `resolveProjectNextAction`; UI consumer migration remains IA-6)
@@ -21,7 +21,7 @@
 - ✅ **IA-6** Dashboard + Overview Continuation **Completed** on main (PR #119; no migrations)
 - ✅ **IA-7** Global Navigation Convergence **Completed** on main (PR #120; verified head `d401a89`; merge `e8678f6`; six-destination IA; `/analyze` project entry; mobile More reachability; Studies demoted)
 - ✅ **IA-8** Mobile Refinement and Production Readiness **Completed** on main (PR #121; owner-approved head `4fb2448`; merge `95311f2`; no migrations; production verified on `www.refurbgenius.info`)
-- 🔜 **Public Beta Final Go/No-Go Review** — **Next programme gate** (not IA-9 implementation)
+- ✅ **Public Beta Final Go/No-Go** — **GO** (2026-08-09). Controlled Public Beta **AUTHORISED**. Product baseline `8e181527f2c73f81554121c7ed517f24500366a6` (R2 merge, PR #123); production `dpl_7byGcC4A4v94qNcRqvFHVcGeM2uE` on `www.refurbgenius.info`. Formal record: [public-beta-launch-authorization.md](../operations/public-beta-launch-authorization.md). **IA-9 / IA-10 not authorised.**
 
 ---
 
