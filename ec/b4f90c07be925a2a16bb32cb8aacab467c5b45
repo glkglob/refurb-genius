@@ -1,0 +1,14 @@
+src/features/projects/presentation/components/ProjectContinuationCard.test.tsx
+  h_7ea6129503670a 4,11,79-80,266,268-269,288,297,299,308,320,363
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "ecb4f90c07be925a2a16bb32cb8aacab467c5b45",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
