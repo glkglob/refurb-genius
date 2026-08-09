@@ -37,7 +37,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/trades_/$jobId")({
-  head: () => ({ meta: [{ title: "Job detail — Trades Marketplace" }] }),
+  head: () => ({ meta: [{ title: "Job detail — Trades Job Board" }] }),
   component: TradesJobDetailPage,
 });
 

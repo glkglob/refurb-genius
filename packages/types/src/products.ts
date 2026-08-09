@@ -45,8 +45,12 @@ export const PRODUCTS: Record<ProductId, ProductConfig> = {
   },
   "trades-marketplace": {
     id: "trades-marketplace",
-    name: "Trades Marketplace",
-    description: "Public trade job marketplace, job interests, and trade profile onboarding.",
+    name: "Trades",
+    // Customer-facing maturity is split: job board live (beta); verified provider
+    // directory not live. Status remains "live" for existing registry consumers
+    // (composite maturity is a T2 concern — do not invent a new enum here).
+    description:
+      "Trades job board (limited beta), job interests, and self-submitted trade profiles. Provider directory/verification not mature.",
     status: "live",
     basePath: "/trades",
     isCorePlatform: false,

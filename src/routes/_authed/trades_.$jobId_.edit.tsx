@@ -20,7 +20,7 @@ import { getTradesJobById, updateTradesJob } from "@/features/trades";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/_authed/trades_/$jobId_/edit")({
-  head: () => ({ meta: [{ title: "Edit job — Trades Marketplace" }] }),
+  head: () => ({ meta: [{ title: "Edit job — Trades Job Board" }] }),
   component: TradesJobEditPage,
 });
 

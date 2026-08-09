@@ -56,7 +56,7 @@ describe("Sidebar IA-7 global navigation", () => {
     expect(screen.getByTestId("global-nav-settings")).toBeTruthy();
     expect(screen.getByText("Projects")).toBeTruthy();
     expect(screen.getByText("New Analysis")).toBeTruthy();
-    expect(screen.getByText("Trades / Marketplace")).toBeTruthy();
+    expect(screen.getByText("Trades")).toBeTruthy();
   });
 
   it("does not expose Studies as a primary nav item", () => {

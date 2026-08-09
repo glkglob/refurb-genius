@@ -19,7 +19,7 @@ import { trackEvent } from "@/lib/analytics";
 import { LabourRateGuide } from "@/components/marketplace/LabourRateGuide";
 
 export const Route = createFileRoute("/_authed/trades_/new")({
-  head: () => ({ meta: [{ title: "Post a job — Trades Marketplace" }] }),
+  head: () => ({ meta: [{ title: "Post a job — Trades Job Board" }] }),
   component: TradesNewPage,
 });
 
@@ -88,11 +88,11 @@ function TradesNewPageContent() {
   return (
     <AppLayout
       title="Post a refurbishment job"
-      subtitle="Fill in the details below and we'll connect you with trusted local trades."
+      subtitle="Publish a job to the Trades job board. Posting does not match you with providers or guarantee responses."
       actions={
         <Button asChild variant="ghost" size="sm">
           <Link to="/trades">
-            <ArrowLeft className="h-4 w-4" /> Trades Marketplace
+            <ArrowLeft className="h-4 w-4" /> Trades job board
           </Link>
         </Button>
       }
@@ -101,7 +101,9 @@ function TradesNewPageContent() {
         <div className="mx-auto max-w-2xl space-y-4 rounded-lg border border-success/30 bg-success/10 p-8 text-center">
           <CheckCircle2 className="mx-auto h-10 w-10 text-success" />
           <h2 className="text-xl font-semibold text-success">Job posted!</h2>
-          <p className="text-sm text-success/80">Your job is now live on the Trades Marketplace.</p>
+          <p className="text-sm text-success/80">
+            Your job has been published to the Trades job board.
+          </p>
           <div className="flex justify-center gap-3 pt-2">
             <Button asChild variant="outline">
               <Link to="/trades/new" onClick={() => setPosted(false)}>
@@ -109,7 +111,7 @@ function TradesNewPageContent() {
               </Link>
             </Button>
             <Button asChild>
-              <Link to="/trades">View marketplace</Link>
+              <Link to="/trades">View job board</Link>
             </Button>
           </div>
         </div>
@@ -171,6 +173,9 @@ function TradesNewPageContent() {
               value={propertyAddress}
               onChange={(e) => setPropertyAddress(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground">
+              Full street address is kept private from public job listings.
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -182,6 +187,9 @@ function TradesNewPageContent() {
                 value={postcode}
                 onChange={(e) => setPostcode(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">
+                Public listings show Area (outward postcode) only.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="propertyType">Property type</Label>

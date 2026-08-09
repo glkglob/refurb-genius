@@ -365,13 +365,13 @@ function DashboardContent() {
           <QuickActionCard icon={FolderPlus} label="Create Project" to="/projects/new" />
           <QuickActionCard icon={BookMarked} label="Saved Studies" to="/studies" />
           <QuickActionCard icon={Briefcase} label="Post a Trades Job" to="/trades/new" />
-          <QuickActionCard icon={HardHat} label="Browse Marketplace" to="/trades" />
+          <QuickActionCard icon={HardHat} label="Browse Trades Jobs" to="/trades" />
         </div>
       </div>
 
       <div className="mb-8">
         <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Marketplace activity
+          Trades activity
         </h2>
         {commercialStats}
       </div>
@@ -470,7 +470,7 @@ function TradesJobsTable({
       <EmptyState
         icon={Briefcase}
         title="No trades jobs yet"
-        description="Post your first refurbishment job to connect with trusted local trades."
+        description="Post your first refurbishment job to the Trades job board."
         action={
           <Button asChild>
             <Link to="/trades/new">

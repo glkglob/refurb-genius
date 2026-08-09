@@ -62,14 +62,14 @@ describe("MobileTopBar IA-8 final mobile destinations", () => {
     expect(screen.getByLabelText("Deal Copilot")).toBeTruthy();
   });
 
-  it("exposes Trades / Marketplace and Settings through More menu", async () => {
+  it("exposes Trades and Settings through More menu", async () => {
     render(createElement(MobileTopBar));
     await openMoreMenu();
     const trades = await screen.findByTestId("mobile-nav-trades_marketplace");
     const settings = await screen.findByTestId("mobile-nav-settings");
     expect(trades.getAttribute("href")).toBe("/trades");
     expect(settings.getAttribute("href")).toBe("/settings");
-    expect(within(trades).getByText("Trades / Marketplace")).toBeTruthy();
+    expect(within(trades).getByText("Trades")).toBeTruthy();
     expect(within(settings).getByText("Settings")).toBeTruthy();
   });
 
