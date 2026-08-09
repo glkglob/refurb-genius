@@ -1,0 +1,30 @@
+src/lib/analytics.ts
+  h_7ea6129503670a 1,49-59,78-82,132-133,148-151,155-156,167,182,190,241-246,257-260,262,266-273,295-296,305
+src/platform/analytics/AnalyticsLifecycle.tsx
+  h_7ea6129503670a 45-50,53,56-64,68,73-78,82,84-86,89,91-93
+src/platform/analytics/identity-apply.test.ts
+  h_7ea6129503670a 2,9,17-18,22,28,38-39,86-105,111,121-185,188-192,196-222,232-240
+src/platform/analytics/index.ts
+  h_7ea6129503670a 30
+src/platform/analytics/route-template.test.ts
+  h_7ea6129503670a 69-96
+src/platform/analytics/route-template.ts
+  h_7ea6129503670a 19-23,59-61,99-100
+src/platform/posthog/browser.test.ts
+  h_7ea6129503670a 1-52
+src/platform/posthog/browser.ts
+  h_7ea6129503670a 28-38,40-66
+src/routes/__root.tsx
+  h_7ea6129503670a 260-261
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "343c4415327171c8289fde7f3f82ea065081be3c",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
