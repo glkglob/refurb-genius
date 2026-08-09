@@ -1,0 +1,26 @@
+src/components/ProjectCard.tsx
+  h_7ea6129503670a 7,14,35-41
+src/core/projects/domain/index.ts
+  h_7ea6129503670a 16-19
+src/core/projects/domain/projectCardRefurbPresentation.test.ts
+  h_7ea6129503670a 1-52
+src/core/projects/domain/projectCardRefurbPresentation.ts
+  h_7ea6129503670a 1-30
+src/core/projects/index.ts
+  h_7ea6129503670a 8-14,22
+src/features/projects/presentation/components/ProjectContinuationCard.test.tsx
+  h_7ea6129503670a 204-289
+src/features/projects/presentation/components/ProjectContinuationCard.tsx
+  h_7ea6129503670a 15,81,160-169
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "013e7cc756971da4dbed36374fddec5ca35f1752",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
