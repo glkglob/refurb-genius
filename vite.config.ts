@@ -13,6 +13,12 @@ export default defineConfig({
       server: {
         entry: "./src/server.ts",
       },
+      // Tests under src/routes must never be candidate production routes.
+      // Prefer also prefixing with "-" (routeFileIgnorePrefix default); this
+      // pattern is belt-and-suspenders against future unprefixed test files.
+      router: {
+        routeFileIgnorePattern: "\\.(test|spec)\\.(ts|tsx)$",
+      },
     }),
     react(),
     tailwindcss(),

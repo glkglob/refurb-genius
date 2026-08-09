@@ -223,7 +223,7 @@ const ROUTES = [
     role: "authenticated",
     authClass: "authenticated",
     severity: "P0",
-    testReference: "src/routes/_authed/dashboard.test.tsx",
+    testReference: "src/routes/_authed/-dashboard.test.tsx",
   },
   {
     surfaceId: "route.analyze",
@@ -392,7 +392,7 @@ const ROUTES = [
     status: "NOT_TESTED",
     notes:
       "Reachable by URL; not in primary Sidebar. Access gate unprobed — not INTENTIONALLY_HIDDEN for the route itself.",
-    testReference: "src/routes/_authed/admin.test.tsx",
+    testReference: "src/routes/_authed/-admin.test.tsx",
   },
   {
     surfaceId: "route.marketplace",
@@ -1014,7 +1014,7 @@ ctrl({
   persistence: "user goal metadata",
   severity: "P2",
   status: "PARTIAL",
-  testReference: "src/routes/_authed/dashboard.test.tsx",
+  testReference: "src/routes/_authed/-dashboard.test.tsx",
   actualResult: "Unit-tested hydrate/apply",
   blocker: "e2e-onboarding",
 });
@@ -2420,7 +2420,7 @@ ctrl({
   entitlement: "admin",
   operation: "deny non-admin",
   severity: "P0",
-  testReference: "src/routes/_authed/admin.test.tsx",
+  testReference: "src/routes/_authed/-admin.test.tsx",
 });
 ctrl({
   surfaceId: "ctrl.admin.stats-view",

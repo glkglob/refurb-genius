@@ -299,7 +299,7 @@
     },
     {
       "preconditions": [],
-      "testReference": "src/routes/_authed/dashboard.test.tsx",
+      "testReference": "src/routes/_authed/-dashboard.test.tsx",
       "blocker": null,
       "notes": null,
       "entitlement": "none",
@@ -635,7 +635,7 @@
     },
     {
       "preconditions": [],
-      "testReference": "src/routes/_authed/admin.test.tsx",
+      "testReference": "src/routes/_authed/-admin.test.tsx",
       "blocker": null,
       "notes": "Reachable by URL; not in primary Sidebar. Access gate unprobed — not INTENTIONALLY_HIDDEN for the route itself.",
       "entitlement": "none",
@@ -1805,7 +1805,7 @@
     },
     {
       "preconditions": [],
-      "testReference": "src/routes/_authed/dashboard.test.tsx",
+      "testReference": "src/routes/_authed/-dashboard.test.tsx",
       "blocker": "e2e-onboarding",
       "notes": null,
       "entitlement": "none",
@@ -4385,7 +4385,7 @@
     },
     {
       "preconditions": [],
-      "testReference": "src/routes/_authed/admin.test.tsx",
+      "testReference": "src/routes/_authed/-admin.test.tsx",
       "blocker": null,
       "notes": null,
       "entitlement": "admin",
