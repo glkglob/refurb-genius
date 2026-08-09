@@ -1,7 +1,11 @@
 /**
  * Edge case scenarios for regression testing.
+ *
+ * DC-R1: fixtures used with analyzeDeal() ready-path include non-empty
+ * selectedCategories so pricing can be authoritative.
  */
 import type { ParsedDealFormData } from "@repo/types";
+import { PRICING_AUTHORITY_CATEGORIES } from "./standard-flip";
 
 /**
  * Heavy refurbishment scenario.
@@ -16,6 +20,8 @@ export const heavyRefurbInput: ParsedDealFormData = {
   holdingCosts: 12000,
   region: "West Midlands",
   propertyCondition: "Poor",
+  selectedCategories: PRICING_AUTHORITY_CATEGORIES,
+  propertySize: 100,
 };
 
 /**
@@ -31,21 +37,26 @@ export const highYieldInput: ParsedDealFormData = {
   holdingCosts: 6000,
   region: "North West England",
   propertyCondition: "Average",
+  selectedCategories: PRICING_AUTHORITY_CATEGORIES,
+  propertySize: 100,
 };
 
 /**
- * Negative profit scenario.
- * Deal breaks even or loses money. Should still analyze safely.
+ * Negative profit scenario (pricing-authoritative).
+ * With Kitchen/Bathroom/Flooring mid_total ≈ 43771 (London Average 100m²):
+ * TPC ≈ 420000 + 43771 + 15000 = 478771; GDV 450000 → profit negative.
  */
 export const negativeProfitInput: ParsedDealFormData = {
   title: "Break-even investment, London",
   purchasePrice: 420000,
   refurbBudget: 80000,
-  estimatedGdv: 490000,
+  estimatedGdv: 450000,
   rentalIncome: 1200, // £1,200/month
   holdingCosts: 15000,
   region: "London",
   propertyCondition: "Average",
+  selectedCategories: PRICING_AUTHORITY_CATEGORIES,
+  propertySize: 100,
 };
 
 /**
@@ -75,6 +86,24 @@ export const smallProjectInput: ParsedDealFormData = {
   holdingCosts: 2000,
   region: "Yorkshire and the Humber",
   propertyCondition: "Average",
+  selectedCategories: PRICING_AUTHORITY_CATEGORIES,
+  propertySize: 100,
+};
+
+/**
+ * Empty pricing scope — must NOT become pricing-authoritative (DC-R1).
+ */
+export const emptyPricingScopeInput: ParsedDealFormData = {
+  title: "DC-R1 empty categories",
+  purchasePrice: 180000,
+  refurbBudget: 40000,
+  estimatedGdv: 250000,
+  rentalIncome: 1200,
+  holdingCosts: 6000,
+  region: "Yorkshire and the Humber",
+  propertyCondition: "Average",
+  selectedCategories: [],
+  propertySize: 100,
 };
 
 /**
@@ -89,6 +118,8 @@ export const largeProjectInput: ParsedDealFormData = {
   holdingCosts: 60000,
   region: "London",
   propertyCondition: "Dated",
+  selectedCategories: PRICING_AUTHORITY_CATEGORIES,
+  propertySize: 100,
 };
 
 /**

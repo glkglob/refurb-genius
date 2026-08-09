@@ -1,30 +1,42 @@
 /**
  * Invariant Protection Tests for Deal Copilot Lite
  *
- * These tests verify that the pricing → ROI invariant cannot be regressed.
- * Each test is designed to detect specific attack vectors that could weaken
- * financial authority boundaries.
+ * Automated checks that the pricing → ROI invariant cannot be regressed.
+ * DC-R1: empty / zero pricing must not become ready authority; when ready,
+ * ROI refurb_budget is always pricing.mid_total with no user-budget fallback.
  */
 
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import type { ParsedDealFormData, DealAnalysisResult } from "@repo/types";
+import { PRICING_AUTHORITY_CATEGORIES } from "./standard-flip";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// fixtures live at src/test/fixtures/deal-copilot → project root is 4 levels up
+const DEAL_ANALYSIS_SOURCE = path.join(
+  __dirname,
+  "../../../../src/lib/deal-copilot/dealAnalysis.ts",
+);
+
+function readDealAnalysisSource(): string {
+  return readFileSync(DEAL_ANALYSIS_SOURCE, "utf8");
+}
 
 /**
- * TEST 1: ROI BLOCKED IF PRICING FAILS
- *
- * Verifies that analyzeDeal() returns an incomplete state when pricing engine fails.
- * This prevents ROI from running with stale or fallback pricing data.
+ * TEST 1: ROI BLOCKED IF PRICING SCOPE EMPTY / FAILS
  */
 export function testRoiBlockedIfPricingFails(
   analyzeDeal: (data: ParsedDealFormData) => DealAnalysisResult,
-  mockPricingEngine: (shouldFail: boolean) => void,
+  _mockPricingEngine: (shouldFail: boolean) => void,
 ): {
   valid: boolean;
   errors: string[];
 } {
   const errors: string[] = [];
 
-  // Create valid input
-  const input: ParsedDealFormData = {
+  const emptyScope: ParsedDealFormData = {
     title: "Test property",
     purchasePrice: 300000,
     refurbBudget: 50000,
@@ -33,30 +45,25 @@ export function testRoiBlockedIfPricingFails(
     holdingCosts: 8000,
     region: "London",
     propertyCondition: "Average",
+    selectedCategories: [],
   };
 
-  // This test would require mocking the pricing engine, which we avoid per constraints.
-  // Instead, we provide the test structure and verify it manually via code inspection.
-  // The actual verification is: src/lib/deal-copilot/dealAnalysis.ts lines 67-75
-  // explicitly check: if (!pricing || pricing.mid_total == null) { return ready: false }
-
-  if (!errors.length) {
-    errors.push(
-      "MANUAL VERIFICATION REQUIRED: Inspect dealAnalysis.ts lines 67-75 for pricing failure blocking",
-    );
+  const result = analyzeDeal(emptyScope);
+  if (result.ready) {
+    errors.push("Empty pricing scope must not produce ready=true analysis");
+  }
+  if (result.roi != null) {
+    errors.push("Empty pricing scope must not emit ROI");
+  }
+  if (result.pricing != null) {
+    errors.push("Empty pricing scope must not expose authoritative pricing");
   }
 
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
+  return { valid: errors.length === 0, errors };
 }
 
 /**
- * TEST 2: ROI BLOCKED IF pricing.mid_total IS NULL
- *
- * Verifies that analyzeDeal() returns incomplete state when pricing.mid_total is null.
- * This prevents division-by-zero and null reference errors in ROI calculations.
+ * TEST 2: ROI BLOCKED IF pricing.mid_total IS NOT MEANINGFUL
  */
 export function testRoiBlockedIfPricingMidTotalIsNull(
   analyzeDeal: (data: ParsedDealFormData) => DealAnalysisResult,
@@ -65,142 +72,140 @@ export function testRoiBlockedIfPricingMidTotalIsNull(
   errors: string[];
 } {
   const errors: string[] = [];
+  const source = readDealAnalysisSource();
 
-  // Code inspection verification:
-  // dealAnalysis.ts line 67: if (!pricing || pricing.mid_total == null)
-  // This guards against both null pricing AND null mid_total
+  if (!source.includes("isPricingAuthoritative") && !/mid_total\s*>\s*0/.test(source)) {
+    errors.push(
+      "dealAnalysis.ts must gate on meaningful mid_total (> 0) or isPricingAuthoritative",
+    );
+  }
 
-  errors.push(
-    "MANUAL VERIFICATION: dealAnalysis.ts line 67 guards with: if (!pricing || pricing.mid_total == null)",
-  );
-
-  return {
-    valid: errors.length === 0,
-    errors,
+  // Empty categories → non-ready (covers zero mid_total promotion path)
+  const empty: ParsedDealFormData = {
+    title: "mid-total gate",
+    purchasePrice: 180000,
+    refurbBudget: 40000,
+    estimatedGdv: 250000,
+    rentalIncome: 1200,
+    holdingCosts: 6000,
+    region: "Yorkshire and the Humber",
+    propertyCondition: "Average",
+    selectedCategories: [],
   };
+  const analysis = analyzeDeal(empty);
+  if (analysis.ready || analysis.roi != null) {
+    errors.push("Non-meaningful pricing must block ROI (ready=false, roi=null)");
+  }
+
+  return { valid: errors.length === 0, errors };
 }
 
 /**
- * TEST 3: ROI CONSUMES pricing.mid_total ONLY
- *
- * The MOST CRITICAL invariant test.
- *
- * Verifies that:
- * - ROI input's refurb_budget comes from pricing.mid_total
- * - ROI input's refurb_budget is NEVER the user-entered refurbBudget
- * - No fallback logic exists
- *
- * This is deterministically verifiable by checking dealAnalysis.ts line 80:
- * refurb_budget: pricing.mid_total
+ * TEST 3: ROI CONSUMES pricing.mid_total ONLY (ready path)
  */
-export function testRoiConsumesOnlyPricingMidTotal(): {
+export function testRoiConsumesOnlyPricingMidTotal(
+  analyzeDeal?: (data: ParsedDealFormData) => DealAnalysisResult,
+): {
   valid: boolean;
   errors: string[];
 } {
   const errors: string[] = [];
+  const source = readDealAnalysisSource();
 
-  // This test verifies the exact source code pattern
-  // dealAnalysis.ts line 80 MUST be: refurb_budget: pricing.mid_total
-  // and NOT: refurb_budget: formData.refurbBudget
-  // and NOT: refurb_budget: pricing.mid_total ?? formData.refurbBudget
-  // and NOT: refurb_budget: formData.refurbBudget ?? pricing.mid_total
+  if (!/refurb_budget:\s*pricing\.mid_total\b/.test(source)) {
+    errors.push("dealAnalysis.ts must map refurb_budget directly from pricing.mid_total");
+  }
 
-  // Code inspection requirement:
-  // const roiInput: RoiEngineInputs = {
-  //   purchase_price: formData.purchasePrice,
-  //   refurb_budget: pricing.mid_total,    ← MUST be this exact line
-  //   ...
-  // };
+  for (const forbidden of [
+    "pricing.mid_total ?? formData.refurbBudget",
+    "pricing.mid_total || formData.refurbBudget",
+    "formData.refurbBudget ?? pricing.mid_total",
+    "formData.refurbBudget || pricing.mid_total",
+  ]) {
+    if (source.includes(forbidden)) {
+      errors.push(`FORBIDDEN FALLBACK: ${forbidden}`);
+    }
+  }
 
-  errors.push(
-    "CODE INSPECTION REQUIRED: dealAnalysis.ts line 80 must be EXACTLY: refurb_budget: pricing.mid_total",
-  );
-  errors.push("NO ?? or || operators allowed near refurb_budget");
-  errors.push("NO fallback to formData.refurbBudget permitted");
+  if (analyzeDeal) {
+    const input: ParsedDealFormData = {
+      title: "Authority map",
+      purchasePrice: 350000,
+      refurbBudget: 55000,
+      estimatedGdv: 475000,
+      rentalIncome: 1500,
+      holdingCosts: 8000,
+      region: "London",
+      propertyCondition: "Average",
+      selectedCategories: PRICING_AUTHORITY_CATEGORIES,
+      propertySize: 100,
+    };
+    const result = analyzeDeal(input);
+    if (!result.ready || !result.roi || !result.pricing) {
+      errors.push("Meaningful categories must produce ready pricing-authoritative analysis");
+    } else if (result.roi.inputs.refurb_budget !== result.pricing.mid_total) {
+      errors.push(
+        `ROI refurb ${result.roi.inputs.refurb_budget} !== mid_total ${result.pricing.mid_total}`,
+      );
+    } else if (result.roi.inputs.refurb_budget === input.refurbBudget) {
+      errors.push("ROI must not consume user-entered refurbBudget when pricing is authoritative");
+    }
+  }
 
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
+  return { valid: errors.length === 0, errors };
 }
 
 /**
  * TEST 4: NO FALLBACK LOGIC ALLOWED
- *
- * Scans codebase for forbidden patterns that would weaken the invariant:
- * - pricing.mid_total ?? refurbBudget
- * - pricing.mid_total || refurbBudget
- * - refurbBudget ?? pricing.mid_total
- * - pricing?.mid_total || refurbBudget
- *
- * This test MUST be run with grep/code inspection tools.
  */
 export function testNoFallbackLogicAllowed(patterns: string[]): {
   valid: boolean;
   errors: string[];
 } {
+  const errors: string[] = [];
+  const source = readDealAnalysisSource();
   const forbiddenPatterns = [
-    "pricing.mid_total ?? refurbBudget",
-    "pricing.mid_total || refurbBudget",
-    "refurbBudget ?? pricing.mid_total",
-    "pricing?.mid_total || refurbBudget",
-    "pricing?.mid_total ?? refurbBudget",
-    "refurbBudget ??",
-    "refurbBudget ||",
+    "pricing.mid_total ?? formData.refurbBudget",
+    "pricing.mid_total || formData.refurbBudget",
+    "formData.refurbBudget ?? pricing.mid_total",
+    "formData.refurbBudget || pricing.mid_total",
+    "pricing?.mid_total ?? formData.refurbBudget",
+    "pricing?.mid_total || formData.refurbBudget",
+    ...patterns,
   ];
 
-  const errors: string[] = [];
-
-  // Verify that none of the forbidden patterns appear in financial logic
-  forbiddenPatterns.forEach((pattern) => {
-    if (patterns.includes(pattern)) {
+  for (const pattern of forbiddenPatterns) {
+    if (pattern && source.includes(pattern)) {
       errors.push(`FORBIDDEN PATTERN DETECTED: ${pattern}`);
     }
-  });
-
-  if (errors.length === 0) {
-    errors.push(
-      "GREP VERIFICATION: Scan dealAnalysis.ts, reportEngine.ts, estimate.tsx for forbidden patterns",
-    );
   }
 
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
+  return { valid: errors.length === 0, errors };
 }
 
 /**
- * TEST 5: AI PROVIDER ISOLATION
- *
- * Verifies that AI provider outputs cannot enter financial input types:
- * - visionOutput cannot enter PricingEngineInputs
- * - redesignOutput cannot enter RoiEngineInputs
- * - AI summaries cannot contain financial values
- *
- * This is a TYPE SYSTEM verification:
- * AI outputs must remain in separate domains (advisory, content, metadata)
- * Financial inputs are strictly typed and come only from user/pricing inputs
+ * TEST 5: AI PROVIDER ISOLATION (source-level)
+ * Deal Copilot orchestration must not import AI adapters into the money path.
  */
 export function testAiProviderIsolation(): {
   valid: boolean;
   errors: string[];
 } {
   const errors: string[] = [];
+  const source = readDealAnalysisSource();
 
-  errors.push("TYPE SYSTEM VERIFICATION: AI outputs cannot be assigned to financial input types");
-  errors.push(
-    "Inspect type definitions: PricingEngineInputs, RoiEngineInputs do NOT include AI output types",
-  );
-  errors.push(
-    "Verify: visionOutput (string[], metadata) cannot satisfy PricingEngineInputs contract",
-  );
-  errors.push("Verify: redesignOutput (palette, concepts) cannot satisfy RoiEngineInputs contract");
+  const banned = ["openai", "generateText", "useGenerateEstimate", "aiOpinion", "@ai-sdk"];
+  for (const token of banned) {
+    if (source.toLowerCase().includes(token.toLowerCase())) {
+      errors.push(`AI token found in dealAnalysis.ts: ${token}`);
+    }
+  }
 
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
+  if (!source.includes("runPricingEngine") || !source.includes("runRoiEngine")) {
+    errors.push("dealAnalysis must compose runPricingEngine + runRoiEngine only");
+  }
+
+  return { valid: errors.length === 0, errors };
 }
 
 /**
@@ -227,7 +232,7 @@ export function runAllInvariantTests(
     },
     {
       name: "TEST 3: ROI Consumes pricing.mid_total ONLY",
-      ...testRoiConsumesOnlyPricingMidTotal(),
+      ...testRoiConsumesOnlyPricingMidTotal(analyzeDeal),
     },
     {
       name: "TEST 4: No Fallback Logic Allowed",
