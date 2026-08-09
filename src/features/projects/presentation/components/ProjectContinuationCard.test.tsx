@@ -1,5 +1,6 @@
 /**
  * IA-6 — Dashboard continuation card uses canonical five-stage hook + resolver.
+ * PUBLIC-BETA-R1-R2 — no unsupported refurb amount / false "No estimate yet".
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -47,19 +48,68 @@ const baseProject = {
   user_id: "u1",
 } as unknown as Project;
 
+type ShellProgress = {
+  photosDone: boolean;
+  analysisDone: boolean;
+  analysisNeedsAttention: boolean;
+  redesignDone: boolean;
+  redesignNeedsAttention: boolean;
+  estimateDone: boolean;
+  estimateNeedsAttention: boolean;
+  reportDone: boolean;
+  reportNeedsAttention: boolean;
+};
+
+const idleProgress: ShellProgress = {
+  photosDone: false,
+  analysisDone: false,
+  analysisNeedsAttention: false,
+  redesignDone: false,
+  redesignNeedsAttention: false,
+  estimateDone: false,
+  estimateNeedsAttention: false,
+  reportDone: false,
+  reportNeedsAttention: false,
+};
+
+function mockWorkflow(partial: {
+  loading?: boolean;
+  nextAction?: {
+    stage: string;
+    status: string;
+    actionKind: string;
+    route: string;
+    label: string;
+    reason: string;
+  } | null;
+  shellProgress?: ShellProgress | null;
+}) {
+  useProjectFiveStageWorkflow.mockReturnValue({
+    loading: partial.loading ?? false,
+    workflow: partial.loading ? null : {},
+    nextAction: partial.nextAction ?? null,
+    shellProgress: partial.shellProgress === undefined ? idleProgress : partial.shellProgress,
+    reload: vi.fn(),
+  });
+}
+
+/** Card must not invent monetary refurb totals or false absence claims. */
+function expectNoUnsupportedRefurbClaims(container: HTMLElement) {
+  expect(screen.queryByTestId("project-card-refurb")).toBeNull();
+  expect(container.textContent).not.toMatch(/£0\s*refurb/i);
+  expect(container.textContent).not.toMatch(/No estimate yet/i);
+  // Legacy 15% of baseProject GDV 350_000
+  expect(container.textContent).not.toMatch(/52[,.]?500/);
+  expect(container.textContent).not.toMatch(/£[\d,.]+\s*refurb/i);
+}
+
 beforeEach(() => {
   useProjectFiveStageWorkflow.mockReset();
 });
 
 describe("ProjectContinuationCard", () => {
   it("shows loading CTA while five-stage state loads", () => {
-    useProjectFiveStageWorkflow.mockReturnValue({
-      loading: true,
-      workflow: null,
-      nextAction: null,
-      shellProgress: null,
-      reload: vi.fn(),
-    });
+    mockWorkflow({ loading: true, nextAction: null, shellProgress: null });
     render(createElement(ProjectContinuationCard, { project: baseProject }));
     expect(screen.getByRole("button", { name: /Loading/i })).toBeTruthy();
     expect(screen.getByText(/Loading workflow status/i)).toBeTruthy();
@@ -67,9 +117,7 @@ describe("ProjectContinuationCard", () => {
   });
 
   it("renders resolver CTA and route for add_photos — not legacy flags", () => {
-    useProjectFiveStageWorkflow.mockReturnValue({
-      loading: false,
-      workflow: {},
+    mockWorkflow({
       nextAction: {
         stage: "photos",
         status: "Not started",
@@ -78,18 +126,7 @@ describe("ProjectContinuationCard", () => {
         label: "Add Photos",
         reason: "photos_missing",
       },
-      shellProgress: {
-        photosDone: false,
-        analysisDone: false,
-        analysisNeedsAttention: false,
-        redesignDone: false,
-        redesignNeedsAttention: false,
-        estimateDone: false,
-        estimateNeedsAttention: false,
-        reportDone: false,
-        reportNeedsAttention: false,
-      },
-      reload: vi.fn(),
+      shellProgress: idleProgress,
     });
     render(createElement(ProjectContinuationCard, { project: baseProject }));
     const cta = screen.getByTestId("workflow-continue-cta");
@@ -101,9 +138,7 @@ describe("ProjectContinuationCard", () => {
   });
 
   it("renders view_completed_project when resolver says complete", () => {
-    useProjectFiveStageWorkflow.mockReturnValue({
-      loading: false,
-      workflow: {},
+    mockWorkflow({
       nextAction: {
         stage: "export",
         status: "Complete",
@@ -123,7 +158,6 @@ describe("ProjectContinuationCard", () => {
         reportDone: true,
         reportNeedsAttention: false,
       },
-      reload: vi.fn(),
     });
     render(createElement(ProjectContinuationCard, { project: baseProject }));
     const cta = screen.getByTestId("workflow-continue-cta");
@@ -132,9 +166,7 @@ describe("ProjectContinuationCard", () => {
   });
 
   it("shows needs-attention explanation from resolver reason", () => {
-    useProjectFiveStageWorkflow.mockReturnValue({
-      loading: false,
-      workflow: {},
+    mockWorkflow({
       nextAction: {
         stage: "analysis",
         status: "Needs attention",
@@ -154,7 +186,6 @@ describe("ProjectContinuationCard", () => {
         reportDone: false,
         reportNeedsAttention: false,
       },
-      reload: vi.fn(),
     });
     render(createElement(ProjectContinuationCard, { project: baseProject }));
     expect(screen.getByTestId("next-action-reason").textContent).toMatch(/Photos changed/i);
@@ -164,9 +195,7 @@ describe("ProjectContinuationCard", () => {
   });
 
   it("IA-8-VR-R2: no large saturated primary media block when no cover image exists", () => {
-    useProjectFiveStageWorkflow.mockReturnValue({
-      loading: false,
-      workflow: {},
+    mockWorkflow({
       nextAction: {
         stage: "photos",
         status: "Not started",
@@ -175,18 +204,7 @@ describe("ProjectContinuationCard", () => {
         label: "Add Photos",
         reason: "photos_missing",
       },
-      shellProgress: {
-        photosDone: false,
-        analysisDone: false,
-        analysisNeedsAttention: false,
-        redesignDone: false,
-        redesignNeedsAttention: false,
-        estimateDone: false,
-        estimateNeedsAttention: false,
-        reportDone: false,
-        reportNeedsAttention: false,
-      },
-      reload: vi.fn(),
+      shellProgress: idleProgress,
     });
     const { container } = render(createElement(ProjectContinuationCard, { project: baseProject }));
     const media = screen.getByTestId("project-card-media");
@@ -202,89 +220,199 @@ describe("ProjectContinuationCard", () => {
     expect(screen.getByText("Victorian Terrace")).toBeTruthy();
   });
 
-  it("PUBLIC-BETA-R1: zero GDV does not render bare £0 refurb", () => {
-    useProjectFiveStageWorkflow.mockReturnValue({
-      loading: false,
-      workflow: {},
-      nextAction: {
-        stage: "photos",
-        status: "Not started",
-        actionKind: "add_photos",
-        route: "/projects/proj-1/upload",
-        label: "Add Photos",
-        reason: "photos_missing",
-      },
-      shellProgress: {
-        photosDone: false,
-        analysisDone: false,
-        analysisNeedsAttention: false,
-        redesignDone: false,
-        redesignNeedsAttention: false,
-        estimateDone: false,
-        estimateNeedsAttention: false,
-        reportDone: false,
-        reportNeedsAttention: false,
-      },
-      reload: vi.fn(),
+  describe("PUBLIC-BETA-R1-R2 refurb truthfulness (no unsupported line)", () => {
+    it("A: no Estimate / zero GDV — no £0, no invented total, no false absence label", () => {
+      mockWorkflow({
+        nextAction: {
+          stage: "photos",
+          status: "Not started",
+          actionKind: "add_photos",
+          route: "/projects/proj-1/upload",
+          label: "Add Photos",
+          reason: "photos_missing",
+        },
+        shellProgress: idleProgress,
+      });
+      const zeroGdv = { ...baseProject, estimated_gdv: 0, purchase_price: 0 } as Project;
+      const { container } = render(createElement(ProjectContinuationCard, { project: zeroGdv }));
+      expectNoUnsupportedRefurbClaims(container);
+      expect(screen.getByTestId("workflow-continue-cta").getAttribute("data-action-kind")).toBe(
+        "add_photos",
+      );
     });
-    const zeroGdv = { ...baseProject, estimated_gdv: 0, purchase_price: 0 } as Project;
-    render(createElement(ProjectContinuationCard, { project: zeroGdv }));
-    const refurb = screen.getByTestId("project-card-refurb");
-    expect(refurb.getAttribute("data-refurb-mode")).toBe("no_estimate");
-    expect(refurb.textContent).toMatch(/No estimate yet/i);
-    expect(refurb.textContent).not.toMatch(/£0/);
-    expect(screen.getByTestId("workflow-continue-cta")).toBeTruthy();
-  });
 
-  it("PUBLIC-BETA-R1: non-zero GDV placeholder is not shown as card Estimate total", () => {
-    useProjectFiveStageWorkflow.mockReturnValue({
-      loading: false,
-      workflow: {},
-      nextAction: {
-        stage: "photos",
-        status: "Not started",
-        actionKind: "add_photos",
-        route: "/projects/proj-1/upload",
-        label: "Add Photos",
-        reason: "photos_missing",
-      },
-      shellProgress: {
-        photosDone: false,
-        analysisDone: false,
-        analysisNeedsAttention: false,
-        redesignDone: false,
-        redesignNeedsAttention: false,
-        estimateDone: false,
-        estimateNeedsAttention: false,
-        reportDone: false,
-        reportNeedsAttention: false,
-      },
-      reload: vi.fn(),
+    it("B: no Estimate / non-zero GDV — 15% GDV not shown as Estimate", () => {
+      mockWorkflow({
+        nextAction: {
+          stage: "photos",
+          status: "Not started",
+          actionKind: "add_photos",
+          route: "/projects/proj-1/upload",
+          label: "Add Photos",
+          reason: "photos_missing",
+        },
+        shellProgress: idleProgress,
+      });
+      const { container } = render(
+        createElement(ProjectContinuationCard, { project: baseProject }),
+      );
+      expectNoUnsupportedRefurbClaims(container);
+      expect(screen.getByTestId("workflow-continue-cta").getAttribute("data-action-kind")).toBe(
+        "add_photos",
+      );
     });
-    // baseProject estimated_gdv 350_000 → legacy 15% would be £52,500
-    render(createElement(ProjectContinuationCard, { project: baseProject }));
-    const refurb = screen.getByTestId("project-card-refurb");
-    expect(refurb.textContent).toBe("No estimate yet");
-    expect(refurb.textContent).not.toMatch(/52[,.]?500/);
-    expect(refurb.textContent).not.toMatch(/£/);
-    // Resolver CTA preserved
-    expect(screen.getByTestId("workflow-continue-cta").getAttribute("data-action-kind")).toBe(
-      "add_photos",
-    );
-  });
 
-  it("PUBLIC-BETA-R1: loading workflow does not invent a bare £0 refurb amount", () => {
-    useProjectFiveStageWorkflow.mockReturnValue({
-      loading: true,
-      workflow: null,
-      nextAction: null,
-      shellProgress: null,
-      reload: vi.fn(),
+    it("C: Estimate Ready — must not imply monetary Estimate exists", () => {
+      mockWorkflow({
+        nextAction: {
+          stage: "estimate",
+          status: "Ready",
+          actionKind: "create_estimate",
+          route: "/projects/proj-1/estimate",
+          label: "Create Estimate",
+          reason: "estimate_ready",
+        },
+        shellProgress: {
+          photosDone: true,
+          analysisDone: true,
+          analysisNeedsAttention: false,
+          redesignDone: true,
+          redesignNeedsAttention: false,
+          estimateDone: false,
+          estimateNeedsAttention: false,
+          reportDone: false,
+          reportNeedsAttention: false,
+        },
+      });
+      const { container } = render(
+        createElement(ProjectContinuationCard, { project: baseProject }),
+      );
+      expectNoUnsupportedRefurbClaims(container);
+      expect(screen.getByTestId("workflow-continue-cta").getAttribute("data-action-kind")).toBe(
+        "create_estimate",
+      );
     });
-    const zeroGdv = { ...baseProject, estimated_gdv: 0 } as Project;
-    render(createElement(ProjectContinuationCard, { project: zeroGdv }));
-    const refurb = screen.getByTestId("project-card-refurb");
-    expect(refurb.textContent).toMatch(/No estimate yet/i);
-    expect(refurb.textContent).not.toMatch(/£0/);
+
+    it("D: Estimate In progress — must not say No estimate yet", () => {
+      mockWorkflow({
+        nextAction: {
+          stage: "estimate",
+          status: "In progress",
+          actionKind: "continue_estimate",
+          route: "/projects/proj-1/estimate",
+          label: "Continue Estimate",
+          reason: "estimate_in_progress",
+        },
+        shellProgress: {
+          photosDone: true,
+          analysisDone: true,
+          analysisNeedsAttention: false,
+          redesignDone: true,
+          redesignNeedsAttention: false,
+          // Partial progress represented via next-action status; shell flags not complete
+          estimateDone: false,
+          estimateNeedsAttention: false,
+          reportDone: false,
+          reportNeedsAttention: false,
+        },
+      });
+      const { container } = render(
+        createElement(ProjectContinuationCard, { project: baseProject }),
+      );
+      expectNoUnsupportedRefurbClaims(container);
+      expect(screen.getByTestId("workflow-continue-cta").getAttribute("data-action-kind")).toBe(
+        "continue_estimate",
+      );
+    });
+
+    it("E: Estimate Needs attention — must not say No estimate yet or invent total", () => {
+      mockWorkflow({
+        nextAction: {
+          stage: "estimate",
+          status: "Needs attention",
+          actionKind: "update_estimate",
+          route: "/projects/proj-1/estimate",
+          label: "Update Estimate",
+          reason: "estimate_non_current",
+        },
+        shellProgress: {
+          photosDone: true,
+          analysisDone: true,
+          analysisNeedsAttention: false,
+          redesignDone: true,
+          redesignNeedsAttention: false,
+          estimateDone: true,
+          estimateNeedsAttention: true,
+          reportDone: false,
+          reportNeedsAttention: false,
+        },
+      });
+      const { container } = render(
+        createElement(ProjectContinuationCard, { project: baseProject }),
+      );
+      expectNoUnsupportedRefurbClaims(container);
+      expect(screen.getByTestId("workflow-continue-cta").getAttribute("data-action-kind")).toBe(
+        "update_estimate",
+      );
+    });
+
+    it("F: Estimate Complete/current — must not say No estimate yet or invent total", () => {
+      mockWorkflow({
+        nextAction: {
+          stage: "export",
+          status: "Ready",
+          actionKind: "create_export",
+          route: "/projects/proj-1/report",
+          label: "Create Report",
+          reason: "export_ready",
+        },
+        shellProgress: {
+          photosDone: true,
+          analysisDone: true,
+          analysisNeedsAttention: false,
+          redesignDone: true,
+          redesignNeedsAttention: false,
+          estimateDone: true,
+          estimateNeedsAttention: false,
+          reportDone: false,
+          reportNeedsAttention: false,
+        },
+      });
+      const { container } = render(
+        createElement(ProjectContinuationCard, { project: baseProject }),
+      );
+      expectNoUnsupportedRefurbClaims(container);
+      expect(screen.getByTestId("workflow-continue-cta").getAttribute("data-action-kind")).toBe(
+        "create_export",
+      );
+    });
+
+    it("G: workflow loading — no transient £0 and no false absence claim", () => {
+      mockWorkflow({ loading: true, nextAction: null, shellProgress: null });
+      const zeroGdv = { ...baseProject, estimated_gdv: 0 } as Project;
+      const { container } = render(createElement(ProjectContinuationCard, { project: zeroGdv }));
+      expectNoUnsupportedRefurbClaims(container);
+      expect(screen.getByRole("button", { name: /Loading/i })).toBeTruthy();
+    });
+
+    it("H: resolver CTA actionKind preserved across refurb omission", () => {
+      mockWorkflow({
+        nextAction: {
+          stage: "photos",
+          status: "Not started",
+          actionKind: "add_photos",
+          route: "/projects/proj-1/upload",
+          label: "Add Photos",
+          reason: "photos_missing",
+        },
+        shellProgress: idleProgress,
+      });
+      render(createElement(ProjectContinuationCard, { project: baseProject }));
+      expect(screen.getByTestId("workflow-continue-cta").getAttribute("data-action-kind")).toBe(
+        "add_photos",
+      );
+      expect(screen.getByTestId("open-overview")).toBeTruthy();
+      expect(screen.getByTestId("workflow-stage-bars")).toBeTruthy();
+    });
   });
 });

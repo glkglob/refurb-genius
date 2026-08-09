@@ -5,13 +5,7 @@
 // Photo ownership (C5-4): types → @/lib/photos-types; writes → @/lib/photos-write;
 // reads → @/lib/queries/projects; format helpers → @/lib/file-utils. No photoStore.
 
-export {
-  PROPERTY_TYPES,
-  UK_REGIONS,
-  estimatedRefurbCost,
-  estimatedProfit,
-  projectCardRefurbPresentation,
-} from "./domain";
+export { PROPERTY_TYPES, UK_REGIONS, estimatedRefurbCost, estimatedProfit } from "./domain";
 export type {
   Project,
   NewProjectInput,
@@ -19,7 +13,6 @@ export type {
   ProjectStatus,
   PropertyType,
   UKRegion,
-  ProjectCardRefurbPresentation,
 } from "./domain";
 
 export { MOCK_PROJECTS, getMockProjectById } from "./mockProjects";

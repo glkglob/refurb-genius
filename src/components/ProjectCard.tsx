@@ -4,14 +4,13 @@ import { memo } from "react";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ArrowRight, MapPin } from "lucide-react";
 import type { Project } from "@/core/projects";
-import { projectCardRefurbPresentation } from "@/core/projects";
+import { estimatedRefurbCost } from "@/core/projects";
 
 export type ProjectCardProps = {
   project: Project;
 };
 
 function ProjectCardComponent({ project }: ProjectCardProps) {
-  const refurb = projectCardRefurbPresentation(project);
   return (
     <Link
       to="/projects/$id"
@@ -32,13 +31,9 @@ function ProjectCardComponent({ project }: ProjectCardProps) {
             <MapPin className="h-3.5 w-3.5" /> {project.region}
           </p>
           <div className="mt-5 flex items-center justify-between text-sm">
-            {/* PUBLIC-BETA-R1: same truthfulness rule as ProjectContinuationCard */}
-            <span
-              className="font-medium text-muted-foreground"
-              data-testid="project-card-refurb"
-              data-refurb-mode={refurb.mode}
-            >
-              {refurb.label}
+            <span className="font-medium text-foreground">
+              £{estimatedRefurbCost(project).toLocaleString()}
+              <span className="ml-1 text-xs font-normal text-muted-foreground">refurb</span>
             </span>
             <span className="flex items-center gap-1 font-medium text-accent transition group-hover:gap-1.5">
               Open <ArrowRight className="h-3.5 w-3.5" />
