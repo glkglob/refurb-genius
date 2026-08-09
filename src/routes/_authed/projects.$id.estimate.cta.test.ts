@@ -26,4 +26,10 @@ describe("Estimate Needs-attention CTA (IA-8-VR-R1)", () => {
     expect(SRC).not.toMatch(/Scope is not a separate journey stage/);
     expect(SRC).toMatch(/Needs attention/);
   });
+
+  it("primary authority sticky is mutation-owned when Scope is current (not href-only)", () => {
+    // PUBLIC-BETA-R2: MobileStickyNextAction treats href without onClick as nav-only.
+    expect(SRC).toMatch(/onClick:\s*\(\)\s*=>\s*void saveCurrentEstimateAndContinue\(\)/);
+    expect(SRC).toMatch(/saveCurrentEstimateAndContinue/);
+  });
 });

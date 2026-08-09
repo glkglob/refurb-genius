@@ -292,9 +292,27 @@ function ScopeContent({
     }
   }, [pdfExporting, result, id]);
 
-  // Navigate to estimate builder with scope rooms pre-loaded via session storage
+  // Navigate to estimate builder with scope rooms pre-loaded via session storage.
+  // Gate: durable Scope must be current — never advance while save is pending
+  // or before fiveStage reflects a current Scope authority.
+  const scopeSavePending = saveScopeMutation.isPending;
+  const scopeAuthorityReady =
+    Boolean(result) &&
+    !scopeSavePending &&
+    !fiveStage.loading &&
+    fiveStage.workflow?.scope.currency === "current" &&
+    fiveStage.scopeId != null;
+
   function handleOpenEstimateBuilder() {
     if (!result) return;
+    if (scopeSavePending) {
+      toast.message("Saving Scope… please wait before continuing to Estimate.");
+      return;
+    }
+    if (!scopeAuthorityReady) {
+      toast.error("Scope is not saved yet. Wait for save to finish, or re-run Analyse.");
+      return;
+    }
     // Store scope rooms in sessionStorage so the estimate page can pick them up
     sessionStorage.setItem(`scope-rooms:${id}`, JSON.stringify(result.rooms));
     navigate({ to: "/projects/$id/estimate", params: { id }, search: { from: "scope" } });
@@ -325,8 +343,21 @@ function ScopeContent({
                 </>
               )}
             </Button>
-            <Button onClick={handleOpenEstimateBuilder}>
-              Continue to Estimate <ArrowRight className="ml-1 h-4 w-4" />
+            <Button
+              onClick={handleOpenEstimateBuilder}
+              disabled={scopeSavePending || !scopeAuthorityReady}
+              data-testid="scope-continue-to-estimate"
+            >
+              {scopeSavePending ? (
+                <>
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  Saving Scope…
+                </>
+              ) : (
+                <>
+                  Continue to Estimate <ArrowRight className="ml-1 h-4 w-4" />
+                </>
+              )}
             </Button>
           </div>
         ) : undefined
@@ -545,8 +576,23 @@ function ScopeContent({
                   breakdown with regional pricing.
                 </p>
               </div>
-              <Button size="lg" className="shrink-0" onClick={handleOpenEstimateBuilder}>
-                Open estimate builder <ArrowRight className="ml-1 h-4 w-4" />
+              <Button
+                size="lg"
+                className="shrink-0"
+                onClick={handleOpenEstimateBuilder}
+                disabled={scopeSavePending || !scopeAuthorityReady}
+                data-testid="scope-open-estimate-builder"
+              >
+                {scopeSavePending ? (
+                  <>
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    Saving Scope…
+                  </>
+                ) : (
+                  <>
+                    Open estimate builder <ArrowRight className="ml-1 h-4 w-4" />
+                  </>
+                )}
               </Button>
             </CardContent>
           </Card>

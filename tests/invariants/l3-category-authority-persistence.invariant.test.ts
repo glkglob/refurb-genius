@@ -65,7 +65,9 @@ test("quick canonical save sends no totals or user ID", () => {
   // Inspect only the save-call argument, not response handling later in the route.
   const payload = text.slice(start, end);
   assert.match(payload, /selected_categories:\s*categories/);
-  assert.match(payload, /property_size_sqm:\s*project\.size_sqm/);
+  // Size is a non-money input. When project.size_sqm is optional/zero at create,
+  // the route may pass a derived estimateSizeSqm (REFERENCE_SIZE_SQM fallback).
+  assert.match(payload, /property_size_sqm:\s*(project\.size_sqm|estimateSizeSqm)/);
   const forbidden = [
     "subtotal",
     "contingency",
