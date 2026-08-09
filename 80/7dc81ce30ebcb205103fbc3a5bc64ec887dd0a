@@ -1,0 +1,48 @@
+packages/types/src/products.ts
+  h_7ea6129503670a 48-53
+src/components/MobileTopBar.test.tsx
+  h_7ea6129503670a 65,72
+src/components/MobileTopBar.tsx
+  h_7ea6129503670a 35
+src/components/PlatformNavButtons.tsx
+  h_7ea6129503670a 33-34,42
+src/components/Sidebar.test.tsx
+  h_7ea6129503670a 59
+src/features/navigation/globalNav.test.ts
+  h_7ea6129503670a 28,85
+src/features/navigation/globalNav.ts
+  h_7ea6129503670a 12,69,71
+src/lib/pitchDeck.ts
+  h_7ea6129503670a 302,313
+src/routes/_authed/-dashboard.hierarchy.test.ts
+  h_7ea6129503670a 27,30
+src/routes/_authed/dashboard.tsx
+  h_7ea6129503670a 368,374,473
+src/routes/_authed/marketplace.tsx
+  h_7ea6129503670a 23,99-100,104-105,107-111,129,157-168,172,174-175
+src/routes/_authed/projects.$id.index.tsx
+  h_7ea6129503670a 449,453-454,457-466
+src/routes/_authed/trades_.$jobId_.edit.tsx
+  h_7ea6129503670a 23
+src/routes/_authed/trades_.new.tsx
+  h_7ea6129503670a 22,91,95,104-106,114,176-178,190-192
+src/routes/_authed/trades_.profile.tsx
+  h_7ea6129503670a 142,248,250,260,264-267
+src/routes/trades.tsx
+  h_7ea6129503670a 42,46,81,84-85,88-90,103,118,128-129,133-135,161-162,166-169,180,288,368-369,374,379,383-384,391,417,419-423,428,430,438-439,477-478,501-502,505-507,510-512,516-517,526-527,560,563-564,568-569,578-580
+src/routes/trades_.$jobId.tsx
+  h_7ea6129503670a 40
+tests/invariants/trades-availability-truth.invariant.test.ts
+  h_7ea6129503670a 1-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "807dc81ce30ebcb205103fbc3a5bc64ec887dd0a",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
