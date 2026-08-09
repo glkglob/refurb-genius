@@ -18,7 +18,6 @@ import {
   Hammer,
   Thermometer,
   LayoutGrid,
-  Star,
   MessageSquare,
   FileText,
   UserCheck,
@@ -40,11 +39,11 @@ import { listPostedTradesJobs } from "@/features/trades";
 export const Route = createFileRoute("/trades")({
   head: () => ({
     meta: [
-      { title: "Trades Marketplace — Refurb Genius" },
+      { title: "Trades Job Board — Refurb Genius" },
       {
         name: "description",
         content:
-          "Post refurbishment jobs or register as a tradesperson. Connecting UK property clients with trusted local trades.",
+          "Post and browse UK refurbishment jobs on the Trades job board (limited beta). Provider marketplace features are still developing.",
       },
     ],
   }),
@@ -79,16 +78,16 @@ function TradesHero() {
       />
       <div className="mx-auto max-w-7xl px-6 pt-20 pb-16 text-center lg:pt-28">
         <span className="inline-flex items-center gap-2 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">
-          <HardHat className="h-3.5 w-3.5 text-accent" /> Trades Marketplace — coming soon
+          <HardHat className="h-3.5 w-3.5 text-accent" /> Trades job board — limited beta
         </span>
         <h1 className="mx-auto mt-6 max-w-3xl text-4xl font-semibold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-          Post refurbishment jobs and connect with{" "}
-          <span className="text-accent">trusted trades.</span>
+          Post and browse refurbishment <span className="text-accent">jobs</span> on the Trades
+          board.
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-          Refurb Genius is building a marketplace where UK property clients post scoped jobs
-          directly from their analysis and local tradespeople register to quote — vetted, rated, and
-          ready.
+          The job board is available now in limited beta: post scoped refurbishment work, browse
+          posted jobs, and manage your own listings. A verified provider marketplace, matching, and
+          identity checks are still developing — not live yet.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
@@ -101,7 +100,7 @@ function TradesHero() {
             href="#register-trade"
             className="inline-flex items-center justify-center rounded-lg border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-secondary"
           >
-            Register as a tradesperson
+            Create a trade profile
           </a>
         </div>
       </div>
@@ -116,7 +115,7 @@ function AudienceCards() {
         <SectionHeader
           eyebrow="Who it's for"
           title="Built for clients and trades alike."
-          subtitle="Whether you're managing a refurb or looking for your next job, Refurb Genius connects you directly."
+          subtitle="Post work, browse the job board, or create a self-submitted trade profile. Matching and verification are not live yet."
         />
         <div className="mt-12 grid gap-6 md:grid-cols-2">
           <Card className="relative overflow-hidden border-border">
@@ -126,14 +125,14 @@ function AudienceCards() {
               </div>
               <h3 className="mt-5 text-xl font-semibold text-foreground">For clients</h3>
               <p className="mt-2 text-muted-foreground">
-                Post your scoped refurbishment job with a budget range, timeline, and property
-                details. Receive expressions of interest from rated local trades.
+                Post a scoped refurbishment job with budget range, timeline, and property details.
+                Manage your listings and review expressions of interest where tradespeople respond.
               </p>
               <ul className="mt-5 space-y-2">
                 {[
-                  "Pre-scope your job with an AI estimate first",
-                  "Set budget, timeline and location",
-                  "Get contacted by verified tradespeople",
+                  "Optionally scope work first with a Refurb Genius estimate",
+                  "Set budget, timeline and area",
+                  "Publish to the public Trades job board",
                   "No obligation — post for free",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2 text-sm text-foreground">
@@ -159,15 +158,15 @@ function AudienceCards() {
               </div>
               <h3 className="mt-5 text-xl font-semibold text-foreground">For tradespeople</h3>
               <p className="mt-2 text-muted-foreground">
-                Register your trade, set your working area and categories, and receive alerts when
-                relevant jobs are posted near you.
+                Create a self-submitted trade profile, set categories and working area, and browse
+                posted jobs on the board.
               </p>
               <ul className="mt-5 space-y-2">
                 {[
-                  "Browse scoped jobs in your area",
-                  "Register interest and quote directly",
-                  "Build a verified profile and ratings",
-                  "No commission on completed jobs",
+                  "Browse posted jobs on the job board",
+                  "Register interest on jobs you can take on",
+                  "Create a self-submitted trade profile",
+                  "No platform commission on jobs you complete offline",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2 text-sm text-foreground">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
@@ -178,7 +177,7 @@ function AudienceCards() {
               <div className="mt-8" id="register-trade">
                 <Button asChild variant="outline" className="w-full sm:w-auto">
                   <Link to="/auth" search={{ mode: "signup" }}>
-                    Register interest <ArrowRight className="h-4 w-4" />
+                    Create account <ArrowRight className="h-4 w-4" />
                   </Link>
                 </Button>
               </div>
@@ -286,7 +285,7 @@ function LiveJobListings() {
               <p className="max-w-xs text-sm text-muted-foreground">
                 {activeCategory
                   ? `No ${formatCategoryLabel(activeCategory as TradesJobCategory)} jobs are live right now. Check back soon.`
-                  : "Be the first to post a refurbishment job to the marketplace."}
+                  : "Be the first to post a refurbishment job to the Trades job board."}
               </p>
               <Button asChild size="sm" className="mt-2">
                 <Link to="/trades/new">
@@ -366,33 +365,30 @@ function HowItWorks() {
   const steps = [
     {
       icon: FileText,
-      title: "Run an AI estimate",
-      desc: "Use Refurb Genius to scope your refurb, generate a cost estimate, and identify the trade categories needed.",
+      title: "Scope your work (optional)",
+      desc: "Use Refurb Genius estimates when you want cost context. Posting a job does not automatically publish an estimate or match providers.",
     },
     {
       icon: ClipboardList,
       title: "Post your job",
-      desc: "Publish the scoped job to the marketplace with budget range, location, timeline, and any specific requirements.",
+      desc: "Publish to the Trades job board with budget range, area, timeline, and requirements. Full street address stays private from public listings.",
     },
     {
       icon: MessageSquare,
       title: "Trades register interest",
-      desc: "Verified local tradespeople browse your posting and send you an expression of interest to quote.",
+      desc: "Tradespeople can browse posted jobs and send an expression of interest. Responses are not guaranteed.",
     },
     {
       icon: UserCheck,
-      title: "Choose and appoint",
-      desc: "Review profiles, ratings, and previous work. Appoint directly through the platform.",
+      title: "Review and decide",
+      desc: "Review any interest you receive and arrange next steps yourself. Platform appointment, matching, and verification are not live yet.",
     },
   ];
 
   return (
     <section className="py-20">
       <div className="mx-auto max-w-6xl px-6">
-        <SectionHeader
-          eyebrow="How it works"
-          title="From analysis to appointed trades in four steps."
-        />
+        <SectionHeader eyebrow="How it works" title="How the Trades job board works today." />
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((s, i) => (
             <Card key={s.title} className="relative overflow-hidden">
@@ -418,18 +414,20 @@ function JobDetails() {
   const details = [
     {
       label: "Property address",
-      note: "Town/postcode area — full address shared only after appointment",
+      note: "Kept private from public job listings — only the job owner sees the full address",
     },
-    { label: "Property type", note: "Terraced, semi, detached, flat, HMO, commercial" },
+    {
+      label: "Public location",
+      note: "Area / outward postcode only on the public job board",
+    },
+    { label: "Property type", note: "Terraced, semi, detached, flat, and other types you choose" },
     {
       label: "Trade categories needed",
       note: "e.g. kitchen fit, full rewire, bathroom, decoration",
     },
-    { label: "Budget range", note: "Approximate spend — helps trades self-select" },
+    { label: "Budget range", note: "Approximate spend — helps tradespeople self-select" },
     { label: "Preferred start date", note: "Flexible or fixed — ASAP, within 4 weeks, etc." },
-    { label: "Scope description", note: "Auto-generated from AI estimate or written manually" },
-    { label: "Photos", note: "Room-by-room condition photos from your analysis" },
-    { label: "Access notes", note: "Occupied, vacant, key safe, viewing by appointment" },
+    { label: "Scope description", note: "Written by you when you post the job" },
   ];
 
   return (
@@ -437,8 +435,8 @@ function JobDetails() {
       <div className="mx-auto max-w-5xl px-6">
         <SectionHeader
           eyebrow="Job postings"
-          title="What clients include in a job posting."
-          subtitle="A well-scoped posting gets faster, more accurate interest from trades."
+          title="What clients can include in a job posting."
+          subtitle="Clear scope and budget help tradespeople decide whether to register interest."
         />
         <div className="mt-12 grid gap-3 sm:grid-cols-2">
           {details.map((d) => (
@@ -476,8 +474,8 @@ function TradeCategories() {
       <div className="mx-auto max-w-5xl px-6">
         <SectionHeader
           eyebrow="Trade categories"
-          title="Every trade a UK refurb needs."
-          subtitle="Tradespeople register under one or more categories and receive alerts only for relevant jobs."
+          title="Categories commonly used on refurb jobs."
+          subtitle="When you create a trade profile you can select the categories you work in."
         />
         <div className="mt-12 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {categories.map((c) => (
@@ -500,23 +498,23 @@ function TrustSafety() {
   const notes = [
     {
       icon: ShieldCheck,
-      title: "Verified tradespeople",
-      body: "All tradespeople complete identity verification and provide proof of relevant insurance before being approved to register interest.",
-    },
-    {
-      icon: Star,
-      title: "Ratings after each job",
-      body: "Clients leave verified ratings once a job completes. Trades build a public track record visible to all future clients.",
+      title: "Self-submitted profiles",
+      body: "Trade profiles may contain information entered by the tradesperson. Refurb Genius does not currently run identity or insurance verification.",
     },
     {
       icon: UserCheck,
-      title: "Client-controlled contact",
-      body: "Full address and contact details are only shared once you choose to accept an expression of interest. No unsolicited contact.",
+      title: "Your checks still matter",
+      body: "Carry out your own checks before appointing anyone. You remain responsible for selecting and contracting with tradespeople.",
+    },
+    {
+      icon: MapPin,
+      title: "Private property address",
+      body: "Full street address is kept private from public job listings. Public views show Area (outward postcode) only.",
     },
     {
       icon: ClipboardList,
-      title: "Dispute support",
-      body: "Refurb Genius provides a neutral dispute support process if an issue arises between a client and an appointed trade.",
+      title: "Verification still developing",
+      body: "Provider verification, ratings, matching, and dispute support are not live product features yet.",
     },
   ];
 
@@ -525,8 +523,8 @@ function TrustSafety() {
       <div className="mx-auto max-w-5xl px-6">
         <SectionHeader
           eyebrow="Trust & safety"
-          title="Safe for clients. Fair for trades."
-          subtitle="Every part of the marketplace is designed to protect both sides of the relationship."
+          title="What is true today."
+          subtitle="We describe current capability honestly while verification and marketplace features are still developing."
         />
         <div className="mt-12 grid gap-6 sm:grid-cols-2">
           {notes.map((n) => (
@@ -559,16 +557,16 @@ function FinalCTA() {
             className="pointer-events-none absolute inset-0 bg-[radial-gradient(50%_60%_at_50%_0%,oklch(0.7_0.16_160/0.25),transparent_70%)]"
           />
           <h2 className="relative text-3xl font-semibold tracking-tight sm:text-4xl">
-            Be first to know when trades launches.
+            Use the Trades job board today.
           </h2>
           <p className="relative mx-auto mt-4 max-w-xl text-primary-foreground/80">
-            Create a free Refurb Genius account today. We'll notify you the moment the trades
-            marketplace opens in your area.
+            Create a free account to post a job or create a trade profile. Provider directory,
+            verification, and matching remain under development.
           </p>
           <div className="relative mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild size="lg" variant="secondary">
-              <Link to="/auth" search={{ mode: "signup" }}>
-                Create free account <ArrowRight className="h-4 w-4" />
+              <Link to="/trades/new">
+                Post a job <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
             <Button
@@ -577,7 +575,9 @@ function FinalCTA() {
               variant="outline"
               className="border-white/20 text-primary-foreground hover:bg-white/10"
             >
-              <Link to="/">Back to Refurb Genius</Link>
+              <Link to="/auth" search={{ mode: "signup" }}>
+                Create free account
+              </Link>
             </Button>
           </div>
         </div>

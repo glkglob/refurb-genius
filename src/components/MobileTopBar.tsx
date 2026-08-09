@@ -32,7 +32,7 @@ import { cn } from "@repo/ui";
  * IA-8 — authenticated mobile chrome (final public-beta structure).
  *
  * Primary: Home | Projects | + New | Copilot | More
- * More: Trades / Marketplace, Settings, Sign out
+ * More: Trades, Settings, Sign out
  *
  * Destinations always come from the canonical GLOBAL_NAV_ITEMS authority
  * via getMobilePrimaryNavItems / getMobileMoreNavItems — no second route map.

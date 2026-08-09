@@ -20,7 +20,7 @@ import {
 } from "@/components/marketplace";
 
 export const Route = createFileRoute("/_authed/marketplace")({
-  head: () => ({ meta: [{ title: "Trades Marketplace — Refurb Genius" }] }),
+  head: () => ({ meta: [{ title: "Provider directory — Refurb Genius" }] }),
   validateSearch: z.object({
     projectId: z.string().optional(),
   }),
@@ -96,14 +96,19 @@ function MarketplacePage() {
 
   return (
     <AppLayout
-      title="Trades Marketplace"
-      subtitle="Find verified local tradespeople for your refurb projects"
+      title="Provider directory — coming soon"
+      subtitle="A verified provider marketplace is not live yet. The Trades job board is available separately."
     >
       <div className="mb-6">
         <p className="text-muted-foreground">
-          Browse, favorite, and request quotes. When coming from a project, your requests will be
-          linked automatically.
+          This directory is still being developed and is not a mature supply of vetted tradespeople.
+          Use the job board to post or browse refurbishment jobs today.
         </p>
+        <div className="mt-3">
+          <Button asChild variant="outline" size="sm">
+            <Link to="/trades">Browse Trades job board</Link>
+          </Button>
+        </div>
         {projectId && (
           <div className="mt-2 inline-flex items-center rounded-md bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
             Context: Project {projectId.slice(0, 8)}…
@@ -121,7 +126,7 @@ function MarketplacePage() {
 
       <Tabs defaultValue="browse" className="space-y-6">
         <TabsList>
-          <TabsTrigger value="browse">Browse Tradespeople</TabsTrigger>
+          <TabsTrigger value="browse">Browse directory</TabsTrigger>
           <TabsTrigger value="inbox">My Quotes &amp; Messages</TabsTrigger>
           <TabsTrigger value="favorites">Favorites</TabsTrigger>
         </TabsList>
@@ -149,12 +154,25 @@ function MarketplacePage() {
                 Failed to load tradespeople. Please try again.
               </CardContent>
             </Card>
+          ) : tradespeople.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <SearchX className="h-10 w-10 text-muted-foreground mb-4" />
+              <p className="font-medium">Provider directory still being developed</p>
+              <p className="text-sm text-muted-foreground mt-1 max-w-md">
+                There is no live provider supply here yet. Post or browse jobs on the Trades job
+                board instead.
+              </p>
+              <Button asChild className="mt-4" size="sm">
+                <Link to="/trades">Go to Trades job board</Link>
+              </Button>
+            </div>
           ) : filteredTrades.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <SearchX className="h-10 w-10 text-muted-foreground mb-4" />
-              <p className="font-medium">No matching tradespeople found</p>
+              <p className="font-medium">No profiles match these filters</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Try adjusting your filters or search term.
+                Try adjusting your filters or search term. The directory is still early and supply
+                is limited.
               </p>
             </div>
           ) : (

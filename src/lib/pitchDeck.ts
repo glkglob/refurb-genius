@@ -299,7 +299,7 @@ export async function generatePitchDeckPDF(
   const highlights = [
     "• Strong ROI potential with conservative assumptions.",
     "• Detailed room-by-room scope ready for contractor quotes.",
-    "• Local trades marketplace integrated for competitive bidding.",
+    "• Post refurbishment jobs on the Trades job board (limited beta).",
     "• AI photo analysis for condition and material take-offs.",
     "• Full sensitivity modeling for risk assessment.",
   ];
@@ -310,7 +310,7 @@ export async function generatePitchDeckPDF(
   y += 6;
 
   doc.text(
-    "Next Steps: Review full data in app → Request quotes via Marketplace → Finalise scope → Execute.",
+    "Next Steps: Review full data in app → Post jobs on the Trades job board if needed → Finalise scope → Execute.",
     margin,
     y,
   );

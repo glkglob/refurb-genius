@@ -24,10 +24,10 @@ describe("Dashboard product hierarchy (IA-8-VR-R1)", () => {
   it("compacts empty commercial metrics instead of full-height zero cards only", () => {
     expect(SRC).toMatch(/commercialEmpty/);
     expect(SRC).toMatch(/compact=\{commercialEmpty\}/);
-    expect(SRC).toMatch(/Marketplace activity/);
+    expect(SRC).toMatch(/Trades activity/);
   });
 
-  it("orders core journey quick actions before trades marketplace actions", () => {
+  it("orders core journey quick actions before trades job-board actions", () => {
     const newAnalysis = SRC.indexOf('label="New Analysis"');
     const createProject = SRC.indexOf('label="Create Project"');
     const postJob = SRC.indexOf('label="Post a Trades Job"');

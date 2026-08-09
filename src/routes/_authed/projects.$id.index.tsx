@@ -446,18 +446,24 @@ function ProjectDetail() {
                     <h3 className="font-semibold flex items-center gap-2">
                       Find local tradespeople{" "}
                       <span className="text-xs bg-accent/10 px-1.5 py-0.5 rounded">
-                        Marketplace
+                        Directory soon
                       </span>
                     </h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Browse verified trades, save favorites, request quotes for this refurb
+                      Provider directory is still developing. Post a job on the Trades job board, or
+                      open the early directory view.
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to="/marketplace" search={{ projectId: id }}>
-                      Browse Trades →
-                    </Link>
-                  </Button>
+                  <div className="flex shrink-0 flex-col gap-2">
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to="/trades/new">Post a job</Link>
+                    </Button>
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link to="/marketplace" search={{ projectId: id }}>
+                        Directory (soon)
+                      </Link>
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </div>

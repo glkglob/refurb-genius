@@ -139,7 +139,7 @@ function TradeProfileForm() {
   return (
     <AppLayout
       title="Trade Profile"
-      subtitle="Create or update your tradesperson profile so clients can see who you are."
+      subtitle="Create or update your self-submitted tradesperson profile. This is not a verified or approved marketplace listing."
       actions={
         <>
           <Button asChild variant="ghost" size="sm">
@@ -245,9 +245,9 @@ function TradeProfileForm() {
             </div>
           </div>
 
-          {/* Insurance status */}
+          {/* Insurance status — self-declared only; not platform-verified */}
           <div className="space-y-2">
-            <Label htmlFor="insuranceStatus">Insurance status</Label>
+            <Label htmlFor="insuranceStatus">Insurance status (self-declared)</Label>
             <Select
               value={insuranceStatus}
               onValueChange={(v) => setInsuranceStatus(v as InsuranceStatus)}
@@ -257,10 +257,14 @@ function TradeProfileForm() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="unknown">Not specified</SelectItem>
-                <SelectItem value="insured">Insured</SelectItem>
+                <SelectItem value="insured">Insured (self-declared)</SelectItem>
                 <SelectItem value="not_insured">Not insured</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              Not independently checked by Refurb Genius. Customers should verify insurance
+              themselves.
+            </p>
           </div>
 
           {/* Bio */}

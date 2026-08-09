@@ -30,8 +30,8 @@ const NAV_ENTRIES: NavEntry[] = [
   },
   {
     to: "/trades",
-    label: "Trades Marketplace",
-    description: "Browse refurbishment jobs",
+    label: "Trades Job Board",
+    description: "Browse posted refurbishment jobs",
     icon: HardHat,
     colorClass: "border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10",
     iconColorClass: "text-emerald-500",
@@ -39,7 +39,7 @@ const NAV_ENTRIES: NavEntry[] = [
   {
     to: "/trades/new",
     label: "Post a Trades Job",
-    description: "Create a job for tradespeople",
+    description: "Publish a job to the job board",
     icon: Briefcase,
     colorClass: "border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10",
     iconColorClass: "text-amber-500",

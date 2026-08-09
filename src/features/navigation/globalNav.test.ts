@@ -25,7 +25,7 @@ describe("IA-7 / IA-8 global navigation contract", () => {
       "Projects",
       "New Analysis",
       "Deal Copilot",
-      "Trades / Marketplace",
+      "Trades",
       "Settings",
     ]);
   });
@@ -82,7 +82,7 @@ describe("IA-7 / IA-8 global navigation contract", () => {
     expect(resolveGlobalNavArea("/deal-copilot/opp-1")).toBe("deal_copilot");
   });
 
-  it("matches Trades / Marketplace across trades and marketplace surfaces", () => {
+  it("matches Trades across trades and marketplace surfaces", () => {
     expect(resolveGlobalNavArea("/trades")).toBe("trades_marketplace");
     expect(resolveGlobalNavArea("/trades/new")).toBe("trades_marketplace");
     expect(resolveGlobalNavArea("/trades/job-1")).toBe("trades_marketplace");
