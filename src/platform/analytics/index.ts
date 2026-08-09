@@ -27,7 +27,7 @@ export interface AnalyticsProvider {
   identifyUser(userId: string): void;
   resetUser(): void;
   track(name: AnalyticsEventName, properties?: TelemetryMetadata): void;
-  trackPageView(routeTemplate: string): void;
+  trackPageView(routeTemplate: string, options?: { navigationKey?: string; force?: boolean }): void;
   applyResolvedIdentity(userId: string | null): void;
 }
 

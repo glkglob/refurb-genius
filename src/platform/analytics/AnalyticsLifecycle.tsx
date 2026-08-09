@@ -42,47 +42,55 @@ function useAnalyticsIdentityLifecycle(): void {
 }
 
 /**
- * Emit exactly one `$pageview` per meaningful route template change.
+ * Emit exactly one `$pageview` per meaningful navigation.
+ *
+ * Public payload uses safe route_template only.
+ * Local-only navigationKey uses resolved pathname (no search/hash) so
+ * Project A → Project B emits two pageviews with the same template.
+ * navigationKey is never sent to PostHog.
  */
 function useAnalyticsPageviews(): void {
-  const matchKey = useRouterState({
+  const snapshot = useRouterState({
     select: (s) => {
       const leaf = s.matches[s.matches.length - 1];
-      // fullPath is the static template (e.g. /projects/$id/estimate), not the resolved UUID path.
-      return leaf
-        ? `${leaf.routeId}::${leaf.fullPath ?? ""}::${Boolean((s as { isNotFound?: boolean }).isNotFound)}`
-        : `::__not_found__`;
+      const isNotFound = Boolean((s as { isNotFound?: boolean }).isNotFound);
+      // Pathname only — never search params or hash (OAuth/token privacy).
+      const pathname = s.location?.pathname ?? "";
+      return {
+        routeId: leaf?.routeId ?? "",
+        fullPath: leaf?.fullPath ?? "",
+        pathname,
+        isNotFound,
+      };
     },
   });
 
-  const isNotFound = useRouterState({
-    select: (s) => Boolean((s as { isNotFound?: boolean }).isNotFound),
-  });
-
-  const lastKeyRef = useRef<string | null>(null);
+  const lastNavKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (matchKey === lastKeyRef.current) return;
-    lastKeyRef.current = matchKey;
 
-    // Re-read matches inside effect via key change; snapshot from select above is stable enough
-    // when matchKey changes. Reconstruct from matchKey components for purity:
-    // matchKey format: routeId::fullPath::isNotFound
-    const [routeId = "", fullPath = "", notFoundFlag = "false"] = matchKey.split("::");
+    // Local-only key: changes for resource A → B; stable across pure rerenders.
+    const navigationKey = snapshot.isNotFound ? "__not_found__" : snapshot.pathname || "__empty__";
+
+    if (navigationKey === lastNavKeyRef.current) return;
+    lastNavKeyRef.current = navigationKey;
+
     const template = deriveRouteTemplateFromMatches(
       [
         {
-          routeId,
+          routeId: snapshot.routeId,
           // Prefer static fullPath template from TanStack match (contains `$id`, not UUIDs).
-          fullPath: fullPath || undefined,
-          pathname: undefined,
+          fullPath: snapshot.fullPath || undefined,
+          // Fallback only: redacted if UUID path slips through as routeId.
+          pathname: snapshot.pathname || undefined,
         },
       ],
-      { isNotFound: notFoundFlag === "true" || isNotFound },
+      { isNotFound: snapshot.isNotFound },
     );
-    trackPageView(template);
-  }, [matchKey, isNotFound]);
+
+    trackPageView(template, { navigationKey });
+  }, [snapshot.routeId, snapshot.fullPath, snapshot.pathname, snapshot.isNotFound]);
 }
 
 export function AnalyticsLifecycle(): null {

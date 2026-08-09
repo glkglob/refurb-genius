@@ -66,4 +66,32 @@ describe("redactDynamicSegments / buildSafePageviewUrl", () => {
       "https://www.refurbgenius.info/projects/$id",
     );
   });
+
+  it("redacts every consecutive call (no global RegExp lastIndex alternation)", () => {
+    const id1 = "11111111-2222-4333-8444-555555555555";
+    const id2 = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
+    const inputs = [
+      `/projects/${id1}/estimate`,
+      `/projects/${id2}/estimate`,
+      `/projects/${id1}/estimate`,
+      `/trades/${id2}`,
+      `/projects/${id1}`,
+      `/deal-copilot/${id2}`,
+    ];
+    for (const input of inputs) {
+      const out = redactDynamicSegments(input);
+      expect(out).not.toContain(id1);
+      expect(out).not.toContain(id2);
+      expect(out).toMatch(/\$id/);
+    }
+
+    // deriveRouteTemplateFromMatches fallback path (routeId with UUID, no fullPath)
+    for (let i = 0; i < 20; i++) {
+      const id = i % 2 === 0 ? id1 : id2;
+      const template = deriveRouteTemplateFromMatches([{ routeId: `/projects/${id}/estimate` }]);
+      expect(template).not.toContain(id1);
+      expect(template).not.toContain(id2);
+      expect(template).toBe("/projects/$id/estimate");
+    }
+  });
 });

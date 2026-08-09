@@ -16,7 +16,11 @@ export type RouterMatchLike = {
   isNotFound?: boolean;
 };
 
-const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi;
+/** Non-global: safe for repeated `.test()` without lastIndex state. */
+const UUID_TEST_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i;
+
+/** Global: used only with `.replace()` for redaction. */
+const UUID_REDACT_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/gi;
 
 /**
  * Normalize a TanStack fullPath / route id into a customer-facing route template.
@@ -52,7 +56,9 @@ export function normalizeRouteTemplate(raw: string): string {
  */
 export function redactDynamicSegments(path: string): string {
   let t = path;
-  t = t.replace(UUID_RE, "$id");
+  // Reset lastIndex in case a prior consumer left a shared global mid-state.
+  UUID_REDACT_RE.lastIndex = 0;
+  t = t.replace(UUID_REDACT_RE, "$id");
   // Long opaque tokens (non-uuid) that look like resource ids
   t = t.replace(/\/[A-Za-z0-9_-]{20,}(?=\/|$)/g, "/$id");
   return t;
@@ -90,7 +96,8 @@ export function deriveRouteTemplateFromMatches(
 
     const normalized = normalizeRouteTemplate(candidate);
     // If fullPath was missing and we only have a resolved pathname-like id with UUIDs, redact.
-    if (UUID_RE.test(normalized)) {
+    // UUID_TEST_RE is non-global — no lastIndex alternation across calls.
+    if (UUID_TEST_RE.test(normalized)) {
       return redactDynamicSegments(normalized);
     }
     return normalized || "/404";

@@ -257,6 +257,8 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundary
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  // Eager warm-up only — analytics helpers also call ensurePostHogInitialized()
+  // so pageview/identify correctness does not depend on parent/child effect order.
   useEffect(() => {
     initPostHog();
   }, []);

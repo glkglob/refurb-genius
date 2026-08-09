@@ -25,10 +25,43 @@ export function getPostHogBrowserConfig(): Partial<PostHogConfig> {
   };
 }
 
-export function initPostHog(): void {
-  if (typeof window === "undefined" || posthogInitialized) return;
+/**
+ * Idempotent PostHog initialization authority.
+ * Analytics capture/identify/reset must call this before SDK use so correctness
+ * does not depend on React parent/child effect ordering.
+ *
+ * @returns true when the SDK is ready to accept capture/identify/reset
+ */
+export function ensurePostHogInitialized(): boolean {
+  if (typeof window === "undefined") return false;
+  if (posthogInitialized) return true;
+
   const apiKey = import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN;
-  if (!apiKey) return;
-  posthog.init(apiKey, getPostHogBrowserConfig());
-  posthogInitialized = true;
+  if (!apiKey) return false;
+
+  try {
+    posthog.init(apiKey, getPostHogBrowserConfig());
+    posthogInitialized = true;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Eager warm-up entry (e.g. RootComponent). Delegates to ensurePostHogInitialized.
+ * Safe to call multiple times; not a second competing authority.
+ */
+export function initPostHog(): void {
+  ensurePostHogInitialized();
+}
+
+/** Test helper — reset module init flag (does not tear down the SDK instance). */
+export function __resetPostHogInitializedForTests(): void {
+  posthogInitialized = false;
+}
+
+/** Test helper — force init flag without calling posthog.init. */
+export function __setPostHogInitializedForTests(value: boolean): void {
+  posthogInitialized = value;
 }

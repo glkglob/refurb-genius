@@ -1,4 +1,4 @@
-import { posthog } from "@/platform/posthog/browser";
+import { ensurePostHogInitialized, posthog } from "@/platform/posthog/browser";
 
 import {
   ANALYTICS_IDENTITY_UNRESOLVED,
@@ -46,6 +46,17 @@ type FunnelState = {
   startedAt: string;
 };
 
+export type TrackPageViewOptions = {
+  /**
+   * Local-only navigation occurrence key (e.g. resolved pathname).
+   * Used for dedupe so Project A → Project B emits two pageviews with the same
+   * public route_template. NEVER sent to PostHog / logs / breadcrumbs.
+   */
+  navigationKey?: string;
+  /** Bypass navigation-key dedupe (tests / recovery after failed init). */
+  force?: boolean;
+};
+
 const posthogKey = import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN || undefined;
 
 /** Production + browser + project token required. Overridable in unit tests. */
@@ -64,8 +75,11 @@ let abandonmentListenerBound = false;
 /** Last applied analytics identity (module-level so helper remains the authority). */
 let analyticsIdentityState: AnalyticsIdentityState = ANALYTICS_IDENTITY_UNRESOLVED;
 
-/** Last pageview template emitted (dedupe SPA/auth rerenders). */
-let lastPageviewTemplate: string | null = null;
+/**
+ * Last local-only navigation key that successfully emitted a pageview.
+ * Public payload still uses route_template only — this key is never exported.
+ */
+let lastPageviewNavigationKey: string | null = null;
 
 function readFunnelState(): FunnelState | null {
   if (typeof window === "undefined") return null;
@@ -115,6 +129,8 @@ function bindSessionAbandonment(): void {
     const state = readFunnelState();
     if (!state || state.completed) return;
 
+    if (!ensurePostHogInitialized()) return;
+
     posthog.capture(
       "session_abandoned",
       sanitizeTelemetryMetadata({
@@ -129,11 +145,15 @@ function bindSessionAbandonment(): void {
   abandonmentListenerBound = true;
 }
 
+/**
+ * Wire app-level analytics side effects (abandonment listener) after PostHog is ready.
+ * PostHog SDK init is owned by ensurePostHogInitialized in the platform boundary.
+ */
 export function initializeAnalytics(): void {
   if (!isAnalyticsEnabled() || initialized) return;
 
-  // posthog-js is initialized by PostHogProvider / initPostHog in __root.tsx;
-  // this function only wires the session-abandonment listener.
+  if (!ensurePostHogInitialized()) return;
+
   bindSessionAbandonment();
   initialized = true;
 }
@@ -144,6 +164,7 @@ export function initializeAnalytics(): void {
  */
 export function identifyAnalyticsUser(userId: string | null | undefined): void {
   if (!isAnalyticsEnabled() || !userId) return;
+  if (!ensurePostHogInitialized()) return;
   initializeAnalytics();
   try {
     posthog.identify(userId);
@@ -158,6 +179,7 @@ export function identifyAnalyticsUser(userId: string | null | undefined): void {
  */
 export function resetAnalyticsUser(): void {
   if (!isAnalyticsEnabled()) return;
+  if (!ensurePostHogInitialized()) return;
   initializeAnalytics();
   try {
     posthog.reset();
@@ -165,7 +187,7 @@ export function resetAnalyticsUser(): void {
     logger.warn("[analytics] reset failed", { error: String(error) });
   }
   clearFunnelState();
-  lastPageviewTemplate = null;
+  lastPageviewNavigationKey = null;
 }
 
 /**
@@ -216,7 +238,12 @@ export function __setAnalyticsIdentityStateForTests(state: AnalyticsIdentityStat
 
 /** Test helper — reset module pageview dedupe. */
 export function __resetPageviewDedupeForTests(): void {
-  lastPageviewTemplate = null;
+  lastPageviewNavigationKey = null;
+}
+
+/** Test helper — inspect last local-only navigation key (never sent to PostHog). */
+export function __getLastPageviewNavigationKeyForTests(): string | null {
+  return lastPageviewNavigationKey;
 }
 
 /** Test helper — force analytics on/off (null restores env-based gate). */
@@ -227,12 +254,23 @@ export function __setAnalyticsEnabledForTests(value: boolean | null): void {
 /**
  * Capture a single SPA `$pageview` for a sanitized route template.
  * Overrides `$current_url` / `$pathname` so raw UUID URLs never leave the client.
+ *
+ * Dedupe uses a local-only navigationKey (resolved pathname) so same-template
+ * resource changes (Project A → Project B) still emit two pageviews.
+ * navigationKey is NEVER included in the PostHog payload.
  */
-export function trackPageView(routeTemplate: string, options?: { force?: boolean }): void {
+export function trackPageView(routeTemplate: string, options?: TrackPageViewOptions): void {
   if (!isAnalyticsEnabled()) return;
   if (!routeTemplate) return;
 
-  if (!options?.force && routeTemplate === lastPageviewTemplate) {
+  const navigationKey = options?.navigationKey ?? routeTemplate;
+
+  if (!options?.force && navigationKey === lastPageviewNavigationKey) {
+    return;
+  }
+
+  // Order-safe: never capture against an uninitialized SDK; never poison dedupe on failure.
+  if (!ensurePostHogInitialized()) {
     return;
   }
 
@@ -254,7 +292,8 @@ export function trackPageView(routeTemplate: string, options?: { force?: boolean
         $pathname: routeTemplate,
       }),
     );
-    lastPageviewTemplate = routeTemplate;
+    // Advance dedupe only after capture was handed to an initialized client.
+    lastPageviewNavigationKey = navigationKey;
   } catch (error) {
     logger.warn("[analytics] pageview failed", { error: String(error) });
   }
@@ -263,6 +302,7 @@ export function trackPageView(routeTemplate: string, options?: { force?: boolean
 export function trackEvent(name: AnalyticsEventName, properties?: TelemetryMetadata): void {
   if (!isAnalyticsEnabled()) return;
 
+  if (!ensurePostHogInitialized()) return;
   initializeAnalytics();
   try {
     posthog.capture(name, sanitizeTelemetryMetadata(properties));
