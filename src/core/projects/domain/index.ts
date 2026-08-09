@@ -13,3 +13,7 @@ export type {
 } from "./types";
 export { PROPERTY_TYPES, UK_REGIONS } from "./constants";
 export { estimatedRefurbCost, estimatedProfit } from "./helpers";
+export {
+  projectCardRefurbPresentation,
+  type ProjectCardRefurbPresentation,
+} from "./projectCardRefurbPresentation";

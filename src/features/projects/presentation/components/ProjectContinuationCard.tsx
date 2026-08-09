@@ -12,7 +12,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/core/projects";
-import { estimatedRefurbCost } from "@/core/projects";
+import { projectCardRefurbPresentation } from "@/core/projects";
 import {
   buildProjectWorkflowStages,
   explainProjectNextActionReason,
@@ -78,6 +78,7 @@ function ProjectContinuationCardComponent({ project }: ProjectContinuationCardPr
     workflowAllStagesComplete(stages);
   const next = fiveStage.nextAction;
   const explanation = next ? explainProjectNextActionReason(next.reason) : "";
+  const refurbView = projectCardRefurbPresentation(project);
 
   return (
     <Card
@@ -156,9 +157,16 @@ function ProjectContinuationCardComponent({ project }: ProjectContinuationCardPr
         ) : null}
 
         <div className="flex flex-col gap-3 border-t border-border/50 pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-          <span className="text-sm font-medium text-foreground">
-            £{estimatedRefurbCost(project).toLocaleString()}
-            <span className="ml-1 text-xs font-normal text-muted-foreground">refurb</span>
+          {/*
+            PUBLIC-BETA-R1: Cards have no Estimate authority amount.
+            Do not render bare "£0 refurb" (or 15% GDV placeholder) as a total.
+          */}
+          <span
+            className="text-sm font-medium text-muted-foreground"
+            data-testid="project-card-refurb"
+            data-refurb-mode={refurbView.mode}
+          >
+            {refurbView.label}
           </span>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
             <Button

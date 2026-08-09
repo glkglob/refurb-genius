@@ -201,4 +201,90 @@ describe("ProjectContinuationCard", () => {
     // Project name remains primary content.
     expect(screen.getByText("Victorian Terrace")).toBeTruthy();
   });
+
+  it("PUBLIC-BETA-R1: zero GDV does not render bare £0 refurb", () => {
+    useProjectFiveStageWorkflow.mockReturnValue({
+      loading: false,
+      workflow: {},
+      nextAction: {
+        stage: "photos",
+        status: "Not started",
+        actionKind: "add_photos",
+        route: "/projects/proj-1/upload",
+        label: "Add Photos",
+        reason: "photos_missing",
+      },
+      shellProgress: {
+        photosDone: false,
+        analysisDone: false,
+        analysisNeedsAttention: false,
+        redesignDone: false,
+        redesignNeedsAttention: false,
+        estimateDone: false,
+        estimateNeedsAttention: false,
+        reportDone: false,
+        reportNeedsAttention: false,
+      },
+      reload: vi.fn(),
+    });
+    const zeroGdv = { ...baseProject, estimated_gdv: 0, purchase_price: 0 } as Project;
+    render(createElement(ProjectContinuationCard, { project: zeroGdv }));
+    const refurb = screen.getByTestId("project-card-refurb");
+    expect(refurb.getAttribute("data-refurb-mode")).toBe("no_estimate");
+    expect(refurb.textContent).toMatch(/No estimate yet/i);
+    expect(refurb.textContent).not.toMatch(/£0/);
+    expect(screen.getByTestId("workflow-continue-cta")).toBeTruthy();
+  });
+
+  it("PUBLIC-BETA-R1: non-zero GDV placeholder is not shown as card Estimate total", () => {
+    useProjectFiveStageWorkflow.mockReturnValue({
+      loading: false,
+      workflow: {},
+      nextAction: {
+        stage: "photos",
+        status: "Not started",
+        actionKind: "add_photos",
+        route: "/projects/proj-1/upload",
+        label: "Add Photos",
+        reason: "photos_missing",
+      },
+      shellProgress: {
+        photosDone: false,
+        analysisDone: false,
+        analysisNeedsAttention: false,
+        redesignDone: false,
+        redesignNeedsAttention: false,
+        estimateDone: false,
+        estimateNeedsAttention: false,
+        reportDone: false,
+        reportNeedsAttention: false,
+      },
+      reload: vi.fn(),
+    });
+    // baseProject estimated_gdv 350_000 → legacy 15% would be £52,500
+    render(createElement(ProjectContinuationCard, { project: baseProject }));
+    const refurb = screen.getByTestId("project-card-refurb");
+    expect(refurb.textContent).toBe("No estimate yet");
+    expect(refurb.textContent).not.toMatch(/52[,.]?500/);
+    expect(refurb.textContent).not.toMatch(/£/);
+    // Resolver CTA preserved
+    expect(screen.getByTestId("workflow-continue-cta").getAttribute("data-action-kind")).toBe(
+      "add_photos",
+    );
+  });
+
+  it("PUBLIC-BETA-R1: loading workflow does not invent a bare £0 refurb amount", () => {
+    useProjectFiveStageWorkflow.mockReturnValue({
+      loading: true,
+      workflow: null,
+      nextAction: null,
+      shellProgress: null,
+      reload: vi.fn(),
+    });
+    const zeroGdv = { ...baseProject, estimated_gdv: 0 } as Project;
+    render(createElement(ProjectContinuationCard, { project: zeroGdv }));
+    const refurb = screen.getByTestId("project-card-refurb");
+    expect(refurb.textContent).toMatch(/No estimate yet/i);
+    expect(refurb.textContent).not.toMatch(/£0/);
+  });
 });
