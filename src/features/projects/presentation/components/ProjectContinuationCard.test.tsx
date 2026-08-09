@@ -1,12 +1,14 @@
 /**
  * IA-6 — Dashboard continuation card uses canonical five-stage hook + resolver.
  * PUBLIC-BETA-R1-R2 — no unsupported refurb amount / false "No estimate yet".
+ * PUBLIC-BETA-R1-R2A — mock nextAction fixtures must use canonical ProjectNextAction.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { ProjectContinuationCard } from "./ProjectContinuationCard";
 import type { Project } from "@/core/projects";
+import type { ProjectNextAction } from "../../domain";
 
 const useProjectFiveStageWorkflow = vi.fn();
 
@@ -74,14 +76,8 @@ const idleProgress: ShellProgress = {
 
 function mockWorkflow(partial: {
   loading?: boolean;
-  nextAction?: {
-    stage: string;
-    status: string;
-    actionKind: string;
-    route: string;
-    label: string;
-    reason: string;
-  } | null;
+  /** Canonical resolver contract only — rejects invented actionKinds at compile time. */
+  nextAction?: ProjectNextAction | null;
   shellProgress?: ShellProgress | null;
 }) {
   useProjectFiveStageWorkflow.mockReturnValue({
@@ -267,10 +263,10 @@ describe("ProjectContinuationCard", () => {
         nextAction: {
           stage: "estimate",
           status: "Ready",
-          actionKind: "create_estimate",
+          actionKind: "build_estimate",
           route: "/projects/proj-1/estimate",
-          label: "Create Estimate",
-          reason: "estimate_ready",
+          label: "Build Estimate",
+          reason: "estimate_missing",
         },
         shellProgress: {
           photosDone: true,
@@ -289,7 +285,7 @@ describe("ProjectContinuationCard", () => {
       );
       expectNoUnsupportedRefurbClaims(container);
       expect(screen.getByTestId("workflow-continue-cta").getAttribute("data-action-kind")).toBe(
-        "create_estimate",
+        "build_estimate",
       );
     });
 
@@ -298,9 +294,9 @@ describe("ProjectContinuationCard", () => {
         nextAction: {
           stage: "estimate",
           status: "In progress",
-          actionKind: "continue_estimate",
+          actionKind: "view_stage_progress",
           route: "/projects/proj-1/estimate",
-          label: "Continue Estimate",
+          label: "View Estimate Progress",
           reason: "estimate_in_progress",
         },
         shellProgress: {
@@ -309,7 +305,7 @@ describe("ProjectContinuationCard", () => {
           analysisNeedsAttention: false,
           redesignDone: true,
           redesignNeedsAttention: false,
-          // Partial progress represented via next-action status; shell flags not complete
+          // In progress: shell flags not complete; CTA is view_stage_progress
           estimateDone: false,
           estimateNeedsAttention: false,
           reportDone: false,
@@ -321,7 +317,7 @@ describe("ProjectContinuationCard", () => {
       );
       expectNoUnsupportedRefurbClaims(container);
       expect(screen.getByTestId("workflow-continue-cta").getAttribute("data-action-kind")).toBe(
-        "continue_estimate",
+        "view_stage_progress",
       );
     });
 
@@ -364,7 +360,7 @@ describe("ProjectContinuationCard", () => {
           actionKind: "create_export",
           route: "/projects/proj-1/report",
           label: "Create Report",
-          reason: "export_ready",
+          reason: "export_missing",
         },
         shellProgress: {
           photosDone: true,
