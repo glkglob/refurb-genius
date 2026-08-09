@@ -1,0 +1,36 @@
+src/features/auth/presentation/hooks/useAuthPasswordCredentials.test.ts
+  h_7ea6129503670a 67,105,137
+src/features/auth/presentation/hooks/useAuthPasswordCredentials.ts
+  h_7ea6129503670a 12,39-40,56
+src/lib/analytics.ts
+  h_7ea6129503670a 3-8,51-58,64-69,112,133,135,141-144,146,148-152,155-158,160-166,168-260,264
+src/lib/telemetry.ts
+  h_7ea6129503670a 22-24,38-41
+src/platform/analytics/AnalyticsLifecycle.tsx
+  h_7ea6129503670a 1-92
+src/platform/analytics/identity-apply.test.ts
+  h_7ea6129503670a 1-113
+src/platform/analytics/identity.test.ts
+  h_7ea6129503670a 1-56
+src/platform/analytics/identity.ts
+  h_7ea6129503670a 1-57
+src/platform/analytics/index.ts
+  h_7ea6129503670a 1-8,11-25,28,30-31,36,38-41
+src/platform/analytics/route-template.test.ts
+  h_7ea6129503670a 1-69
+src/platform/analytics/route-template.ts
+  h_7ea6129503670a 1-109
+src/routes/__root.tsx
+  h_7ea6129503670a 19,268-269
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "548cf510ec738f2434095671dc70f6845b00657a",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
