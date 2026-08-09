@@ -91,6 +91,7 @@ export type {
   TradesJobCategory,
   CreateTradesJobInput,
   UpdateTradesJobInput,
+  PublicTradesJob,
 } from "./tradesJob.types";
 export type {
   TradesJobInterest,

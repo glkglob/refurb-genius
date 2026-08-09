@@ -19,21 +19,21 @@ import {
   X,
   Pencil,
 } from "lucide-react";
-import type { TradesJob, TradesJobInterest, TradeProfile } from "@/core/trades";
+import type { TradesJob, PublicTradesJob, TradesJobInterest, TradeProfile } from "@/core/trades";
 import {
   formatCategoryLabel,
   formatStatus,
   formatBudgetRange,
   formatShortDate,
 } from "@/core/trades/tradesJob.selectors";
-import { getTradesJobById } from "@/features/trades";
 import {
+  resolveTradesJobForViewer,
   createTradesJobInterest,
   getCurrentUserInterestForJob,
   listJobInterests,
   updateTradesJobInterestStatus,
+  getTradeProfileByUserId,
 } from "@/features/trades";
-import { getTradeProfileByUserId } from "@/features/trades";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/trades_/$jobId")({
@@ -47,7 +47,8 @@ export const Route = createFileRoute("/trades_/$jobId")({
 
 type LoadState =
   | { status: "loading" }
-  | { status: "found"; job: TradesJob }
+  | { status: "owner"; job: TradesJob }
+  | { status: "public"; job: PublicTradesJob }
   | { status: "not_found" }
   | { status: "error"; message: string };
 
@@ -57,11 +58,12 @@ function useTradesJob(jobId: string): LoadState {
   useEffect(() => {
     let cancelled = false;
     setState({ status: "loading" });
-    getTradesJobById(jobId)
-      .then((job) => {
+    resolveTradesJobForViewer(jobId)
+      .then((resolved) => {
         if (cancelled) return;
-        if (!job) setState({ status: "not_found" });
-        else setState({ status: "found", job });
+        if (resolved.kind === "owner") setState({ status: "owner", job: resolved.job });
+        else if (resolved.kind === "public") setState({ status: "public", job: resolved.job });
+        else setState({ status: "not_found" });
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -119,7 +121,6 @@ function useExistingInterest(jobId: string, isAuthenticated: boolean): InterestS
 function TradesJobDetailPage() {
   const { jobId } = Route.useParams();
   const state = useTradesJob(jobId);
-  const { user } = useAuth();
 
   if (state.status === "loading") {
     return (
@@ -165,21 +166,19 @@ function TradesJobDetailPage() {
     );
   }
 
-  const { job } = state;
-  const isOwner = !!user && user.id === job.userId;
-
-  return (
-    <AppLayout
-      title={job.title}
-      subtitle={`${formatCategoryLabel(job.jobCategory)} · ${job.postcode ?? "Location not specified"}`}
-      actions={
-        <>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/trades">
-              <ArrowLeft className="h-4 w-4" /> Trades
-            </Link>
-          </Button>
-          {isOwner && (
+  if (state.status === "owner") {
+    const job = state.job;
+    return (
+      <AppLayout
+        title={job.title}
+        subtitle={`${formatCategoryLabel(job.jobCategory)} · ${job.postcode ?? "Location not specified"}`}
+        actions={
+          <>
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/trades">
+                <ArrowLeft className="h-4 w-4" /> Trades
+              </Link>
+            </Button>
             <Button
               asChild
               size="sm"
@@ -189,13 +188,33 @@ function TradesJobDetailPage() {
                 <Pencil className="h-4 w-4" /> Edit Job
               </Link>
             </Button>
-          )}
-        </>
+          </>
+        }
+      >
+        <div className="mx-auto max-w-3xl space-y-6">
+          <OwnerJobDetailCard job={job} />
+          <JobInteractionSection jobId={job.id} isOwner />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const job = state.job;
+  return (
+    <AppLayout
+      title={job.title}
+      subtitle={`${formatCategoryLabel(job.jobCategory)} · ${job.outwardPostcode ?? "Location not specified"}`}
+      actions={
+        <Button asChild variant="ghost" size="sm">
+          <Link to="/trades">
+            <ArrowLeft className="h-4 w-4" /> Trades
+          </Link>
+        </Button>
       }
     >
       <div className="mx-auto max-w-3xl space-y-6">
-        <JobDetailCard job={job} />
-        <JobInteractionSection job={job} />
+        <PublicJobDetailCard job={job} />
+        <JobInteractionSection jobId={job.id} isOwner={false} />
       </div>
     </AppLayout>
   );
@@ -205,8 +224,8 @@ function TradesJobDetailPage() {
 // Decides which section to render based on ownership
 // ---------------------------------------------------------------------------
 
-function JobInteractionSection({ job }: { job: TradesJob }) {
-  const { user, hydrated } = useAuth();
+function JobInteractionSection({ jobId, isOwner }: { jobId: string; isOwner: boolean }) {
+  const { hydrated } = useAuth();
 
   if (!hydrated) {
     return (
@@ -218,36 +237,22 @@ function JobInteractionSection({ job }: { job: TradesJob }) {
     );
   }
 
-  const isOwner = !!user && user.id === job.userId;
-  if (isOwner) return <OwnerInterestsSection jobId={job.id} />;
-  return <RegisterInterestSection jobId={job.id} />;
+  if (isOwner) return <OwnerInterestsSection jobId={jobId} />;
+  return <RegisterInterestSection jobId={jobId} />;
 }
 
 // ---------------------------------------------------------------------------
-// Job detail card
+// Job detail cards (owner full location vs public outward only)
 // ---------------------------------------------------------------------------
 
-function JobDetailCard({ job }: { job: TradesJob }) {
-  const fields: { label: string; value: string | undefined | null }[] = [
-    { label: "Property address", value: job.propertyAddress },
-    { label: "Postcode", value: job.postcode },
-    { label: "Property type", value: job.propertyType },
-    { label: "Job category", value: formatCategoryLabel(job.jobCategory) },
-    { label: "Budget range", value: formatBudgetRange(job) },
-    { label: "Desired start date", value: formatShortDate(job.desiredStartDate) },
-    { label: "Posted on", value: formatShortDate(job.createdAt) },
-    { label: "Status", value: formatStatus(job.status) },
-  ];
-
+function DetailFieldGrid({
+  fields,
+}: {
+  fields: { label: string; value: string | undefined | null }[];
+}) {
   return (
     <Card>
       <CardContent className="divide-y divide-border p-0">
-        <div className="p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Description
-          </h2>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{job.description}</p>
-        </div>
         <div className="grid gap-0 divide-y divide-border sm:grid-cols-2 sm:divide-y-0">
           {fields.map((f, i) => (
             <div
@@ -267,6 +272,58 @@ function JobDetailCard({ job }: { job: TradesJob }) {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function OwnerJobDetailCard({ job }: { job: TradesJob }) {
+  const fields: { label: string; value: string | undefined | null }[] = [
+    { label: "Property address", value: job.propertyAddress },
+    { label: "Postcode", value: job.postcode },
+    { label: "Property type", value: job.propertyType },
+    { label: "Job category", value: formatCategoryLabel(job.jobCategory) },
+    { label: "Budget range", value: formatBudgetRange(job) },
+    { label: "Desired start date", value: formatShortDate(job.desiredStartDate) },
+    { label: "Posted on", value: formatShortDate(job.createdAt) },
+    { label: "Status", value: formatStatus(job.status) },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Description
+          </h2>
+          <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{job.description}</p>
+        </CardContent>
+      </Card>
+      <DetailFieldGrid fields={fields} />
+    </div>
+  );
+}
+
+function PublicJobDetailCard({ job }: { job: PublicTradesJob }) {
+  const fields: { label: string; value: string | undefined | null }[] = [
+    { label: "Area", value: job.outwardPostcode },
+    { label: "Property type", value: job.propertyType },
+    { label: "Job category", value: formatCategoryLabel(job.jobCategory) },
+    { label: "Budget range", value: formatBudgetRange(job) },
+    { label: "Desired start date", value: formatShortDate(job.desiredStartDate) },
+    { label: "Posted on", value: formatShortDate(job.createdAt) },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Description
+          </h2>
+          <p className="mt-2 whitespace-pre-wrap text-sm text-foreground">{job.description}</p>
+        </CardContent>
+      </Card>
+      <DetailFieldGrid fields={fields} />
+    </div>
   );
 }
 

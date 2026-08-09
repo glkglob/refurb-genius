@@ -4,6 +4,7 @@ export type {
   TradesJob,
   CreateTradesJobInput,
   UpdateTradesJobInput,
+  PublicTradesJob,
 } from "@repo/types";
 
 export type {

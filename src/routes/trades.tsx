@@ -28,7 +28,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { DISCLAIMER } from "@/core/reports";
-import type { TradesJob, TradesJobCategory } from "@/core/trades";
+import type { PublicTradesJob, TradesJobCategory } from "@/core/trades";
 import { TRADES_JOB_CATEGORIES } from "@/core/trades";
 import {
   formatCategoryLabel,
@@ -194,7 +194,7 @@ function AudienceCards() {
 
 type JobsState =
   | { status: "loading" }
-  | { status: "ok"; jobs: TradesJob[] }
+  | { status: "ok"; jobs: PublicTradesJob[] }
   | { status: "error"; message: string };
 
 function usePostedJobs(category: string): JobsState {
@@ -309,7 +309,7 @@ function LiveJobListings() {
   );
 }
 
-function JobCard({ job }: { job: TradesJob }) {
+function JobCard({ job }: { job: PublicTradesJob }) {
   const descPreview =
     job.description.length > 120 ? job.description.slice(0, 120).trimEnd() + "…" : job.description;
 
@@ -327,12 +327,12 @@ function JobCard({ job }: { job: TradesJob }) {
         {/* Title */}
         <h3 className="text-base font-semibold leading-snug text-foreground">{job.title}</h3>
 
-        {/* Meta row */}
+        {/* Meta row — outward postcode only (privacy boundary) */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-          {job.postcode && (
+          {job.outwardPostcode && (
             <span className="flex items-center gap-1">
               <MapPin className="h-3 w-3" />
-              {job.postcode}
+              {job.outwardPostcode}
             </span>
           )}
           {job.desiredStartDate && (
