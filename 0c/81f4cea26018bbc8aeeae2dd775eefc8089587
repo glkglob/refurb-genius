@@ -1,0 +1,24 @@
+docs/README.md
+  h_7ea6129503670a 37-41
+docs/architecture/future-roadmap.md
+  h_7ea6129503670a 3,14,24
+docs/architecture/overview.md
+  h_7ea6129503670a 26-39,45
+docs/architecture/workflow/ia-0-workflow-authority-spec.md
+  h_7ea6129503670a 1755-1776
+docs/operations/beta-operations-playbook.md
+  h_7ea6129503670a 7-12
+docs/operations/public-beta-launch-authorization.md
+  h_7ea6129503670a 1-231
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "0c81f4cea26018bbc8aeeae2dd775eefc8089587",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
