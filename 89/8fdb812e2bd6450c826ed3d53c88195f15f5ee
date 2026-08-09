@@ -1,0 +1,44 @@
+packages/supabase/src/database.types.ts
+  h_7ea6129503670a 2157-2186,2438-2441
+packages/types/src/index.ts
+  h_7ea6129503670a 94
+packages/types/src/tradesJob.types.ts
+  h_7ea6129503670a 49-66
+src/core/trades/index.ts
+  h_7ea6129503670a 7
+src/features/trades/index.ts
+  h_7ea6129503670a 13-14
+src/features/trades/infrastructure/index.ts
+  h_7ea6129503670a 11-12
+src/features/trades/infrastructure/repositories/tradesJobInterestStore.ts
+  h_7ea6129503670a 9,22,95-98,100-115
+src/features/trades/infrastructure/repositories/tradesJobStore.ts
+  h_7ea6129503670a 5,14-26,48-63,75-78,86-99,102-139
+src/routes/_authed/dashboard.tsx
+  h_7ea6129503670a 677-678,707
+src/routes/trades.tsx
+  h_7ea6129503670a 31,197,312,330,332,335
+src/routes/trades_.$jobId.tsx
+  h_7ea6129503670a 22,30,35,50-51,61-62,64-66,169-181,191-212,216-217,227-228,240-241,245,248-252,278-329
+supabase/migrations/20260809101000_trades_public_job_privacy_boundary.sql
+  h_7ea6129503670a 1-206
+supabase/tests/database/p0_db_1_advisor_hardening.test.sql
+  h_7ea6129503670a 6,340-341,498,500-505,507-511
+supabase/tests/database/trades_public_job_privacy_boundary.test.sql
+  h_7ea6129503670a 1-243
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 87
+tests/invariants/trades-public-job-privacy.invariant.test.ts
+  h_7ea6129503670a 1-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "898fdb812e2bd6450c826ed3d53c88195f15f5ee",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
