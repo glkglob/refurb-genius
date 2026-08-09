@@ -9,7 +9,7 @@ import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { fromSupabaseUser } from "@/lib/auth";
 import { AUTH_USER_QUERY_KEY } from "@/hooks/useAuth";
-import { identifyAnalyticsUser, trackEvent, trackSignupCompleted } from "@/lib/analytics";
+import { trackEvent, trackSignupCompleted } from "@/lib/analytics";
 import { markNewUserOnboarding } from "../../onboardingStorage";
 import { signInWithPasswordEmail } from "../../infrastructure/signInWithPasswordEmail";
 import { signUpWithPasswordEmail } from "../../infrastructure/signUpWithPasswordEmail";
@@ -36,8 +36,9 @@ export function useAuthPasswordCredentials(): UseAuthPasswordCredentialsResult {
   const signInWithPassword = useCallback(
     async (email: string, password: string): Promise<void> => {
       const { user } = await signInWithPasswordEmail({ email, password });
+      // Identity identify is owned by AnalyticsLifecycle (AuthProvider) once the
+      // session is reflected in the auth query / auth.onChange bridge.
       queryClient.setQueryData(AUTH_USER_QUERY_KEY, fromSupabaseUser(user));
-      identifyAnalyticsUser(user?.id);
       trackEvent("user_signed_in", { provider: "email" });
     },
     [queryClient],
@@ -52,7 +53,7 @@ export function useAuthPasswordCredentials(): UseAuthPasswordCredentialsResult {
         companyName: input.companyName,
       });
 
-      identifyAnalyticsUser(user?.id);
+      // Product signup event only — do not identify without an authenticated session.
       trackSignupCompleted("email", user?.id);
 
       if (session) {

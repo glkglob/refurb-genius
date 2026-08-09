@@ -16,6 +16,7 @@ import { captureException } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/hooks/useAuth";
+import { AnalyticsLifecycle } from "@/platform/analytics/AnalyticsLifecycle";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -264,6 +265,8 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeProvider defaultTheme="dark">
+          {/* OBS-T1: single identity + SPA pageview authorities (inside Auth + Router). */}
+          <AnalyticsLifecycle />
           <RootErrorBoundary>
             <Outlet />
           </RootErrorBoundary>
