@@ -1,0 +1,20 @@
+src/platform/posthog/browser.test.ts
+  h_7ea6129503670a 52-74
+src/platform/posthog/browser.ts
+  h_7ea6129503670a 10-11,14-20,34-35
+src/platform/posthog/sanitize-outbound.test.ts
+  h_7ea6129503670a 1-309
+src/platform/posthog/sanitize-outbound.ts
+  h_7ea6129503670a 1-214
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "59bb42964426f4fc71b9f3abe4da8844557d98ca",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
