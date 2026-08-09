@@ -54,6 +54,7 @@ import { useProject, type ProjectWithProgress } from "@/hooks/useProjects";
 import {
   runPricingEngine,
   formatGBP,
+  REFERENCE_SIZE_SQM,
   type EstimateCategory,
   type FinishLevel,
 } from "@/core/pricing";
@@ -145,9 +146,12 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
   const [condition, setCondition] = useState<ConditionLevel>("Dated");
   const [finish, setFinish] = useState<FinishLevel>("Standard");
   const [categories, setCategories] = useState<EstimateCategory[]>(DEFAULT_CATEGORIES);
+  /** Prevents concurrent primary continuations (desktop + mobile share one operation). */
+  const [authoritySaving, setAuthoritySaving] = useState(false);
   /** Lazy idempotency key for the current quick-save intent; rotate on success or material input change. */
   const idempotencyKeyRef = useRef<string | null>(null);
   const lastIntentRef = useRef<string>("");
+  const authoritySaveInFlightRef = useRef(false);
 
   useEffect(() => {
     trackEvent("estimate_viewed");
@@ -157,6 +161,17 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
     setRegion(project.region);
   }, [project.region]);
 
+  /**
+   * Project size is optional at create. Authority save requires property_size_sqm > 0.
+   * When unset/zero, use the same reference size as L1/legacy category pricing so
+   * name-only projects can still complete Estimate authority (not a pricing redesign).
+   */
+  const estimateSizeSqm = useMemo(() => {
+    const raw = project.size_sqm;
+    if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) return raw;
+    return REFERENCE_SIZE_SQM;
+  }, [project.size_sqm]);
+
   // Preview only — browser engine for display. Canonical save recomputes on the server.
   const result = useMemo(
     () =>
@@ -165,9 +180,9 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
         property_condition: condition,
         finish_quality: finish,
         selected_categories: categories,
-        property_size_sqm: project.size_sqm,
+        property_size_sqm: estimateSizeSqm,
       }),
-    [region, condition, finish, categories, project.size_sqm],
+    [region, condition, finish, categories, estimateSizeSqm],
   );
 
   const metrics = useMemo(() => {
@@ -204,7 +219,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
       property_condition: condition,
       finish_quality: finish,
       selected_categories: categories,
-      property_size_sqm: project.size_sqm,
+      property_size_sqm: estimateSizeSqm,
     });
     if (intent !== lastIntentRef.current || !idempotencyKeyRef.current) {
       lastIntentRef.current = intent;
@@ -213,19 +228,15 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
     return idempotencyKeyRef.current;
   }
 
-  async function handleReportClick(event: MouseEvent<HTMLAnchorElement>) {
-    if (
-      event.defaultPrevented ||
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    ) {
-      return;
-    }
-
-    event.preventDefault();
+  /**
+   * Stage-owned primary continuation: save authority → bind Scope → reload → Report.
+   * Desktop header, mobile sticky, and inline CTAs must all use this — never href-only
+   * navigation that bypasses canonical Estimate persistence.
+   */
+  async function saveCurrentEstimateAndContinue(): Promise<void> {
+    if (authoritySaveInFlightRef.current) return;
+    authoritySaveInFlightRef.current = true;
+    setAuthoritySaving(true);
     try {
       // Canonical path: non-money inputs only. Server recomputes pricing and
       // sets projects.estimate_done atomically via private RPC.
@@ -237,7 +248,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
             property_condition: condition,
             finish_quality: finish,
             selected_categories: categories,
-            property_size_sqm: project.size_sqm,
+            property_size_sqm: estimateSizeSqm,
           },
           idempotencyKey: resolveIdempotencyKey(),
         },
@@ -282,25 +293,30 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
         return;
       }
 
-      // Success: rotate key, bind Scope provenance (IA-5), navigate.
+      // Success: rotate key, bind Scope provenance (IA-5), navigate only after authority.
       idempotencyKeyRef.current = null;
       lastIntentRef.current = "";
 
       const estimateId =
         typeof response.data?.estimateId === "string" ? response.data.estimateId : null;
-      if (estimateId && fiveStage.scopeId) {
-        try {
-          await bindEstimateToScope({ estimateId, scopeId: fiveStage.scopeId });
-        } catch (bindErr) {
-          logger.error("[estimates] IA-5 scope bind failed", { error: String(bindErr) });
-          toast.error(
-            "Estimate saved but could not bind to current Scope. Review Scope and update estimate.",
-          );
-          await fiveStage.reload();
-          return;
-        }
-      } else if (!fiveStage.scopeId) {
-        toast.message("Review Scope before treating this Estimate as current.");
+      if (!estimateId) {
+        toast.error("Could not save the estimate.");
+        return;
+      }
+      if (!fiveStage.scopeId) {
+        toast.error("Review Scope before treating this Estimate as current.");
+        await fiveStage.reload();
+        return;
+      }
+      try {
+        await bindEstimateToScope({ estimateId, scopeId: fiveStage.scopeId });
+      } catch (bindErr) {
+        logger.error("[estimates] IA-5 scope bind failed", { error: String(bindErr) });
+        toast.error(
+          "Estimate saved but could not bind to current Scope. Review Scope and update estimate.",
+        );
+        await fiveStage.reload();
+        return;
       }
 
       await queryClient.invalidateQueries({ queryKey: projectKeys.byId(id) });
@@ -311,13 +327,37 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
       // Input-validator / unexpected transport failures.
       logger.error("[estimates] authority save failed", { error: String(err) });
       toast.error("Could not save the estimate. Please try again.");
+    } finally {
+      authoritySaveInFlightRef.current = false;
+      setAuthoritySaving(false);
     }
+  }
+
+  function handleReportClick(event: MouseEvent<HTMLAnchorElement>) {
+    if (
+      event.defaultPrevented ||
+      event.button !== 0 ||
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    void saveCurrentEstimateAndContinue();
   }
 
   const needsScopeReconcile =
     nextAction?.actionKind === "reconcile_scope" ||
     fiveStage.workflow?.scope.currency === "absent" ||
     fiveStage.workflow?.scope.currency === "non_current";
+
+  const estimatePrimaryLabel =
+    nextAction?.actionKind === "update_estimate"
+      ? "Update Estimate & report"
+      : (nextAction?.label ?? "View investor report");
 
   return (
     <ProjectWorkflowShell
@@ -336,12 +376,12 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
               testId: "estimate-primary-cta-sticky",
             }
           : {
-              label:
-                nextAction?.actionKind === "update_estimate"
-                  ? "Update Estimate & report"
-                  : (nextAction?.label ?? "View investor report"),
-              href: nextAction?.route ?? `/projects/${id}/report`,
+              // Mutation-owned: never href-only navigation to Report (bypasses authority save).
+              label: authoritySaving ? "Saving estimate…" : estimatePrimaryLabel,
+              onClick: () => void saveCurrentEstimateAndContinue(),
               actionKind: nextAction?.actionKind,
+              disabled: authoritySaving,
+              loading: authoritySaving,
               testId: "estimate-primary-cta-sticky",
             }
       }
@@ -353,11 +393,15 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
             </Link>
           </Button>
         ) : (
-          <Button asChild>
-            <Link to="/projects/$id/report" params={{ id }} onClick={handleReportClick}>
-              {nextAction?.actionKind === "update_estimate"
-                ? "Update Estimate & report"
-                : "View investor report"}{" "}
+          <Button asChild disabled={authoritySaving}>
+            <Link
+              to="/projects/$id/report"
+              params={{ id }}
+              onClick={handleReportClick}
+              data-testid="estimate-primary-cta-desktop"
+              aria-busy={authoritySaving || undefined}
+            >
+              {authoritySaving ? "Saving estimate…" : estimatePrimaryLabel}{" "}
               <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </Button>
