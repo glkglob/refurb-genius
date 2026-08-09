@@ -49,4 +49,27 @@ describe("ensurePostHogInitialized", () => {
     expect(cfg.capture_pageleave).toBe(false);
     expect(cfg.person_profiles).toBe("identified_only");
   });
+
+  it("wires before_send outbound URL privacy boundary", () => {
+    const cfg = getPostHogBrowserConfig();
+    expect(typeof cfg.before_send).toBe("function");
+    const beforeSend = cfg.before_send as (cr: {
+      uuid: string;
+      event: string;
+      properties: Record<string, unknown>;
+    }) => unknown;
+    const out = beforeSend({
+      uuid: "00000000-0000-4000-8000-000000000099",
+      event: "estimate_viewed",
+      properties: {
+        $current_url:
+          "https://preview.example/projects/11111111-2222-4333-8444-555555555555/estimate",
+        $pathname: "/projects/11111111-2222-4333-8444-555555555555/estimate",
+        $prev_pageview_pathname: "/trades/aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+      },
+    }) as { properties: Record<string, string> };
+    expect(out.properties.$current_url).toBe("https://preview.example/projects/$id/estimate");
+    expect(out.properties.$pathname).toBe("/projects/$id/estimate");
+    expect(out.properties.$prev_pageview_pathname).toBe("/trades/$id");
+  });
 });

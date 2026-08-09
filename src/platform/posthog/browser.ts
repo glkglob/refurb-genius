@@ -7,8 +7,17 @@
 import type { PostHogConfig } from "posthog-js";
 import posthog from "posthog-js";
 
+import { sanitizePostHogBrowserEvent } from "./sanitize-outbound";
+
 export { PostHogProvider } from "@posthog/react";
 export { posthog };
+export {
+  POSTHOG_URL_PATH_PROPERTY_INVENTORY,
+  isPostHogUrlPathPropertyName,
+  sanitizeAnalyticsPathname,
+  sanitizeAnalyticsUrl,
+  sanitizePostHogBrowserEvent,
+} from "./sanitize-outbound";
 
 let posthogInitialized = false;
 
@@ -22,6 +31,8 @@ export function getPostHogBrowserConfig(): Partial<PostHogConfig> {
     persistence: "localStorage+cookie",
     person_profiles: "identified_only",
     capture_exceptions: true,
+    // OBS-T1-R2: browser-wide outbound URL/path/referrer privacy (after SDK auto-props).
+    before_send: sanitizePostHogBrowserEvent,
   };
 }
 
