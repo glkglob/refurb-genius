@@ -7,8 +7,9 @@
 export {
   listCurrentUserTradesJobs,
   getTradesJobById,
-  listTradesJobs,
   listPostedTradesJobs,
+  getPublicPostedTradesJob,
+  resolveTradesJobForViewer,
   createTradesJob,
   updateTradesJob,
   deleteTradesJob,

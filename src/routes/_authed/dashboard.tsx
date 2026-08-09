@@ -674,7 +674,8 @@ function MyInterestsTable({ state }: { state: InterestsState }) {
             <div className="min-w-0 flex-1 space-y-1">
               <p className="truncate font-medium text-foreground">{interest.jobTitle}</p>
               <p className="text-xs text-muted-foreground">
-                {formatCategoryLabel(interest.jobCategory)} · {interest.jobPostcode ?? "—"} ·{" "}
+                {formatCategoryLabel(interest.jobCategory)}
+                {interest.jobPostcode ? ` · ${interest.jobPostcode}` : ""} ·{" "}
                 {formatShortDate(interest.createdAt)}
               </p>
               <div className="flex items-center gap-2">
@@ -703,7 +704,7 @@ function MyInterestsTable({ state }: { state: InterestsState }) {
             <tr className="border-b border-border bg-secondary/40 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               <th className="px-4 py-3 text-left">Job title</th>
               <th className="px-4 py-3 text-left">Category</th>
-              <th className="px-4 py-3 text-left">Postcode</th>
+              <th className="px-4 py-3 text-left">Area</th>
               <th className="px-4 py-3 text-left">Status</th>
               <th className="px-4 py-3 text-left">Message</th>
               <th className="px-4 py-3 text-left">Date</th>

@@ -6,6 +6,7 @@ import type {
   TradesJobCategory,
   CreateTradesJobInterestInput,
 } from "@/core/trades";
+import { listPostedTradesJobs } from "./tradesJobStore";
 
 type TradesJobInterestRow = {
   id: string;
@@ -16,17 +17,9 @@ type TradesJobInterestRow = {
   created_at: string;
 };
 
-type TradesJobInterestWithJobRow = TradesJobInterestRow & {
-  trades_jobs: {
-    id: string;
-    title: string;
-    postcode: string | null;
-    job_category: string;
-  } | null;
-};
-
 export type TradesJobInterestWithJob = TradesJobInterest & {
   jobTitle: string;
+  /** Coarse outward postcode only (never full unit postcode). */
   jobPostcode: string | null;
   jobCategory: TradesJobCategory;
 };
@@ -99,20 +92,27 @@ export async function listCurrentUserInterests(): Promise<TradesJobInterest[]> {
   return (data as TradesJobInterestRow[]).map(rowToInterest);
 }
 
+/**
+ * TRADES-PRIVACY-R1B — interests + public-safe job projection.
+ * Does not embed the base jobs table relationship (avoids full postcode leakage).
+ */
 export async function listCurrentUserInterestsWithJobs(): Promise<TradesJobInterestWithJob[]> {
-  const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError || !userData?.user) return [];
-  const { data, error } = await table()
-    .select("*, trades_jobs(id, title, postcode, job_category)")
-    .eq("user_id", userData.user.id)
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  return (data as TradesJobInterestWithJobRow[]).map((r) => ({
-    ...rowToInterest(r),
-    jobTitle: r.trades_jobs?.title ?? "Unknown job",
-    jobPostcode: r.trades_jobs?.postcode ?? null,
-    jobCategory: (r.trades_jobs?.job_category ?? "") as TradesJobCategory,
-  }));
+  const interests = await listCurrentUserInterests();
+  if (interests.length === 0) return [];
+
+  const jobIds = [...new Set(interests.map((i) => i.jobId))];
+  const publicJobs = await listPostedTradesJobs(undefined, jobIds);
+  const byId = new Map(publicJobs.map((j) => [j.id, j]));
+
+  return interests.map((interest) => {
+    const job = byId.get(interest.jobId);
+    return {
+      ...interest,
+      jobTitle: job?.title ?? "Unknown job",
+      jobPostcode: job?.outwardPostcode ?? null,
+      jobCategory: (job?.jobCategory ?? "") as TradesJobCategory,
+    };
+  });
 }
 
 export async function listJobInterests(jobId: string): Promise<TradesJobInterest[]> {

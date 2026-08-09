@@ -2154,6 +2154,36 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      get_public_posted_trades_job: {
+        Args: { p_id: string };
+        Returns: {
+          budget_max: number | null;
+          budget_min: number | null;
+          created_at: string;
+          description: string;
+          desired_start_date: string | null;
+          id: string;
+          job_category: string;
+          outward_postcode: string | null;
+          property_type: string | null;
+          title: string;
+        }[];
+      };
+      list_public_posted_trades_jobs: {
+        Args: { p_category?: string | null; p_ids?: string[] | null };
+        Returns: {
+          budget_max: number | null;
+          budget_min: number | null;
+          created_at: string;
+          description: string;
+          desired_start_date: string | null;
+          id: string;
+          job_category: string;
+          outward_postcode: string | null;
+          property_type: string | null;
+          title: string;
+        }[];
+      };
       ia5_derive_current_analysis_identity: {
         Args: { p_project_id: string; p_uid: string };
         Returns: string;
@@ -2405,6 +2435,10 @@ export type Database = {
         };
       };
       uuid_v7: { Args: never; Returns: string };
+      trades_job_outward_postcode: {
+        Args: { p_postcode: string };
+        Returns: string | null;
+      };
     };
     Enums: {
       [_ in never]: never;

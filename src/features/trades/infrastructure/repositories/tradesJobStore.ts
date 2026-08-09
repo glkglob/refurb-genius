@@ -2,6 +2,7 @@ import { supabase } from "@/platform/supabase/browser";
 import type { Tables } from "@repo/supabase";
 import type {
   TradesJob,
+  PublicTradesJob,
   TradesJobCategory,
   TradesJobStatus,
   CreateTradesJobInput,
@@ -9,6 +10,19 @@ import type {
 } from "@/core/trades";
 
 type TradesJobRow = Tables<"trades_jobs">;
+
+type PublicPostedJobRpcRow = {
+  id: string;
+  title: string;
+  description: string;
+  job_category: string;
+  budget_min: number | null;
+  budget_max: number | null;
+  desired_start_date: string | null;
+  property_type: string | null;
+  created_at: string;
+  outward_postcode: string | null;
+};
 
 const table = () => supabase.from("trades_jobs");
 
@@ -31,6 +45,22 @@ function rowToJob(r: TradesJobRow): TradesJob {
   };
 }
 
+function publicRowToJob(r: PublicPostedJobRpcRow): PublicTradesJob {
+  return {
+    id: r.id,
+    title: r.title,
+    description: r.description,
+    jobCategory: r.job_category as TradesJobCategory,
+    budgetMin: r.budget_min,
+    budgetMax: r.budget_max,
+    desiredStartDate: r.desired_start_date,
+    propertyType: r.property_type,
+    createdAt: r.created_at,
+    outwardPostcode: r.outward_postcode,
+  };
+}
+
+/** Owner-only: list current user's jobs (full private row). */
 export async function listCurrentUserTradesJobs(): Promise<TradesJob[]> {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData?.user) return [];
@@ -42,6 +72,10 @@ export async function listCurrentUserTradesJobs(): Promise<TradesJob[]> {
   return (data as TradesJobRow[]).map(rowToJob);
 }
 
+/**
+ * Owner base-row read only (RLS). Returns null when not owner or missing.
+ * Does not throw on zero rows — public callers fall through to public RPC.
+ */
 export async function getTradesJobById(id: string): Promise<TradesJob | null> {
   const { data, error } = await table().select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
@@ -49,18 +83,60 @@ export async function getTradesJobById(id: string): Promise<TradesJob | null> {
   return rowToJob(data as TradesJobRow);
 }
 
-export async function listTradesJobs(): Promise<TradesJob[]> {
-  const { data, error } = await table().select("*").order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  return (data as TradesJobRow[]).map(rowToJob);
+/**
+ * TRADES-PRIVACY-R1B — public-safe posted job list via SECURITY DEFINER RPC.
+ * Never select("*") on trades_jobs for public browse.
+ */
+export async function listPostedTradesJobs(
+  category?: string,
+  ids?: string[],
+): Promise<PublicTradesJob[]> {
+  const { data, error } = await supabase.rpc("list_public_posted_trades_jobs", {
+    p_category: category ?? null,
+    p_ids: ids && ids.length > 0 ? ids : null,
+  });
+  if (error) throw new Error(`listPostedTradesJobs: ${error.message}`);
+  return ((data ?? []) as PublicPostedJobRpcRow[]).map(publicRowToJob);
 }
 
-export async function listPostedTradesJobs(category?: string): Promise<TradesJob[]> {
-  let query = table().select("*").eq("status", "posted").order("created_at", { ascending: false });
-  if (category) query = query.eq("job_category", category);
-  const { data, error } = await query;
-  if (error) throw new Error(`listPostedTradesJobs: ${error.message}`);
-  return (data as TradesJobRow[]).map(rowToJob);
+/**
+ * TRADES-PRIVACY-R1B — public-safe posted job detail via SECURITY DEFINER RPC.
+ */
+export async function getPublicPostedTradesJob(id: string): Promise<PublicTradesJob | null> {
+  const { data, error } = await supabase.rpc("get_public_posted_trades_job", {
+    p_id: id,
+  });
+  if (error) throw new Error(`getPublicPostedTradesJob: ${error.message}`);
+  const rows = (data ?? []) as PublicPostedJobRpcRow[];
+  if (rows.length === 0) return null;
+  return publicRowToJob(rows[0]!);
+}
+
+/**
+ * Viewer resolution for /trades/$jobId:
+ * 1) authenticated owner base row (full private location)
+ * 2) else public posted projection
+ * 3) else null
+ */
+export async function resolveTradesJobForViewer(
+  id: string,
+): Promise<
+  { kind: "owner"; job: TradesJob } | { kind: "public"; job: PublicTradesJob } | { kind: "none" }
+> {
+  const { data: userData } = await supabase.auth.getUser();
+  if (userData?.user) {
+    try {
+      const ownerJob = await getTradesJobById(id);
+      if (ownerJob && ownerJob.userId === userData.user.id) {
+        return { kind: "owner", job: ownerJob };
+      }
+    } catch {
+      // Fall through to public projection on transient owner-read errors.
+    }
+  }
+  const publicJob = await getPublicPostedTradesJob(id);
+  if (publicJob) return { kind: "public", job: publicJob };
+  return { kind: "none" };
 }
 
 export async function createTradesJob(input: CreateTradesJobInput): Promise<TradesJob> {

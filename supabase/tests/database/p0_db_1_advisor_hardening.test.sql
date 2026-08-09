@@ -3,7 +3,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(63);
+select plan(64);
 
 -- ── fixtures ──────────────────────────────────────────────────────────────
 do $$
@@ -337,8 +337,8 @@ select is(
 select is(
   (select count(*)::int from pg_policies
    where schemaname='public' and tablename='trades_jobs' and cmd='SELECT' and 'anon'=any(roles)),
-  1,
-  'trades_jobs: single anon SELECT policy'
+  0,
+  'trades_jobs: zero anon SELECT policies (public projection via RPC only)'
 );
 select is(
   (select count(*)::int from pg_policies
@@ -495,11 +495,20 @@ select throws_ok(
 );
 reset role;
 
--- ── trades_jobs visibility ────────────────────────────────────────────────
+-- ── trades_jobs visibility (TRADES-PRIVACY-R1B: base denied; public RPC OK) ─
 set local role anon;
+select throws_ok(
+  $$ select 1 from public.trades_jobs where id = '66666666-6666-4666-8666-666666666666' $$,
+  '42501',
+  null,
+  'anon cannot select posted trades_jobs base rows'
+);
 select ok(
-  exists (select 1 from public.trades_jobs where id = '66666666-6666-4666-8666-666666666666'),
-  'anon can select posted trades_jobs'
+  exists (
+    select 1 from public.list_public_posted_trades_jobs(null, null)
+    where id = '66666666-6666-4666-8666-666666666666'
+  ),
+  'anon can list posted trades_jobs via public RPC'
 );
 select throws_ok(
   $$
