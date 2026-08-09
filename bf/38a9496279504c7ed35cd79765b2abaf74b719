@@ -1,0 +1,26 @@
+src/routes/_authed/-projects.$id.analysis.recovery-contract.test.ts
+  h_7ea6129503670a 1-56
+src/routes/_authed/-projects.$id.estimate.authority-continuation.test.ts
+  h_7ea6129503670a 1-76
+src/routes/_authed/-projects.$id.scope.authority-gate.test.ts
+  h_7ea6129503670a 1-36
+src/routes/_authed/projects.$id.estimate.cta.test.ts
+  h_7ea6129503670a 29-34
+src/routes/_authed/projects.$id.estimate.tsx
+  h_7ea6129503670a 57,149-150,154,164-174,183,185,222,231-239,251,296,302-319,330-345,347-349,357-361,379-381,383-384,396-404
+src/routes/_authed/projects.$id.scope.tsx
+  h_7ea6129503670a 295-305,308-315,346-360,579-595
+tests/invariants/l3-category-authority-persistence.invariant.test.ts
+  h_7ea6129503670a 68-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "bf38a9496279504c7ed35cd79765b2abaf74b719",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
