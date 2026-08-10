@@ -52,12 +52,12 @@ function Landing() {
         <HowItWorks />
         <FeatureSplit
           eyebrow="AI Photo Analysis"
-          title="See condition the way a surveyor would."
-          body="Upload photos of any room. Our AI assesses condition, flags priorities, and pinpoints what needs work — wall by wall, surface by surface."
+          title="AI-assisted condition flags from your photos."
+          body="Upload photos of any room. Our AI assesses visible condition, flags priorities, and pinpoints what needs work — wall by wall, surface by surface. Decision support for planning — not a professional survey or structural inspection."
           bullets={[
             "Room-by-room condition scoring",
             "Priority levels (high / medium / low)",
-            "Damp, dated, and structural flags",
+            "Damp, dated, and condition risk flags",
           ]}
           icon={Camera}
           image={beforeImg}
@@ -150,12 +150,18 @@ function Hero() {
               />
             </div>
             <div className="absolute bottom-4 left-4 hidden rounded-xl border border-border bg-card/95 p-4 shadow-lg backdrop-blur sm:block">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Illustrative example
+              </p>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Projected ROI
               </p>
               <p className="mt-1 text-2xl font-semibold text-foreground">18.4%</p>
             </div>
             <div className="absolute top-4 right-4 hidden rounded-xl border border-border bg-card/95 p-4 shadow-lg backdrop-blur sm:block">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Illustrative example
+              </p>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Refurb estimate
               </p>
@@ -305,6 +311,9 @@ function CostEstimator() {
             </ul>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-primary-foreground/50">
+              Illustrative example — sample scenario, not a live customer result
+            </p>
             <div className="flex items-end justify-between border-b border-white/10 pb-4">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-primary-foreground/60">
@@ -344,9 +353,12 @@ function InvestorMetrics() {
         <SectionHeader
           eyebrow="Investor Metrics"
           title="Cost, scope and ROI assumptions in one view."
-          subtitle="Purchase price, GDV, ROI, gross yield, monthly rent — modelled instantly from the analysis."
+          subtitle="Purchase price, GDV, ROI, gross yield, monthly rent — modelled from your analysis. Figures below are an illustrative sample scenario."
         />
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <p className="mt-4 text-center text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Illustrative example
+        </p>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {m.map((x) => (
             <Card key={x.label}>
               <CardContent className="p-6">
@@ -395,8 +407,13 @@ function ReportExport() {
             </ul>
           </div>
           <div className="rounded-2xl border border-border bg-card p-6 shadow-xl">
+            <p className="mb-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Illustrative example — sample layout only
+            </p>
             <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
-              <p className="text-sm font-semibold text-foreground">Refurb Report — 12 Elm Street</p>
+              <p className="text-sm font-semibold text-foreground">
+                Refurb Report — sample property
+              </p>
               <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
                 PDF
               </span>
@@ -410,7 +427,9 @@ function ReportExport() {
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-secondary">
               <div className="h-full w-3/4 rounded-full bg-accent" />
             </div>
-            <p className="mt-2 text-xs text-muted-foreground">Project margin vs cost</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Sample scenario figures — not a verified customer outcome
+            </p>
           </div>
         </div>
       </div>

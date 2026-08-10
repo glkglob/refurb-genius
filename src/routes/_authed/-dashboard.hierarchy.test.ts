@@ -37,4 +37,30 @@ describe("Dashboard product hierarchy (IA-8-VR-R1)", () => {
     expect(newAnalysis).toBeLessThan(createProject);
     expect(createProject).toBeLessThan(postJob);
   });
+
+  it("PH-TRUTH: Studies remain accessible but secondary to the project workflow", () => {
+    expect(SRC).toMatch(/data-testid="dashboard-studies-secondary"/);
+    expect(SRC).toMatch(/Optional · Feasibility snapshots/);
+    expect(SRC).toMatch(/to="\/studies"/);
+    // Not a primary quick-action card
+    expect(SRC).not.toMatch(/label="Saved Studies"/);
+    const projectsIdx = SRC.indexOf('data-testid="dashboard-projects-section"');
+    const studiesIdx = SRC.indexOf('data-testid="dashboard-studies-secondary"');
+    expect(projectsIdx).toBeGreaterThan(-1);
+    expect(studiesIdx).toBeGreaterThan(projectsIdx);
+  });
+
+  it("PH-TRUTH-R1: primary workflow copy remains Photos→Export", () => {
+    expect(SRC).toMatch(/Photos, Analysis, Redesign, Estimate, Export/);
+  });
+
+  it("PH-TRUTH-R1: Study celebration cannot complete an Estimate/Export checklist label", () => {
+    // done-state for the optional snapshot item is Study celebration only
+    expect(SRC).toMatch(/done=\{hasCompletedFirstStudy\}/);
+    expect(SRC).toMatch(/label="Optional: create a feasibility snapshot"/);
+    // Forbidden pairing from PH-TRUTH candidate
+    expect(SRC).not.toMatch(/Complete an estimate or export on a project/);
+    // Must not invent estimate/export authority from Study state
+    expect(SRC).not.toMatch(/done=\{hasCompletedFirstStudy\}[\s\S]{0,80}estimate or export/i);
+  });
 });
