@@ -1,0 +1,18 @@
+src/platform/auth/apple-sign-in-config.test.ts
+  h_7ea6129503670a 1-88
+src/platform/auth/apple-sign-in-config.ts
+  h_7ea6129503670a 1-45
+src/routes/__root.tsx
+  h_7ea6129503670a 20-25,96-103,133,190
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "135d4407611810f0729598157b017adff454a727",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
