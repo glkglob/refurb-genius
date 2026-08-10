@@ -61,6 +61,7 @@ export const LIB_ALLOWLIST = [
   "src/lib/rate-limit.ts",
   "src/lib/redesign.ts",
   "src/lib/role.ts",
+  "src/lib/sentry.test.ts",
   "src/lib/sentry.ts",
   "src/lib/telemetry.ts",
   "src/lib/timeout.ts",
