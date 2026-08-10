@@ -17,6 +17,12 @@ import { logger } from "@/lib/logger";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/hooks/useAuth";
 import { AnalyticsLifecycle } from "@/platform/analytics/AnalyticsLifecycle";
+import {
+  APPLE_SIGN_IN_SDK_URL,
+  buildAppleSignInHeadMeta,
+  isAppleSignInConfigured,
+  resolveAppleClientId,
+} from "@/platform/auth/apple-sign-in-config";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -87,6 +93,14 @@ const SITE_URL =
   (import.meta.env.VITE_PUBLIC_URL as string | undefined)?.replace(/\/$/, "") ??
   "https://www.refurbgenius.info";
 
+// PH-SENTRY-0: only emit Apple Sign In browser SDK config when a real client ID is set.
+// Empty VITE_APPLE_CLIENT_ID previously produced meta content="" + always-loaded
+// appleid.auth.js, which throws: The "clientId" should be a string.
+const APPLE_CLIENT_ID = resolveAppleClientId(
+  import.meta.env.VITE_APPLE_CLIENT_ID as string | undefined,
+);
+const APPLE_SIGN_IN_CONFIGURED = isAppleSignInConfigured(APPLE_CLIENT_ID);
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
@@ -116,10 +130,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "theme-color", content: "#0c0f1a" },
-      { name: "appleid-signin-client-id", content: import.meta.env.VITE_APPLE_CLIENT_ID ?? "" },
-      { name: "appleid-signin-scope", content: "name email" },
-      { name: "appleid-signin-redirect-uri", content: `${SITE_URL}/auth/callback` },
-      { name: "appleid-signin-use-popup", content: "true" },
+      ...buildAppleSignInHeadMeta(APPLE_CLIENT_ID, SITE_URL),
       {
         name: "google-site-verification",
         content: "NAteh4Jb4nPdtyDxEBNBcGOYM8H0TTO37zO5yCtQnPU",
@@ -176,10 +187,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       <body className="min-h-screen bg-background text-foreground antialiased">
         {posthogApiKey ? <PostHogProvider client={posthog}>{children}</PostHogProvider> : children}
         <Scripts />
-        <script
-          src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"
-          async
-        />
+        {APPLE_SIGN_IN_CONFIGURED ? <script src={APPLE_SIGN_IN_SDK_URL} async /> : null}
       </body>
     </html>
   );
