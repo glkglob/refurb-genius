@@ -16,6 +16,7 @@ import { captureException } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/hooks/useAuth";
+import { AnalyticsLifecycle } from "@/platform/analytics/AnalyticsLifecycle";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -256,6 +257,8 @@ class RootErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundary
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  // Eager warm-up only — analytics helpers also call ensurePostHogInitialized()
+  // so pageview/identify correctness does not depend on parent/child effect order.
   useEffect(() => {
     initPostHog();
   }, []);
@@ -264,6 +267,8 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ThemeProvider defaultTheme="dark">
+          {/* OBS-T1: single identity + SPA pageview authorities (inside Auth + Router). */}
+          <AnalyticsLifecycle />
           <RootErrorBoundary>
             <Outlet />
           </RootErrorBoundary>

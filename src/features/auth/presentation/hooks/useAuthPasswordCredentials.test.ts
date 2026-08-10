@@ -10,7 +10,6 @@ const setQueryData = vi.fn();
 const signInWithPasswordEmail = vi.fn();
 const signUpWithPasswordEmail = vi.fn();
 const markNewUserOnboarding = vi.fn();
-const identifyAnalyticsUser = vi.fn();
 const trackEvent = vi.fn();
 const trackSignupCompleted = vi.fn();
 const fromSupabaseUser = vi.fn((u: unknown) => {
@@ -34,7 +33,6 @@ vi.mock("@/hooks/useAuth", () => ({
 }));
 
 vi.mock("@/lib/analytics", () => ({
-  identifyAnalyticsUser: (id: unknown) => identifyAnalyticsUser(id),
   trackEvent: (name: unknown, props?: unknown) => trackEvent(name, props),
   trackSignupCompleted: (provider: unknown, id?: unknown) => trackSignupCompleted(provider, id),
 }));
@@ -60,14 +58,13 @@ beforeEach(() => {
   signInWithPasswordEmail.mockReset();
   signUpWithPasswordEmail.mockReset();
   markNewUserOnboarding.mockReset();
-  identifyAnalyticsUser.mockReset();
   trackEvent.mockReset();
   trackSignupCompleted.mockReset();
   fromSupabaseUser.mockClear();
 });
 
 describe("useAuthPasswordCredentials — sign-in", () => {
-  it("seeds AUTH_USER_QUERY_KEY before analytics and does not navigate", async () => {
+  it("seeds AUTH_USER_QUERY_KEY and product sign-in event without direct identify", async () => {
     const user = { id: "u1", email: "a@b.com" };
     signInWithPasswordEmail.mockResolvedValue({ user });
 
@@ -85,7 +82,6 @@ describe("useAuthPasswordCredentials — sign-in", () => {
       id: "u1",
       email: "a@b.com",
     });
-    expect(identifyAnalyticsUser).toHaveBeenCalledWith("u1");
     expect(trackEvent).toHaveBeenCalledWith("user_signed_in", { provider: "email" });
     expect(markNewUserOnboarding).not.toHaveBeenCalled();
   });
@@ -106,7 +102,7 @@ describe("useAuthPasswordCredentials — sign-in", () => {
 });
 
 describe("useAuthPasswordCredentials — signup", () => {
-  it("session-present: analytics, mark onboarding, seed cache, returns session", async () => {
+  it("session-present: signup event, mark onboarding, seed cache, returns session", async () => {
     const user = { id: "u2", email: "new@ex.com" };
     const session = { access_token: "t" };
     signUpWithPasswordEmail.mockResolvedValue({ user, session });
@@ -129,7 +125,6 @@ describe("useAuthPasswordCredentials — signup", () => {
       fullName: "Ada",
       companyName: "Co",
     });
-    expect(identifyAnalyticsUser).toHaveBeenCalledWith("u2");
     expect(trackSignupCompleted).toHaveBeenCalledWith("email", "u2");
     expect(markNewUserOnboarding).toHaveBeenCalledTimes(1);
     expect(setQueryData).toHaveBeenCalledWith(["auth", "currentUser"], {
@@ -139,7 +134,7 @@ describe("useAuthPasswordCredentials — signup", () => {
     expect(outcome).toBe("session");
   });
 
-  it("session-absent: analytics only, no onboarding flag or cache seed", async () => {
+  it("session-absent: signup event only, no onboarding flag or cache seed", async () => {
     const user = { id: "u3", email: "verify@ex.com" };
     signUpWithPasswordEmail.mockResolvedValue({ user, session: null });
 
@@ -153,7 +148,6 @@ describe("useAuthPasswordCredentials — signup", () => {
       });
     });
 
-    expect(identifyAnalyticsUser).toHaveBeenCalledWith("u3");
     expect(trackSignupCompleted).toHaveBeenCalledWith("email", "u3");
     expect(markNewUserOnboarding).not.toHaveBeenCalled();
     expect(setQueryData).not.toHaveBeenCalled();

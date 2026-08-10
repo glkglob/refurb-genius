@@ -19,6 +19,9 @@ function sanitizeFreeformString(value: string): string {
   return withoutEmail.length > 180 ? `${withoutEmail.slice(0, 177)}...` : withoutEmail;
 }
 
+/** Keys that may carry intentional non-PII analytics route templates / URLs. */
+const SAFE_ANALYTICS_URL_KEY_PATTERN = /^(\$current_url|\$pathname|route_template)$/i;
+
 function sanitizeValue(key: string, value: unknown): unknown {
   if (value == null || typeof value === "boolean") {
     return value;
@@ -32,6 +35,10 @@ function sanitizeValue(key: string, value: unknown): unknown {
   }
 
   if (typeof value === "string") {
+    // Allow explicit pageview route templates / sanitized absolute URLs through.
+    if (SAFE_ANALYTICS_URL_KEY_PATTERN.test(key)) {
+      return sanitizeFreeformString(value);
+    }
     if (PII_KEY_PATTERN.test(key) || SENSITIVE_FINANCIAL_KEY_PATTERN.test(key)) {
       return REDACTED;
     }

@@ -1,5 +1,11 @@
-import { posthog } from "@/platform/posthog/browser";
+import { ensurePostHogInitialized, posthog } from "@/platform/posthog/browser";
 
+import {
+  ANALYTICS_IDENTITY_UNRESOLVED,
+  planAnalyticsIdentityTransition,
+  type AnalyticsIdentityState,
+} from "@/platform/analytics/identity";
+import { buildSafePageviewUrl } from "@/platform/analytics/route-template";
 import { logger } from "./logger";
 import { sanitizeIdentifier, sanitizeTelemetryMetadata, type TelemetryMetadata } from "./telemetry";
 
@@ -40,13 +46,40 @@ type FunnelState = {
   startedAt: string;
 };
 
+export type TrackPageViewOptions = {
+  /**
+   * Local-only navigation occurrence key (e.g. resolved pathname).
+   * Used for dedupe so Project A → Project B emits two pageviews with the same
+   * public route_template. NEVER sent to PostHog / logs / breadcrumbs.
+   */
+  navigationKey?: string;
+  /** Bypass navigation-key dedupe (tests / recovery after failed init). */
+  force?: boolean;
+};
+
 const posthogKey = import.meta.env.VITE_PUBLIC_POSTHOG_PROJECT_TOKEN || undefined;
 
-const enabled = Boolean(typeof window !== "undefined" && import.meta.env.PROD && posthogKey);
+/** Production + browser + project token required. Overridable in unit tests. */
+let enabledOverride: boolean | null = null;
+
+function isAnalyticsEnabled(): boolean {
+  if (enabledOverride !== null) return enabledOverride;
+  return Boolean(typeof window !== "undefined" && import.meta.env.PROD && posthogKey);
+}
+
 const funnelStorageKey = "refurb-genius:funnel";
 
 let initialized = false;
 let abandonmentListenerBound = false;
+
+/** Last applied analytics identity (module-level so helper remains the authority). */
+let analyticsIdentityState: AnalyticsIdentityState = ANALYTICS_IDENTITY_UNRESOLVED;
+
+/**
+ * Last local-only navigation key that successfully emitted a pageview.
+ * Public payload still uses route_template only — this key is never exported.
+ */
+let lastPageviewNavigationKey: string | null = null;
 
 function readFunnelState(): FunnelState | null {
   if (typeof window === "undefined") return null;
@@ -90,11 +123,13 @@ function clearFunnelState(): void {
 }
 
 function bindSessionAbandonment(): void {
-  if (!enabled || abandonmentListenerBound || typeof window === "undefined") return;
+  if (!isAnalyticsEnabled() || abandonmentListenerBound || typeof window === "undefined") return;
 
   const onPageHide = () => {
     const state = readFunnelState();
     if (!state || state.completed) return;
+
+    if (!ensurePostHogInitialized()) return;
 
     posthog.capture(
       "session_abandoned",
@@ -110,30 +145,164 @@ function bindSessionAbandonment(): void {
   abandonmentListenerBound = true;
 }
 
+/**
+ * Wire app-level analytics side effects (abandonment listener) after PostHog is ready.
+ * PostHog SDK init is owned by ensurePostHogInitialized in the platform boundary.
+ */
 export function initializeAnalytics(): void {
-  if (!enabled || initialized) return;
+  if (!isAnalyticsEnabled() || initialized) return;
 
-  // posthog-js is initialized by PostHogProvider in __root.tsx;
-  // this function only wires the session-abandonment listener.
+  if (!ensurePostHogInitialized()) return;
+
   bindSessionAbandonment();
   initialized = true;
 }
 
+/**
+ * Identify the current authenticated user for product analytics.
+ * Opaque user UUID only — never pass email/name/person properties here.
+ */
 export function identifyAnalyticsUser(userId: string | null | undefined): void {
-  if (!enabled || !userId) return;
+  if (!isAnalyticsEnabled() || !userId) return;
+  if (!ensurePostHogInitialized()) return;
   initializeAnalytics();
-  posthog.identify(userId);
+  try {
+    posthog.identify(userId);
+  } catch (error) {
+    logger.warn("[analytics] identify failed", { error: String(error) });
+  }
 }
 
+/**
+ * Reset PostHog person identity (logout / account switch).
+ * Safe to call even when only identify has run (does not require prior trackEvent).
+ */
 export function resetAnalyticsUser(): void {
-  if (!enabled || !initialized) return;
-  posthog.reset();
+  if (!isAnalyticsEnabled()) return;
+  if (!ensurePostHogInitialized()) return;
+  initializeAnalytics();
+  try {
+    posthog.reset();
+  } catch (error) {
+    logger.warn("[analytics] reset failed", { error: String(error) });
+  }
   clearFunnelState();
+  lastPageviewNavigationKey = null;
+}
+
+/**
+ * Apply a resolved auth identity observation (null = signed out).
+ * Dedupes same-user re-observations; handles A→B with reset-then-identify.
+ *
+ * @returns whether an identify or reset side-effect was applied
+ */
+export function applyResolvedAnalyticsIdentity(nextUserId: string | null): {
+  applied: boolean;
+  action: string;
+} {
+  const plan = planAnalyticsIdentityTransition(analyticsIdentityState, nextUserId);
+
+  if (plan.action === "noop") {
+    analyticsIdentityState = plan.next;
+    return { applied: false, action: "noop" };
+  }
+
+  if (plan.action === "identify") {
+    identifyAnalyticsUser(plan.userId);
+    analyticsIdentityState = plan.next;
+    return { applied: true, action: "identify" };
+  }
+
+  if (plan.action === "reset") {
+    resetAnalyticsUser();
+    analyticsIdentityState = plan.next;
+    return { applied: true, action: "reset" };
+  }
+
+  // reset_then_identify
+  resetAnalyticsUser();
+  identifyAnalyticsUser(plan.userId);
+  analyticsIdentityState = plan.next;
+  return { applied: true, action: "reset_then_identify" };
+}
+
+/** Test / diagnostics helper — current identity observation. */
+export function getAnalyticsIdentityStateForTests(): AnalyticsIdentityState {
+  return analyticsIdentityState;
+}
+
+/** Test helper — force identity state without PostHog side effects. */
+export function __setAnalyticsIdentityStateForTests(state: AnalyticsIdentityState): void {
+  analyticsIdentityState = state;
+}
+
+/** Test helper — reset module pageview dedupe. */
+export function __resetPageviewDedupeForTests(): void {
+  lastPageviewNavigationKey = null;
+}
+
+/** Test helper — inspect last local-only navigation key (never sent to PostHog). */
+export function __getLastPageviewNavigationKeyForTests(): string | null {
+  return lastPageviewNavigationKey;
+}
+
+/** Test helper — force analytics on/off (null restores env-based gate). */
+export function __setAnalyticsEnabledForTests(value: boolean | null): void {
+  enabledOverride = value;
+}
+
+/**
+ * Capture a single SPA `$pageview` for a sanitized route template.
+ * Overrides `$current_url` / `$pathname` so raw UUID URLs never leave the client.
+ *
+ * Dedupe uses a local-only navigationKey (resolved pathname) so same-template
+ * resource changes (Project A → Project B) still emit two pageviews.
+ * navigationKey is NEVER included in the PostHog payload.
+ */
+export function trackPageView(routeTemplate: string, options?: TrackPageViewOptions): void {
+  if (!isAnalyticsEnabled()) return;
+  if (!routeTemplate) return;
+
+  const navigationKey = options?.navigationKey ?? routeTemplate;
+
+  if (!options?.force && navigationKey === lastPageviewNavigationKey) {
+    return;
+  }
+
+  // Order-safe: never capture against an uninitialized SDK; never poison dedupe on failure.
+  if (!ensurePostHogInitialized()) {
+    return;
+  }
+
+  initializeAnalytics();
+
+  const origin =
+    typeof window !== "undefined" && window.location?.origin
+      ? window.location.origin
+      : "https://www.refurbgenius.info";
+  const safeUrl = buildSafePageviewUrl(origin, routeTemplate);
+
+  try {
+    posthog.capture(
+      "$pageview",
+      sanitizeTelemetryMetadata({
+        route_template: routeTemplate,
+        // Override auto-attached browser URL (merge-blocking privacy).
+        $current_url: safeUrl,
+        $pathname: routeTemplate,
+      }),
+    );
+    // Advance dedupe only after capture was handed to an initialized client.
+    lastPageviewNavigationKey = navigationKey;
+  } catch (error) {
+    logger.warn("[analytics] pageview failed", { error: String(error) });
+  }
 }
 
 export function trackEvent(name: AnalyticsEventName, properties?: TelemetryMetadata): void {
-  if (!enabled) return;
+  if (!isAnalyticsEnabled()) return;
 
+  if (!ensurePostHogInitialized()) return;
   initializeAnalytics();
   try {
     posthog.capture(name, sanitizeTelemetryMetadata(properties));
