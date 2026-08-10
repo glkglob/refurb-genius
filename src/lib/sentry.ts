@@ -1,8 +1,52 @@
-// Sentry integration for Refurb Genius
-// Client-side only - privacy safe configuration
+/**
+ * Sentry integration for Refurb Genius (browser SDK via @sentry/react).
+ *
+ * Ownership (PH-SENTRY-1A):
+ * - Sentry: engineering exception diagnosis — stack traces, releases, source maps.
+ * - PostHog: product analytics / behavioural context. PostHog may also
+ *   autocapture browser exceptions (`capture_exceptions`) independently; that
+ *   stream is intentional product telemetry and is not managed here.
+ *
+ * Server: this module is the shared capture surface used from some server
+ * adapters. There is no full Node/Nitro Sentry.init in this slice — unconfigured
+ * or non-production calls are safe no-ops via canCapture().
+ *
+ * Privacy: sendDefaultPii must remain false. Privacy beforeSend scrubbing is
+ * PH-SENTRY-1C, not this file.
+ */
 import * as Sentry from "@sentry/react";
 
-const dsn = import.meta.env.VITE_SENTRY_DSN;
+const dsn = import.meta.env.VITE_SENTRY_DSN as string | undefined;
+
+/** Test override — null means use production + DSN env gate. */
+let captureEnabledOverride: boolean | null = null;
+
+/**
+ * Pure gate for whether a Sentry capture helper may emit.
+ * Production environment AND a non-empty DSN are required.
+ */
+export function isSentryCaptureEnabled(
+  prod: boolean,
+  sentryDsn: string | undefined | null,
+): boolean {
+  return Boolean(prod && sentryDsn && String(sentryDsn).trim().length > 0);
+}
+
+/**
+ * Canonical capture decision for all public helpers in this module.
+ * When false, helpers must be safe no-ops (no throw, no network).
+ */
+function canCapture(): boolean {
+  if (captureEnabledOverride !== null) {
+    return captureEnabledOverride;
+  }
+  return isSentryCaptureEnabled(import.meta.env.PROD, dsn);
+}
+
+/** Test helper — force capture gate (does not init/teardown the SDK). */
+export function __setSentryCaptureEnabledForTests(value: boolean | null): void {
+  captureEnabledOverride = value;
+}
 
 if (import.meta.env.PROD && dsn) {
   Sentry.init({
@@ -19,15 +63,17 @@ if (import.meta.env.PROD && dsn) {
 
 // Helper functions
 export const captureAiError = (error: unknown, context?: Record<string, unknown>) => {
+  if (!canCapture()) return;
   Sentry.captureException(error, { tags: { type: "ai" }, ...context });
 };
 
 export const captureAuthError = (error: unknown) => {
+  if (!canCapture()) return;
   Sentry.captureException(error, { tags: { type: "auth" } });
 };
 
 export function captureException(error: unknown, context?: Record<string, unknown>): void {
-  if (!import.meta.env.PROD || !dsn) return;
+  if (!canCapture()) return;
   Sentry.captureException(error, context ? { extra: context } : undefined);
 }
 
@@ -40,7 +86,7 @@ export function captureUploadError(
     stage?: "validation" | "storage" | "metadata" | "rollback";
   },
 ): void {
-  if (!import.meta.env.PROD || !dsn) return;
+  if (!canCapture()) return;
   Sentry.captureException(error, {
     tags: { domain: "upload", stage: metadata?.stage ?? "unknown" },
     extra: { ...metadata, timestamp: new Date().toISOString() },
@@ -56,7 +102,7 @@ export function captureApiError(
     context?: string;
   },
 ): void {
-  if (!import.meta.env.PROD || !dsn) return;
+  if (!canCapture()) return;
   Sentry.captureException(error, {
     tags: { domain: "api", operation: metadata?.operation ?? "unknown" },
     extra: { ...metadata, timestamp: new Date().toISOString() },
@@ -72,7 +118,7 @@ export function capturePdfError(
     memoryMbEstimate?: number;
   },
 ): void {
-  if (!import.meta.env.PROD || !dsn) return;
+  if (!canCapture()) return;
   Sentry.captureException(error, {
     tags: { domain: "pdf", stage: metadata?.stage ?? "unknown" },
     extra: { ...metadata, timestamp: new Date().toISOString() },
@@ -80,7 +126,7 @@ export function capturePdfError(
 }
 
 export function captureImageDiagnostic(message: string, metadata?: Record<string, unknown>): void {
-  if (!import.meta.env.PROD || !dsn) return;
+  if (!canCapture()) return;
   Sentry.addBreadcrumb({
     message: `[image] ${message}`,
     data: metadata,
@@ -94,7 +140,7 @@ export function captureRouteLoadDiagnostic(
   message: string,
   metadata?: Record<string, unknown>,
 ): void {
-  if (!import.meta.env.PROD || !dsn) return;
+  if (!canCapture()) return;
   Sentry.addBreadcrumb({
     message: `[route] ${routePath}: ${message}`,
     data: metadata,
@@ -104,7 +150,7 @@ export function captureRouteLoadDiagnostic(
 }
 
 export function addDiagnosticBreadcrumb(message: string, metadata?: Record<string, unknown>): void {
-  if (!import.meta.env.PROD || !dsn) return;
+  if (!canCapture()) return;
   Sentry.addBreadcrumb({
     message,
     data: metadata,
@@ -117,6 +163,7 @@ type SentryWithConversationId = typeof Sentry & {
 };
 
 export function setConversationId(id: string): void {
+  if (!canCapture()) return;
   const sentryWithConversationId = Sentry as SentryWithConversationId;
 
   if (typeof sentryWithConversationId.setConversationId === "function") {
