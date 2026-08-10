@@ -1,0 +1,18 @@
+src/routes/_authed/-dashboard.hierarchy.test.ts
+  h_7ea6129503670a 52-65
+src/routes/_authed/-dashboard.test.tsx
+  h_7ea6129503670a 180-196
+src/routes/_authed/dashboard.tsx
+  h_7ea6129503670a 331-336,339
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "7429d413787664970993883613b8c3a79e6f4d46",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
