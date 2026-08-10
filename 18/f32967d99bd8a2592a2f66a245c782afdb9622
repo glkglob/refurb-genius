@@ -1,0 +1,18 @@
+src/lib/sentry.test.ts
+  h_7ea6129503670a 1-213
+src/lib/sentry.ts
+  h_7ea6129503670a 1-16,19-49,66,71,76,89,105,121,129,143,153,166
+tests/invariants/config/frozen-path-allowlists.ts
+  h_7ea6129503670a 64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "18f32967d99bd8a2592a2f66a245c782afdb9622",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
