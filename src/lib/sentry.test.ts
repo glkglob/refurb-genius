@@ -235,3 +235,29 @@ describe("PH-SENTRY-1D1 Replay privacy option builder (wired by sentry.ts)", () 
     expect(prepareAuthCallbackLocationForReplay.name).toBe("prepareAuthCallbackLocationForReplay");
   });
 });
+
+describe("PH-SENTRY-1E1 tracing privacy hooks (module contracts)", () => {
+  it("exposes pure tracing sanitizers used by init wiring", async () => {
+    const tracing = await import("@/platform/sentry/sanitize-tracing");
+    expect(typeof tracing.sanitizeSentryTransaction).toBe("function");
+    expect(typeof tracing.sanitizeSentrySpan).toBe("function");
+  });
+
+  it("keeps sampling and propagation constants in source", async () => {
+    // Read-only contract: sampling/propagation must not be altered by 1E1.
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const src = readFileSync(join(process.cwd(), "src/lib/sentry.ts"), "utf8");
+    expect(src).toContain("tracesSampleRate: 0.2");
+    expect(src).toContain(
+      'tracePropagationTargets: ["localhost", /^https:\\/\\/.*\\.refurbgenius\\.info/]',
+    );
+    expect(src).toContain("beforeSendTransaction");
+    expect(src).toContain("beforeSendSpan");
+    expect(src).not.toContain("beforeStartSpan");
+    expect(src).toContain("sanitizeSentryTransaction");
+    expect(src).toContain("sanitizeSentrySpan");
+    // 1C still present
+    expect(src).toContain("sanitizeSentryEvent");
+  });
+});
