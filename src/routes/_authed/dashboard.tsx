@@ -328,9 +328,15 @@ function DashboardContent() {
                 done={jobsState.status === "ready" && jobsState.jobs.length > 0}
                 label="Add a trades job or shortlist"
               />
+              {/*
+                PH-TRUTH-R1: done-state is first-Study celebration localStorage only.
+                Do not label it as project Estimate/Export progress — legacy
+                estimate_done/report_done flags are non-authoritative for currentness
+                and must not invent workflow authority here.
+              */}
               <OnboardingCheckItem
                 done={hasCompletedFirstStudy}
-                label="Complete an estimate or export on a project"
+                label="Optional: create a feasibility snapshot"
               />
             </div>
             <div className="flex flex-wrap gap-2">

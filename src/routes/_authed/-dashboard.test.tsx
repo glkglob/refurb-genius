@@ -177,6 +177,23 @@ describe("dashboard onboarding Auth extraction", () => {
     expect(screen.getByText(/Welcome, Ada/)).toBeTruthy();
   });
 
+  it("PH-TRUTH-R1: Study completion checks optional snapshot, not Estimate/Export label", () => {
+    hasCompletedFirstStudy.mockReturnValue(true);
+    renderDashboard();
+    expect(screen.getByText(/Optional: create a feasibility snapshot/i)).toBeTruthy();
+    expect(screen.queryByText(/Complete an estimate or export on a project/i)).toBeNull();
+    // Checked snapshot item present; no Estimate/Export completion claim
+    const items = screen.getAllByText(/Optional: create a feasibility snapshot/i);
+    expect(items.length).toBeGreaterThan(0);
+  });
+
+  it("PH-TRUTH-R1: when Study not celebrated, optional snapshot remains unchecked wording only", () => {
+    hasCompletedFirstStudy.mockReturnValue(false);
+    renderDashboard();
+    expect(screen.getByText(/Optional: create a feasibility snapshot/i)).toBeTruthy();
+    expect(screen.queryByText(/Complete an estimate or export on a project/i)).toBeNull();
+  });
+
   it("hides new-user welcome card when consume flag is false", () => {
     consumeNewUserOnboarding.mockReturnValue(false);
     renderDashboard();
