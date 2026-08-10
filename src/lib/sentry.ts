@@ -11,10 +11,12 @@
  * adapters. There is no full Node/Nitro Sentry.init in this slice — unconfigured
  * or non-production calls are safe no-ops via canCapture().
  *
- * Privacy: sendDefaultPii must remain false. Privacy beforeSend scrubbing is
- * PH-SENTRY-1C, not this file.
+ * Privacy: sendDefaultPii must remain false. Privacy beforeSend (PH-SENTRY-1C)
+ * is implemented via sanitizeSentryEvent from the platform sanitizer.
  */
 import * as Sentry from "@sentry/react";
+
+import { sanitizeSentryEvent } from "@/platform/sentry/sanitize-outbound";
 
 const dsn = import.meta.env.VITE_SENTRY_DSN as string | undefined;
 
@@ -58,6 +60,8 @@ if (import.meta.env.PROD && dsn) {
     environment: import.meta.env.MODE,
     sendDefaultPii: false, // Privacy safe - do not change without review
     tracePropagationTargets: ["localhost", /^https:\/\/.*\.refurbgenius\.info/],
+    // PH-SENTRY-1C: fail-closed outbound scrubbing (never emit unsanitized events)
+    beforeSend: (event) => sanitizeSentryEvent(event) as typeof event | null,
   });
 }
 
