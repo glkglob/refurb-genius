@@ -13,9 +13,18 @@
  *
  * Privacy: sendDefaultPii must remain false. Privacy beforeSend (PH-SENTRY-1C)
  * is implemented via sanitizeSentryEvent from the platform sanitizer.
+ *
+ * Replay (PH-SENTRY-1D1 / 1D1-R1): explicit mask/block/network privacy options;
+ * capture required auth-callback query secrets then strip them from location
+ * before init so Replay setInitialState cannot observe OAuth/magic-link query
+ * secrets, while the one-shot bootstrap bridge supplies complete().
  */
 import * as Sentry from "@sentry/react";
 
+import {
+  buildExplicitReplayPrivacyOptions,
+  prepareAuthCallbackLocationForReplay,
+} from "@/platform/sentry/replay-privacy";
 import { sanitizeSentryEvent } from "@/platform/sentry/sanitize-outbound";
 
 const dsn = import.meta.env.VITE_SENTRY_DSN as string | undefined;
@@ -50,10 +59,22 @@ export function __setSentryCaptureEnabledForTests(value: boolean | null): void {
   captureEnabledOverride = value;
 }
 
+// PH-SENTRY-1D1-R1: capture then strip auth-callback query secrets before
+// Sentry.init so Replay setInitialState sees a clean query string. Hash is
+// preserved for Supabase detectSessionInUrl. Route consumes the one-shot
+// snapshot when Route.useSearch() no longer has code/token_hash.
+if (typeof window !== "undefined") {
+  prepareAuthCallbackLocationForReplay();
+}
+
 if (import.meta.env.PROD && dsn) {
   Sentry.init({
     dsn,
-    integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      // PH-SENTRY-1D1: pin Replay privacy (do not rely on implicit SDK defaults)
+      Sentry.replayIntegration(buildExplicitReplayPrivacyOptions()),
+    ],
     tracesSampleRate: 0.2,
     replaysSessionSampleRate: 0.05,
     replaysOnErrorSampleRate: 1.0,
@@ -61,6 +82,7 @@ if (import.meta.env.PROD && dsn) {
     sendDefaultPii: false, // Privacy safe - do not change without review
     tracePropagationTargets: ["localhost", /^https:\/\/.*\.refurbgenius\.info/],
     // PH-SENTRY-1C: fail-closed outbound scrubbing (never emit unsanitized events)
+    // Note: beforeSend does NOT scrub Replay recording payloads (1D audit).
     beforeSend: (event) => sanitizeSentryEvent(event) as typeof event | null,
   });
 }

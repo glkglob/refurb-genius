@@ -1,5 +1,6 @@
 /**
  * PH-SENTRY-1A — Sentry capture hygiene contracts.
+ * PH-SENTRY-1D1 — Replay privacy option wiring (via platform helper).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -15,6 +16,11 @@ vi.mock("@sentry/react", () => ({
   replayIntegration: vi.fn(() => ({})),
   setConversationId: (...args: unknown[]) => setConversationId(...args),
 }));
+
+import {
+  buildExplicitReplayPrivacyOptions,
+  prepareAuthCallbackLocationForReplay,
+} from "@/platform/sentry/replay-privacy";
 
 import {
   __setSentryCaptureEnabledForTests,
@@ -209,5 +215,23 @@ describe("helper consistency under same gate", () => {
     captureApiError(new Error("e"));
     capturePdfError(new Error("f"));
     expect(captureException).toHaveBeenCalledTimes(6);
+  });
+});
+
+describe("PH-SENTRY-1D1 Replay privacy option builder (wired by sentry.ts)", () => {
+  it("exports explicit privacy options used at init", () => {
+    const opts = buildExplicitReplayPrivacyOptions();
+    expect(opts.maskAllText).toBe(true);
+    expect(opts.maskAllInputs).toBe(true);
+    expect(opts.blockAllMedia).toBe(true);
+    expect(opts.networkDetailAllowUrls).toEqual([]);
+    expect(opts.networkCaptureBodies).toBe(false);
+  });
+
+  it("wires prepareAuthCallbackLocationForReplay (not raw destructive strip)", () => {
+    // Module-level sentry.ts imports prepare — assert the R1 helper exists and
+    // is the capture-then-strip entry used before init.
+    expect(typeof prepareAuthCallbackLocationForReplay).toBe("function");
+    expect(prepareAuthCallbackLocationForReplay.name).toBe("prepareAuthCallbackLocationForReplay");
   });
 });

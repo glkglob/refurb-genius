@@ -3,6 +3,11 @@ import { useEffect, useRef, useState } from "react";
 import { useAuthCallbackCompletion } from "@/features/auth";
 import { Loader2, AlertCircle } from "lucide-react";
 import { z } from "zod";
+import {
+  clearAuthCallbackBootstrapCapture,
+  stripSensitiveAuthCallbackLocation,
+  takeAuthCallbackBootstrapCapture,
+} from "@/platform/sentry/replay-privacy";
 
 const callbackSearchSchema = z.object({
   code: z.string().optional(),
@@ -20,19 +25,18 @@ export const Route = createFileRoute("/auth_/callback")({
   component: AuthCallback,
 });
 
-function stripSensitiveCallbackParamsFromUrl(): void {
+/**
+ * Presentation-owned history cleanup (AO-1F1 invariant: replaceState|history).
+ * Uses shared sanitiser; keeps lexical history.replaceState ownership on route.
+ *
+ * When query-based auth material is present (live or bootstrap), strip hash too.
+ * When only hash may drive Supabase detectSessionInUrl, leave hash until after
+ * complete() has had a chance to initialise the client.
+ */
+function stripSensitiveCallbackParamsFromUrl(options: { stripHash: boolean }): void {
   if (typeof window === "undefined") return;
-  const url = new URL(window.location.href);
-  let dirty = false;
-  for (const key of ["token_hash", "code"] as const) {
-    if (url.searchParams.has(key)) {
-      url.searchParams.delete(key);
-      dirty = true;
-    }
-  }
-  if (!dirty) return;
-  const next = `${url.pathname}${url.search}${url.hash}`;
-  window.history.replaceState(window.history.state, "", next);
+  if (!window.history?.replaceState) return;
+  stripSensitiveAuthCallbackLocation(window, { stripHash: options.stripHash });
 }
 
 function AuthCallback() {
@@ -46,10 +50,17 @@ function AuthCallback() {
     if (startedRef.current) return;
     startedRef.current = true;
 
-    const { code, token_hash, type, error: urlError, error_description, redirect_to } = search;
+    // Live route search wins; one-shot pre-init snapshot fills gaps after strip.
+    const bootstrap = takeAuthCallbackBootstrapCapture();
+    const code = search.code ?? bootstrap?.code;
+    const token_hash = search.token_hash ?? bootstrap?.tokenHash;
+    const type = search.type ?? bootstrap?.type;
+    const { error: urlError, error_description, redirect_to } = search;
 
-    // Capture values before stripping sensitive query params from history.
-    stripSensitiveCallbackParamsFromUrl();
+    const hasQueryAuth = Boolean(code || token_hash);
+    // Query-auth path: full strip (query + hash) is safe — complete uses locals.
+    // Hash-only fallback: preserve hash for detectSessionInUrl during complete.
+    stripSensitiveCallbackParamsFromUrl({ stripHash: hasQueryAuth });
 
     // Rejected complete (e.g. no-code getSession network failure) intentionally
     // has no .catch — parity with the pre-extraction getSession branch.
@@ -60,11 +71,17 @@ function AuthCallback() {
       urlError,
       errorDescription: error_description,
       redirectTo: redirect_to,
-    }).then((result) => {
-      if (!result.ok) {
-        setError(result.error);
-      }
-    });
+    })
+      .then((result) => {
+        if (!result.ok) {
+          setError(result.error);
+        }
+      })
+      .finally(() => {
+        // Drop one-shot secrets; strip any residual hash after session attempt.
+        clearAuthCallbackBootstrapCapture();
+        stripSensitiveCallbackParamsFromUrl({ stripHash: true });
+      });
   }, [complete, search]);
 
   if (error) {
