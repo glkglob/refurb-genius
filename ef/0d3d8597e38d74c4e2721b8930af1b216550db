@@ -1,0 +1,24 @@
+src/lib/sentry.test.ts
+  h_7ea6129503670a 3,20-24,220-237
+src/lib/sentry.ts
+  h_7ea6129503670a 16-20,24-27,62-69,73-77,85
+src/platform/sentry/replay-privacy.test.ts
+  h_7ea6129503670a 1-374
+src/platform/sentry/replay-privacy.ts
+  h_7ea6129503670a 1-443
+src/routes/-auth_.callback.test.tsx
+  h_7ea6129503670a 2,8-15,42,51,61,117-144,199-310
+src/routes/auth_.callback.tsx
+  h_7ea6129503670a 6-10,28-36,38-39,53-58,60-63,74-84
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "ef0d3d8597e38d74c4e2721b8930af1b216550db",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
