@@ -1,0 +1,20 @@
+src/lib/sentry.test.ts
+  h_7ea6129503670a 238-263
+src/lib/sentry.ts
+  h_7ea6129503670a 17-20,33,90-91,93-98
+src/platform/sentry/sanitize-tracing.test.ts
+  h_7ea6129503670a 1-403
+src/platform/sentry/sanitize-tracing.ts
+  h_7ea6129503670a 1-491
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "58e65e3a3f393f86ab14055a25b4f818e5680003",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
