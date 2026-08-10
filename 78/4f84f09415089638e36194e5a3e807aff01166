@@ -1,0 +1,18 @@
+src/lib/sentry.ts
+  h_7ea6129503670a 14-15,19-20,63-64
+src/platform/sentry/sanitize-outbound.test.ts
+  h_7ea6129503670a 1-786
+src/platform/sentry/sanitize-outbound.ts
+  h_7ea6129503670a 1-750
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "784f84f09415089638e36194e5a3e807aff01166",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
