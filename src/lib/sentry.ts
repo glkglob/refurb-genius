@@ -14,6 +14,10 @@
  * Privacy: sendDefaultPii must remain false. Privacy beforeSend (PH-SENTRY-1C)
  * is implemented via sanitizeSentryEvent from the platform sanitizer.
  *
+ * Tracing (PH-SENTRY-1E1): beforeSendTransaction / beforeSendSpan scrub
+ * Performance payloads (transaction names, request URLs, span URL/query attrs).
+ * Ordinary beforeSend does not cover transactions — that remains a separate path.
+ *
  * Replay (PH-SENTRY-1D1 / 1D1-R1): explicit mask/block/network privacy options;
  * capture required auth-callback query secrets then strip them from location
  * before init so Replay setInitialState cannot observe OAuth/magic-link query
@@ -26,6 +30,7 @@ import {
   prepareAuthCallbackLocationForReplay,
 } from "@/platform/sentry/replay-privacy";
 import { sanitizeSentryEvent } from "@/platform/sentry/sanitize-outbound";
+import { sanitizeSentrySpan, sanitizeSentryTransaction } from "@/platform/sentry/sanitize-tracing";
 
 const dsn = import.meta.env.VITE_SENTRY_DSN as string | undefined;
 
@@ -82,8 +87,15 @@ if (import.meta.env.PROD && dsn) {
     sendDefaultPii: false, // Privacy safe - do not change without review
     tracePropagationTargets: ["localhost", /^https:\/\/.*\.refurbgenius\.info/],
     // PH-SENTRY-1C: fail-closed outbound scrubbing (never emit unsanitized events)
-    // Note: beforeSend does NOT scrub Replay recording payloads (1D audit).
+    // Note: beforeSend does NOT scrub Replay recording payloads (1D audit)
+    // and does NOT scrub transaction events (see beforeSendTransaction).
     beforeSend: (event) => sanitizeSentryEvent(event) as typeof event | null,
+    // PH-SENTRY-1E1: fail-closed transaction privacy (GAP-01/02)
+    // Structural return is assignable to TransactionEvent at the privacy boundary
+    // (same pattern as beforeSend → sanitizeSentryEvent).
+    beforeSendTransaction: (event) => sanitizeSentryTransaction(event) as typeof event | null,
+    // PH-SENTRY-1E1: span URL/query privacy (GAP-03); never return null
+    beforeSendSpan: (span) => sanitizeSentrySpan(span) as typeof span,
   });
 }
 
