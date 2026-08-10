@@ -101,3 +101,9 @@ export {
   workflowAllStagesComplete,
   workflowHasNeedsAttention,
 } from "./explainProjectNextActionReason";
+
+export {
+  MONEY_NOT_SET_LABEL,
+  formatMoneyPresence,
+  projectOptionalMoneyForDisplay,
+} from "./money-display";

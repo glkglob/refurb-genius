@@ -19,12 +19,12 @@ export const Route = createFileRoute("/gallery")({
       {
         name: "description",
         content:
-          "Explore completed UK property refurbishment projects. See real GDV, ROI, scope and outcomes from verified investors.",
+          "Browse public refurbishment examples and inspiration — photos, scope, and financial summaries where shared by owners.",
       },
       { property: "og:title", content: "Public Project Gallery — Refurb Genius" },
       {
         property: "og:description",
-        content: "Browse beautiful before/after refurbs with full financials and investor stories.",
+        content: "Browse example refurbishments and inspiration shared on Refurb Genius.",
       },
     ],
   }),
@@ -94,14 +94,12 @@ function GalleryPage() {
       >
         <div className="max-w-3xl">
           <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium text-muted-foreground">
-            Public Showcase
+            Examples &amp; inspiration
           </span>
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight">
-            Completed Refurbishment Projects
-          </h1>
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight">Refurbishment examples</h1>
           <p className="mt-3 text-lg text-muted-foreground">
-            Real UK property transformations with full financial outcomes, photos, and investor
-            results. Browse, get inspired, and connect directly with owners.
+            Sample transformations and owner-shared projects for inspiration. Financial figures
+            reflect what contributors publish — not independently verified market averages.
           </p>
         </div>
 

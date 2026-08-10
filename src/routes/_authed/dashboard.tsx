@@ -271,7 +271,7 @@ function DashboardContent() {
   return (
     <AppLayout
       title="Dashboard"
-      subtitle="Continue your refurbishment projects, then manage trades and feasibility work."
+      subtitle="Continue your refurbishment projects — Photos, Analysis, Redesign, Estimate, Export."
     >
       {showOnboardingCard && (
         <Card className="mb-6 border-accent/40 bg-accent/10">
@@ -330,7 +330,7 @@ function DashboardContent() {
               />
               <OnboardingCheckItem
                 done={hasCompletedFirstStudy}
-                label="Run your first full feasibility study"
+                label="Complete an estimate or export on a project"
               />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -338,7 +338,7 @@ function DashboardContent() {
                 <Link to="/analyze">New Analysis</Link>
               </Button>
               <Button asChild size="sm" variant="outline">
-                <Link to="/studies">View studies</Link>
+                <Link to="/projects">View projects</Link>
               </Button>
             </div>
           </CardContent>
@@ -360,10 +360,9 @@ function DashboardContent() {
         <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
           Quick actions
         </h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <QuickActionCard icon={Calculator} label="New Analysis" to="/analyze" />
           <QuickActionCard icon={FolderPlus} label="Create Project" to="/projects/new" />
-          <QuickActionCard icon={BookMarked} label="Saved Studies" to="/studies" />
           <QuickActionCard icon={Briefcase} label="Post a Trades Job" to="/trades/new" />
           <QuickActionCard icon={HardHat} label="Browse Trades Jobs" to="/trades" />
         </div>
@@ -392,35 +391,45 @@ function DashboardContent() {
         <MyInterestsTable state={interestsState} />
       </DashboardSection>
 
-      <section>
-        <Card className="border-border/60 bg-card/70 p-6">
-          <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
-            Feasibility workspace
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-3">
+      {/* PH-TRUTH CIR-TRUTH-06: Studies remain available but secondary to Projects workflow */}
+      <section data-testid="dashboard-studies-secondary" className="mt-2">
+        <Card className="border-dashed border-border/50 bg-muted/20 p-5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Optional · Feasibility snapshots
+            </h2>
+            <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              Secondary
+            </span>
+          </div>
+          <p className="mb-4 max-w-2xl text-sm text-muted-foreground">
+            Lightweight feasibility snapshots sit outside the primary Photos → Analysis → Redesign →
+            Estimate → Export project workflow. Use them when you need a quick standalone study.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-3">
             <LiveFeatureCard
               icon={Calculator}
-              title="Refurb Estimates"
-              description="AI-generated line-item cost estimates across all UK regions, attached to your properties."
+              title="Refurb estimates (snapshot)"
+              description="Standalone regional cost snapshots — separate from project Estimate authority."
               to="/studies/workspace"
               cta="Open feasibility workspace"
-              detail="Regional pricing · 12 UK areas · Instant line items"
+              detail="Optional · not the main project path"
             />
             <LiveFeatureCard
               icon={TrendingUp}
-              title="ROI Reports"
-              description="Full deal analysis with GDV, yield, ROI and investor-ready PDF export."
+              title="ROI snapshot tools"
+              description="Quick deal-style ROI helpers in the feasibility workspace."
               to="/studies/workspace"
-              cta="Run Full ROI Analysis"
-              detail="Sensitivity analysis · Investor-ready export"
+              cta="Open ROI tools"
+              detail="Optional · project Export remains primary for PDFs"
             />
             <LiveFeatureCard
               icon={BookMarked}
-              title="Saved Feasibility Studies"
-              description="Store and revisit your feasibility studies. Share with lenders or JV partners."
+              title="Saved studies"
+              description="Revisit saved feasibility snapshots. Share with lenders or JV partners when useful."
               to="/studies"
-              cta="View All Studies"
-              detail="Resume drafts · Share with lenders/JV · Version history"
+              cta="View studies"
+              detail="Deep-link still available · not primary navigation"
             />
           </div>
         </Card>

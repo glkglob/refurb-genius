@@ -24,7 +24,7 @@ export const Route = createFileRoute("/gallery/$slug")({
       { property: "og:title", content: `Featured Refurb Project — Refurb Genius` },
       {
         property: "og:description",
-        content: "Real numbers, real results. Explore this public case study.",
+        content: "Example public gallery project — shared for inspiration on Refurb Genius.",
       },
     ],
   }),

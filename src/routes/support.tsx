@@ -242,11 +242,12 @@ function SupportPage() {
 
                   <div>
                     <h4 className="font-medium text-sm text-foreground">
-                      Can I export deals as PDF reports?
+                      Can I export project reports as PDF?
                     </h4>
                     <p className="mt-1 text-sm text-foreground/80">
-                      This feature is coming soon. For now, you can screenshot analyses or copy data
-                      manually. We're working on PDF export functionality.
+                      Yes. After you generate a project estimate, use the Export stage to download
+                      an investor-ready PDF. PDF export is available for the main Photos → Export
+                      project workflow; not every secondary screen has a separate download.
                     </p>
                   </div>
                 </div>

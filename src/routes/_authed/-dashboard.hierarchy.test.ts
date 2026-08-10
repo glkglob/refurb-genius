@@ -37,4 +37,16 @@ describe("Dashboard product hierarchy (IA-8-VR-R1)", () => {
     expect(newAnalysis).toBeLessThan(createProject);
     expect(createProject).toBeLessThan(postJob);
   });
+
+  it("PH-TRUTH: Studies remain accessible but secondary to the project workflow", () => {
+    expect(SRC).toMatch(/data-testid="dashboard-studies-secondary"/);
+    expect(SRC).toMatch(/Optional · Feasibility snapshots/);
+    expect(SRC).toMatch(/to="\/studies"/);
+    // Not a primary quick-action card
+    expect(SRC).not.toMatch(/label="Saved Studies"/);
+    const projectsIdx = SRC.indexOf('data-testid="dashboard-projects-section"');
+    const studiesIdx = SRC.indexOf('data-testid="dashboard-studies-secondary"');
+    expect(projectsIdx).toBeGreaterThan(-1);
+    expect(studiesIdx).toBeGreaterThan(projectsIdx);
+  });
 });

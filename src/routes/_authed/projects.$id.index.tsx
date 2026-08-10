@@ -41,6 +41,8 @@ import {
   useProjectFiveStageWorkflow,
   buildProjectWorkflowStages,
   explainProjectNextActionReason,
+  formatMoneyPresence,
+  projectOptionalMoneyForDisplay,
   type ProjectWorkflowStageId,
 } from "@/features/projects";
 
@@ -259,26 +261,44 @@ function ProjectDetail() {
         </CardContent>
       </Card>
 
-      {/* Money Summary */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Money label="Purchase price" value={project.purchase_price} />
+      {/* Money Summary — PH-TRUTH CIR-TRUTH-02: unset vs authoritative zero */}
+      <div
+        className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+        data-testid="overview-money-summary"
+      >
+        <Money
+          label="Purchase price"
+          value={projectOptionalMoneyForDisplay(project.purchase_price)}
+        />
         <Money
           label={
-            financials?.refurbBudget ? "Estimated refurb" : "Estimated refurb (placeholder 15% GDV)"
+            financials?.refurbBudget && financials.refurbBudget > 0
+              ? "Estimated refurb"
+              : projectOptionalMoneyForDisplay(project.estimated_gdv) != null
+                ? "Estimated refurb (placeholder 15% GDV)"
+                : "Estimated refurb"
           }
           value={
             financials?.refurbBudget && financials.refurbBudget > 0
               ? financials.refurbBudget
-              : estimatedRefurbCost(project)
+              : projectOptionalMoneyForDisplay(project.estimated_gdv) != null
+                ? estimatedRefurbCost(project)
+                : null
           }
         />
-        <Money label="Estimated GDV" value={project.estimated_gdv} accent />
+        <Money
+          label="Estimated GDV"
+          value={projectOptionalMoneyForDisplay(project.estimated_gdv)}
+          accent
+        />
         <Money
           label="Estimated profit"
           value={
             financials?.refurbBudget && financials.refurbBudget > 0
               ? financials.estimatedProfit
-              : estimatedProfit(project)
+              : projectOptionalMoneyForDisplay(project.estimated_gdv) != null
+                ? estimatedProfit(project)
+                : null
           }
         />
       </div>
@@ -626,13 +646,25 @@ function Detail({
   );
 }
 
-function Money({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+function Money({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number | null | undefined;
+  accent?: boolean;
+}) {
+  const display = formatMoneyPresence(value);
   return (
     <Card>
       <CardContent className="p-5">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-        <p className={`mt-2 text-2xl font-semibold tracking-tight ${accent ? "text-accent" : ""}`}>
-          £{value.toLocaleString()}
+        <p
+          className={`mt-2 text-2xl font-semibold tracking-tight ${accent ? "text-accent" : ""}`}
+          data-money-display={display}
+        >
+          {display}
         </p>
       </CardContent>
     </Card>

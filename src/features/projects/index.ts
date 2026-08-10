@@ -100,4 +100,7 @@ export {
   type ExportSnapshotEvidence,
   type ComposeProjectWorkflowStateInput,
   type WorkflowAuthorityCurrency,
+  MONEY_NOT_SET_LABEL,
+  formatMoneyPresence,
+  projectOptionalMoneyForDisplay,
 } from "./domain";
