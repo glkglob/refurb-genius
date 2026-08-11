@@ -1,0 +1,18 @@
+docs/capacitor-ios.md
+  h_7ea6129503670a 75-77,79,81,91-98,101,104,109,112,116-117,119,179,187,190-191,194,200-201,208,227-229,231-234,236,295-297,301,340,442-443,465,470-472,489,494
+src/server.ios.ts
+  h_7ea6129503670a 1-11
+vite.ios.config.ts
+  h_7ea6129503670a 16-20
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "3c8b4290b36732244fd2ef881ca8f21d9f6207de",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
