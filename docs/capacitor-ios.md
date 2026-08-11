@@ -203,7 +203,7 @@ Rebuild and resync after web/UI changes intended for the native shell. Do **not*
 
 All build and validation steps passed before simulator testing:
 
-```
+```text
 ✅ npm run typecheck          — PASS (TypeScript strict mode)
 ✅ npm run build              — PASS (9.84s, dist/client created)  [historical; superseded by pnpm build:ios for Capacitor]
 ✅ npx tsx scripts/validate-deal-copilot.ts  — PASS (5/11 tests, invariant protected)
@@ -339,26 +339,22 @@ iOS-specific metadata:
 
 Refurb Genius web Production remains Vite + TanStack Start SSR/Nitro (Vercel). Capacitor does **not** use that SSR client tree for packaging. The iOS shell is built with `pnpm build:ios` (TanStack Start SPA mode) into `dist/ios/client/`, then synced into the native project. Runtime data still depends on network APIs; there is no offline-first mobile API boundary yet.
 
-**Development Mode:**
+**Development Mode (bundled SPA shell — current):**
 
+```text
+pnpm build:ios
+        │
+        ↓
+ dist/ios/client/   (prerendered index.html + assets)
+        │
+        ↓  pnpm exec cap sync ios
+ ios/App/App/public/  (bundled Capacitor web assets)
+        │
+        ↓  Xcode / Simulator
+ iOS Simulator loads the local bundle (no server.url)
 ```
-┌─────────────────┐
-│  iOS Simulator  │
-│  (Capacitor)    │
-└────────┬────────┘
-         │ HTTP requests to http://localhost:3000
-         ↓
-    ┌─────────────┐
-    │ Nitro Server│
-    │ (Node.js)   │
-    └────┬────────┘
-         │ SQL queries
-         ↓
-    ┌──────────────┐
-    │  Supabase    │
-    │  (RLS auth)  │
-    └──────────────┘
-```
+
+Do **not** point Capacitor at `http://localhost:3000` or Production via `server.url` for packaging. Rebuild and resync after web/UI changes intended for the native shell.
 
 **Production Mode (Future):**
 
