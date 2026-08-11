@@ -1,0 +1,36 @@
+docs/capacitor-ios.md
+  h_7ea6129503670a 310,313-402
+ios/App/App.xcodeproj/project.pbxproj
+  h_7ea6129503670a 18,32-33,70-71,164,304,327
+ios/App/App/App.entitlements
+  h_7ea6129503670a 1-17
+ios/App/App/Base.lproj/Main.storyboard
+  h_7ea6129503670a 14
+ios/App/App/Info.plist
+  h_7ea6129503670a 50-65
+ios/App/App/WebAuthSessionPlugin.swift
+  h_7ea6129503670a 1-123
+ios/App/CapApp-SPM/Package.swift
+  h_7ea6129503670a 14-16,23-25
+package.json
+  h_7ea6129503670a 72-73
+pnpm-lock.yaml
+  h_7ea6129503670a 23-28,521-524,718-727,741-745,5275,5771-5778,6035-6042,6073-6076
+src/platform/auth/native/auth-return.ts
+  h_7ea6129503670a 1-109
+src/platform/auth/native/web-auth-session.ts
+  h_7ea6129503670a 1-42
+src/routes/__root.tsx
+  h_7ea6129503670a 26,275-292
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b6c7a19badcd27d9afb8bedabd6a7642a7ed1b09",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
