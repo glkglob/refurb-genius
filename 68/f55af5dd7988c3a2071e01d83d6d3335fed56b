@@ -1,0 +1,50 @@
+.env.example
+  h_7ea6129503670a 20,22-25
+src/core/dealCopilot/server/dealAnalysis.adapter.server.ts
+  h_7ea6129503670a 16-20,136-137
+src/core/dealCopilot/server/dealChat.adapter.server.ts
+  h_7ea6129503670a 16
+src/features/ai-design/infrastructure/adapters/ai-redesign.adapter.server.ts
+  h_7ea6129503670a 11-15
+src/features/ai-design/infrastructure/adapters/ai-scope.adapter.server.ts
+  h_7ea6129503670a 16-20
+src/features/ai-upload/infrastructure/adapters/ai-vision.adapter.server.test.ts
+  h_7ea6129503670a 4
+src/features/ai-upload/infrastructure/adapters/ai-vision.adapter.server.ts
+  h_7ea6129503670a 17-21
+src/features/ai-upload/infrastructure/adapters/hf-vision.adapter.server.ts
+  h_7ea6129503670a 25-29
+src/features/estimate/infrastructure/adapters/ai-estimate.adapter.server.ts
+  h_7ea6129503670a 8-12
+src/lib/sentry.ts
+  h_7ea6129503670a 10-13,76-77
+src/platform/sentry/sanitize-server.test.ts
+  h_7ea6129503670a 1-143
+src/platform/sentry/sanitize-server.ts
+  h_7ea6129503670a 1-260
+src/platform/sentry/server-capture.test.ts
+  h_7ea6129503670a 1-126
+src/platform/sentry/server-capture.ts
+  h_7ea6129503670a 1-162
+src/platform/sentry/server.init.test.ts
+  h_7ea6129503670a 1-183
+src/platform/sentry/server.init.ts
+  h_7ea6129503670a 1-171
+src/server.ts
+  h_7ea6129503670a 1-5,84,99
+src/start.ts
+  h_7ea6129503670a 27-33
+tests/invariants/server-only-boundary.invariant.test.ts
+  h_7ea6129503670a 39-45,80-83
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "68f55af5dd7988c3a2071e01d83d6d3335fed56b",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
