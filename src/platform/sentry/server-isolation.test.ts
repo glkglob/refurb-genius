@@ -1,8 +1,16 @@
+// @vitest-environment node
 /**
- * PH-SENTRY-1B2B — concurrent request isolation using real @sentry/node ACS.
+ * PH-SENTRY-1B2B / 1B3A — concurrent request isolation using real @sentry/node ACS.
  *
  * Uses installed SDK (no withIsolationScope mock). Transport is local-only
  * (no network). Proves overlapping isolation scopes do not cross-bleed tags.
+ *
+ * PH-SENTRY-1B3A adds stream-lifetime coverage: Response may return from
+ * withServerSentryIsolation before the body is consumed; async ReadableStream
+ * work must retain its isolation markers across overlapping requests.
+ *
+ * PH-SENTRY-1B3A-R1: must run under Vitest Node (not repository default jsdom)
+ * so @sentry/node ACS / AsyncLocalStorage isolation is the real production path.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -37,6 +45,21 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Deterministic barrier (preferred over sleep-only coordination). */
+function createDeferred<T = void>(): {
+  promise: Promise<T>;
+  resolve: (value: T | PromiseLike<T>) => void;
+  reject: (reason?: unknown) => void;
+} {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 function installCollector(): void {
   Sentry.addEventProcessor((event) => {
     const tags = event.tags as Record<string, string> | undefined;
@@ -50,7 +73,20 @@ function installCollector(): void {
   });
 }
 
+function assertMarkerOnly(events: Captured[], marker: string, label: string): void {
+  expect(events.length, `${label}: expected events`).toBeGreaterThanOrEqual(1);
+  for (const e of events) {
+    expect(e.tags?.iso_marker, `${label}: marker`).toBe(marker);
+    expect(e.extra?.iso_extra, `${label}: extra`).toBe(`extra-${marker}`);
+    expect(e.tags?.iso_marker).not.toBe(marker === "A" ? "B" : "A");
+  }
+}
+
 beforeEach(() => {
+  // PH-SENTRY-1B3A-R1 — fail hard if this suite is not under Vitest Node
+  expect(typeof window).toBe("undefined");
+  expect(process.release.name).toBe("node");
+
   captured.length = 0;
   __resetServerSentryInitForTests();
   vi.stubEnv("NODE_ENV", "production");
@@ -156,6 +192,302 @@ describe("withServerSentryIsolation concurrent ACS", () => {
     }
     for (const e of throwEv) {
       expect(e.tags?.iso_marker).toBe("THROW");
+    }
+  });
+});
+
+/**
+ * PH-SENTRY-1B3A — stream-lifetime isolation.
+ *
+ * Models production: withServerSentryIsolation returns a Response while the
+ * ReadableStream body is still unconsumed. Async stream work must keep the
+ * request's isolation markers when a second request overlaps.
+ *
+ * Synchronization uses deferred barriers (not sleep-only).
+ */
+describe("withServerSentryIsolation stream lifetime ACS", () => {
+  it("retains A markers for post-return stream work while B overlaps (A captures then B; ×10)", async () => {
+    for (let iter = 0; iter < 10; iter++) {
+      captured.length = 0;
+
+      const aIsolationReturned = createDeferred<void>();
+      const bActive = createDeferred<void>();
+      const aStreamCaptured = createDeferred<void>();
+      const bDone = createDeferred<void>();
+
+      let bodyReadStarted = false;
+
+      const aResponsePromise = withServerSentryIsolation(async () => {
+        Sentry.getIsolationScope().setTag("iso_marker", "A");
+        Sentry.getIsolationScope().setExtra("iso_extra", "extra-A");
+
+        const stream = new ReadableStream<Uint8Array>({
+          async start(controller) {
+            // start is scheduled from inside A's isolation scope; work resumes after
+            // the isolation callback has returned and B is active.
+            await aIsolationReturned.promise;
+            await bActive.promise;
+
+            captureServerException(new Error(`err-stream-A-${iter}`), {
+              source: "probe-stream-a",
+            });
+            await Sentry.flush(2000);
+            aStreamCaptured.resolve();
+
+            controller.enqueue(new TextEncoder().encode(`a-${iter}`));
+            controller.close();
+          },
+        });
+
+        // Return Response without consuming body — isolation ends after this return.
+        return new Response(stream, {
+          headers: { "content-type": "text/plain" },
+        });
+      });
+
+      const aResponse = await aResponsePromise;
+      // HARD GATE: isolation callback settled; body not yet read.
+      aIsolationReturned.resolve();
+      expect(aResponse, `iter ${iter}: Response returned`).toBeInstanceOf(Response);
+      expect(bodyReadStarted, `iter ${iter}: body must not be consumed yet`).toBe(false);
+      expect(aResponse.bodyUsed, `iter ${iter}: bodyUsed before consumption`).toBe(false);
+
+      await withServerSentryIsolation(async () => {
+        Sentry.getIsolationScope().setTag("iso_marker", "B");
+        Sentry.getIsolationScope().setExtra("iso_extra", "extra-B");
+        bActive.resolve();
+
+        // A stream work runs while B isolation is still active.
+        await aStreamCaptured.promise;
+
+        captureServerException(new Error(`err-stream-B-${iter}`), {
+          source: "probe-stream-b",
+        });
+        await Sentry.flush(2000);
+        bDone.resolve();
+      });
+
+      await bDone.promise;
+      await Sentry.flush(2000);
+
+      // Consume body only after both captures — proves post-return stream path.
+      bodyReadStarted = true;
+      const text = await aResponse.text();
+      expect(text).toBe(`a-${iter}`);
+      expect(aResponse.bodyUsed).toBe(true);
+
+      const aEvents = captured.filter((e) => e.message?.includes(`err-stream-A-${iter}`));
+      const bEvents = captured.filter((e) => e.message?.includes(`err-stream-B-${iter}`));
+
+      assertMarkerOnly(aEvents, "A", `iter ${iter}: A stream`);
+      assertMarkerOnly(bEvents, "B", `iter ${iter}: B`);
+    }
+  });
+
+  it("retains isolation when B captures first then A stream resumes (reverse timing; ×10)", async () => {
+    for (let iter = 0; iter < 10; iter++) {
+      captured.length = 0;
+
+      const aIsolationReturned = createDeferred<void>();
+      const bEntered = createDeferred<void>();
+      const bCaptured = createDeferred<void>();
+      const aStreamDone = createDeferred<void>();
+
+      let bodyReadStarted = false;
+
+      const aResponsePromise = withServerSentryIsolation(async () => {
+        Sentry.getIsolationScope().setTag("iso_marker", "A");
+        Sentry.getIsolationScope().setExtra("iso_extra", "extra-A");
+
+        const stream = new ReadableStream<Uint8Array>({
+          async start(controller) {
+            await aIsolationReturned.promise;
+            await bEntered.promise;
+            // Reverse: wait until B has already captured, then A captures.
+            await bCaptured.promise;
+
+            captureServerException(new Error(`err-stream-rev-A-${iter}`), {
+              source: "probe-stream-rev-a",
+            });
+            await Sentry.flush(2000);
+            aStreamDone.resolve();
+
+            controller.enqueue(new TextEncoder().encode(`rev-a-${iter}`));
+            controller.close();
+          },
+        });
+
+        return new Response(stream, {
+          headers: { "content-type": "text/plain" },
+        });
+      });
+
+      const aResponse = await aResponsePromise;
+      aIsolationReturned.resolve();
+      expect(aResponse).toBeInstanceOf(Response);
+      expect(bodyReadStarted).toBe(false);
+      expect(aResponse.bodyUsed).toBe(false);
+
+      await withServerSentryIsolation(async () => {
+        Sentry.getIsolationScope().setTag("iso_marker", "B");
+        Sentry.getIsolationScope().setExtra("iso_extra", "extra-B");
+        bEntered.resolve();
+
+        captureServerException(new Error(`err-stream-rev-B-${iter}`), {
+          source: "probe-stream-rev-b",
+        });
+        await Sentry.flush(2000);
+        bCaptured.resolve();
+
+        // Stay inside B until A stream has captured (true overlap).
+        await aStreamDone.promise;
+      });
+
+      await aStreamDone.promise;
+      await Sentry.flush(2000);
+
+      bodyReadStarted = true;
+      await aResponse.text();
+
+      const aEvents = captured.filter((e) => e.message?.includes(`err-stream-rev-A-${iter}`));
+      const bEvents = captured.filter((e) => e.message?.includes(`err-stream-rev-B-${iter}`));
+
+      assertMarkerOnly(aEvents, "A", `iter ${iter}: reverse A stream`);
+      assertMarkerOnly(bEvents, "B", `iter ${iter}: reverse B`);
+    }
+  });
+
+  it("post-stream request C does not inherit A/B markers after stream work ends", async () => {
+    captured.length = 0;
+
+    const aIsolationReturned = createDeferred<void>();
+    const streamDone = createDeferred<void>();
+
+    const aResponse = await withServerSentryIsolation(async () => {
+      Sentry.getIsolationScope().setTag("iso_marker", "A");
+      Sentry.getIsolationScope().setExtra("iso_extra", "extra-A");
+
+      const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          await aIsolationReturned.promise;
+          captureServerException(new Error("err-stream-cleanup-A"), {
+            source: "probe-stream-cleanup-a",
+          });
+          await Sentry.flush(2000);
+          controller.enqueue(new TextEncoder().encode("done"));
+          controller.close();
+          streamDone.resolve();
+        },
+      });
+
+      return new Response(stream);
+    });
+
+    aIsolationReturned.resolve();
+    expect(aResponse.bodyUsed).toBe(false);
+
+    // Overlapping B while A stream still pending.
+    await withServerSentryIsolation(async () => {
+      Sentry.getIsolationScope().setTag("iso_marker", "B");
+      Sentry.getIsolationScope().setExtra("iso_extra", "extra-B");
+      await streamDone.promise;
+      captureServerException(new Error("err-stream-cleanup-B"), {
+        source: "probe-stream-cleanup-b",
+      });
+      await Sentry.flush(2000);
+    });
+
+    await streamDone.promise;
+    await aResponse.text();
+    await Sentry.flush(2000);
+
+    // Fresh request C after A/B stream lifecycle complete.
+    await withServerSentryIsolation(async () => {
+      Sentry.getIsolationScope().setTag("iso_marker", "C");
+      Sentry.getIsolationScope().setExtra("iso_extra", "extra-C");
+      captureServerException(new Error("err-stream-cleanup-C"), {
+        source: "probe-stream-cleanup-c",
+      });
+      await Sentry.flush(2000);
+    });
+
+    await Sentry.flush(2000);
+
+    const aEvents = captured.filter((e) => e.message?.includes("err-stream-cleanup-A"));
+    const bEvents = captured.filter((e) => e.message?.includes("err-stream-cleanup-B"));
+    const cEvents = captured.filter((e) => e.message?.includes("err-stream-cleanup-C"));
+
+    assertMarkerOnly(aEvents, "A", "cleanup A");
+    assertMarkerOnly(bEvents, "B", "cleanup B");
+    expect(cEvents.length).toBeGreaterThanOrEqual(1);
+    for (const e of cEvents) {
+      expect(e.tags?.iso_marker).toBe("C");
+      expect(e.extra?.iso_extra).toBe("extra-C");
+      expect(e.tags?.iso_marker).not.toBe("A");
+      expect(e.tags?.iso_marker).not.toBe("B");
+    }
+  });
+
+  it("stream start rejection does not leak markers into a later request", async () => {
+    captured.length = 0;
+
+    const aIsolationReturned = createDeferred<void>();
+    const streamSettled = createDeferred<void>();
+
+    const aResponse = await withServerSentryIsolation(async () => {
+      Sentry.getIsolationScope().setTag("iso_marker", "A");
+      Sentry.getIsolationScope().setExtra("iso_extra", "extra-A");
+
+      const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          await aIsolationReturned.promise;
+          try {
+            captureServerException(new Error("err-stream-throw-A"), {
+              source: "probe-stream-throw-a",
+            });
+            await Sentry.flush(2000);
+            controller.error(new Error("stream-fail"));
+          } finally {
+            streamSettled.resolve();
+          }
+        },
+      });
+
+      return new Response(stream);
+    });
+
+    aIsolationReturned.resolve();
+    expect(aResponse.bodyUsed).toBe(false);
+
+    await streamSettled.promise;
+    // Consume path may reject; isolation of later request is what matters.
+    try {
+      await aResponse.text();
+    } catch {
+      // expected stream error path
+    }
+    await Sentry.flush(2000);
+
+    await withServerSentryIsolation(async () => {
+      Sentry.getIsolationScope().setTag("iso_marker", "C");
+      Sentry.getIsolationScope().setExtra("iso_extra", "extra-C");
+      captureServerException(new Error("err-stream-throw-C"), {
+        source: "probe-stream-throw-c",
+      });
+      await Sentry.flush(2000);
+    });
+
+    await Sentry.flush(2000);
+
+    const aEvents = captured.filter((e) => e.message?.includes("err-stream-throw-A"));
+    const cEvents = captured.filter((e) => e.message?.includes("err-stream-throw-C"));
+
+    assertMarkerOnly(aEvents, "A", "throw-path A");
+    expect(cEvents.length).toBeGreaterThanOrEqual(1);
+    for (const e of cEvents) {
+      expect(e.tags?.iso_marker).toBe("C");
+      expect(e.extra?.iso_extra).toBe("extra-C");
+      expect(e.tags?.iso_marker).not.toBe("A");
     }
   });
 });
