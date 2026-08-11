@@ -1,7 +1,7 @@
 /**
  * PH-SENTRY-1B1 — server Sentry init gate contracts.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@tanstack/react-start/server-only", () => ({}));
 
@@ -14,6 +14,7 @@ vi.mock("@sentry/node", () => ({
   captureException: vi.fn(),
   addBreadcrumb: vi.fn(),
   setConversationId: vi.fn(),
+  withIsolationScope: vi.fn(async (cb: (scope: unknown) => unknown) => cb({})),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -29,6 +30,18 @@ import {
   isServerSentryInitialized,
   isServerSentryProductionRuntime,
 } from "@/platform/sentry/server.init";
+
+/**
+ * PH-SENTRY-1B2B — import-time initServerSentry() runs before the first test
+ * (side-effect at bottom of server.init.ts). Reset bookkeeping before each
+ * test so gate/init assertions are order-independent.
+ */
+beforeEach(() => {
+  __resetServerSentryInitForTests();
+  init.mockReset();
+  requestDataIntegration.mockClear();
+  vi.unstubAllEnvs();
+});
 
 afterEach(() => {
   __resetServerSentryInitForTests();

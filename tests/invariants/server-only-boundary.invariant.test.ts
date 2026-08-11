@@ -2,6 +2,11 @@
  * Prevents server-only modules from being statically imported into client-
  * reachable source. Dynamic import() inside createServerFn handlers is allowed
  * (see serverFns/* and feature presentation serverFns).
+ *
+ * PH-SENTRY-1B2B: also forbids client-surface dynamic import()/require() of
+ * Node Sentry ownership modules (@sentry/node, server.init, server-capture).
+ * The legitimate dual-surface Start server callback in src/start.ts remains
+ * allowed for dynamic server-capture only.
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -83,6 +88,42 @@ const FORBIDDEN_STATIC_MODULES = [
   /from\s+['"]@sentry\/node['"]/,
 ];
 
+/** Specifiers that must never enter client surfaces via static OR dynamic import. */
+const FORBIDDEN_SENTRY_NODE_SPECIFIERS = [
+  "@sentry/node",
+  "@/platform/sentry/server.init",
+  "@/platform/sentry/server-capture",
+];
+
+/**
+ * Dynamic import("…") or import('…') of a forbidden Sentry/server module.
+ * Matches: import("@sentry/node"), await import('@/platform/sentry/server-capture')
+ */
+const DYNAMIC_IMPORT_RE = /\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+
+/** CommonJS require("…") of forbidden modules. */
+const REQUIRE_RE = /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+
+function isForbiddenSentryNodeSpecifier(spec: string): boolean {
+  const normalized = spec.replace(/\\/g, "/");
+  return FORBIDDEN_SENTRY_NODE_SPECIFIERS.some(
+    (f) => normalized === f || normalized.endsWith(`/${f.replace(/^@\//, "")}`),
+  );
+}
+
+/**
+ * Dual-surface Start entry: server middleware may dynamically import
+ * server-capture. Static @sentry/node / server-capture / server.init imports
+ * remain forbidden. Dynamic @sentry/node and server.init remain forbidden.
+ */
+function isAllowedStartServerCaptureDynamic(path: string, specifier: string): boolean {
+  if (path !== "src/start.ts") return false;
+  return (
+    specifier === "@/platform/sentry/server-capture" ||
+    specifier.endsWith("/platform/sentry/server-capture")
+  );
+}
+
 const FORBIDDEN_CLIENT_SECRET_NAMES = [
   "VITE_SUPABASE_SERVICE_ROLE_KEY",
   "VITE_OPENAI_API_KEY",
@@ -125,6 +166,71 @@ test("server-only boundary — client surfaces do not statically import *.server
       `Use dynamic import() inside createServerFn handlers instead.\n` +
       violations.join("\n"),
   );
+});
+
+test("server-only boundary — client surfaces do not dynamic-import Node Sentry ownership", () => {
+  const violations: string[] = [];
+
+  for (const file of SRC_AND_PKGS) {
+    const path = rel(file);
+    // Server contexts may load Node Sentry; client surfaces must not.
+    if (isServerContext(path)) continue;
+    if (!isClientSurface(path) && path !== "src/start.ts") continue;
+
+    const source = readFileSync(file, "utf8");
+    const stripped = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+
+    for (const match of stripped.matchAll(DYNAMIC_IMPORT_RE)) {
+      const spec = match[1] ?? "";
+      if (!isForbiddenSentryNodeSpecifier(spec)) continue;
+      if (isAllowedStartServerCaptureDynamic(path, spec)) continue;
+      violations.push(`${path}: dynamic import("${spec}")`);
+    }
+
+    for (const match of stripped.matchAll(REQUIRE_RE)) {
+      const spec = match[1] ?? "";
+      if (!isForbiddenSentryNodeSpecifier(spec)) continue;
+      violations.push(`${path}: require("${spec}")`);
+    }
+  }
+
+  assert.deepEqual(
+    violations,
+    [],
+    `Client-reachable files must not dynamic-import or require Node Sentry modules.\n` +
+      `Allowed: src/start.ts server-callback dynamic import of @/platform/sentry/server-capture only.\n` +
+      violations.join("\n"),
+  );
+});
+
+test("server-only boundary — src/start.ts dual-surface Sentry contract", () => {
+  const startPath = join(ROOT, "src/start.ts");
+  assert.ok(existsSync(startPath), "src/start.ts must exist");
+  const source = readFileSync(startPath, "utf8");
+  const stripped = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+
+  // Must not statically pull Node Sentry
+  assert.doesNotMatch(stripped, /from\s+['"]@sentry\/node['"]/);
+  assert.doesNotMatch(stripped, /from\s+['"]@\/platform\/sentry\/server-capture['"]/);
+  assert.doesNotMatch(stripped, /from\s+['"]@\/platform\/sentry\/server\.init['"]/);
+
+  // Must retain the server-callback dynamic import of server-capture (1B1 path)
+  assert.match(
+    stripped,
+    /import\s*\(\s*['"]@\/platform\/sentry\/server-capture['"]\s*\)/,
+    "src/start.ts must dynamically import server-capture inside server middleware",
+  );
+
+  // Must not dynamically import raw @sentry/node or server.init
+  for (const match of stripped.matchAll(DYNAMIC_IMPORT_RE)) {
+    const spec = match[1] ?? "";
+    assert.notEqual(spec, "@sentry/node", "src/start.ts must not dynamic-import @sentry/node");
+    assert.notEqual(
+      spec,
+      "@/platform/sentry/server.init",
+      "src/start.ts must not dynamic-import server.init",
+    );
+  }
 });
 
 test("server-only boundary — createServerFn modules use dynamic import for *.server", () => {
