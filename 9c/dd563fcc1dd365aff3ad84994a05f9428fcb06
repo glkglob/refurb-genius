@@ -1,0 +1,18 @@
+supabase/migrations/20260811062000_fix_is_admin_public_role_select_policies.sql
+  h_7ea6129503670a 1-204
+supabase/tests/database/is_admin_public_role_select_policies.test.sql
+  h_7ea6129503670a 1-469
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "9cdd563fcc1dd365aff3ad84994a05f9428fcb06",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
