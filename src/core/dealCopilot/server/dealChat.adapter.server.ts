@@ -13,7 +13,7 @@ import "@tanstack/react-start/server-only";
 
 import { getOpenAIClient } from "@/platform/openai/server";
 import { logger } from "@/lib/logger";
-import { captureAiError, addDiagnosticBreadcrumb } from "@/lib/sentry";
+import { captureAiError, addDiagnosticBreadcrumb } from "@/platform/sentry/server-capture";
 import { timeoutPromise } from "@/lib/timeout";
 
 const CHAT_TIMEOUT_MS = 45_000;

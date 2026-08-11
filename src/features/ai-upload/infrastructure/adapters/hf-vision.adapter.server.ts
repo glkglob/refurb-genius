@@ -22,7 +22,11 @@ import type {
 } from "../../domain";
 import { buildMockRoomAnalyses, noSourcePhotosError } from "../../domain";
 import { safeParseRoomAnalysis } from "../../domain/validation";
-import { captureAiError, addDiagnosticBreadcrumb, setConversationId } from "@/lib/sentry";
+import {
+  captureAiError,
+  addDiagnosticBreadcrumb,
+  setConversationId,
+} from "@/platform/sentry/server-capture";
 import {
   getHuggingFaceConfig,
   hfVisionChatCompletion,

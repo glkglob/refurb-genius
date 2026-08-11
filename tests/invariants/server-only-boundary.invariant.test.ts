@@ -36,6 +36,13 @@ function isServerContext(path: string): boolean {
   // Platform server entrypoints
   if (path === "src/platform/server.ts") return true;
   if (path.startsWith("src/platform/") && /\/server\.ts$/.test(path)) return true;
+  // PH-SENTRY-1B1 Node Sentry ownership modules
+  if (
+    path === "src/platform/sentry/server.init.ts" ||
+    path === "src/platform/sentry/server-capture.ts"
+  ) {
+    return true;
+  }
   // Node scripts / edge functions (not browser)
   if (path.startsWith("scripts/")) return true;
   if (path.startsWith("supabase/functions/")) return true;
@@ -70,6 +77,10 @@ const FORBIDDEN_STATIC_MODULES = [
   /from\s+['"]@\/platform\/huggingface\/server['"]/,
   /from\s+['"]@\/platform\/posthog\/server['"]/,
   /from\s+['"]@\/platform\/posthog\/otel\.server['"]/,
+  // PH-SENTRY-1B1: Node Sentry ownership must not enter client surfaces
+  /from\s+['"]@\/platform\/sentry\/server\.init['"]/,
+  /from\s+['"]@\/platform\/sentry\/server-capture['"]/,
+  /from\s+['"]@sentry\/node['"]/,
 ];
 
 const FORBIDDEN_CLIENT_SECRET_NAMES = [

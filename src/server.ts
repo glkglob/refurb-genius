@@ -1,3 +1,8 @@
+// PH-SENTRY-1B1: Node Sentry must load first so init runs before PostHog OTEL
+// and other server side-effects (ESM evaluates imports before body statements).
+import { captureServerException } from "@/platform/sentry/server-capture";
+// server-capture → server.init side-effect init (production + SENTRY_DSN only)
+
 import "@/platform/posthog/otel.server";
 import "./lib/error-capture";
 
@@ -76,6 +81,7 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
   }
 
   const err = consumeLastCapturedError() ?? new Error(`h3 swallowed SSR error: ${body}`);
+  captureServerException(err, { source: "ssr-catastrophic" });
   logger.error("h3 swallowed SSR error", {
     error: String(err),
     stack: err instanceof Error ? err.stack : undefined,
@@ -90,6 +96,7 @@ export default {
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
+      captureServerException(error, { source: "server-fetch" });
       logger.error("Server fetch error", {
         error: String(error),
         stack: error instanceof Error ? error.stack : undefined,
