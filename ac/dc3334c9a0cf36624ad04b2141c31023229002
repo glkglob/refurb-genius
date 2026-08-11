@@ -1,0 +1,28 @@
+src/platform/sentry/sanitize-server.test.ts
+  h_7ea6129503670a 114-162
+src/platform/sentry/sanitize-server.ts
+  h_7ea6129503670a 73-83,111-116,157-160
+src/platform/sentry/server-capture.test.ts
+  h_7ea6129503670a 4,12,20-21,32,39,51-60,67,143-185
+src/platform/sentry/server-capture.ts
+  h_7ea6129503670a 2,6-8,34-61
+src/platform/sentry/server-isolation.test.ts
+  h_7ea6129503670a 1-161
+src/platform/sentry/server.init.test.ts
+  h_7ea6129503670a 4,17,34-45
+src/server.ts
+  h_7ea6129503670a 3-6,8,98-112
+tests/invariants/server-only-boundary.invariant.test.ts
+  h_7ea6129503670a 5-9,91-126,171-235
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "acdc3334c9a0cf36624ad04b2141c31023229002",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
