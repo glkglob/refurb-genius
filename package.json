@@ -8,6 +8,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "build:vercel": "NODE_OPTIONS=--max-old-space-size=4096 vite build --config vite.vercel.config.ts",
+    "build:ios": "vite build --config vite.ios.config.ts",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
