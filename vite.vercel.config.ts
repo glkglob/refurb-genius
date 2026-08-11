@@ -25,7 +25,9 @@ export default defineConfig({
   plugins: [
     tanstackStart({
       server: {
-        entry: "./src/server.ts",
+        // Resolved relative to srcDirectory (default "src"), not repo root.
+        // "./src/server.ts" would silently fall back to the package default entry.
+        entry: "./server.ts",
       },
       // Tests under src/routes must never be candidate production routes.
       // Prefer also prefixing with "-" (routeFileIgnorePrefix default); this
