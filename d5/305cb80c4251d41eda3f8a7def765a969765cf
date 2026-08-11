@@ -1,0 +1,26 @@
+.grok/rules/orchestration.md
+  h_7ea6129503670a 71-80,84-98
+.grok/skills/refurb-phase/SKILL.md
+  h_7ea6129503670a 9-10,34-35,62-73,170-189
+AGENTS.md
+  h_7ea6129503670a 43-82
+CLAUDE.md
+  h_7ea6129503670a 10-15
+docs/operations/beta-operations-playbook.md
+  h_7ea6129503670a 13-18,295-317
+docs/operations/database-delivery-model-b.md
+  h_7ea6129503670a 1-381
+docs/operations/grok-build-prompt-standard.md
+  h_7ea6129503670a 161-171,175-204,211-220
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "d5305cb80c4251d41eda3f8a7def765a969765cf",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
