@@ -1,4 +1,4 @@
-import { createStart, createMiddleware } from "@tanstack/react-start";
+import { createStart, createMiddleware, createCsrfMiddleware } from "@tanstack/react-start";
 
 import { renderErrorPage } from "./lib/error-page";
 import { logger } from "./lib/logger";
@@ -16,6 +16,21 @@ if (typeof window !== "undefined") {
     logger.warn("[env] Client env validation warning", { error: String(e) });
   }
 }
+
+/**
+ * TanStack Start CSRF protection for server functions.
+ *
+ * Custom `src/start.ts` disables automatic CSRF middleware installation.
+ * Restore the framework default: same-origin only, serverFn handlers only.
+ * Keep defaults strict — no origin widening, no missing-metadata bypass,
+ * no mobile WebView exceptions.
+ *
+ * Must run before errorMiddleware so CSRF rejections short-circuit as 403
+ * without being reclassified as uncaught 500s.
+ */
+const csrfMiddleware = createCsrfMiddleware({
+  filter: (ctx) => ctx.handlerType === "serverFn",
+});
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
@@ -43,5 +58,5 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
 });
 
 export const startInstance = createStart(() => ({
-  requestMiddleware: [errorMiddleware],
+  requestMiddleware: [csrfMiddleware, errorMiddleware],
 }));
