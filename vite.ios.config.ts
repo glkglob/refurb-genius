@@ -13,8 +13,11 @@ export default defineConfig({
     tanstackStart({
       server: {
         // Resolved relative to srcDirectory (default "src"), not repo root.
-        // "./src/server.ts" would silently fall back to the package default entry.
-        entry: "./server.ts",
+        // Dedicated iOS entry — does NOT use Production src/server.ts (no
+        // validateServerEnv / OPENAI_API_KEY / Sentry·PostHog server bootstrap).
+        // Omitting entry would still auto-discover src/server.ts via TanStack
+        // defaultEntry "server"; must point at ./server.ios.ts explicitly.
+        entry: "./server.ios.ts",
       },
       // Tests under src/routes must never be candidate production routes.
       router: {

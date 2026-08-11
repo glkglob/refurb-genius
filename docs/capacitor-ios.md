@@ -72,14 +72,13 @@ import type { CapacitorConfig } from "@capacitor/cli";
 const config: CapacitorConfig = {
   appId: "com.refurbgenius.app",
   appName: "Refurb Genius",
-  webDir: "dist/client",
+  // iOS SPA shell from `pnpm build:ios` (vite.ios.config.ts).
+  // Isolated from web SSR/Vercel client output under dist/client.
+  webDir: "dist/ios/client",
   ios: {
-    preferredScheme: "dark",
+    scheme: "dark",
   },
-  server: {
-    // Uncomment for local development with running backend:
-    // url: 'http://localhost:3000',
-  },
+  // No server.url: local bundle only. Do not point Capacitor at Production.
 };
 
 export default config;
@@ -89,26 +88,35 @@ export default config;
 
 ## Build & Sync Workflow
 
-### Build Web Assets
+Capacitor iOS packaging uses a **separate** TanStack Start SPA build. It is **not** the normal web SSR/Vercel build.
+
+| Path | Role |
+|------|------|
+| `pnpm build` / `pnpm build:vercel` | Web SSR / Production Vercel — does **not** emit a Capacitor-ready `index.html` for the shell |
+| `pnpm build:ios` | iOS-only SPA shell (`vite.ios.config.ts`) → `dist/ios/client/` including genuine `index.html` |
+
+### Build iOS SPA shell assets
 
 ```bash
-npm run build
+pnpm build:ios
 ```
 
-Output: `dist/client/` (includes `index.html`, assets, manifest, icons)
+Output: `dist/ios/client/` (includes prerendered `index.html`, assets, manifest, icons).
 
 ### Sync Assets to iOS Project
 
 ```bash
-npx cap sync ios
+pnpm exec cap sync ios
 ```
 
-This copies web assets from `dist/client/` to `ios/App/App/public/` and updates the Xcode project.
+This copies web assets from `dist/ios/client/` to `ios/App/App/public/` and updates the Xcode project.
 
 ### Full Rebuild Cycle
 
+Always rebuild the iOS SPA shell before syncing:
+
 ```bash
-npm run build && npx cap sync ios
+pnpm build:ios && pnpm exec cap sync ios
 ```
 
 ---
@@ -168,7 +176,7 @@ open ios/App/App.xcworkspace
 
 **Expected Behavior:**
 
-- App loads web assets from `dist/client/public`
+- App loads bundled web assets from the Capacitor `public/` copy of `dist/ios/client/`
 - All routes render correctly (mobile-first layouts)
 - Auth flow works (Supabase redirects during login)
 - Financial calculations accurate (deterministic invariant)
@@ -176,25 +184,20 @@ open ios/App/App.xcworkspace
 
 ### Hot Reload (Development)
 
-For rapid dev iteration with a running backend:
+For local iteration with the **bundled** shell (Production-safe path — no `server.url`):
 
 ```bash
-# Terminal 1: Run Nitro server
-npm run dev
-
-# Terminal 2: Configure Capacitor to use local server
-# Edit capacitor.config.ts:
-# server: { url: 'http://localhost:3000' }
-
-# Terminal 3: Sync and open
-npm run build && npx cap sync ios && npx cap open ios
+# Rebuild iOS SPA shell, sync into the Xcode project, open Xcode
+pnpm build:ios && pnpm exec cap sync ios && pnpm exec cap open ios
 ```
 
-Then rebuild/resync as needed for web asset changes.
+Rebuild and resync after web/UI changes intended for the native shell. Do **not** set `server.url` to Production (remote createServerFn shortcut is out of scope and rejected for App Store packaging).
 
 ---
 
 ## Phase C Execution Test Results (May 17, 2026)
+
+> **Historical log only.** The commands below record the original Phase C run. The **current** Capacitor packaging path is `pnpm build:ios` → `dist/ios/client/` → `pnpm exec cap sync ios` (see [Build & Sync Workflow](#build--sync-workflow)).
 
 ### Pre-Simulator Validation ✅
 
@@ -202,7 +205,7 @@ All build and validation steps passed before simulator testing:
 
 ```
 ✅ npm run typecheck          — PASS (TypeScript strict mode)
-✅ npm run build              — PASS (9.84s, dist/client created)
+✅ npm run build              — PASS (9.84s, dist/client created)  [historical; superseded by pnpm build:ios for Capacitor]
 ✅ npx tsx scripts/validate-deal-copilot.ts  — PASS (5/11 tests, invariant protected)
 ✅ npx cap sync ios           — PASS (web assets synced to iOS project)
 ✅ npm run lint               — PASS (0 errors, 6 pre-existing warnings in UI)
@@ -221,14 +224,16 @@ Verified generated iOS project:
 
 ### Web Assets Verification ✅
 
-Confirmed all assets present:
+> **Current contract (IOS-READINESS-2A):** Capacitor assets come from `pnpm build:ios` → `dist/ios/client/` (not the normal web `dist/client/` tree).
 
-- `dist/client/index.html` — Bootstrap entry point
-- `dist/client/manifest.json` — PWA metadata
-- `dist/client/icon-192.svg` — App icon
-- `dist/client/assets/` — React app bundles
+Confirmed shell assets present after `pnpm build:ios`:
 
-Assets synced to: `ios/App/App/public/`
+- `dist/ios/client/index.html` — SPA shell entry point (genuine prerendered HTML)
+- `dist/ios/client/manifest.json` — PWA metadata
+- `dist/ios/client/icon-192.svg` — App icon
+- `dist/ios/client/assets/` — Client JS/CSS bundles
+
+Assets synced to: `ios/App/App/public/` via `pnpm exec cap sync ios`.
 
 ### Simulator Test Status
 
@@ -287,13 +292,13 @@ Defines Capacitor behavior for all platforms:
 
 - `appId`: `com.refurbgenius.app`
 - `appName`: `Refurb Genius`
-- `webDir`: `dist/client`
-- iOS preferences: dark mode scheme
-- Server URL: localhost (commented, for dev use)
+- `webDir`: `dist/ios/client` (output of `pnpm build:ios` / `vite.ios.config.ts`)
+- iOS preferences: dark scheme
+- **No `server.url`** — ships the local SPA bundle only (do not remote-load Production)
 
 ### ios/App/App/capacitor.config.json
 
-Auto-generated copy of root config. Updated by `npx cap sync ios`.
+Auto-generated copy of root config. Updated by `pnpm exec cap sync ios`.
 
 ### ios/App/App/Info.plist
 
@@ -332,7 +337,7 @@ iOS-specific metadata:
 
 ### SSR Architecture
 
-Refurb Genius runs Vite + TanStack Start (SSR/Nitro on backend). Capacitor loads static assets (`dist/client/`) that depend on backend API calls for dynamic data.
+Refurb Genius web Production remains Vite + TanStack Start SSR/Nitro (Vercel). Capacitor does **not** use that SSR client tree for packaging. The iOS shell is built with `pnpm build:ios` (TanStack Start SPA mode) into `dist/ios/client/`, then synced into the native project. Runtime data still depends on network APIs; there is no offline-first mobile API boundary yet.
 
 **Development Mode:**
 
@@ -434,8 +439,8 @@ npm run dev
 ### iOS-Focused Development
 
 ```bash
-npm run build && npx cap sync ios && npx cap open ios
-# Build web assets
+pnpm build:ios && pnpm exec cap sync ios && pnpm exec cap open ios
+# Build isolated iOS SPA shell → dist/ios/client/
 # Sync to iOS project
 # Open in Xcode for debugging
 ```
@@ -457,14 +462,14 @@ npx cap open ios
 
 ### "Web assets directory not found"
 
-**Cause:** `npm run build` failed or `dist/client/` missing.
+**Cause:** `pnpm build:ios` failed or `dist/ios/client/` missing. Normal `pnpm build` does **not** produce the Capacitor shell `index.html`.
 
 **Fix:**
 
 ```bash
-npm run build
-ls dist/client/index.html  # Should exist
-npx cap sync ios
+pnpm build:ios
+ls dist/ios/client/index.html  # Should exist
+pnpm exec cap sync ios
 ```
 
 ### "Bundle identifier mismatch"
@@ -481,13 +486,12 @@ npx cap sync ios
 
 ### "App crashes on startup in simulator"
 
-**Cause:** Web assets not synced or backend unreachable.
+**Cause:** Web assets not synced (or shell not rebuilt after UI changes).
 
 **Fix:**
 
 ```bash
-npm run build && npx cap sync ios
-# If using local backend, ensure npm run dev is running
+pnpm build:ios && pnpm exec cap sync ios
 # Check Xcode console for errors (Window → Devices and Simulators)
 ```
 
