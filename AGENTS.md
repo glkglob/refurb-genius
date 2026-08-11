@@ -40,7 +40,46 @@ IA-5 (Full Five-Stage Continuity) is **Completed** on main (PR #117; verified im
 
 IA-6 (Dashboard + Overview Continuation) is **Completed** on main (PR #119; verified head `02e802ccc837ad26b63d65e82582ea84c9fa05c6`; merge `2d83375209e266e5953e0edd71de3e8b16a92574`; no migrations). Dashboard and Overview consume canonical five-stage workflow + resolver; legacy progress flags are non-authoritative on those surfaces; transient running state is project-scoped and non-authoritative.
 
-IA-7 (Global Navigation Convergence) is **Planned / Next** and **MUST NOT** begin until explicitly authorised.
+IA-7 (Global Navigation Convergence) is **Completed** on main.
+
+IA-8 is **Completed** on main.
+
+**Programme status (current):**
+
+```text
+IA-0 through IA-8 = COMPLETE
+
+IA-9 = PLANNED / NOT AUTHORISED
+
+IA-10 = PLANNED / NOT AUTHORISED
+
+Current programme mode =
+CONTROLLED PUBLIC BETA + OBSERVATION
+```
+
+Do **not** begin IA-9 or IA-10 without fresh explicit owner authority.
+
+---
+
+## Production Database Delivery — Model B
+
+Canonical runbook: `docs/operations/database-delivery-model-b.md` (**IN FORCE**).
+
+```text
+Supabase GitHub Integration:
+  Deploy to production = OFF   (must remain OFF under Model B)
+  Automatic branching  = ON    (PR Preview rehearsal)
+
+MERGE TO MAIN
+≠
+PRODUCTION DATABASE APPLY
+```
+
+- A repository merge does **not** authorise or apply Production database migrations.
+- **DB-MIGRATION PRs** (changes under `supabase/migrations/**`) require the Model B pre-merge gate in the runbook.
+- Production DB apply is a **distinct** owner-authorised phase (`db-release` or equivalent) after merge and merged-main verification.
+- Production project hard gate: `sxhzjmzfkgbogmlsbeju`. Preview refs never support Production claims.
+- Applied migration history is immutable; rollback is normally a **forward repair** migration.
 
 ---
 

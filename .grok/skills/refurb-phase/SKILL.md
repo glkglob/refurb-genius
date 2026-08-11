@@ -6,8 +6,8 @@ description: >
   GOAL, MUST_PROVE, VALIDATION, DEFER, STOP_AFTER) and executes only that phase
   under AGENTS.md + .grok/rules/orchestration.md. Use for audit, planning,
   implementation, repair, independent-verification, commit, commit-push-ci,
-  merge-production; when the user runs /refurb-phase; or when a phase capsule
-  is supplied for Refurb Genius programme work.
+  merge-production, db-release; when the user runs /refurb-phase; or when a
+  phase capsule is supplied for Refurb Genius programme work.
 ---
 
 # refurb-phase — Governed Phase Orchestrator
@@ -31,7 +31,8 @@ Parse (required fields in bold when mutation or remote mutation is intended):
 ```text
 PHASE          # name / id
 MODE           # audit | planning | implementation | repair |
-               # independent-verification | commit | commit-push-ci | merge-production
+               # independent-verification | commit | commit-push-ci |
+               # merge-production | db-release
 AUTHORITY      # what is authorised; what is not
 BASE           # base SHA / ref
 CANDIDATE      # candidate SHA when fixed
@@ -58,17 +59,18 @@ Missing critical fields for the MODE: ask only for what blocks safe execution, o
 
 Select the **minimum useful** agents. Do not spawn to fill a template.
 
-| MODE                                   | Default topology                                                           |
-| -------------------------------------- | -------------------------------------------------------------------------- |
-| simple / deterministic within any MODE | parent only                                                                |
-| audit                                  | 1–2 read-only agents; parent synthesizes                                   |
-| planning                               | 1–2 read-only agents; **no mutation**                                      |
-| implementation                         | optional read-only discovery → **one** mutator → fresh reviewer            |
-| repair                                 | one bounded mutation path → one reviewer                                   |
-| independent-verification               | up to two independent read-only reviewers + parent probes                  |
-| commit                                 | parent (scope, safety gates, commit if authorised)                         |
-| commit-push-ci                         | parent; exact-head CI reconfirm after push                                 |
-| merge-production                       | parallel read-only evidence; parent serializes merge; fresh final reviewer |
+| MODE                                   | Default topology                                                                                     |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| simple / deterministic within any MODE | parent only                                                                                          |
+| audit                                  | 1–2 read-only agents; parent synthesizes                                                             |
+| planning                               | 1–2 read-only agents; **no mutation**                                                                |
+| implementation                         | optional read-only discovery → **one** mutator → fresh reviewer                                      |
+| repair                                 | one bounded mutation path → one reviewer                                                             |
+| independent-verification               | up to two independent read-only reviewers + parent probes                                            |
+| commit                                 | parent (scope, safety gates, commit if authorised)                                                   |
+| commit-push-ci                         | parent; exact-head CI reconfirm after push                                                           |
+| merge-production                       | parallel read-only evidence; parent serializes merge; fresh final reviewer                           |
+| db-release                             | parent serializes Production DB release; read-only evidence may parallelise; **one** DB mutator only |
 
 Rules:
 
@@ -164,6 +166,26 @@ Verify candidate + allowlist + still-valid evidence. Stage only allowlist. Commi
 ### merge-production
 
 Pre-merge: PR identity, candidate SHA, scope, exact-head green, base advancement class. Parent merges with repo-normal strategy. Verify remote main ancestry, production revision contains merge/candidate, smoke health. Residuals stay explicit. No auto next phase.
+
+Under **Model B** (`docs/operations/database-delivery-model-b.md`): merge-production does **not** apply Production database migrations unless a separate explicit DB-apply authority is stated. Default after a DB-MIGRATION PR merge: **STOP**, then a distinct `db-release` phase.
+
+### db-release
+
+Explicit Production database release after merge (Model B).
+
+- Confirm Model B authority and that Supabase Deploy to production remains OFF.
+- Lock merged main SHA.
+- Confirm linked Production project (`sxhzjmzfkgbogmlsbeju`).
+- Inspect migration history (repo vs Production).
+- Run dry-run; require exact authorised pending set.
+- Require explicit Production-apply owner authority (distinct from merge authority).
+- Apply once (`supabase db push --linked` or authorised equivalent).
+- Verify history and zero pending on re-dry-run.
+- Run focused security/runtime probes.
+- Never merge/source-edit in db-release mode unless separately authorised.
+- Never remote reset / rewrite applied history / routine migration repair.
+- Rollback = forward repair migration.
+- STOP after report.
 
 ## STOP
 
