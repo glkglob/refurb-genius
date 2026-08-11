@@ -1,0 +1,18 @@
+capacitor.config.ts
+  h_7ea6129503670a 6-8,12-13
+package.json
+  h_7ea6129503670a 11
+vite.ios.config.ts
+  h_7ea6129503670a 1-50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "d877aacb79c6cdeef0118c11c7d67b59757211fc",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
