@@ -158,18 +158,49 @@ Invoke the project skill when useful (see §12 for verified invocation).
 
 ## 5. Supported MODE values
 
-| MODE                       | Intent                      | Mutation        | Typical stop                       |
-| -------------------------- | --------------------------- | --------------- | ---------------------------------- |
-| `audit`                    | Fact-finding                | No              | Audit report                       |
-| `planning`                 | Plan / options              | No              | Plan ready                         |
-| `implementation`           | Build allowlisted change    | Yes (allowlist) | Code + validation; often no commit |
-| `repair`                   | Bounded defect fix          | Yes (narrow)    | Fix + review                       |
-| `independent-verification` | Adversarial re-proof        | No              | PASS / FAIL / BLOCKED              |
-| `commit`                   | Create commit only          | Git only        | Commit SHA recorded                |
-| `commit-push-ci`           | Commit, push, exact-head CI | Git + remote    | CI green on exact head             |
-| `merge-production`         | Merge + prove prod          | Merge only      | Prod verified; phase closed        |
+| MODE                       | Intent                                   | Mutation                                    | Typical stop                                                  |
+| -------------------------- | ---------------------------------------- | ------------------------------------------- | ------------------------------------------------------------- |
+| `audit`                    | Fact-finding                             | No                                          | Audit report                                                  |
+| `planning`                 | Plan / options                           | No                                          | Plan ready                                                    |
+| `implementation`           | Build allowlisted change                 | Yes (allowlist)                             | Code + validation; often no commit                            |
+| `repair`                   | Bounded defect fix                       | Yes (narrow)                                | Fix + review                                                  |
+| `independent-verification` | Adversarial re-proof                     | No                                          | PASS / FAIL / BLOCKED                                         |
+| `commit`                   | Create commit only                       | Git only                                    | Commit SHA recorded                                           |
+| `commit-push-ci`           | Commit, push, exact-head CI              | Git + remote                                | CI green on exact head                                        |
+| `merge-production`         | Merge + prove app prod                   | Merge only                                  | Prod app verified; phase closed                               |
+| `db-release`               | Explicit Production DB apply after merge | Production DB only (authorised pending set) | Migration applied + history / security / runtime verification |
 
 Do not combine unrelated MODEs in one prompt unless the owner explicitly serialises a multi-step gate (e.g. “commit then push”) in AUTHORITY and STOP_AFTER.
+
+### Model B — merge vs Production DB
+
+Canonical runbook: `docs/operations/database-delivery-model-b.md`.
+
+```text
+MERGE TO MAIN ≠ PRODUCTION DATABASE APPLY
+```
+
+Under Model B, MODE **`merge-production` does not** implicitly include Production
+database migration application.
+
+For a migration-containing PR:
+
+```text
+merge-production
+  → merge + application / deployment verification
+  → STOP
+
+then separate:
+db-release
+  → linked Production project hard gate
+  → dry-run exact pending set
+  → explicit owner Production-apply authority
+  → apply once
+  → history + zero-pending + probes
+```
+
+Default: **SEPARATE** gates. Only serialise both in one owner capsule when both
+authorities are stated distinctly (merge authority ≠ DB-apply authority).
 
 ---
 
@@ -177,15 +208,16 @@ Do not combine unrelated MODEs in one prompt unless the owner explicitly seriali
 
 **Ceilings, not quotas.** Use the minimum useful number of agents. Do not spawn an agent merely to satisfy a template.
 
-| Situation                | Ceiling                                                                    |
-| ------------------------ | -------------------------------------------------------------------------- |
-| Simple deterministic     | Parent only                                                                |
-| Audit / planning         | 1–2 read-only agents                                                       |
-| Implementation           | Optional discovery + **one mutator** + one fresh reviewer                  |
-| Repair                   | One bounded mutation path + one reviewer                                   |
-| Independent verification | Up to two independent read-only reviewers + parent probes                  |
-| Commit / push            | Parent normally                                                            |
-| Merge / production       | Parallel read-only evidence; parent serializes merge; fresh final reviewer |
+| Situation                 | Ceiling                                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Simple deterministic      | Parent only                                                                                          |
+| Audit / planning          | 1–2 read-only agents                                                                                 |
+| Implementation            | Optional discovery + **one mutator** + one fresh reviewer                                            |
+| Repair                    | One bounded mutation path + one reviewer                                                             |
+| Independent verification  | Up to two independent read-only reviewers + parent probes                                            |
+| Commit / push             | Parent normally                                                                                      |
+| Merge / production        | Parallel read-only evidence; parent serializes merge; fresh final reviewer                           |
+| DB release (`db-release`) | Parent serializes Production DB release; read-only evidence may parallelise; **one** DB mutator only |
 
 Hard rules:
 

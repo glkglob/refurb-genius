@@ -68,17 +68,33 @@ Never automatically merge child worktree output.
 
 Use the **minimum useful** number of agents. Ceilings, not quotas:
 
-| MODE                     | Ceiling                                                                    |
-| ------------------------ | -------------------------------------------------------------------------- |
-| simple deterministic     | parent only                                                                |
-| audit / planning         | 1–2 read-only agents                                                       |
-| implementation           | optional discovery + **one** mutator + one fresh reviewer                  |
-| repair                   | one bounded mutation path + one reviewer                                   |
-| independent-verification | up to two independent read-only reviewers + parent probes                  |
-| commit / commit-push-ci  | parent normally                                                            |
-| merge-production         | parallel read-only evidence; parent serializes merge; fresh final reviewer |
+| MODE                     | Ceiling                                                                                              |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| simple deterministic     | parent only                                                                                          |
+| audit / planning         | 1–2 read-only agents                                                                                 |
+| implementation           | optional discovery + **one** mutator + one fresh reviewer                                            |
+| repair                   | one bounded mutation path + one reviewer                                                             |
+| independent-verification | up to two independent read-only reviewers + parent probes                                            |
+| commit / commit-push-ci  | parent normally                                                                                      |
+| merge-production         | parallel read-only evidence; parent serializes merge; fresh final reviewer                           |
+| db-release               | parent serializes Production DB release; read-only evidence may parallelise; **one** DB mutator only |
 
 Planning-only work: **read-only** capabilities. Do not spawn agents to fill a template.
+
+## Production database — Model B
+
+Canonical runbook: `docs/operations/database-delivery-model-b.md`.
+
+```text
+- Merge authority does not imply DB-apply authority.
+- Production DB apply requires MODE db-release or equivalent explicit authority.
+- Verify exact linked Production project (sxhzjmzfkgbogmlsbeju).
+- Require exact pending-set dry-run before apply.
+- STOP on migration / history drift.
+- Never remote reset / rewrite migration history automatically.
+- Applied migration rollback = forward repair.
+- Deploy to production (Supabase integration) must remain OFF under Model B.
+```
 
 ## Evidence hierarchy
 

@@ -10,6 +10,12 @@ Controlled Public Beta **GO** (2026-08-09); product baseline
 on https://www.refurbgenius.info. P0/P1 escalation thresholds and P2 carry-forward register
 live in that record.
 
+**Production database delivery:** [Database Delivery — Model B](./database-delivery-model-b.md)
+(**IN FORCE**). Database migrations are **not** released merely by merging `main`.
+Production migration apply requires the separate Model B owner gate (`db-release` or
+equivalent). P0/P1/P2 severity and halt/pause authority remain under Public Beta §9 in
+the launch authorisation record.
+
 ---
 
 ## Quick Start: Daily Operational Checks
@@ -283,6 +289,29 @@ Run these every morning and before/after deploying changes:
 - Examples: Typo in UI, icon color slightly off, memory could be better
 - Response: Log for future cleanup
 - Communication: Only if addressed
+
+---
+
+## Production Database Release (Model B)
+
+Database schema migrations are **not** released merely by merging to `main`.
+
+Under **Model B** (canonical: [database-delivery-model-b.md](./database-delivery-model-b.md)):
+
+```text
+MERGE TO MAIN ≠ PRODUCTION DATABASE APPLY
+```
+
+- Supabase **Deploy to production** must remain **OFF**.
+- **Automatic branching** remains **ON** for PR Preview rehearsal.
+- Production project hard gate: `sxhzjmzfkgbogmlsbeju`.
+- After merge: merged-main CI/Security green → explicit owner Production-apply authority →
+  dry-run exact pending set → apply → history + zero-pending verify.
+- Applied migration history is immutable; rollback is normally a **forward repair**.
+- P0/P1 security or customer regression: halt/pause under Public Beta **§9**, preserve
+  evidence, prepare bounded forward repair, obtain explicit owner authority.
+
+Do not re-enable Production auto-apply to clear a backlog.
 
 ---
 
