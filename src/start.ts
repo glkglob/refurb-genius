@@ -24,6 +24,13 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
     if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
     }
+    // Dynamic import keeps @sentry/node out of the shared Start client graph.
+    try {
+      const { captureServerException } = await import("@/platform/sentry/server-capture");
+      captureServerException(error, { source: "start-middleware" });
+    } catch {
+      // Capture must never block branded error response
+    }
     logger.error("Start middleware uncaught error", {
       error: String(error),
       stack: error instanceof Error ? error.stack : undefined,

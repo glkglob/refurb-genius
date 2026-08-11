@@ -13,7 +13,11 @@ import type {
 } from "../../domain";
 import { buildMockScopeResult } from "../../domain/scopeMockData";
 import { safeParseScopeResult } from "../../domain/validation";
-import { captureAiError, addDiagnosticBreadcrumb, setConversationId } from "@/lib/sentry";
+import {
+  captureAiError,
+  addDiagnosticBreadcrumb,
+  setConversationId,
+} from "@/platform/sentry/server-capture";
 import { getOpenAIClient } from "@/platform/openai/server";
 import { logger } from "@/lib/logger";
 import { incrementCounter } from "@/lib/provider-diagnostics";

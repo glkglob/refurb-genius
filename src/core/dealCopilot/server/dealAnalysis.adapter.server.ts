@@ -13,7 +13,11 @@ import "@tanstack/react-start/server-only";
 
 import { getOpenAIClient } from "@/platform/openai/server";
 import { logger } from "@/lib/logger";
-import { captureAiError, addDiagnosticBreadcrumb, setConversationId } from "@/lib/sentry";
+import {
+  captureAiError,
+  addDiagnosticBreadcrumb,
+  setConversationId,
+} from "@/platform/sentry/server-capture";
 import { timeoutPromise } from "@/lib/timeout";
 import { dealAnalysisSchema, type DealAnalysis } from "../dealAnalysis";
 
@@ -129,7 +133,8 @@ export async function runDealAnalysis(ctx: DealAnalysisContext): Promise<DealAna
     return buildMockAnalysis(ctx);
   }
 
-  setConversationId(`deal-analysis-${ctx.postcode ?? "na"}-${ctx.status}`);
+  // Opaque technical id only — never include postcode/address (PH-SENTRY-1B1)
+  setConversationId(`deal-analysis-${ctx.status}`);
   addDiagnosticBreadcrumb("ai:gpt4o:deal-analysis:start", {
     status: ctx.status,
     hasPostcode: Boolean(ctx.postcode),

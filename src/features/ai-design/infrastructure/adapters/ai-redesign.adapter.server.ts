@@ -8,7 +8,11 @@ import type { RoomAnalysis } from "@/features/ai-upload";
 import { REDESIGN_CONCEPTS, REDESIGN_STYLES } from "@/lib/redesign";
 import type { RedesignConcept, RedesignStyle } from "../../domain";
 import { safeParseRedesignText } from "../../domain/validation";
-import { captureAiError, addDiagnosticBreadcrumb, setConversationId } from "@/lib/sentry";
+import {
+  captureAiError,
+  addDiagnosticBreadcrumb,
+  setConversationId,
+} from "@/platform/sentry/server-capture";
 import { getOpenAIClient } from "@/platform/openai/server";
 import { logger } from "@/lib/logger";
 import { incrementCounter } from "@/lib/provider-diagnostics";

@@ -7,9 +7,10 @@
  *   autocapture browser exceptions (`capture_exceptions`) independently; that
  *   stream is intentional product telemetry and is not managed here.
  *
- * Server: this module is the shared capture surface used from some server
- * adapters. There is no full Node/Nitro Sentry.init in this slice — unconfigured
- * or non-production calls are safe no-ops via canCapture().
+ * Server: Node init and server AI capture live under src/platform/sentry/
+ * (server.init / server-capture). This module is browser-only ownership
+ * (@sentry/react). Helpers remain safe no-ops via canCapture() if evaluated
+ * outside a configured production browser runtime.
  *
  * Privacy: sendDefaultPii must remain false. Privacy beforeSend (PH-SENTRY-1C)
  * is implemented via sanitizeSentryEvent from the platform sanitizer.
@@ -72,7 +73,8 @@ if (typeof window !== "undefined") {
   prepareAuthCallbackLocationForReplay();
 }
 
-if (import.meta.env.PROD && dsn) {
+// Browser-only init: never call @sentry/react Sentry.init in Node/SSR evaluation.
+if (typeof window !== "undefined" && import.meta.env.PROD && dsn) {
   Sentry.init({
     dsn,
     integrations: [

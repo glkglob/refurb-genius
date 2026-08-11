@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@tanstack/react-start/server-only", () => ({}));
-vi.mock("@/lib/sentry", () => ({
+vi.mock("@/platform/sentry/server-capture", () => ({
   captureAiError: vi.fn(),
   addDiagnosticBreadcrumb: vi.fn(),
   setConversationId: vi.fn(),
