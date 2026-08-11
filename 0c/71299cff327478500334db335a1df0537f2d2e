@@ -1,0 +1,16 @@
+src/start.ts
+  h_7ea6129503670a 1,20-34,61
+tests/invariants/start-csrf.invariant.test.ts
+  h_7ea6129503670a 1-232
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "0c71299cff327478500334db335a1df0537f2d2e",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
