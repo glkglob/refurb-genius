@@ -305,8 +305,8 @@ MERGE TO MAIN ≠ PRODUCTION DATABASE APPLY
 - Supabase **Deploy to production** must remain **OFF**.
 - **Automatic branching** remains **ON** for PR Preview rehearsal.
 - Production project hard gate: `sxhzjmzfkgbogmlsbeju`.
-- After merge: merged-main CI/Security green → explicit owner Production-apply authority →
-  dry-run exact pending set → apply → history + zero-pending verify.
+- After merge: merged-main CI/Security green → dry-run exact pending set →
+  explicit owner Production-apply authority → apply → history + zero-pending verify.
 - Applied migration history is immutable; rollback is normally a **forward repair**.
 - P0/P1 security or customer regression: halt/pause under Public Beta **§9**, preserve
   evidence, prepare bounded forward repair, obtain explicit owner authority.
