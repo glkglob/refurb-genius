@@ -21,6 +21,13 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+      - name: Server Sentry safety tests
+        run: |
+          pnpm exec vitest run \
+            src/platform/sentry/server-isolation.test.ts \
+            src/platform/sentry/server-capture.test.ts \
+            src/platform/sentry/sanitize-server.test.ts \
+            src/platform/sentry/server.init.test.ts
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build:vercel
