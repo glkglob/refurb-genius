@@ -23,6 +23,7 @@ import {
   isAppleSignInConfigured,
   resolveAppleClientId,
 } from "@/platform/auth/apple-sign-in-config";
+import { startNativeAuthReturnLifecycle } from "@/platform/auth/native/auth-return";
 import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
@@ -269,6 +270,24 @@ function RootComponent() {
   // so pageview/identify correctness does not depend on parent/child effect order.
   useEffect(() => {
     initPostHog();
+  }, []);
+
+  // IOS-READINESS-2B-1: native auth return-channel lifecycle (inert handler).
+  // Mounted at root so cold-start / deep-link returns do not depend on AuthExperience.
+  useEffect(() => {
+    let cancelled = false;
+    let cleanup: (() => void) | undefined;
+    void startNativeAuthReturnLifecycle().then((stop) => {
+      if (cancelled) {
+        stop();
+        return;
+      }
+      cleanup = stop;
+    });
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
   }, []);
 
   return (
