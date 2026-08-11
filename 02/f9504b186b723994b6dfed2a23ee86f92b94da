@@ -1,0 +1,16 @@
+.github/workflows/ci.yml
+  h_7ea6129503670a 24-30
+src/platform/sentry/server-isolation.test.ts
+  h_7ea6129503670a 1,3,7-13,48-62,76-84,86-89,198-493
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "02f9504b186b723994b6dfed2a23ee86f92b94da",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
