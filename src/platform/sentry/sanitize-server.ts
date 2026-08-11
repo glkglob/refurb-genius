@@ -71,6 +71,17 @@ function shouldRedactServerKey(key: string): boolean {
 }
 
 /**
+ * PH-SENTRY-1B2B — stack frame location keys.
+ * Base 1C sanitizer already stripped query/hash and dynamic IDs from these.
+ * Server deep-walk must not blank them to [REDACTED] solely because
+ * shouldRedactSentryKey("filename") is true for freeform object bags.
+ */
+function isStackFrameLocationKey(key: string): boolean {
+  const k = key.toLowerCase();
+  return k === "filename" || k === "abs_path";
+}
+
+/**
  * Deep-walk values for server-specific sensitive keys after the 1C base pass.
  * Preserves structure; redacts values for sensitive keys; freeform-scrubs strings.
  */
@@ -97,6 +108,12 @@ function walkServer(
 
   if (typeof value === "string") {
     if (key !== undefined && shouldRedactServerKey(key)) {
+      // Stack frame locations: 1C already ran sanitizeFrameLocation. Preserve the
+      // safe diagnostic path; do not replace with blanket [REDACTED].
+      // Re-scrub freeform secrets as defence-in-depth.
+      if (isStackFrameLocationKey(key)) {
+        return scrubFreeformString(value);
+      }
       return SENTRY_REDACTED;
     }
     return scrubFreeformString(value);
@@ -137,6 +154,10 @@ function walkServer(
   const out: Record<string, unknown> = {};
   for (const [childKey, childVal] of Object.entries(value)) {
     if (shouldRedactServerKey(childKey)) {
+      if (isStackFrameLocationKey(childKey) && typeof childVal === "string") {
+        out[childKey] = scrubFreeformString(childVal);
+        continue;
+      }
       out[childKey] = SENTRY_REDACTED;
       continue;
     }

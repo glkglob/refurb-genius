@@ -1,8 +1,11 @@
 /**
- * PH-SENTRY-1B1 — server-only Sentry capture helpers.
+ * PH-SENTRY-1B1 / 1B2B — server-only Sentry capture helpers.
  *
  * Server AI adapters and Nitro entry use this module instead of @/lib/sentry
  * (browser-owned @sentry/react). Safe no-ops when server Sentry is disabled.
+ *
+ * Request isolation: withServerSentryIsolation is the single outer boundary
+ * (owned by src/server.ts fetch). Downstream capture inherits the isolation scope.
  */
 import "@tanstack/react-start/server-only";
 
@@ -26,6 +29,34 @@ function ensureInit(): boolean {
     initServerSentry();
   }
   return canServerSentryCapture() && isServerSentryInitialized();
+}
+
+/**
+ * PH-SENTRY-1B2B — one isolation scope per incoming server request.
+ *
+ * When server Sentry is enabled and initialized, forks an isolation scope via
+ * Sentry.withIsolationScope (Node AsyncLocalStorage / OTEL ACS after init).
+ * When disabled or init failed, runs the operation directly so request handling
+ * never depends on observability.
+ *
+ * Async callbacks are supported: the ACS retains context across await.
+ * Scope is disposed when the callback settles (resolve or throw).
+ */
+export async function withServerSentryIsolation<T>(operation: () => Promise<T> | T): Promise<T> {
+  if (!canServerSentryCapture()) {
+    return await operation();
+  }
+  if (!isServerSentryInitialized()) {
+    initServerSentry();
+  }
+  if (!isServerSentryInitialized()) {
+    // Init failed — never fail the request for observability
+    return await operation();
+  }
+
+  return await Sentry.withIsolationScope(async () => {
+    return await operation();
+  });
 }
 
 /** Low-risk server exception capture (outer fetch / SSR catastrophic paths). */

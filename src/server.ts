@@ -1,7 +1,11 @@
 // PH-SENTRY-1B1: Node Sentry must load first so init runs before PostHog OTEL
 // and other server side-effects (ESM evaluates imports before body statements).
-import { captureServerException } from "@/platform/sentry/server-capture";
+import {
+  captureServerException,
+  withServerSentryIsolation,
+} from "@/platform/sentry/server-capture";
 // server-capture → server.init side-effect init (production + SENTRY_DSN only)
+// PH-SENTRY-1B2B: withServerSentryIsolation is the single per-request isolation owner
 
 import "@/platform/posthog/otel.server";
 import "./lib/error-capture";
@@ -91,17 +95,20 @@ async function normalizeCatastrophicSsrResponse(response: Response): Promise<Res
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
-    try {
-      const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
-      return await normalizeCatastrophicSsrResponse(response);
-    } catch (error) {
-      captureServerException(error, { source: "server-fetch" });
-      logger.error("Server fetch error", {
-        error: String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      return brandedErrorResponse();
-    }
+    // One isolation scope for the full request: Start middleware, routes, serverFns, adapters.
+    return withServerSentryIsolation(async () => {
+      try {
+        const handler = await getServerEntry();
+        const response = await handler.fetch(request, env, ctx);
+        return await normalizeCatastrophicSsrResponse(response);
+      } catch (error) {
+        captureServerException(error, { source: "server-fetch" });
+        logger.error("Server fetch error", {
+          error: String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+        return brandedErrorResponse();
+      }
+    });
   },
 };

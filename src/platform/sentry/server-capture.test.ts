@@ -1,7 +1,7 @@
 /**
  * PH-SENTRY-1B1 — server capture helper contracts.
  */
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@tanstack/react-start/server-only", () => ({}));
 
@@ -9,6 +9,7 @@ const captureException = vi.fn();
 const addBreadcrumb = vi.fn();
 const setConversationId = vi.fn();
 const init = vi.fn();
+const withIsolationScope = vi.fn(async (cb: (scope: unknown) => unknown) => cb({}));
 
 vi.mock("@sentry/node", () => ({
   init: (...args: unknown[]) => init(...args),
@@ -16,6 +17,8 @@ vi.mock("@sentry/node", () => ({
   captureException: (...args: unknown[]) => captureException(...args),
   addBreadcrumb: (...args: unknown[]) => addBreadcrumb(...args),
   setConversationId: (...args: unknown[]) => setConversationId(...args),
+  withIsolationScope: (...args: unknown[]) =>
+    (withIsolationScope as (...a: unknown[]) => unknown)(...args),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -26,12 +29,14 @@ import {
   __resetServerSentryInitForTests,
   __setServerSentryCaptureEnabledForTests,
   initServerSentry,
+  isServerSentryInitialized,
 } from "@/platform/sentry/server.init";
 import {
   addDiagnosticBreadcrumb,
   captureAiError,
   captureServerException,
   setConversationId as setConversationIdHelper,
+  withServerSentryIsolation,
 } from "@/platform/sentry/server-capture";
 
 function enableProdCapture(): void {
@@ -43,12 +48,23 @@ function enableProdCapture(): void {
   __setServerSentryCaptureEnabledForTests(true);
 }
 
+beforeEach(() => {
+  __resetServerSentryInitForTests();
+  captureException.mockReset();
+  addBreadcrumb.mockReset();
+  setConversationId.mockReset();
+  init.mockReset();
+  withIsolationScope.mockClear();
+  vi.unstubAllEnvs();
+});
+
 afterEach(() => {
   __resetServerSentryInitForTests();
   captureException.mockReset();
   addBreadcrumb.mockReset();
   setConversationId.mockReset();
   init.mockReset();
+  withIsolationScope.mockClear();
   vi.unstubAllEnvs();
 });
 
@@ -122,5 +138,48 @@ describe("setConversationId", () => {
 
     setConversationIdHelper("project-11111111-1111-4111-8111-111111111111");
     expect(setConversationId).toHaveBeenCalledWith("project-11111111-1111-4111-8111-111111111111");
+  });
+});
+
+describe("withServerSentryIsolation", () => {
+  it("runs operation directly when capture is disabled", async () => {
+    __setServerSentryCaptureEnabledForTests(false);
+    const result = await withServerSentryIsolation(async () => "ok-disabled");
+    expect(result).toBe("ok-disabled");
+    expect(withIsolationScope).not.toHaveBeenCalled();
+  });
+
+  it("wraps with withIsolationScope when capture is enabled and init succeeded", async () => {
+    enableProdCapture();
+    const result = await withServerSentryIsolation(async () => "ok-enabled");
+    expect(result).toBe("ok-enabled");
+    expect(withIsolationScope).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs operation when init fails (never rejects for observability)", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("SENTRY_DSN", "https://example.ingest.sentry.io/1");
+    __resetServerSentryInitForTests();
+    init.mockImplementationOnce(() => {
+      throw new Error("init boom");
+    });
+    initServerSentry();
+    __setServerSentryCaptureEnabledForTests(true);
+    expect(isServerSentryInitialized()).toBe(false);
+
+    const result = await withServerSentryIsolation(async () => "ok-after-init-fail");
+    expect(result).toBe("ok-after-init-fail");
+    expect(withIsolationScope).not.toHaveBeenCalled();
+  });
+
+  it("propagates operation throw without trapping it as Sentry failure", async () => {
+    enableProdCapture();
+    await expect(
+      withServerSentryIsolation(async () => {
+        throw new Error("request boom");
+      }),
+    ).rejects.toThrow("request boom");
+    expect(withIsolationScope).toHaveBeenCalledTimes(1);
   });
 });

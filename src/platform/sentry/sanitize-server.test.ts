@@ -111,6 +111,55 @@ describe("sanitizeServerSentryEvent", () => {
     expect(out!.user).toEqual({ id: "user-uuid-opaque" });
   });
 
+  it("preserves safe stack frame filename after 1C (no blanket [REDACTED])", () => {
+    const out = sanitizeServerSentryEvent({
+      exception: {
+        values: [
+          {
+            type: "Error",
+            value: "boom",
+            stacktrace: {
+              frames: [
+                {
+                  filename:
+                    "/app/src/routes/projects/11111111-1111-4111-8111-111111111111.ts?token=SECRET",
+                  abs_path:
+                    "https://example.invalid/projects/11111111-1111-4111-8111-111111111111.ts?x=SECRET",
+                  function: "loader",
+                  lineno: 12,
+                  colno: 3,
+                  in_app: true,
+                  context_line: 'const t = "Bearer PH_SERVER_SYNTHETIC_TOKEN";',
+                },
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    expect(out).not.toBeNull();
+    const stacktrace = out!.exception!.values![0]!.stacktrace as
+      | { frames?: Array<Record<string, unknown>> }
+      | undefined;
+    const frame = stacktrace?.frames?.[0];
+    expect(frame).toBeDefined();
+    expect(frame!.filename).not.toBe(SENTRY_REDACTED);
+    expect(frame!.abs_path).not.toBe(SENTRY_REDACTED);
+    expect(typeof frame!.filename).toBe("string");
+    expect(typeof frame!.abs_path).toBe("string");
+    // Query/hash secrets stripped; dynamic UUID → $id
+    expect(String(frame!.filename)).not.toContain("SECRET");
+    expect(String(frame!.filename)).not.toContain("token=");
+    expect(String(frame!.abs_path)).not.toContain("SECRET");
+    expect(String(frame!.filename)).toContain("$id");
+    expect(frame!.function).toBe("loader");
+    expect(frame!.lineno).toBe(12);
+    // Context still privacy-scrubbed
+    expect(String(frame!.context_line)).not.toContain("PH_SERVER_SYNTHETIC_TOKEN");
+    expect(JSON.stringify(out)).not.toContain("PH_SERVER_SYNTHETIC_TOKEN");
+  });
+
   it("scrubs Bearer tokens in freeform exception values", () => {
     const out = sanitizeServerSentryEvent({
       exception: {
