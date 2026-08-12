@@ -20,10 +20,11 @@
  * Wrap the application **once** in `src/routes/__root.tsx` (inside
  * QueryClientProvider, around ThemeProvider + Outlet). This guarantees:
  *   • The auth query is primed for the whole app lifetime.
- *   • The legacy `auth` listener ↔ Query cache bridge is always active.
+ *   • The legacy `auth` listener ↔ Query cache bridge is active on **web only**.
+ *   • Native identity uses Keychain-backed getNativeSupabase (IOS-READINESS-2B-3).
  *   • `useAuth()` can be called safely from **any** route (public or protected)
  *     and will gracefully return `{ user: null, isLoading: true, ... }` until
- *     the server-validated check completes.
+ *     the identity check completes.
  *
  * Backward compatibility:
  * - The returned object still includes the legacy `hydrated` and `signOut`
@@ -36,32 +37,28 @@
  *   after any serverFn or client mutation that may have changed auth state.
  *
  * Relationship to other auth modules:
- * - `src/lib/auth.ts` remains the low-level client mutation layer
+ * - `src/lib/auth.ts` remains the low-level **web** client mutation layer
  *   (signIn / signUp / signOut / password flows / legacy listeners / direct
- *   Supabase browser client). It is intentionally kept as-is for this phase.
- * - `src/serverFns/auth.ts` (Agent 1) is the single source of truth for
- *   *reading* the user inside any `createServerFn` (and now, via this hook,
- *   for React UI as well).
- *
- * Future work (outside this task):
- * - Protected serverFns already use `requireUser()` / `getCurrentUserServerFn`.
- * - Login flows in /auth may later be augmented to invalidate this key on success.
- * - Direct `auth.getUser()` calls in non-React code (stores etc.) can stay or
- *   gradually migrate to serverFn calls.
+ *   Supabase browser client). Native does not subscribe to its onChange bridge.
+ * - `src/serverFns/auth.ts` is the cookie authority for **web** SSR/client reads.
+ * - Native reads use dynamic import of `@/platform/supabase/native` only inside
+ *   the Capacitor native branch (no static SecureStorage graph on web SSR).
  */
 
 import { useEffect, useRef, type ReactNode } from "react";
+import { Capacitor } from "@capacitor/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 
 import { getCurrentUserServerFn } from "@/serverFns/auth";
-import { auth, type AuthUser } from "@/lib/auth";
+import type { AuthUser } from "@/lib/auth";
 import { logger } from "@/lib/logger";
 import {
   UNRESOLVED_AUTH_IDENTITY,
   applyAuthQueryCacheTransition,
   type PreviousAuthIdentity,
 } from "@/lib/auth-query-lifecycle";
+import { mapNativeSupabaseUser } from "@/features/auth/infrastructure";
 
 /**
  * Canonical query key for the current authenticated user.
@@ -78,6 +75,10 @@ import {
  *   await qc.invalidateQueries({ queryKey: AUTH_USER_QUERY_KEY });
  */
 export const AUTH_USER_QUERY_KEY = ["auth", "currentUser"] as const;
+
+/** Temporary 2B-3 native sign-out guard (real native sign-out is 2B-4). */
+export const NATIVE_SIGNOUT_UNAVAILABLE_MESSAGE =
+  "Sign out is not available in this native authentication phase.";
 
 /**
  * Shape returned by `useAuth()`.
@@ -109,7 +110,9 @@ export interface UseAuthResult {
   hydrated: boolean;
 
   /**
-   * Convenience wrapper around the legacy `auth.signOut()`.
+   * Convenience wrapper around the legacy web `auth.signOut()`.
+   * On native Capacitor, rejects with a bounded temporary error (2B-3) —
+   * does not clear Keychain or call browser signOut.
    * Isolation of non-auth query cache is owned by the root AuthProvider
    * lifecycle bridge (C4c-4), not by this wrapper.
    *
@@ -122,26 +125,48 @@ export interface UseAuthResult {
 /**
  * The primary React hook for reading authentication state.
  *
- * Always safe to call in any component (protected or public). It will
- * automatically fetch the user via a server round-trip on first mount
- * (or when cache is stale) using only cookie data — therefore it works
- * correctly even on a hard browser refresh of a deep-linked protected page.
+ * Always safe to call in any component (protected or public). On web it
+ * fetches via cookie serverFn; on native it reads the Keychain-backed native
+ * Supabase session (IOS-READINESS-2B-3).
  *
  * Note: identity-boundary cache isolation is mounted only in AuthProvider
  * (single coordinator). Consumer calls to useAuth() do not install additional
- * lifecycle listeners.
+ * lifecycle listeners. On native, the browser auth listener bridge is not installed.
  */
 export function useAuth(): UseAuthResult {
-  const queryClient = useQueryClient();
-
   // `useServerFn` wraps the `createServerFn` so it is callable from client
   // components while still executing its handler on the server (where cookies
   // are available via the request context). The returned function is stable.
+  // Native queryFn never invokes this function.
   const getCurrentUser = useServerFn(getCurrentUserServerFn);
 
   const query = useQuery<AuthUser | null, Error>({
     queryKey: AUTH_USER_QUERY_KEY,
     queryFn: async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { getNativeSupabase } = await import("@/platform/supabase/native");
+          const {
+            data: { session },
+            error,
+          } = await getNativeSupabase().auth.getSession();
+          if (error) {
+            if (process.env.NODE_ENV !== "production") {
+              logger.warn("[useAuth] native getSession error (treated as signed-out)");
+            }
+            return null;
+          }
+          return mapNativeSupabaseUser(session?.user);
+        } catch (err) {
+          if (process.env.NODE_ENV !== "production") {
+            logger.warn("[useAuth] native session read failed (treated as signed-out)", {
+              error: String(err),
+            });
+          }
+          return null;
+        }
+      }
+
       try {
         // Call with no payload — the serverFn accepts the empty object schema.
         const { user } = await getCurrentUser();
@@ -193,6 +218,10 @@ export function useAuth(): UseAuthResult {
   // Isolation is owned by AuthProvider's single lifecycle bridge.
   // Do not setQueryData(null) here — that would bypass cancel/remove.
   const signOut = async (): Promise<void> => {
+    if (Capacitor.isNativePlatform()) {
+      throw new Error(NATIVE_SIGNOUT_UNAVAILABLE_MESSAGE);
+    }
+    const { auth } = await import("@/lib/auth");
     await auth.signOut();
   };
 
@@ -212,6 +241,9 @@ export function useAuth(): UseAuthResult {
  * Mounted only from AuthProvider so there is exactly one previous-identity
  * tracker and one serialized transition chain. Consumer useAuth() calls must
  * not install additional onChange isolation handlers.
+ *
+ * IOS-READINESS-2B-3: on Capacitor native, do not subscribe to legacy browser
+ * browser auth listener (would overwrite Keychain-seeded AUTH_USER_QUERY_KEY with null).
  */
 function useAuthQueryCacheLifecycleBridge(): void {
   const queryClient = useQueryClient();
@@ -219,31 +251,41 @@ function useAuthQueryCacheLifecycleBridge(): void {
   const transitionChainRef = useRef(Promise.resolve());
 
   useEffect(() => {
-    let disposed = false;
+    // Native: no browser lifecycle subscription (Rules of Hooks: early return inside effect).
+    if (Capacitor.isNativePlatform()) {
+      return;
+    }
 
-    const unsubscribe = auth.onChange((newUser) => {
-      transitionChainRef.current = transitionChainRef.current
-        .then(async () => {
-          if (disposed) return;
-          const result = await applyAuthQueryCacheTransition(
-            queryClient,
-            previousIdentityRef.current,
-            newUser,
-          );
-          if (!disposed) {
-            previousIdentityRef.current = result.nextPreviousIdentity;
-          }
-        })
-        .catch((err) => {
-          if (process.env.NODE_ENV !== "production") {
-            logger.warn("[useAuth] auth cache transition failed", { error: String(err) });
-          }
-        });
+    let disposed = false;
+    let unsubscribe: (() => void) | undefined;
+
+    void import("@/lib/auth").then(({ auth }) => {
+      if (disposed) return;
+
+      unsubscribe = auth.onChange((newUser) => {
+        transitionChainRef.current = transitionChainRef.current
+          .then(async () => {
+            if (disposed) return;
+            const result = await applyAuthQueryCacheTransition(
+              queryClient,
+              previousIdentityRef.current,
+              newUser,
+            );
+            if (!disposed) {
+              previousIdentityRef.current = result.nextPreviousIdentity;
+            }
+          })
+          .catch((err) => {
+            if (process.env.NODE_ENV !== "production") {
+              logger.warn("[useAuth] auth cache transition failed", { error: String(err) });
+            }
+          });
+      });
     });
 
     return () => {
       disposed = true;
-      unsubscribe();
+      unsubscribe?.();
     };
   }, [queryClient]);
 }
@@ -252,7 +294,7 @@ function useAuthQueryCacheLifecycleBridge(): void {
  * Root-level Auth provider.
  *
  * Primes the auth query and installs the **single** auth/query-cache lifecycle
- * bridge for the application lifetime.
+ * bridge for the application lifetime (web only for the browser onChange bridge).
  *
  * Must be rendered **inside** a `<QueryClientProvider>` (it calls
  * `useQueryClient()` and `useQuery` via the hook).
@@ -273,7 +315,7 @@ function useAuthQueryCacheLifecycleBridge(): void {
  * After this wrapper exists, any component — even on completely public routes
  * such as `/`, `/auth`, `/trades`, `/privacy` — can call `useAuth()` and will
  * receive a stable object with `user: null | AuthUser`, `isLoading`, etc.
- * The initial load performs a cookie-based server check (via
+ * The initial web load performs a cookie-based server check (via
  * `getCurrentUserServerFn`) so the value survives hard refresh / direct nav.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {

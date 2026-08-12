@@ -72,9 +72,11 @@
  */
 
 import { createFileRoute, redirect, Outlet } from "@tanstack/react-router";
+import { Capacitor } from "@capacitor/core";
 
 import { getCurrentUserServerFn } from "@/serverFns/auth";
 import type { AuthUser } from "@/lib/auth";
+import { mapNativeSupabaseUser } from "@/features/auth/infrastructure";
 
 /**
  * The shape we inject into the route context for all protected descendants.
@@ -84,15 +86,56 @@ export interface AuthedRouteContext {
   user: AuthUser;
 }
 
+function redirectToAuth(location: { pathname: string; searchStr: string }): never {
+  // Preserve the originally requested URL (pathname + search) so the
+  // /auth page can redirect the user back after successful login.
+  // This mirrors the behaviour of the legacy client-side <RequireAuth>.
+  const currentFullPath = location.pathname + (location.searchStr || "");
+
+  const search =
+    currentFullPath && !currentFullPath.startsWith("/auth")
+      ? { redirect: currentFullPath }
+      : undefined;
+
+  // `redirect` from @tanstack/react-router is the correct primitive.
+  // It works identically during SSR (produces a server redirect) and on
+  // the client (performs a history update). Never use `window.location`
+  // or `navigate` inside beforeLoad.
+  throw redirect({
+    to: "/auth",
+    search,
+  });
+}
+
 export const Route = createFileRoute("/_authed")({
   /**
-   * The server-side auth gate.
+   * Auth gate for protected routes.
    *
-   * Called for *this* route and every descendant. Runs in the exact same
-   * request context that `createServerFn` handlers see (cookies available
-   * via `@tanstack/react-start/server` + `@repo/supabase/server`).
+   * WEB SSR + WEB client navigation: cookie-validated getCurrentUserServerFn
+   * (unchanged).
+   *
+   * Capacitor native client routing (IOS-READINESS-2B-3): Keychain-backed
+   * getNativeSupabase session via dynamic import only inside the native branch.
+   * Web SSR never trusts native session state.
    */
   beforeLoad: async ({ location }): Promise<AuthedRouteContext> => {
+    // Native client only — SSR / web always take the cookie path below.
+    if (typeof window !== "undefined" && Capacitor.isNativePlatform()) {
+      try {
+        const { getNativeSupabase } = await import("@/platform/supabase/native");
+        const {
+          data: { session },
+        } = await getNativeSupabase().auth.getSession();
+        const user = mapNativeSupabaseUser(session?.user);
+        if (!user) {
+          redirectToAuth(location);
+        }
+        return { user };
+      } catch {
+        redirectToAuth(location);
+      }
+    }
+
     // IMPORTANT: getCurrentUserServerFn is a `createServerFn`. Even when
     // invoked from here during client navigation, its `.handler()` body
     // executes on the server and can read the *current* request's cookies.
@@ -111,24 +154,7 @@ export const Route = createFileRoute("/_authed")({
     }
 
     if (!user) {
-      // Preserve the originally requested URL (pathname + search) so the
-      // /auth page can redirect the user back after successful login.
-      // This mirrors the behaviour of the legacy client-side <RequireAuth>.
-      const currentFullPath = location.pathname + (location.searchStr || "");
-
-      const search =
-        currentFullPath && !currentFullPath.startsWith("/auth")
-          ? { redirect: currentFullPath }
-          : undefined;
-
-      // `redirect` from @tanstack/react-router is the correct primitive.
-      // It works identically during SSR (produces a server redirect) and on
-      // the client (performs a history update). Never use `window.location`
-      // or `navigate` inside beforeLoad.
-      throw redirect({
-        to: "/auth",
-        search,
-      });
+      redirectToAuth(location);
     }
 
     // The returned object becomes part of the context for this match and all
