@@ -2,8 +2,8 @@
  * C4c-4 — Auth / React Query cache lifecycle invariant.
  *
  * Structural enforcement that the root auth bridge owns identity-boundary
- * isolation via applyAuthQueryCacheTransition, and that unrestricted
- * queryClient.clear() is not introduced as an ad-hoc logout path.
+ * isolation via the per-QueryClient controller + applyAuthQueryCacheTransition,
+ * and that unrestricted queryClient.clear() is not introduced as an ad-hoc logout path.
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -38,6 +38,11 @@ test("auth lifecycle — canonical AUTH_USER_QUERY_KEY and lifecycle module exis
   assert.match(lifecycle, /UNRESOLVED_AUTH_IDENTITY/, "must define unresolved sentinel");
   assert.match(lifecycle, /cancelQueries/, "lifecycle must cancel non-auth queries on boundary");
   assert.match(lifecycle, /removeQueries/, "lifecycle must remove non-auth queries on boundary");
+  assert.match(
+    lifecycle,
+    /getAuthIdentityTransitionController/,
+    "lifecycle must export per-QueryClient controller factory",
+  );
   // Must not use unrestricted clear as primary strategy
   assert.equal(
     /queryClient\.clear\s*\(/.test(lifecycle),
@@ -56,15 +61,10 @@ test("auth lifecycle — single root bridge in AuthProvider (not every useAuth)"
   );
   assert.match(
     useAuth,
-    /applyAuthQueryCacheTransition/,
-    "module must call applyAuthQueryCacheTransition",
+    /getAuthIdentityTransitionController/,
+    "module must use per-QueryClient controller",
   );
   assert.match(useAuth, /auth\.onChange/, "module must install auth.onChange root bridge");
-  assert.match(
-    useAuth,
-    /UNRESOLVED_AUTH_IDENTITY/,
-    "module must track unresolved first observation",
-  );
   assert.match(
     useAuth,
     /function\s+useAuthQueryCacheLifecycleBridge/,
@@ -85,7 +85,9 @@ test("auth lifecycle — single root bridge in AuthProvider (not every useAuth)"
   );
 
   // Exactly one auth.onChange registration, inside the dedicated bridge hook.
-  const onChangeMatches = useAuth.match(/auth\.onChange/g) ?? [];
+  // Strip comments — docs may mention auth.onChange by name.
+  const useAuthCode = useAuth.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  const onChangeMatches = useAuthCode.match(/auth\.onChange/g) ?? [];
   assert.equal(
     onChangeMatches.length,
     1,
@@ -100,14 +102,23 @@ test("auth lifecycle — single root bridge in AuthProvider (not every useAuth)"
     /auth\.onChange/,
     "auth.onChange must live inside useAuthQueryCacheLifecycleBridge",
   );
+  assert.match(
+    bridgeMatch[1] ?? "",
+    /commitKnown/,
+    "web onChange must publish via controller.commitKnown",
+  );
 
-  // signOut must not be the sole isolation path
+  // signOut must not bare-set AUTH null
   const signOutMatch = useAuth.match(
     /const\s+signOut\s*=\s*async\s*\(\s*\)\s*:\s*Promise<void>\s*=>\s*\{([\s\S]*?)\n\s*\};/,
   );
   assert.ok(signOutMatch, "expected signOut implementation");
   const signOutBody = signOutMatch[1] ?? "";
-  assert.match(signOutBody, /auth\.signOut/, "signOut must call auth.signOut");
+  assert.match(
+    signOutBody,
+    /auth\.signOut|signOutNativeAuthIdentity/,
+    "signOut must clear session",
+  );
   assert.equal(
     /setQueryData\s*\(\s*AUTH_USER_QUERY_KEY\s*,\s*null\s*\)/.test(signOutBody),
     false,

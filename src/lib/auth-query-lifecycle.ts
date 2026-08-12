@@ -6,6 +6,10 @@
  *
  * Does NOT wipe the entire query client (auth + mutation caches) indiscriminately.
  * Prefer cancel + remove with an exact auth-key exclusion.
+ *
+ * IOS-READINESS-2B-4: per-QueryClient serialized transition controller is the
+ * sole authority that publishes AUTH_USER_QUERY_KEY for native (and the web
+ * onChange bridge). No Supabase/Capacitor ownership here.
  */
 
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
@@ -25,6 +29,15 @@ export type AuthTransitionResult = {
   nextPreviousIdentity: string | null;
   boundaryApplied: boolean;
 };
+
+/**
+ * Outcome of a serialized identity observation (read + optional transition).
+ * Feature layers map platform-specific reads into this shape.
+ */
+export type AuthIdentityObservation =
+  | { kind: "authenticated"; user: { id: string } }
+  | { kind: "signed-out" }
+  | { kind: "indeterminate" };
 
 /**
  * Exact canonical auth query key recognition (structural; not array reference).
@@ -99,4 +112,111 @@ export async function applyAuthQueryCacheTransition(
     nextPreviousIdentity: nextId,
     boundaryApplied: true,
   };
+}
+
+const AUTH_KEY = [...AUTH_USER_QUERY_KEY_SEGMENTS] as unknown as QueryKey;
+
+function resolveInitialPrevious(queryClient: QueryClient): PreviousAuthIdentity {
+  const data = queryClient.getQueryData(AUTH_KEY);
+  if (data === undefined) return UNRESOLVED_AUTH_IDENTITY;
+  if (data === null) return null;
+  if (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    typeof (data as { id: unknown }).id === "string"
+  ) {
+    return (data as { id: string }).id;
+  }
+  return UNRESOLVED_AUTH_IDENTITY;
+}
+
+export type AuthIdentitySerializedApi = {
+  applyTransition: (nextUser: AuthLifecycleUser) => Promise<AuthTransitionResult>;
+};
+
+/**
+ * Per-QueryClient serialized identity transition authority.
+ *
+ * Sole publisher of AUTH_USER_QUERY_KEY when used for native (and web onChange).
+ * Does not call Supabase or Capacitor.
+ */
+export class AuthIdentityTransitionController {
+  private previous: PreviousAuthIdentity;
+  private chain: Promise<unknown> = Promise.resolve();
+
+  constructor(private readonly queryClient: QueryClient) {
+    this.previous = resolveInitialPrevious(queryClient);
+  }
+
+  /** Test/debug: current previous identity for this QC. */
+  getPreviousIdentity(): PreviousAuthIdentity {
+    return this.previous;
+  }
+
+  private enqueue<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this.chain.then(fn, fn);
+    this.chain = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  private async applyTransition(nextUser: AuthLifecycleUser): Promise<AuthTransitionResult> {
+    const result = await applyAuthQueryCacheTransition(this.queryClient, this.previous, nextUser);
+    this.previous = result.nextPreviousIdentity;
+    return result;
+  }
+
+  /**
+   * Perform readFn inside the chain, then transition only for authoritative outcomes.
+   */
+  observe(readFn: () => Promise<AuthIdentityObservation>): Promise<AuthIdentityObservation> {
+    return this.enqueue(async () => {
+      const outcome = await readFn();
+      if (outcome.kind === "authenticated") {
+        await this.applyTransition(outcome.user);
+      } else if (outcome.kind === "signed-out") {
+        await this.applyTransition(null);
+      }
+      return outcome;
+    });
+  }
+
+  /**
+   * Publish a known authoritative identity (e.g. web onChange payload).
+   * Prefer runSerialized when a session mutation must pair with the transition.
+   */
+  commitKnown(nextUser: AuthLifecycleUser): Promise<AuthTransitionResult> {
+    return this.enqueue(() => this.applyTransition(nextUser));
+  }
+
+  /**
+   * Run mutation + transition in one chain slot (no nested enqueue).
+   * Used for OAuth exchange + publish and native local sign-out + publish.
+   */
+  runSerialized<T>(fn: (api: AuthIdentitySerializedApi) => Promise<T>): Promise<T> {
+    return this.enqueue(() =>
+      fn({
+        applyTransition: (nextUser) => this.applyTransition(nextUser),
+      }),
+    );
+  }
+}
+
+const controllers = new WeakMap<QueryClient, AuthIdentityTransitionController>();
+
+/**
+ * One controller per QueryClient. Different QueryClients never share state.
+ */
+export function getAuthIdentityTransitionController(
+  queryClient: QueryClient,
+): AuthIdentityTransitionController {
+  let controller = controllers.get(queryClient);
+  if (!controller) {
+    controller = new AuthIdentityTransitionController(queryClient);
+    controllers.set(queryClient, controller);
+  }
+  return controller;
 }

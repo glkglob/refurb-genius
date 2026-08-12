@@ -1,5 +1,5 @@
 /**
- * IOS-READINESS-2B-3 — native OAuth completion boundary invariants.
+ * IOS-READINESS-2B-3/4 — native OAuth completion boundary invariants.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -23,6 +23,8 @@ const authed = "src/routes/_authed.tsx";
 const native = "src/platform/supabase/native.ts";
 const capacitor = "capacitor.config.ts";
 const start = "src/start.ts";
+const readSession = "src/features/auth/infrastructure/readNativeAuthSession.ts";
+const nativeLifecycle = "src/features/auth/presentation/nativeAuthIdentityLifecycle.ts";
 
 test("native exchange uses getNativeSupabase only", () => {
   const src = read(exchange);
@@ -42,7 +44,7 @@ test("application completion is QueryClient/React free", () => {
 });
 
 test("native modules do not import browser/_client value authority", () => {
-  for (const rel of [extract, exchange, complete, mapper, failure, useOAuth]) {
+  for (const rel of [extract, exchange, complete, mapper, failure, useOAuth, readSession]) {
     const src = read(rel);
     assert.doesNotMatch(
       src,
@@ -66,15 +68,16 @@ test("native client keeps autoRefreshToken false", () => {
 });
 
 test("shared modules do not statically import getNativeSupabase", () => {
-  for (const rel of [useAuth, authed]) {
+  for (const rel of [useAuth, authed, nativeLifecycle]) {
     const src = read(rel);
-    assert.match(src, /import\(["']@\/platform\/supabase\/native["']\)/, rel);
     assert.doesNotMatch(
       src,
       /import\s*\{[^}]*getNativeSupabase[^}]*\}\s*from\s*["']@\/platform\/supabase\/native["']/,
       rel,
     );
   }
+  // Session read uses dynamic import
+  assert.match(read(readSession), /import\(["']@\/platform\/supabase\/native["']\)/);
 });
 
 test("no @capacitor/browser or server.url", () => {
@@ -94,18 +97,18 @@ test("strict CSRF remains without capacitor exemption", () => {
   assert.doesNotMatch(src, /capacitor:\/\//);
 });
 
-test("useOAuthSignIn seeds AUTH_USER_QUERY_KEY and exposes native-authenticated destination", () => {
+test("useOAuthSignIn publishes via lifecycle (not bare setQueryData)", () => {
   const src = read(useOAuth);
-  assert.match(src, /AUTH_USER_QUERY_KEY/);
-  assert.match(src, /setQueryData/);
+  assert.match(src, /completeAndPublishNativeOAuth/);
   assert.match(src, /native-authenticated/);
-  assert.match(src, /completeNativeOAuthSignIn/);
+  assert.doesNotMatch(src, /setQueryData\s*\(\s*AUTH_USER_QUERY_KEY/);
   assert.doesNotMatch(src, /kind:\s*["']native-callback["']/);
 });
 
-test("useAuth native signOut is temporary reject guard", () => {
+test("useAuth native signOut uses lifecycle; web keeps onChange", () => {
   const src = read(useAuth);
-  assert.match(src, /Sign out is not available in this native authentication phase/);
+  assert.match(src, /signOutNativeAuthIdentity/);
   assert.match(src, /isNativePlatform/);
   assert.match(src, /auth\.onChange/);
+  assert.match(src, /enabled:\s*!isNative/);
 });

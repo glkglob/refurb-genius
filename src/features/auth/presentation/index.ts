@@ -18,3 +18,13 @@ export {
   type AuthCallbackCompletionPresentationResult,
 } from "./hooks/useAuthCallbackCompletion";
 export { useSignOut, type UseSignOutResult } from "./hooks/useSignOut";
+export {
+  observeNativeAuthIdentity,
+  ensureNativeAuthIdentitySettled,
+  isNativeAuthIdentitySettled,
+  signOutNativeAuthIdentity,
+  signOutNativeAuthIdentityFromBoundClient,
+  completeAndPublishNativeOAuth,
+  bindNativeAuthIdentityQueryClient,
+  type NativeAuthSessionOutcome,
+} from "./nativeAuthIdentityLifecycle";

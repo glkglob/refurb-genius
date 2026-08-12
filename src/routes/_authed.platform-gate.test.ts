@@ -1,5 +1,5 @@
 /**
- * IOS-READINESS-2B-3 — _authed platform gate + useAuth native identity contracts.
+ * IOS-READINESS-2B-3/4 — _authed platform gate + useAuth native identity contracts.
  *
  * useAuth runtime tests live here (not src/hooks/) so the legacy hooks freeze
  * allowlist is not expanded.
@@ -10,26 +10,35 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement, type ReactNode } from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import {
-  AuthProvider,
-  AUTH_USER_QUERY_KEY,
-  NATIVE_SIGNOUT_UNAVAILABLE_MESSAGE,
-  useAuth,
-} from "@/hooks/useAuth";
+import { AuthProvider, AUTH_USER_QUERY_KEY, useAuth } from "@/hooks/useAuth";
 
 const isNativePlatform = vi.fn();
 const getCurrentUserServerFn = vi.fn();
 const useServerFn = vi.fn((_fn?: unknown) => getCurrentUserServerFn);
 const getSession = vi.fn();
+const nativeSignOut = vi.fn();
 const getNativeSupabase = vi.fn(() => ({
-  auth: { getSession: (...args: unknown[]) => getSession(...args) },
+  auth: {
+    getSession: (...args: unknown[]) => getSession(...args),
+    signOut: (...args: unknown[]) => nativeSignOut(...args),
+  },
 }));
 const authOnChange = vi.fn();
 const authSignOut = vi.fn();
+const appAddListener = vi.fn();
 
 vi.mock("@capacitor/core", () => ({
   Capacitor: {
     isNativePlatform: () => isNativePlatform(),
+  },
+  // Full auth barrel (useAuth lifecycle import) pulls OAuth web-auth-session
+  // which calls registerPlugin at module init.
+  registerPlugin: vi.fn(() => ({})),
+}));
+
+vi.mock("@capacitor/app", () => ({
+  App: {
+    addListener: (...args: unknown[]) => appAddListener(...args),
   },
 }));
 
@@ -83,13 +92,17 @@ beforeEach(() => {
   getCurrentUserServerFn.mockReset();
   useServerFn.mockClear();
   getSession.mockReset();
+  nativeSignOut.mockReset();
   getNativeSupabase.mockClear();
   authOnChange.mockReset();
   authSignOut.mockReset();
+  appAddListener.mockReset();
   isNativePlatform.mockReturnValue(false);
   getCurrentUserServerFn.mockResolvedValue({ user: { id: "web-u", email: "w@e.com" } });
   getSession.mockResolvedValue({ data: { session: null }, error: null });
   authSignOut.mockResolvedValue(undefined);
+  nativeSignOut.mockResolvedValue({ error: null });
+  appAddListener.mockResolvedValue({ remove: vi.fn() });
 });
 
 afterEach(() => {
@@ -104,14 +117,17 @@ describe("_authed beforeLoad — platform split", () => {
     const beforeLoad = Route.options.beforeLoad;
     expect(beforeLoad).toBeTypeOf("function");
 
-    const ctx = await beforeLoad!({ location } as never);
+    const ctx = await beforeLoad!({
+      location,
+      context: { queryClient: new QueryClient() },
+    } as never);
 
     expect(ctx).toEqual({ user: { id: "web-u", email: "w@e.com" } });
     expect(getCurrentUserServerFn).toHaveBeenCalled();
     expect(getNativeSupabase).not.toHaveBeenCalled();
   });
 
-  it("native path uses getNativeSupabase session and never calls cookie serverFn", async () => {
+  it("native path uses serialized observe and never calls cookie serverFn", async () => {
     isNativePlatform.mockReturnValue(true);
     getSession.mockResolvedValue({
       data: {
@@ -122,8 +138,12 @@ describe("_authed beforeLoad — platform split", () => {
       error: null,
     });
 
+    const queryClient = new QueryClient();
     const beforeLoad = Route.options.beforeLoad!;
-    const ctx = await beforeLoad({ location } as never);
+    const ctx = await beforeLoad({
+      location,
+      context: { queryClient },
+    } as never);
 
     expect(getNativeSupabase).toHaveBeenCalled();
     expect(getSession).toHaveBeenCalled();
@@ -131,31 +151,67 @@ describe("_authed beforeLoad — platform split", () => {
     expect(ctx).toEqual({
       user: { id: "native-u", email: "n@e.com", fullName: "N" },
     });
+    expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toEqual({
+      id: "native-u",
+      email: "n@e.com",
+      fullName: "N",
+    });
   });
 
-  it("native missing session redirects to /auth", async () => {
+  it("native missing session redirects to /auth after commit null", async () => {
     isNativePlatform.mockReturnValue(true);
     getSession.mockResolvedValue({ data: { session: null }, error: null });
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(AUTH_USER_QUERY_KEY, { id: "was-a", email: "a@e.com" });
+    queryClient.setQueryData(["projects"], [{ id: "p1" }]);
 
     const beforeLoad = Route.options.beforeLoad!;
-    await expect(beforeLoad({ location } as never)).rejects.toMatchObject({
-      options: expect.objectContaining({
-        to: "/auth",
-      }),
-    });
+    await expect(beforeLoad({ location, context: { queryClient } } as never)).rejects.toMatchObject(
+      {
+        options: expect.objectContaining({
+          to: "/auth",
+        }),
+      },
+    );
     expect(getCurrentUserServerFn).not.toHaveBeenCalled();
+    expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toBeNull();
+    expect(queryClient.getQueryData(["projects"])).toBeUndefined();
   });
 
-  it("source does not statically import getNativeSupabase", () => {
+  it("native getSession error is indeterminate fail-closed without false null commit", async () => {
+    isNativePlatform.mockReturnValue(true);
+    getSession.mockResolvedValue({
+      data: { session: null },
+      error: { message: "refresh failed" },
+    });
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(AUTH_USER_QUERY_KEY, { id: "was-a", email: "a@e.com" });
+    queryClient.setQueryData(["projects"], [{ id: "p1" }]);
+
+    const beforeLoad = Route.options.beforeLoad!;
+    await expect(beforeLoad({ location, context: { queryClient } } as never)).rejects.toMatchObject(
+      {
+        options: expect.objectContaining({ to: "/auth" }),
+      },
+    );
+    // A retained — no false signed-out publication
+    expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toEqual({
+      id: "was-a",
+      email: "a@e.com",
+    });
+    expect(queryClient.getQueryData(["projects"])).toEqual([{ id: "p1" }]);
+  });
+
+  it("source uses observeNativeAuthIdentity via public API and cookie serverFn", () => {
     const src = readFileSync(AUTHED_SRC, "utf8");
-    expect(src).toMatch(/import\(["']@\/platform\/supabase\/native["']\)/);
+    expect(src).toMatch(/observeNativeAuthIdentity/);
+    expect(src).toMatch(/import\(["']@\/features\/auth["']\)/);
+    expect(src).toMatch(/context\.queryClient/);
     expect(src).not.toMatch(
       /import\s*\{[^}]*getNativeSupabase[^}]*\}\s*from\s*["']@\/platform\/supabase\/native["']/,
     );
-    expect(src).toMatch(/mapNativeSupabaseUser/);
     expect(src).toMatch(/getCurrentUserServerFn/);
     expect(src).toMatch(/isNativePlatform/);
-    expect(src).toMatch(/@\/features\/auth\/infrastructure/);
   });
 });
 
@@ -214,12 +270,12 @@ describe("useAuth — native path", () => {
     });
   });
 
-  it("reads getNativeSupabase session and never calls cookie serverFn", async () => {
+  it("AuthProvider observe publishes identity; never calls cookie serverFn", async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
     const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(queryClient),
+      wrapper: createWrapper(queryClient, true),
     });
 
     await waitFor(() => {
@@ -236,44 +292,132 @@ describe("useAuth — native path", () => {
     });
   });
 
-  it("returns null on getSession error", async () => {
+  it("indeterminate getSession error retains prior identity after observe", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    queryClient.setQueryData(AUTH_USER_QUERY_KEY, {
+      id: "prior",
+      email: "p@e.com",
+    });
     getSession.mockResolvedValue({
       data: { session: null },
       error: new Error("storage fail"),
     });
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
+
     const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(queryClient),
+      wrapper: createWrapper(queryClient, true),
     });
 
     await waitFor(() => {
+      expect(result.current.hydrated).toBe(true);
       expect(result.current.isLoading).toBe(false);
     });
 
-    expect(result.current.user).toBeNull();
+    // Indeterminate must not wipe known A
+    expect(result.current.user).toEqual({ id: "prior", email: "p@e.com" });
+    expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toEqual({
+      id: "prior",
+      email: "p@e.com",
+    });
     expect(getCurrentUserServerFn).not.toHaveBeenCalled();
   });
 
-  it("signOut rejects without loading browser auth.signOut", async () => {
+  it("fresh indeterminate settles without false null or permanent loading", async () => {
+    getSession.mockResolvedValue({
+      data: { session: null },
+      error: new Error("refresh failed"),
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(queryClient, true),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.hydrated).toBe(true);
+    });
+
+    expect(result.current.user).toBeNull();
+    // Must not publish authoritative signed-out null into AUTH cache
+    expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toBeUndefined();
+  });
+
+  it("multiple useAuth consumers share settlement and agree on identity", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const { result } = renderHook(
+      () => ({
+        a: useAuth(),
+        b: useAuth(),
+      }),
+      { wrapper: createWrapper(queryClient, true) },
+    );
+
+    await waitFor(() => {
+      expect(result.current.a.isLoading).toBe(false);
+      expect(result.current.b.isLoading).toBe(false);
+    });
+
+    expect(result.current.a.user).toEqual(result.current.b.user);
+    expect(result.current.a.user).toMatchObject({ id: "native-u" });
+    // One shared Keychain read flight for initial settlement (+ possible resume not fired)
+    expect(getSession.mock.calls.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("signOut uses native local signOut not browser auth", async () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
     const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(queryClient),
+      wrapper: createWrapper(queryClient, true),
     });
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
     });
 
-    await expect(
-      act(async () => {
-        await result.current.signOut();
-      }),
-    ).rejects.toThrow(NATIVE_SIGNOUT_UNAVAILABLE_MESSAGE);
+    await act(async () => {
+      await result.current.signOut();
+    });
+
+    expect(nativeSignOut).toHaveBeenCalledWith({ scope: "local" });
     expect(authSignOut).not.toHaveBeenCalled();
+    expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toBeNull();
+  });
+
+  it("explicit refetch uses observe path", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(queryClient, true),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    getSession.mockClear();
+    getSession.mockResolvedValue({
+      data: {
+        session: {
+          user: { id: "native-u", email: "n@e.com", user_metadata: {} },
+        },
+      },
+      error: null,
+    });
+
+    let user: unknown;
+    await act(async () => {
+      user = await result.current.refetch();
+    });
+    expect(getSession).toHaveBeenCalled();
+    expect(user).toMatchObject({ id: "native-u" });
   });
 });
 
@@ -315,38 +459,34 @@ describe("AuthProvider lifecycle bridge", () => {
     });
   });
 
-  it("native has no browser lifecycle subscriber (seed cannot be browser-null-overwritten)", async () => {
+  it("native installs one appStateChange listener", async () => {
     isNativePlatform.mockReturnValue(true);
     getSession.mockResolvedValue({ data: { session: null }, error: null });
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    queryClient.setQueryData(AUTH_USER_QUERY_KEY, { id: "seeded", email: "s@e.com" });
 
     renderHook(() => useAuth(), {
       wrapper: createWrapper(queryClient, true),
     });
 
-    await act(async () => {
-      await Promise.resolve();
+    await waitFor(() => {
+      expect(appAddListener).toHaveBeenCalled();
     });
-
-    expect(authOnChange).not.toHaveBeenCalled();
+    expect(appAddListener.mock.calls[0]?.[0]).toBe("appStateChange");
   });
 });
 
 describe("useAuth — source boundary", () => {
-  it("lazy-loads native supabase; no static getNativeSupabase; type-only AuthUser", () => {
+  it("native observer-only query; lifecycle imports; web onChange retained", () => {
     const src = readFileSync(USE_AUTH_SRC, "utf8");
-    expect(src).toMatch(/import\(["']@\/platform\/supabase\/native["']\)/);
-    expect(src).not.toMatch(
-      /import\s*\{[^}]*getNativeSupabase[^}]*\}\s*from\s*["']@\/platform\/supabase\/native["']/,
-    );
+    expect(src).toMatch(/enabled:\s*!isNative/);
+    expect(src).toMatch(/observeNativeAuthIdentity/);
+    expect(src).toMatch(/signOutNativeAuthIdentity/);
     expect(src).toMatch(/import type \{ AuthUser \}/);
     expect(src).not.toMatch(/import\s*\{\s*auth\s*,/);
     expect(src).toMatch(/auth\.onChange/);
     expect(src).toMatch(/isNativePlatform/);
-    expect(src).toMatch(/NATIVE_SIGNOUT_UNAVAILABLE_MESSAGE|Sign out is not available/);
-    expect(src).toMatch(/@\/features\/auth\/infrastructure/);
+    expect(src).not.toMatch(/NATIVE_SIGNOUT_UNAVAILABLE|Sign out is not available in this native/);
   });
 });
