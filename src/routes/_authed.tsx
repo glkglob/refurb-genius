@@ -76,7 +76,7 @@ import { Capacitor } from "@capacitor/core";
 
 import { getCurrentUserServerFn } from "@/serverFns/auth";
 import type { AuthUser } from "@/lib/auth";
-import { mapNativeSupabaseUser } from "@/features/auth/infrastructure";
+// Public API only (public-api-boundary). Dynamic import avoids SSR graph weight.
 
 /**
  * The shape we inject into the route context for all protected descendants.
@@ -114,26 +114,22 @@ export const Route = createFileRoute("/_authed")({
    * WEB SSR + WEB client navigation: cookie-validated getCurrentUserServerFn
    * (unchanged).
    *
-   * Capacitor native client routing (IOS-READINESS-2B-3): Keychain-backed
-   * getNativeSupabase session via dynamic import only inside the native branch.
-   * Web SSR never trusts native session state.
+   * Capacitor native client routing (IOS-READINESS-2B-4): serialized
+   * observeNativeAuthIdentity via root context QueryClient — isolation
+   * completes before route context receives the user. Web SSR never trusts
+   * native session state.
    */
-  beforeLoad: async ({ location }): Promise<AuthedRouteContext> => {
+  beforeLoad: async ({ location, context }): Promise<AuthedRouteContext> => {
     // Native client only — SSR / web always take the cookie path below.
     if (typeof window !== "undefined" && Capacitor.isNativePlatform()) {
-      try {
-        const { getNativeSupabase } = await import("@/platform/supabase/native");
-        const {
-          data: { session },
-        } = await getNativeSupabase().auth.getSession();
-        const user = mapNativeSupabaseUser(session?.user);
-        if (!user) {
-          redirectToAuth(location);
-        }
-        return { user };
-      } catch {
-        redirectToAuth(location);
+      const { observeNativeAuthIdentity } = await import("@/features/auth");
+      const outcome = await observeNativeAuthIdentity(context.queryClient);
+      if (outcome.kind === "authenticated") {
+        return { user: outcome.user };
       }
+      // signed-out: null already committed when authoritative
+      // indeterminate: fail closed without false null commit
+      redirectToAuth(location);
     }
 
     // IMPORTANT: getCurrentUserServerFn is a `createServerFn`. Even when
