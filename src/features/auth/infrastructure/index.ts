@@ -18,6 +18,14 @@ export {
   type StartOAuthSignInInput,
 } from "./startOAuthSignIn";
 export { startNativeOAuthSignIn, type StartNativeOAuthSignInInput } from "./startNativeOAuthSignIn";
+export { extractNativeOAuthAuthorizationCode } from "./extractNativeOAuthAuthorizationCode";
+export {
+  exchangeNativeAuthCode,
+  type ExchangeNativeAuthCodeInput,
+  type ExchangeNativeAuthCodeResult,
+} from "./exchangeNativeAuthCode";
+/** Re-export pure mapper for app-shell consumers (hooks/routes) via infrastructure public surface. */
+export { mapNativeSupabaseUser } from "../application/mapNativeSupabaseUser";
 export { sendMagicLinkEmail, type SendMagicLinkEmailInput } from "./sendMagicLinkEmail";
 export {
   requestPasswordResetEmail,

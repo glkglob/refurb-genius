@@ -329,9 +329,15 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
     try {
       const outcome = await startGoogleOAuth(redirect);
       // web-redirecting: leave loading true until browser navigation.
-      // native-cancelled / native-callback: clear loading; remain unsigned-in (2B-2).
-      if (outcome.kind === "native-cancelled" || outcome.kind === "native-callback") {
+      // native-cancelled: clear loading; remain unsigned-in.
+      // native-authenticated: clear loading, toast, navigate (2B-3).
+      if (outcome.kind === "native-cancelled") {
         setOauthLoading(false);
+      } else if (outcome.kind === "native-authenticated") {
+        setOauthLoading(false);
+        toast.success("Signed in successfully.");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic post-auth destination
+        await navigate({ to: outcome.destination as any, replace: true });
       }
     } catch (err) {
       logger.error("[auth] google auth failed", { error: String(err) });
@@ -346,8 +352,13 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
     try {
       const outcome = await startAppleOAuth(redirect);
-      if (outcome.kind === "native-cancelled" || outcome.kind === "native-callback") {
+      if (outcome.kind === "native-cancelled") {
         setAppleLoading(false);
+      } else if (outcome.kind === "native-authenticated") {
+        setAppleLoading(false);
+        toast.success("Signed in successfully.");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic post-auth destination
+        await navigate({ to: outcome.destination as any, replace: true });
       }
     } catch (err) {
       logger.error("[auth] apple auth failed", { error: String(err) });
@@ -362,8 +373,13 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
     try {
       const outcome = await startGitHubOAuth(redirect);
-      if (outcome.kind === "native-cancelled" || outcome.kind === "native-callback") {
+      if (outcome.kind === "native-cancelled") {
         setGitHubLoading(false);
+      } else if (outcome.kind === "native-authenticated") {
+        setGitHubLoading(false);
+        toast.success("Signed in successfully.");
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic post-auth destination
+        await navigate({ to: outcome.destination as any, replace: true });
       }
     } catch (err) {
       logger.error("[auth] GitHub OAuth failed", {

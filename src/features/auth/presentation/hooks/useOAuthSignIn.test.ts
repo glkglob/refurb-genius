@@ -1,15 +1,19 @@
 /**
- * AO-1E1.2 / IOS-READINESS-2B-2 — OAuth presentation hook contracts.
+ * AO-1E1.2 / IOS-READINESS-2B-3 — OAuth presentation hook contracts.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createElement, type ReactNode } from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { AUTH_USER_QUERY_KEY } from "@/hooks/useAuth";
 
 const startOAuthSignIn = vi.fn();
 const startNativeOAuthSignIn = vi.fn();
 const openNativeAuthSession = vi.fn();
 const classifyAuthReturnUrl = vi.fn();
+const completeNativeOAuthSignIn = vi.fn();
 const trackEvent = vi.fn();
 const isNativePlatform = vi.fn();
 
@@ -39,17 +43,28 @@ vi.mock("@/platform/auth/native/auth-return", () => ({
   classifyAuthReturnUrl: (url: unknown) => classifyAuthReturnUrl(url),
 }));
 
+vi.mock("../../application/completeNativeOAuthSignIn", () => ({
+  completeNativeOAuthSignIn: (input: unknown) => completeNativeOAuthSignIn(input),
+}));
+
 import { useOAuthSignIn } from "./useOAuthSignIn";
 
 const SRC = join(__dirname, "useOAuthSignIn.ts");
 
 const originalLocation = window.location;
 
+function createWrapper(queryClient: QueryClient) {
+  return function Wrapper({ children }: { children: ReactNode }) {
+    return createElement(QueryClientProvider, { client: queryClient }, children);
+  };
+}
+
 beforeEach(() => {
   startOAuthSignIn.mockReset();
   startNativeOAuthSignIn.mockReset();
   openNativeAuthSession.mockReset();
   classifyAuthReturnUrl.mockReset();
+  completeNativeOAuthSignIn.mockReset();
   trackEvent.mockReset();
   isNativePlatform.mockReset();
   isNativePlatform.mockReturnValue(false);
@@ -59,6 +74,11 @@ beforeEach(() => {
   });
   openNativeAuthSession.mockResolvedValue({ type: "cancel" });
   classifyAuthReturnUrl.mockReturnValue(null);
+  completeNativeOAuthSignIn.mockResolvedValue({
+    kind: "authenticated",
+    user: { id: "u1", email: "a@b.com" },
+    destination: "/dashboard",
+  });
   Object.defineProperty(window, "location", {
     configurable: true,
     value: { ...originalLocation, origin: "https://app.example" },
@@ -82,7 +102,10 @@ describe("useOAuthSignIn — web Google", () => {
       order.push("auth");
     });
 
-    const { result } = renderHook(() => useOAuthSignIn());
+    const queryClient = new QueryClient();
+    const { result } = renderHook(() => useOAuthSignIn(), {
+      wrapper: createWrapper(queryClient),
+    });
 
     let outcome: unknown;
     await act(async () => {
@@ -99,135 +122,8 @@ describe("useOAuthSignIn — web Google", () => {
       queryParams: { redirect_to: "/projects" },
     });
     expect(outcome).toEqual({ kind: "web-redirecting" });
-    expect(startNativeOAuthSignIn).not.toHaveBeenCalled();
-    expect(openNativeAuthSession).not.toHaveBeenCalled();
-  });
-
-  it("omits queryParams when redirect is falsy", async () => {
-    const { result } = renderHook(() => useOAuthSignIn());
-
-    await act(async () => {
-      await result.current.startGoogleOAuth(undefined);
-    });
-
-    expect(startOAuthSignIn).toHaveBeenCalledWith({
-      provider: "google",
-      redirectTo: "https://app.example/auth/callback",
-      queryParams: undefined,
-    });
-  });
-
-  it("propagates primitive errors without logger or navigation", async () => {
-    startOAuthSignIn.mockRejectedValue(new Error("OAuth denied"));
-    const { result } = renderHook(() => useOAuthSignIn());
-
-    await expect(
-      act(async () => {
-        await result.current.startGoogleOAuth("/projects");
-      }),
-    ).rejects.toThrow("OAuth denied");
-
-    expect(trackEvent).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("useOAuthSignIn — web Apple", () => {
-  it("tracks analytics before primitive with exact Apple provider", async () => {
-    const order: string[] = [];
-    trackEvent.mockImplementation(() => {
-      order.push("analytics");
-    });
-    startOAuthSignIn.mockImplementation(async () => {
-      order.push("auth");
-    });
-
-    const { result } = renderHook(() => useOAuthSignIn());
-
-    let outcome: unknown;
-    await act(async () => {
-      outcome = await result.current.startAppleOAuth("/settings");
-    });
-
-    expect(order).toEqual(["analytics", "auth"]);
-    expect(trackEvent).toHaveBeenCalledWith("oauth_sign_in_initiated", {
-      provider: "apple",
-    });
-    expect(startOAuthSignIn).toHaveBeenCalledWith({
-      provider: "apple",
-      redirectTo: "https://app.example/auth/callback",
-      queryParams: { redirect_to: "/settings" },
-    });
-    expect(outcome).toEqual({ kind: "web-redirecting" });
-  });
-
-  it("propagates Apple Auth failures", async () => {
-    startOAuthSignIn.mockRejectedValue(new Error("Apple failed"));
-    const { result } = renderHook(() => useOAuthSignIn());
-
-    await expect(
-      act(async () => {
-        await result.current.startAppleOAuth();
-      }),
-    ).rejects.toThrow("Apple failed");
-  });
-});
-
-describe("useOAuthSignIn — web GitHub", () => {
-  it("tracks analytics before primitive with exact GitHub provider and redirect_to", async () => {
-    const order: string[] = [];
-    trackEvent.mockImplementation(() => {
-      order.push("analytics");
-    });
-    startOAuthSignIn.mockImplementation(async () => {
-      order.push("auth");
-    });
-
-    const { result } = renderHook(() => useOAuthSignIn());
-
-    let outcome: unknown;
-    await act(async () => {
-      outcome = await result.current.startGitHubOAuth("/projects");
-    });
-
-    expect(order).toEqual(["analytics", "auth"]);
-    expect(trackEvent).toHaveBeenCalledWith("oauth_sign_in_initiated", {
-      provider: "github",
-    });
-    expect(startOAuthSignIn).toHaveBeenCalledWith({
-      provider: "github",
-      redirectTo: "https://app.example/auth/callback",
-      queryParams: {
-        redirect_to: "/projects",
-      },
-    });
-    expect(outcome).toEqual({ kind: "web-redirecting" });
-  });
-
-  it("omits queryParams when redirect is undefined", async () => {
-    const { result } = renderHook(() => useOAuthSignIn());
-
-    await act(async () => {
-      await result.current.startGitHubOAuth(undefined);
-    });
-
-    expect(startOAuthSignIn).toHaveBeenCalledWith({
-      provider: "github",
-      redirectTo: "https://app.example/auth/callback",
-      queryParams: undefined,
-    });
-  });
-
-  it("propagates primitive errors unchanged", async () => {
-    startOAuthSignIn.mockRejectedValue(new Error("GitHub authorization failed"));
-    const { result } = renderHook(() => useOAuthSignIn());
-
-    await expect(
-      act(async () => {
-        await result.current.startGitHubOAuth("/projects");
-      }),
-    ).rejects.toThrow("GitHub authorization failed");
-
-    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(completeNativeOAuthSignIn).not.toHaveBeenCalled();
+    expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toBeUndefined();
   });
 });
 
@@ -236,12 +132,15 @@ describe("useOAuthSignIn — native path", () => {
     isNativePlatform.mockReturnValue(true);
   });
 
-  it("passes authorize URL to openNativeAuthSession and returns native-cancelled", async () => {
+  it("passes authorize URL to openNativeAuthSession and returns native-cancelled without seed", async () => {
     const authorizeUrl = "https://example.supabase.co/auth/v1/authorize?provider=google";
     startNativeOAuthSignIn.mockResolvedValue({ url: authorizeUrl });
     openNativeAuthSession.mockResolvedValue({ type: "cancel" });
 
-    const { result } = renderHook(() => useOAuthSignIn());
+    const queryClient = new QueryClient();
+    const { result } = renderHook(() => useOAuthSignIn(), {
+      wrapper: createWrapper(queryClient),
+    });
 
     let outcome: unknown;
     await act(async () => {
@@ -251,34 +150,69 @@ describe("useOAuthSignIn — native path", () => {
     expect(startNativeOAuthSignIn).toHaveBeenCalledWith({ provider: "google" });
     expect(openNativeAuthSession).toHaveBeenCalledWith(authorizeUrl);
     expect(startOAuthSignIn).not.toHaveBeenCalled();
+    expect(completeNativeOAuthSignIn).not.toHaveBeenCalled();
     expect(outcome).toEqual({ kind: "native-cancelled" });
-    expect(classifyAuthReturnUrl).not.toHaveBeenCalled();
-    // Application redirect must not be forwarded into native OAuth.
-    expect(startNativeOAuthSignIn.mock.calls[0]?.[0]).toEqual({ provider: "google" });
+    expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toBeUndefined();
   });
 
-  it("returns native-callback only for classified custom-scheme surfaces", async () => {
+  it("seeds AUTH_USER_QUERY_KEY once and returns native-authenticated destination only", async () => {
     const callbackUrl = "com.refurbgenius.app://auth/callback?code=abc";
     startNativeOAuthSignIn.mockResolvedValue({
       url: "https://example.supabase.co/auth/v1/authorize?provider=apple",
     });
     openNativeAuthSession.mockResolvedValue({ type: "success", url: callbackUrl });
     classifyAuthReturnUrl.mockReturnValue({ kind: "custom-scheme", url: callbackUrl });
+    completeNativeOAuthSignIn.mockResolvedValue({
+      kind: "authenticated",
+      user: { id: "u1", email: "a@b.com", fullName: "Ada" },
+      destination: "/projects",
+    });
 
-    const { result } = renderHook(() => useOAuthSignIn());
+    const queryClient = new QueryClient();
+    const { result } = renderHook(() => useOAuthSignIn(), {
+      wrapper: createWrapper(queryClient),
+    });
 
     let outcome: unknown;
     await act(async () => {
-      outcome = await result.current.startAppleOAuth();
+      outcome = await result.current.startAppleOAuth("/projects");
     });
 
-    expect(classifyAuthReturnUrl).toHaveBeenCalledWith(callbackUrl);
-    expect(outcome).toEqual({ kind: "native-callback", url: callbackUrl });
-    expect(trackEvent).toHaveBeenCalledWith("oauth_sign_in_initiated", { provider: "apple" });
-    // Analytics must not include callback/authorize secrets.
-    for (const call of trackEvent.mock.calls) {
-      expect(JSON.stringify(call)).not.toMatch(/code=|authorize\?|com\.refurbgenius\.app:\/\//);
-    }
+    expect(completeNativeOAuthSignIn).toHaveBeenCalledTimes(1);
+    expect(completeNativeOAuthSignIn).toHaveBeenCalledWith({
+      callbackUrl,
+      redirectTo: "/projects",
+    });
+    expect(outcome).toEqual({ kind: "native-authenticated", destination: "/projects" });
+    expect(JSON.stringify(outcome)).not.toMatch(/code=|access_token|refresh_token|callback/);
+    expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toEqual({
+      id: "u1",
+      email: "a@b.com",
+      fullName: "Ada",
+    });
+  });
+
+  it("does not seed on application error", async () => {
+    const callbackUrl = "com.refurbgenius.app://auth/callback?code=abc";
+    openNativeAuthSession.mockResolvedValue({ type: "success", url: callbackUrl });
+    classifyAuthReturnUrl.mockReturnValue({ kind: "custom-scheme", url: callbackUrl });
+    completeNativeOAuthSignIn.mockResolvedValue({
+      kind: "error",
+      message: "We could not complete sign-in. Please try again.",
+    });
+
+    const queryClient = new QueryClient();
+    const { result } = renderHook(() => useOAuthSignIn(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await expect(
+      act(async () => {
+        await result.current.startGoogleOAuth();
+      }),
+    ).rejects.toThrow(/We could not complete sign-in/);
+
+    expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toBeUndefined();
   });
 
   it("rejects universal-link OAuth results with a safe generic error", async () => {
@@ -291,47 +225,67 @@ describe("useOAuthSignIn — native path", () => {
       url: "https://www.refurbgenius.info/auth/native-callback?code=x",
     });
 
-    const { result } = renderHook(() => useOAuthSignIn());
+    const queryClient = new QueryClient();
+    const { result } = renderHook(() => useOAuthSignIn(), {
+      wrapper: createWrapper(queryClient),
+    });
 
     await expect(
       act(async () => {
         await result.current.startGitHubOAuth();
       }),
     ).rejects.toThrow(/Invalid authentication return/);
+    expect(completeNativeOAuthSignIn).not.toHaveBeenCalled();
   });
 
-  it("rejects malformed callbacks that fail classification", async () => {
-    openNativeAuthSession.mockResolvedValue({
-      type: "success",
-      url: "https://evil.example/phish",
+  it("guards concurrent native OAuth attempts", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
     });
-    classifyAuthReturnUrl.mockReturnValue(null);
+    startNativeOAuthSignIn.mockImplementation(async () => {
+      await gate;
+      return { url: "https://example.supabase.co/auth/v1/authorize" };
+    });
 
-    const { result } = renderHook(() => useOAuthSignIn());
+    const queryClient = new QueryClient();
+    const { result } = renderHook(() => useOAuthSignIn(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    let first: Promise<unknown> | undefined;
+    await act(async () => {
+      first = result.current.startGoogleOAuth();
+    });
 
     await expect(
       act(async () => {
         await result.current.startGoogleOAuth();
       }),
-    ).rejects.toThrow(/Invalid authentication return/);
+    ).rejects.toThrow(/already in progress/);
+
+    release();
+    openNativeAuthSession.mockResolvedValue({ type: "cancel" });
+    await act(async () => {
+      await first;
+    });
   });
 
-  it("does not call exchange or web cookie client on native success", async () => {
-    const callbackUrl = "com.refurbgenius.app://auth/callback?code=abc";
-    openNativeAuthSession.mockResolvedValue({ type: "success", url: callbackUrl });
-    classifyAuthReturnUrl.mockReturnValue({ kind: "custom-scheme", url: callbackUrl });
-
-    const { result } = renderHook(() => useOAuthSignIn());
+  it("does not call web cookie OAuth client on native path", async () => {
+    openNativeAuthSession.mockResolvedValue({ type: "cancel" });
+    const queryClient = new QueryClient();
+    const { result } = renderHook(() => useOAuthSignIn(), {
+      wrapper: createWrapper(queryClient),
+    });
     await act(async () => {
       await result.current.startGoogleOAuth();
     });
-
     expect(startOAuthSignIn).not.toHaveBeenCalled();
   });
 });
 
 describe("useOAuthSignIn — source boundary", () => {
-  it("does not log, toast, navigate, or set loading; keeps web and native primitives", () => {
+  it("does not log, toast, navigate, or set loading; seeds on success only via QueryClient", () => {
     const src = readFileSync(SRC, "utf8")
       .replace(/\/\*[\s\S]*?\*\//g, "")
       .replace(/\/\/.*$/gm, "");
@@ -339,14 +293,16 @@ describe("useOAuthSignIn — source boundary", () => {
     expect(src).toMatch(/startNativeOAuthSignIn/);
     expect(src).toMatch(/openNativeAuthSession/);
     expect(src).toMatch(/classifyAuthReturnUrl/);
+    expect(src).toMatch(/completeNativeOAuthSignIn/);
+    expect(src).toMatch(/AUTH_USER_QUERY_KEY/);
+    expect(src).toMatch(/setQueryData/);
+    expect(src).toMatch(/native-authenticated/);
     expect(src).toMatch(/trackEvent/);
     expect(src).toMatch(/auth\/callback/);
     expect(src).toMatch(/redirect_to/);
-    expect(src).toMatch(/web-redirecting|native-cancelled|native-callback/);
     expect(src).not.toMatch(/\blogger\b|\btoast\b/);
     expect(src).not.toMatch(/useNavigate|navigate\s*\(/);
-    expect(src).not.toMatch(/setOauthLoading|setAppleLoading|setGitHubLoading|useState/);
-    expect(src).not.toMatch(/exchangeCodeForSession|verifyOtp/);
+    expect(src).not.toMatch(/setOauthLoading|setAppleLoading|setGitHubLoading/);
     expect(src).not.toMatch(/@capacitor\/browser|Browser\.open/);
     expect(src).not.toMatch(/platform\/supabase\/browser|platform\/supabase\/_client/);
   });

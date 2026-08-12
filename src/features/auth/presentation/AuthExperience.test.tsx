@@ -263,9 +263,11 @@ describe("AuthExperience — OAuth presentation (AO-1E1.2)", () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it("clears Google loading on native-callback without claiming sign-in", async () => {
-    const callbackUrl = "com.refurbgenius.app://auth/callback?code=secret-code";
-    startGoogleOAuth.mockResolvedValue({ kind: "native-callback", url: callbackUrl });
+  it("clears Google loading, toasts, and navigates on native-authenticated", async () => {
+    startGoogleOAuth.mockResolvedValue({
+      kind: "native-authenticated",
+      destination: "/dashboard",
+    });
     render(createElement(AuthExperience, { initialMode: "signin" }));
     fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
 
@@ -276,14 +278,8 @@ describe("AuthExperience — OAuth presentation (AO-1E1.2)", () => {
       expect(screen.queryByText(/connecting to google/i)).toBeNull();
     });
     expect(loggerError).not.toHaveBeenCalled();
-    expect(navigate).not.toHaveBeenCalled();
-    // Callback URL / code must never enter logger assertions.
-    for (const call of loggerError.mock.calls) {
-      expect(JSON.stringify(call)).not.toMatch(/secret-code|com\.refurbgenius\.app/);
-    }
-    // Still on auth form (unsigned-in) — no navigation away after callback receipt.
-    expect(screen.getByRole("button", { name: /continue with google/i })).toBeTruthy();
-    expect(navigate).not.toHaveBeenCalled();
+    expect(toastSuccess).toHaveBeenCalledWith("Signed in successfully.");
+    expect(navigate).toHaveBeenCalledWith({ to: "/dashboard", replace: true });
   });
 
   it("clears Google loading and shows error copy on failure", async () => {
@@ -717,7 +713,7 @@ describe("AuthExperience — source boundary (AO-1E1.1 / AO-1E1.2 / AO-1E1.3 pro
     expect(src).toMatch(/useAuthPasswordCredentials\s*\(/);
     expect(src).toMatch(/useOAuthSignIn\s*\(/);
     expect(src).toMatch(/useAuthEmailAccess\s*\(/);
-    expect(src).toMatch(/native-cancelled|native-callback|outcome\.kind/);
+    expect(src).toMatch(/native-cancelled|native-authenticated|outcome\.kind/);
     expect(src).not.toMatch(/signInWithPassword\s*\(\s*\{/);
     expect(src).not.toMatch(/\.signInWithPassword\s*\(/);
     expect(src).not.toMatch(/auth\.signUp\s*\(|\.signUp\s*\(\s*\{/);
@@ -730,7 +726,7 @@ describe("AuthExperience — source boundary (AO-1E1.1 / AO-1E1.2 / AO-1E1.3 pro
     expect(src).not.toMatch(/@\/platform\/supabase/);
     expect(src).not.toMatch(/from ["']@\/lib\/auth["']/);
     expect(src).not.toMatch(
-      /Capacitor|isNativePlatform|openNativeAuthSession|exchangeCodeForSession/,
+      /Capacitor|isNativePlatform|openNativeAuthSession|exchangeCodeForSession|callbackUrl|access_token|refresh_token/,
     );
   });
 });
