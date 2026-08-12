@@ -4,6 +4,98 @@
 
 ---
 
+## Governed AI Agent Execution
+
+These rules apply to Grok Build, Jules, and any other coding agent.
+
+### Authority
+
+- `AGENTS.md` is the persistent repository authority.
+- A current explicitly authorised phase/task may narrow scope further.
+- On conflict, the stricter current architecture/security/governance rule wins.
+- Never infer authority to begin a later phase.
+
+### Repository identity
+
+For governed work:
+
+- verify branch and expected BASE/HEAD before mutation;
+- STOP on relevant baseline, branch, candidate, PR-head, or unexpected
+  working-tree drift;
+- evidence for one SHA does not certify another SHA;
+- never rebase, amend, force-push, squash, or bypass checks unless explicitly
+  authorised by the current phase.
+
+### Mutation
+
+- Use one mutating agent per isolated candidate.
+- Parallel agents should normally be read-only investigators/reviewers.
+- Do not modify paths outside the explicit task allowlist.
+- Do not expand frozen `src/lib`, `src/hooks`, `src/services`, governance,
+  migration, schema, or dependency scope without explicit authority.
+
+### Publication
+
+Unless the current phase explicitly authorises it:
+
+- do not commit;
+- do not push;
+- do not create or update a PR;
+- do not resolve review threads;
+- do not merge.
+
+A CI failure in a governed phase means:
+classify → report → STOP.
+
+Do not automatically repair and republish a failed governed candidate unless a
+separate repair phase explicitly authorises mutation.
+
+### Secrets and external systems
+
+Never expose or use without explicit phase authority:
+
+- Supabase service-role/private credentials;
+- Production database credentials;
+- Apple signing certificates or App Store Connect private keys;
+- unrestricted deployment credentials;
+- administrator/end-user production credentials.
+
+Development agents must not treat Production, signing, or release authority as
+implicit.
+
+### Platform validation
+
+Cloud/Linux agent validation can certify TypeScript, tests, invariants, lint,
+Vercel builds, and compatible Capacitor web builds.
+
+It cannot by itself certify:
+
+- Xcode/macOS build behaviour;
+- iOS Simulator runtime behaviour;
+- Keychain runtime behaviour;
+- ASWebAuthenticationSession behaviour;
+- code signing;
+- TestFlight;
+- real-device iOS behaviour.
+
+Those require the separately authorised macOS/iOS validation phase.
+
+### Completion
+
+Every governed task must finish with:
+
+- verdict;
+- exact repository identity;
+- changed paths;
+- validation evidence;
+- blockers/follow-up;
+- recommended next phase;
+- explicit STOP.
+
+Do not automatically execute the next phase.
+
+---
+
 ## Project Overview
 
 Refurb Genius is a property refurbishment estimation platform for UK property investors. Users photograph rooms, AI analyses the photos (materials, condition, dimensions), and the system generates scope-of-work documents and cost estimates. The app also includes a Deal Copilot for evaluating property investment opportunities and a Trades marketplace connecting investors with tradespeople.
