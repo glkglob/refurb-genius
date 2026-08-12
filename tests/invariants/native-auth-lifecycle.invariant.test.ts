@@ -39,6 +39,7 @@ test("native AUTH query is observer-only (enabled false)", () => {
   assert.match(src, /enabled:\s*!isNative/);
   assert.match(src, /Native auth identity must not fetch via React Query/);
   assert.match(src, /observeNativeAuthIdentity/);
+  assert.match(src, /ensureNativeAuthIdentitySettled/);
   assert.match(src, /signOutNativeAuthIdentity/);
   assert.match(src, /appStateChange/);
   assert.doesNotMatch(src, /NATIVE_SIGNOUT_UNAVAILABLE|Sign out is not available in this native/);
@@ -52,7 +53,14 @@ test("controller is sole native AUTH publisher — no bare setQueryData in OAuth
 
   const lifecycleSrc = read(nativeLifecycle);
   assert.match(lifecycleSrc, /runSerialized|observeNativeAuthIdentity/);
+  assert.match(lifecycleSrc, /ensureNativeAuthIdentitySettled/);
+  assert.match(lifecycleSrc, /nativeSettlements|WeakMap/);
+  assert.match(lifecycleSrc, /Native sign-out requires AuthProvider-bound QueryClient/);
   assert.doesNotMatch(lifecycleSrc, /setQueryData/);
+  // Unbound path must not clear Keychain alone
+  const unbound = lifecycleSrc.match(/signOutNativeAuthIdentityFromBoundClient[\s\S]*?^}/m);
+  assert.ok(unbound);
+  assert.doesNotMatch(unbound[0] ?? "", /signOutNativeSession\(\)/);
 });
 
 test("native gate uses observeNativeAuthIdentity with route context queryClient", () => {

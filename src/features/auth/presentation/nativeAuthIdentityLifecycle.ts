@@ -8,6 +8,9 @@
  * Shell useSignOut must not call useQueryClient (shell-auth-signout-ownership).
  * AuthProvider binds the app QueryClient so shell sign-out can still run the
  * serialized local sign-out + A→null transition without holding QC itself.
+ *
+ * Initial settlement is shared per QueryClient so multiple useAuth consumers
+ * converge on one observe flight and cannot disagree about loading completion.
  */
 import type { QueryClient } from "@tanstack/react-query";
 import type { AuthUser } from "@/lib/auth";
@@ -27,6 +30,14 @@ export type { NativeAuthSessionOutcome };
 /** App QueryClient bound by AuthProvider for shell native sign-out. */
 let boundNativeAuthQueryClient: QueryClient | null = null;
 
+type NativeSettlementEntry = {
+  promise: Promise<NativeAuthSessionOutcome | undefined>;
+  settled: boolean;
+};
+
+/** One shared initial-settlement flight per QueryClient (not per hook instance). */
+const nativeSettlements = new WeakMap<QueryClient, NativeSettlementEntry>();
+
 /**
  * Bind the application QueryClient for native lifecycle helpers used outside
  * React hooks that cannot hold useQueryClient (e.g. useSignOut shell path).
@@ -39,6 +50,47 @@ export function bindNativeAuthIdentityQueryClient(queryClient: QueryClient): () 
       boundNativeAuthQueryClient = null;
     }
   };
+}
+
+/** Whether the shared initial native observe for this QueryClient has finished. */
+export function isNativeAuthIdentitySettled(queryClient: QueryClient): boolean {
+  return nativeSettlements.get(queryClient)?.settled === true;
+}
+
+/**
+ * Ensure a single shared initial observation has completed for this QueryClient.
+ *
+ * - Concurrent callers share one promise.
+ * - Authoritative outcomes still publish via the controller.
+ * - Indeterminate / rejected observe never auto-commits signed-out, but
+ *   settlement still completes so UI cannot hang in permanent loading.
+ */
+export function ensureNativeAuthIdentitySettled(
+  queryClient: QueryClient,
+): Promise<NativeAuthSessionOutcome | undefined> {
+  const existing = nativeSettlements.get(queryClient);
+  if (existing) {
+    return existing.promise;
+  }
+
+  const entry: NativeSettlementEntry = {
+    settled: false,
+    promise: Promise.resolve(undefined),
+  };
+
+  entry.promise = (async () => {
+    try {
+      return await observeNativeAuthIdentity(queryClient);
+    } catch {
+      // Rejected observation: leave AUTH cache unchanged; still mark settled.
+      return undefined;
+    } finally {
+      entry.settled = true;
+    }
+  })();
+
+  nativeSettlements.set(queryClient, entry);
+  return entry.promise;
 }
 
 /**
@@ -57,6 +109,7 @@ export async function observeNativeAuthIdentity(
 /**
  * Local native sign-out + A→null isolation in one serialized operation.
  * If storage clear fails, does not publish null.
+ * Order: clear Keychain, then purge non-auth, then publish null.
  */
 export async function signOutNativeAuthIdentity(queryClient: QueryClient): Promise<void> {
   const controller = getAuthIdentityTransitionController(queryClient);
@@ -69,12 +122,15 @@ export async function signOutNativeAuthIdentity(queryClient: QueryClient): Promi
 /**
  * Shell-safe native sign-out using the AuthProvider-bound QueryClient.
  * Does not require useQueryClient in useSignOut.
+ *
+ * Fail-closed when unbound: never clear Keychain without transition authority
+ * (avoids storage/cache divergence).
  */
 export async function signOutNativeAuthIdentityFromBoundClient(): Promise<void> {
   if (!boundNativeAuthQueryClient) {
-    // Still clear Keychain; cache isolation requires a bound client (AuthProvider).
-    await signOutNativeSession();
-    return;
+    throw new Error(
+      "Native sign-out requires AuthProvider-bound QueryClient transition authority.",
+    );
   }
   await signOutNativeAuthIdentity(boundNativeAuthQueryClient);
 }

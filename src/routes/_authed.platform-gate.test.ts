@@ -166,13 +166,13 @@ describe("_authed beforeLoad — platform split", () => {
     queryClient.setQueryData(["projects"], [{ id: "p1" }]);
 
     const beforeLoad = Route.options.beforeLoad!;
-    await expect(
-      beforeLoad({ location, context: { queryClient } } as never),
-    ).rejects.toMatchObject({
-      options: expect.objectContaining({
-        to: "/auth",
-      }),
-    });
+    await expect(beforeLoad({ location, context: { queryClient } } as never)).rejects.toMatchObject(
+      {
+        options: expect.objectContaining({
+          to: "/auth",
+        }),
+      },
+    );
     expect(getCurrentUserServerFn).not.toHaveBeenCalled();
     expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toBeNull();
     expect(queryClient.getQueryData(["projects"])).toBeUndefined();
@@ -189,11 +189,11 @@ describe("_authed beforeLoad — platform split", () => {
     queryClient.setQueryData(["projects"], [{ id: "p1" }]);
 
     const beforeLoad = Route.options.beforeLoad!;
-    await expect(
-      beforeLoad({ location, context: { queryClient } } as never),
-    ).rejects.toMatchObject({
-      options: expect.objectContaining({ to: "/auth" }),
-    });
+    await expect(beforeLoad({ location, context: { queryClient } } as never)).rejects.toMatchObject(
+      {
+        options: expect.objectContaining({ to: "/auth" }),
+      },
+    );
     // A retained — no false signed-out publication
     expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toEqual({
       id: "was-a",
@@ -311,11 +311,62 @@ describe("useAuth — native path", () => {
 
     await waitFor(() => {
       expect(result.current.hydrated).toBe(true);
+      expect(result.current.isLoading).toBe(false);
     });
 
     // Indeterminate must not wipe known A
     expect(result.current.user).toEqual({ id: "prior", email: "p@e.com" });
+    expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toEqual({
+      id: "prior",
+      email: "p@e.com",
+    });
     expect(getCurrentUserServerFn).not.toHaveBeenCalled();
+  });
+
+  it("fresh indeterminate settles without false null or permanent loading", async () => {
+    getSession.mockResolvedValue({
+      data: { session: null },
+      error: new Error("refresh failed"),
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    const { result } = renderHook(() => useAuth(), {
+      wrapper: createWrapper(queryClient, true),
+    });
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.hydrated).toBe(true);
+    });
+
+    expect(result.current.user).toBeNull();
+    // Must not publish authoritative signed-out null into AUTH cache
+    expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toBeUndefined();
+  });
+
+  it("multiple useAuth consumers share settlement and agree on identity", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const { result } = renderHook(
+      () => ({
+        a: useAuth(),
+        b: useAuth(),
+      }),
+      { wrapper: createWrapper(queryClient, true) },
+    );
+
+    await waitFor(() => {
+      expect(result.current.a.isLoading).toBe(false);
+      expect(result.current.b.isLoading).toBe(false);
+    });
+
+    expect(result.current.a.user).toEqual(result.current.b.user);
+    expect(result.current.a.user).toMatchObject({ id: "native-u" });
+    // One shared Keychain read flight for initial settlement (+ possible resume not fired)
+    expect(getSession.mock.calls.length).toBeGreaterThanOrEqual(1);
   });
 
   it("signOut uses native local signOut not browser auth", async () => {

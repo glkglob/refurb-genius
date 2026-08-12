@@ -46,7 +46,7 @@
  *   infrastructure/lifecycle (no static SecureStorage graph on web SSR).
  */
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Capacitor } from "@capacitor/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -141,6 +141,29 @@ export function useAuth(): UseAuthResult {
   const getCurrentUser = useServerFn(getCurrentUserServerFn);
   const queryClient = useQueryClient();
   const isNative = Capacitor.isNativePlatform();
+  // Shared per-QC settlement drives native loading — not local observe races.
+  // Completes even when observation is indeterminate (no false null publish).
+  const [nativeSettled, setNativeSettled] = useState(false);
+
+  useEffect(() => {
+    if (!isNative) return;
+    let alive = true;
+    void (async () => {
+      try {
+        const { ensureNativeAuthIdentitySettled } = await loadNativeAuthLifecycle();
+        await ensureNativeAuthIdentitySettled(queryClient);
+      } catch (err) {
+        if (process.env.NODE_ENV !== "production") {
+          logger.warn("[useAuth] native settlement failed", { error: String(err) });
+        }
+      } finally {
+        if (alive) setNativeSettled(true);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [isNative, queryClient]);
 
   const query = useQuery<AuthUser | null, Error>({
     queryKey: AUTH_USER_QUERY_KEY,
@@ -176,7 +199,7 @@ export function useAuth(): UseAuthResult {
     staleTime: 5 * 60 * 1000,
     // Retain data for 10 minutes before React Query garbage-collects it.
     gcTime: 10 * 60 * 1000,
-    // Web only — native uses AuthProvider observe + appStateChange.
+    // Web only — native uses shared settlement + appStateChange.
     refetchOnMount: !isNative,
     refetchOnWindowFocus: !isNative,
     // One retry is plenty for an idempotent read; keeps UI responsive on flakes.
@@ -186,11 +209,13 @@ export function useAuth(): UseAuthResult {
 
   const { data, isLoading: webIsLoading, refetch: rqRefetch } = query;
 
-  // Native: undefined = unresolved/loading; null = explicit signed-out; user = auth.
-  const isLoading = isNative ? data === undefined : webIsLoading;
+  // Native loading = shared settlement incomplete (not "data === undefined" alone).
+  // AUTH undefined after settle means unresolved/indeterminate without false null.
+  // AUTH null = authoritative signed-out; user object = authenticated.
+  const isLoading = isNative ? !nativeSettled : webIsLoading;
   const user = (data ?? null) as AuthUser | null;
   const isAuthenticated = Boolean(user);
-  const hydrated = isNative ? data !== undefined : !webIsLoading;
+  const hydrated = isNative ? nativeSettled : !webIsLoading;
 
   const refetch = async (): Promise<AuthUser | null> => {
     if (Capacitor.isNativePlatform()) {
@@ -236,7 +261,7 @@ export function useAuth(): UseAuthResult {
  * Consumer useAuth() calls must not install additional isolation handlers.
  *
  * Web: auth.onChange → controller.commitKnown
- * Native: initial observe + single appStateChange observer (no browser onChange)
+ * Native: bind QC + shared initial settlement + single appStateChange (no browser onChange)
  */
 function useAuthQueryCacheLifecycleBridge(): void {
   const queryClient = useQueryClient();
@@ -248,8 +273,11 @@ function useAuthQueryCacheLifecycleBridge(): void {
     let unsubscribe: (() => void) | undefined;
 
     void (async () => {
-      const { bindNativeAuthIdentityQueryClient, observeNativeAuthIdentity } =
-        await loadNativeAuthLifecycle();
+      const {
+        bindNativeAuthIdentityQueryClient,
+        ensureNativeAuthIdentitySettled,
+        observeNativeAuthIdentity,
+      } = await loadNativeAuthLifecycle();
       if (disposed) return;
 
       // Bind QC for shell useSignOut native path (no useQueryClient in that hook).
@@ -257,10 +285,11 @@ function useAuthQueryCacheLifecycleBridge(): void {
 
       if (Capacitor.isNativePlatform()) {
         try {
-          await observeNativeAuthIdentity(queryClient);
+          // Shared per-QC flight — same promise as concurrent useAuth consumers.
+          await ensureNativeAuthIdentitySettled(queryClient);
         } catch (err) {
           if (process.env.NODE_ENV !== "production") {
-            logger.warn("[useAuth] native initial observe failed", { error: String(err) });
+            logger.warn("[useAuth] native initial settlement failed", { error: String(err) });
           }
         }
         if (disposed) return;

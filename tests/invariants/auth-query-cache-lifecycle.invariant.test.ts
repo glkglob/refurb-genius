@@ -86,9 +86,7 @@ test("auth lifecycle — single root bridge in AuthProvider (not every useAuth)"
 
   // Exactly one auth.onChange registration, inside the dedicated bridge hook.
   // Strip comments — docs may mention auth.onChange by name.
-  const useAuthCode = useAuth
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/\/\/.*$/gm, "");
+  const useAuthCode = useAuth.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   const onChangeMatches = useAuthCode.match(/auth\.onChange/g) ?? [];
   assert.equal(
     onChangeMatches.length,
@@ -116,7 +114,11 @@ test("auth lifecycle — single root bridge in AuthProvider (not every useAuth)"
   );
   assert.ok(signOutMatch, "expected signOut implementation");
   const signOutBody = signOutMatch[1] ?? "";
-  assert.match(signOutBody, /auth\.signOut|signOutNativeAuthIdentity/, "signOut must clear session");
+  assert.match(
+    signOutBody,
+    /auth\.signOut|signOutNativeAuthIdentity/,
+    "signOut must clear session",
+  );
   assert.equal(
     /setQueryData\s*\(\s*AUTH_USER_QUERY_KEY\s*,\s*null\s*\)/.test(signOutBody),
     false,

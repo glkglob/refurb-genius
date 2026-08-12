@@ -25,7 +25,11 @@ vi.mock("../application/completeNativeOAuthSignIn", () => ({
 
 import {
   observeNativeAuthIdentity,
+  ensureNativeAuthIdentitySettled,
+  isNativeAuthIdentitySettled,
   signOutNativeAuthIdentity,
+  signOutNativeAuthIdentityFromBoundClient,
+  bindNativeAuthIdentityQueryClient,
   completeAndPublishNativeOAuth,
 } from "./nativeAuthIdentityLifecycle";
 
@@ -47,6 +51,9 @@ beforeEach(() => {
     user: userB,
     destination: "/dashboard",
   });
+  // Clear module-level bound QC so unbound tests are deterministic.
+  const unbind = bindNativeAuthIdentityQueryClient(new QueryClient());
+  unbind();
 });
 
 describe("observeNativeAuthIdentity", () => {
@@ -194,5 +201,100 @@ describe("stale-read vs later transition (no RQ late write)", () => {
 
     // Observe(B) completed first then null — final is null
     expect(qc.getQueryData(AUTH_USER_QUERY_KEY)).toBeNull();
+  });
+});
+
+describe("shared per-QueryClient settlement", () => {
+  it("concurrent ensure shares one read flight and settles once", async () => {
+    const qc = new QueryClient();
+    getAuthIdentityTransitionController(qc);
+    let reads = 0;
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    readNativeAuthSession.mockImplementation(async () => {
+      reads += 1;
+      await gate;
+      return { kind: "authenticated", user: userA };
+    });
+
+    const a = ensureNativeAuthIdentitySettled(qc);
+    const b = ensureNativeAuthIdentitySettled(qc);
+    expect(isNativeAuthIdentitySettled(qc)).toBe(false);
+    release();
+    await Promise.all([a, b]);
+    expect(reads).toBe(1);
+    expect(isNativeAuthIdentitySettled(qc)).toBe(true);
+    expect(qc.getQueryData(AUTH_USER_QUERY_KEY)).toEqual(userA);
+  });
+
+  it("fresh indeterminate settles without publishing false null", async () => {
+    const qc = new QueryClient();
+    getAuthIdentityTransitionController(qc);
+    readNativeAuthSession.mockResolvedValue({ kind: "indeterminate" });
+
+    const outcome = await ensureNativeAuthIdentitySettled(qc);
+    expect(outcome).toEqual({ kind: "indeterminate" });
+    expect(isNativeAuthIdentitySettled(qc)).toBe(true);
+    expect(qc.getQueryData(AUTH_USER_QUERY_KEY)).toBeUndefined();
+  });
+
+  it("rejected observation settles without false null commit", async () => {
+    const qc = new QueryClient();
+    seed(qc);
+    getAuthIdentityTransitionController(qc);
+    readNativeAuthSession.mockRejectedValue(new Error("boom"));
+
+    await ensureNativeAuthIdentitySettled(qc);
+    expect(isNativeAuthIdentitySettled(qc)).toBe(true);
+    expect(qc.getQueryData(AUTH_USER_QUERY_KEY)).toEqual(userA);
+    expect(qc.getQueryData(["projects"] as QueryKey)).toEqual([{ id: "p-a" }]);
+  });
+});
+
+describe("unbound shell sign-out", () => {
+  it("does not clear Keychain without bound transition authority", async () => {
+    await expect(signOutNativeAuthIdentityFromBoundClient()).rejects.toThrow(
+      /AuthProvider-bound QueryClient/,
+    );
+    expect(signOutNativeSession).not.toHaveBeenCalled();
+  });
+
+  it("bound client clears storage then A→null purge before null publish", async () => {
+    const qc = new QueryClient();
+    seed(qc);
+    getAuthIdentityTransitionController(qc);
+    const unbind = bindNativeAuthIdentityQueryClient(qc);
+
+    const order: string[] = [];
+    signOutNativeSession.mockImplementation(async () => {
+      order.push("signOut");
+    });
+    const origCancel = qc.cancelQueries.bind(qc);
+    vi.spyOn(qc, "cancelQueries").mockImplementation(async (...args) => {
+      order.push("cancel");
+      return origCancel(...args);
+    });
+    const origRemove = qc.removeQueries.bind(qc);
+    vi.spyOn(qc, "removeQueries").mockImplementation((...args) => {
+      order.push("remove");
+      return origRemove(...args);
+    });
+    const origSet = qc.setQueryData.bind(qc);
+    vi.spyOn(qc, "setQueryData").mockImplementation((key, value) => {
+      if (Array.isArray(key) && key[0] === "auth") {
+        order.push(`auth:${value === null ? "null" : "user"}`);
+      }
+      return origSet(key, value);
+    });
+
+    await signOutNativeAuthIdentityFromBoundClient();
+    expect(order[0]).toBe("signOut");
+    expect(order.indexOf("cancel")).toBeLessThan(order.indexOf("auth:null"));
+    expect(order.indexOf("remove")).toBeLessThan(order.indexOf("auth:null"));
+    expect(qc.getQueryData(AUTH_USER_QUERY_KEY)).toBeNull();
+    expect(qc.getQueryData(["projects"] as QueryKey)).toBeUndefined();
+    unbind();
   });
 });
