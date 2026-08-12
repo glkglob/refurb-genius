@@ -327,7 +327,12 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
     setOauthLoading(true);
 
     try {
-      await startGoogleOAuth(redirect);
+      const outcome = await startGoogleOAuth(redirect);
+      // web-redirecting: leave loading true until browser navigation.
+      // native-cancelled / native-callback: clear loading; remain unsigned-in (2B-2).
+      if (outcome.kind === "native-cancelled" || outcome.kind === "native-callback") {
+        setOauthLoading(false);
+      }
     } catch (err) {
       logger.error("[auth] google auth failed", { error: String(err) });
       setError(err instanceof Error ? err.message : "Google sign in failed.");
@@ -340,7 +345,10 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
     setAppleLoading(true);
 
     try {
-      await startAppleOAuth(redirect);
+      const outcome = await startAppleOAuth(redirect);
+      if (outcome.kind === "native-cancelled" || outcome.kind === "native-callback") {
+        setAppleLoading(false);
+      }
     } catch (err) {
       logger.error("[auth] apple auth failed", { error: String(err) });
       setError(err instanceof Error ? err.message : "Apple sign in failed.");
@@ -353,7 +361,10 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
     setGitHubLoading(true);
 
     try {
-      await startGitHubOAuth(redirect);
+      const outcome = await startGitHubOAuth(redirect);
+      if (outcome.kind === "native-cancelled" || outcome.kind === "native-callback") {
+        setGitHubLoading(false);
+      }
     } catch (err) {
       logger.error("[auth] GitHub OAuth failed", {
         error: String(err),

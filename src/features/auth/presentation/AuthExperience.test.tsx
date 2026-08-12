@@ -88,9 +88,9 @@ beforeEach(() => {
   loggerError.mockReset();
   signInWithPassword.mockResolvedValue(undefined);
   signUpWithPassword.mockResolvedValue("session");
-  startGoogleOAuth.mockResolvedValue(undefined);
-  startAppleOAuth.mockResolvedValue(undefined);
-  startGitHubOAuth.mockResolvedValue(undefined);
+  startGoogleOAuth.mockResolvedValue({ kind: "web-redirecting" });
+  startAppleOAuth.mockResolvedValue({ kind: "web-redirecting" });
+  startGitHubOAuth.mockResolvedValue({ kind: "web-redirecting" });
   sendMagicLink.mockResolvedValue(undefined);
   requestPasswordReset.mockResolvedValue(undefined);
   updatePassword.mockResolvedValue(undefined);
@@ -220,11 +220,11 @@ describe("AuthExperience — password signup", () => {
 });
 
 describe("AuthExperience — OAuth presentation (AO-1E1.2)", () => {
-  it("calls startGoogleOAuth with redirect and leaves loading on success", async () => {
-    let resolveOAuth!: () => void;
+  it("calls startGoogleOAuth with redirect and leaves loading on web-redirecting", async () => {
+    let resolveOAuth!: (value: { kind: "web-redirecting" }) => void;
     startGoogleOAuth.mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
+        new Promise<{ kind: "web-redirecting" }>((resolve) => {
           resolveOAuth = resolve;
         }),
     );
@@ -237,13 +237,52 @@ describe("AuthExperience — OAuth presentation (AO-1E1.2)", () => {
     });
     expect(screen.getByText(/connecting to google/i)).toBeTruthy();
 
-    resolveOAuth();
+    resolveOAuth({ kind: "web-redirecting" });
     await waitFor(() => {
       expect(startGoogleOAuth).toHaveBeenCalledTimes(1);
     });
-    // Success leaves oauthLoading true (no failure path) — spinner remains until unmount/redirect.
+    // web-redirecting leaves oauthLoading true — spinner remains until unmount/redirect.
     expect(screen.getByText(/connecting to google/i)).toBeTruthy();
     expect(loggerError).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("clears Google loading on native-cancelled without error or logger", async () => {
+    startGoogleOAuth.mockResolvedValue({ kind: "native-cancelled" });
+    render(createElement(AuthExperience, { initialMode: "signin", redirect: "/projects" }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+
+    await waitFor(() => {
+      expect(startGoogleOAuth).toHaveBeenCalledWith("/projects");
+    });
+    await waitFor(() => {
+      expect(screen.queryByText(/connecting to google/i)).toBeNull();
+    });
+    expect(loggerError).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it("clears Google loading on native-callback without claiming sign-in", async () => {
+    const callbackUrl = "com.refurbgenius.app://auth/callback?code=secret-code";
+    startGoogleOAuth.mockResolvedValue({ kind: "native-callback", url: callbackUrl });
+    render(createElement(AuthExperience, { initialMode: "signin" }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+
+    await waitFor(() => {
+      expect(startGoogleOAuth).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.queryByText(/connecting to google/i)).toBeNull();
+    });
+    expect(loggerError).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+    // Callback URL / code must never enter logger assertions.
+    for (const call of loggerError.mock.calls) {
+      expect(JSON.stringify(call)).not.toMatch(/secret-code|com\.refurbgenius\.app/);
+    }
+    // Still on auth form (unsigned-in) — no navigation away after callback receipt.
+    expect(screen.getByRole("button", { name: /continue with google/i })).toBeTruthy();
     expect(navigate).not.toHaveBeenCalled();
   });
 
@@ -295,11 +334,11 @@ describe("AuthExperience — OAuth presentation (AO-1E1.2)", () => {
     expect(screen.queryByRole("button", { name: /continue with apple/i })).toBeNull();
   });
 
-  it("calls startGitHubOAuth with redirect and leaves loading on success", async () => {
-    let resolveOAuth!: () => void;
+  it("calls startGitHubOAuth with redirect and leaves loading on web-redirecting", async () => {
+    let resolveOAuth!: (value: { kind: "web-redirecting" }) => void;
     startGitHubOAuth.mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
+        new Promise<{ kind: "web-redirecting" }>((resolve) => {
           resolveOAuth = resolve;
         }),
     );
@@ -316,21 +355,21 @@ describe("AuthExperience — OAuth presentation (AO-1E1.2)", () => {
     });
     expect(screen.getByText(/connecting to github/i)).toBeTruthy();
 
-    resolveOAuth();
+    resolveOAuth({ kind: "web-redirecting" });
     await waitFor(() => {
       expect(startGitHubOAuth).toHaveBeenCalledTimes(1);
     });
-    // Success leaves githubLoading true (no failure path) — spinner remains until unmount/redirect.
+    // web-redirecting leaves githubLoading true — spinner remains until unmount/redirect.
     expect(screen.getByText(/connecting to github/i)).toBeTruthy();
     expect(loggerError).not.toHaveBeenCalled();
     expect(navigate).not.toHaveBeenCalled();
   });
 
   it("GitHub pending disables competing auth actions and blocks double submit", async () => {
-    let resolveOAuth!: () => void;
+    let resolveOAuth!: (value: { kind: "web-redirecting" }) => void;
     startGitHubOAuth.mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
+        new Promise<{ kind: "web-redirecting" }>((resolve) => {
           resolveOAuth = resolve;
         }),
     );
@@ -362,7 +401,19 @@ describe("AuthExperience — OAuth presentation (AO-1E1.2)", () => {
     fireEvent.click(github);
     expect(startGitHubOAuth).toHaveBeenCalledTimes(1);
 
-    resolveOAuth();
+    resolveOAuth({ kind: "web-redirecting" });
+  });
+
+  it("clears GitHub loading on native-cancelled without error", async () => {
+    startGitHubOAuth.mockResolvedValue({ kind: "native-cancelled" });
+    render(createElement(AuthExperience, { initialMode: "signin", redirect: "/projects" }));
+    fireEvent.click(screen.getByRole("button", { name: /continue with github/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/connecting to github/i)).toBeNull();
+    });
+    expect(loggerError).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
   });
 
   it("clears GitHub loading and shows error copy on failure", async () => {
@@ -596,10 +647,10 @@ describe("AuthExperience — redesign presentation contracts", () => {
   });
 
   it("Apple pending disables competing auth actions", async () => {
-    let resolveOAuth!: () => void;
+    let resolveOAuth!: (value: { kind: "web-redirecting" }) => void;
     startAppleOAuth.mockImplementation(
       () =>
-        new Promise<void>((resolve) => {
+        new Promise<{ kind: "web-redirecting" }>((resolve) => {
           resolveOAuth = resolve;
         }),
     );
@@ -624,7 +675,7 @@ describe("AuthExperience — redesign presentation contracts", () => {
     fireEvent.click(apple);
     expect(startAppleOAuth).toHaveBeenCalledTimes(1);
 
-    resolveOAuth();
+    resolveOAuth({ kind: "web-redirecting" });
   });
 
   it("verification state uses redesigned shell and product overview", async () => {
@@ -666,6 +717,7 @@ describe("AuthExperience — source boundary (AO-1E1.1 / AO-1E1.2 / AO-1E1.3 pro
     expect(src).toMatch(/useAuthPasswordCredentials\s*\(/);
     expect(src).toMatch(/useOAuthSignIn\s*\(/);
     expect(src).toMatch(/useAuthEmailAccess\s*\(/);
+    expect(src).toMatch(/native-cancelled|native-callback|outcome\.kind/);
     expect(src).not.toMatch(/signInWithPassword\s*\(\s*\{/);
     expect(src).not.toMatch(/\.signInWithPassword\s*\(/);
     expect(src).not.toMatch(/auth\.signUp\s*\(|\.signUp\s*\(\s*\{/);
@@ -677,5 +729,8 @@ describe("AuthExperience — source boundary (AO-1E1.1 / AO-1E1.2 / AO-1E1.3 pro
     expect(src).not.toMatch(/resetPasswordForEmail/);
     expect(src).not.toMatch(/@\/platform\/supabase/);
     expect(src).not.toMatch(/from ["']@\/lib\/auth["']/);
+    expect(src).not.toMatch(
+      /Capacitor|isNativePlatform|openNativeAuthSession|exchangeCodeForSession/,
+    );
   });
 });
