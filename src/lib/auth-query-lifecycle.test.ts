@@ -8,6 +8,7 @@ import {
   getAuthIdentity,
   isAuthIdentityBoundary,
   applyAuthQueryCacheTransition,
+  getAuthIdentityTransitionController,
 } from "./auth-query-lifecycle";
 
 const AUTH_KEY = [...AUTH_USER_QUERY_KEY_SEGMENTS] as unknown as QueryKey;
@@ -248,6 +249,149 @@ describe("applyAuthQueryCacheTransition", () => {
 
     await expect(queryPromise).rejects.toThrow();
     expect(qc.getQueryData(["slow-projects"] as QueryKey)).toBeUndefined();
+    expect(qc.getQueryData(AUTH_KEY)).toBeNull();
+  });
+});
+
+describe("AuthIdentityTransitionController", () => {
+  it("shares one controller per QueryClient and isolates different clients", () => {
+    const qc1 = new QueryClient();
+    const qc2 = new QueryClient();
+    const c1a = getAuthIdentityTransitionController(qc1);
+    const c1b = getAuthIdentityTransitionController(qc1);
+    const c2 = getAuthIdentityTransitionController(qc2);
+    expect(c1a).toBe(c1b);
+    expect(c1a).not.toBe(c2);
+  });
+
+  it("initializes previous from cache: undefined/null/user", () => {
+    const qc = new QueryClient();
+    expect(getAuthIdentityTransitionController(qc).getPreviousIdentity()).toBe(
+      UNRESOLVED_AUTH_IDENTITY,
+    );
+
+    const qcNull = new QueryClient();
+    qcNull.setQueryData(AUTH_KEY, null);
+    expect(getAuthIdentityTransitionController(qcNull).getPreviousIdentity()).toBeNull();
+
+    const qcUser = new QueryClient();
+    qcUser.setQueryData(AUTH_KEY, userA);
+    expect(getAuthIdentityTransitionController(qcUser).getPreviousIdentity()).toBe("user-a");
+  });
+
+  it("observe A→B cancels and removes non-auth before AUTH is B", async () => {
+    const qc = new QueryClient();
+    seedCaches(qc, userA);
+    const controller = getAuthIdentityTransitionController(qc);
+    expect(controller.getPreviousIdentity()).toBe("user-a");
+
+    const order: string[] = [];
+    const origCancel = qc.cancelQueries.bind(qc);
+    const origRemove = qc.removeQueries.bind(qc);
+    const origSet = qc.setQueryData.bind(qc);
+    vi.spyOn(qc, "cancelQueries").mockImplementation(async (...args) => {
+      order.push("cancel");
+      return origCancel(...args);
+    });
+    vi.spyOn(qc, "removeQueries").mockImplementation((...args) => {
+      order.push("remove");
+      return origRemove(...args);
+    });
+    vi.spyOn(qc, "setQueryData").mockImplementation((key, value) => {
+      if (isAuthUserQueryKey(key as QueryKey)) {
+        order.push(`auth:${(value as { id?: string } | null)?.id ?? "null"}`);
+      }
+      return origSet(key, value);
+    });
+
+    let readStarted = false;
+    const outcome = await controller.observe(async () => {
+      readStarted = true;
+      return { kind: "authenticated", user: userB };
+    });
+
+    expect(readStarted).toBe(true);
+    expect(outcome).toEqual({ kind: "authenticated", user: userB });
+    expect(order).toEqual(["cancel", "remove", "auth:user-b"]);
+    expect(qc.getQueryData(AUTH_KEY)).toEqual(userB);
+    expect(qc.getQueryData(["projects"] as QueryKey)).toBeUndefined();
+  });
+
+  it("observe indeterminate does not commit null or purge A", async () => {
+    const qc = new QueryClient();
+    seedCaches(qc, userA);
+    const controller = getAuthIdentityTransitionController(qc);
+    const cancelSpy = vi.spyOn(qc, "cancelQueries");
+
+    const outcome = await controller.observe(async () => ({ kind: "indeterminate" }));
+    expect(outcome.kind).toBe("indeterminate");
+    expect(cancelSpy).not.toHaveBeenCalled();
+    expect(qc.getQueryData(AUTH_KEY)).toEqual(userA);
+    expect(qc.getQueryData(["projects"] as QueryKey)).toBeDefined();
+    expect(controller.getPreviousIdentity()).toBe("user-a");
+  });
+
+  it("stale observe cannot republish A after serialized sign-out null", async () => {
+    const qc = new QueryClient();
+    seedCaches(qc, userA);
+    const controller = getAuthIdentityTransitionController(qc);
+
+    let releaseRead: () => void = () => {};
+    const readGate = new Promise<void>((resolve) => {
+      releaseRead = resolve;
+    });
+
+    const staleObserve = controller.observe(async () => {
+      await readGate;
+      return { kind: "authenticated", user: userA };
+    });
+
+    const signOut = controller.runSerialized(async ({ applyTransition }) => {
+      await applyTransition(null);
+    });
+
+    // Sign-out is queued after stale observe; release observe read of A first
+    releaseRead();
+    await staleObserve;
+    await signOut;
+
+    expect(qc.getQueryData(AUTH_KEY)).toBeNull();
+    expect(qc.getQueryData(["projects"] as QueryKey)).toBeUndefined();
+    expect(controller.getPreviousIdentity()).toBeNull();
+  });
+
+  it("runSerialized OAuth B then observe cannot regress after B", async () => {
+    const qc = new QueryClient();
+    seedCaches(qc, userA);
+    const controller = getAuthIdentityTransitionController(qc);
+
+    await controller.runSerialized(async ({ applyTransition }) => {
+      await applyTransition(userB);
+    });
+    expect(qc.getQueryData(AUTH_KEY)).toEqual(userB);
+    expect(qc.getQueryData(["projects"] as QueryKey)).toBeUndefined();
+
+    qc.setQueryData(["projects"] as QueryKey, [{ id: "b-only" }]);
+    await controller.observe(async () => ({ kind: "authenticated", user: userB }));
+    expect(qc.getQueryData(["projects"] as QueryKey)).toEqual([{ id: "b-only" }]);
+  });
+
+  it("late direct setQueryData cannot win over controller without going through chain — document sole publisher", async () => {
+    const qc = new QueryClient();
+    seedCaches(qc, userA);
+    const controller = getAuthIdentityTransitionController(qc);
+
+    await controller.commitKnown(null);
+    expect(qc.getQueryData(AUTH_KEY)).toBeNull();
+
+    // Simulate a forbidden late RQ write of B after null — controller previous stays null.
+    // Native design disables queryFn so this path does not exist; if something writes B
+    // without controller, previous is still null so next observe of B is null→B (no purge bug).
+    qc.setQueryData(AUTH_KEY, userB);
+    // Controller previous still null until observe/commitKnown
+    expect(controller.getPreviousIdentity()).toBeNull();
+
+    await controller.observe(async () => ({ kind: "signed-out" }));
     expect(qc.getQueryData(AUTH_KEY)).toBeNull();
   });
 });

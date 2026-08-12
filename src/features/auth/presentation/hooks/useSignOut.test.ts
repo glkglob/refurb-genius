@@ -1,5 +1,5 @@
 /**
- * AO-1S1 — useSignOut: infrastructure delegation, no navigation/QC lifecycle.
+ * AO-1S1 / IOS-READINESS-2B-4 — useSignOut platform delegation.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook } from "@testing-library/react";
@@ -7,9 +7,22 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const signOutSession = vi.fn();
+const signOutNativeAuthIdentityFromBoundClient = vi.fn();
+const isNativePlatform = vi.fn();
+
+vi.mock("@capacitor/core", () => ({
+  Capacitor: {
+    isNativePlatform: () => isNativePlatform(),
+  },
+}));
 
 vi.mock("../../infrastructure/signOutSession", () => ({
   signOutSession: (...args: unknown[]) => signOutSession(...args),
+}));
+
+vi.mock("../nativeAuthIdentityLifecycle", () => ({
+  signOutNativeAuthIdentityFromBoundClient: (...args: unknown[]) =>
+    signOutNativeAuthIdentityFromBoundClient(...args),
 }));
 
 import { useSignOut } from "./useSignOut";
@@ -18,7 +31,11 @@ const SRC = join(__dirname, "useSignOut.ts");
 
 beforeEach(() => {
   signOutSession.mockReset();
+  signOutNativeAuthIdentityFromBoundClient.mockReset();
+  isNativePlatform.mockReset();
+  isNativePlatform.mockReturnValue(false);
   signOutSession.mockResolvedValue(undefined);
+  signOutNativeAuthIdentityFromBoundClient.mockResolvedValue(undefined);
 });
 
 describe("useSignOut", () => {
@@ -27,7 +44,7 @@ describe("useSignOut", () => {
     expect(typeof result.current.signOut).toBe("function");
   });
 
-  it("delegates to signOutSession exactly once with no arguments", async () => {
+  it("web: delegates to signOutSession exactly once with no arguments", async () => {
     const { result } = renderHook(() => useSignOut());
 
     await act(async () => {
@@ -36,17 +53,19 @@ describe("useSignOut", () => {
 
     expect(signOutSession).toHaveBeenCalledTimes(1);
     expect(signOutSession).toHaveBeenCalledWith();
+    expect(signOutNativeAuthIdentityFromBoundClient).not.toHaveBeenCalled();
   });
 
-  it("resolves void on success", async () => {
+  it("native: delegates to bound-client native sign-out", async () => {
+    isNativePlatform.mockReturnValue(true);
     const { result } = renderHook(() => useSignOut());
 
-    let settled: unknown = "unset";
     await act(async () => {
-      settled = await result.current.signOut();
+      await result.current.signOut();
     });
 
-    expect(settled).toBeUndefined();
+    expect(signOutNativeAuthIdentityFromBoundClient).toHaveBeenCalledTimes(1);
+    expect(signOutSession).not.toHaveBeenCalled();
   });
 
   it("propagates the same thrown error", async () => {
@@ -65,14 +84,10 @@ describe("useSignOut", () => {
     const { result } = renderHook(() => useSignOut());
     expect(result.current).toEqual({ signOut: expect.any(Function) });
     expect(result.current).not.toHaveProperty("isPending");
-    expect(result.current).not.toHaveProperty("isError");
-    expect(result.current).not.toHaveProperty("error");
     expect(result.current).not.toHaveProperty("mutate");
-    expect(result.current).not.toHaveProperty("mutateAsync");
-    expect(result.current).not.toHaveProperty("status");
   });
 
-  it("does not navigate, touch QueryClient, toast, or analytics", () => {
+  it("does not use useQueryClient, navigate, toast, or bare setQueryData", () => {
     const src = readFileSync(SRC, "utf8");
     expect(src).not.toMatch(
       /\buseMutation\b|\buseQueryClient\b|\binvalidateQueries\b|\bsetQueryData\b/,
@@ -80,5 +95,6 @@ describe("useSignOut", () => {
     expect(src).not.toMatch(/useNavigate|navigate\s*\(|window\.location/);
     expect(src).not.toMatch(/toast|trackEvent|auth\.signOut|@\/lib\/auth/);
     expect(src).toMatch(/signOutSession/);
+    expect(src).toMatch(/signOutNativeAuthIdentityFromBoundClient/);
   });
 });

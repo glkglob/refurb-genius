@@ -1,10 +1,10 @@
 /**
- * AuthExperience OAuth initiation orchestration (AO-1E1.2 + IOS-READINESS-2B-3).
+ * AuthExperience OAuth initiation orchestration (AO-1E1.2 + IOS-READINESS-2B-3/4).
  *
  * Owns platform split:
  * - web: existing startOAuthSignIn + browser cookie client + origin callback
  * - native: startNativeOAuthSignIn + ASWebAuthenticationSession + code exchange
- *   + AUTH_USER_QUERY_KEY seed
+ *   + serialized identity publish (controller sole AUTH publisher)
  *
  * Loading, logger, error copy, toast, and navigation remain in AuthExperience.
  * No callback URL, code, session, or token is returned to presentation.
@@ -13,12 +13,11 @@ import { useCallback, useRef } from "react";
 import { Capacitor } from "@capacitor/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { trackEvent } from "@/lib/analytics";
-import { AUTH_USER_QUERY_KEY } from "@/hooks/useAuth";
 import { classifyAuthReturnUrl } from "@/platform/auth/native/auth-return";
 import { openNativeAuthSession } from "@/platform/auth/native/web-auth-session";
-import { completeNativeOAuthSignIn } from "../../application/completeNativeOAuthSignIn";
 import { startNativeOAuthSignIn } from "../../infrastructure/startNativeOAuthSignIn";
 import { startOAuthSignIn, type AuthOAuthProvider } from "../../infrastructure/startOAuthSignIn";
+import { completeAndPublishNativeOAuth } from "../nativeAuthIdentityLifecycle";
 
 /** Outcome of OAuth initiation for presentation loading / navigation semantics. */
 export type OAuthInitiationOutcome =
@@ -74,19 +73,13 @@ export function useOAuthSignIn(): UseOAuthSignInResult {
           throw new Error("Invalid authentication return.");
         }
 
-        const completion = await completeNativeOAuthSignIn({
+        const { destination } = await completeAndPublishNativeOAuth(queryClient, {
           callbackUrl: surface.url,
           redirectTo: redirect,
         });
-
-        if (completion.kind === "error") {
-          throw new Error(completion.message);
-        }
-
-        queryClient.setQueryData(AUTH_USER_QUERY_KEY, completion.user);
         return {
           kind: "native-authenticated",
-          destination: completion.destination,
+          destination,
         };
       } finally {
         nativeInFlightRef.current = false;

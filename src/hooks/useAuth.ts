@@ -19,9 +19,10 @@
  * In addition to the `useAuth()` hook, this module exports `<AuthProvider>`.
  * Wrap the application **once** in `src/routes/__root.tsx` (inside
  * QueryClientProvider, around ThemeProvider + Outlet). This guarantees:
- *   • The auth query is primed for the whole app lifetime.
+ *   • The auth query is primed for the whole app lifetime (web).
  *   • The legacy `auth` listener ↔ Query cache bridge is active on **web only**.
- *   • Native identity uses Keychain-backed getNativeSupabase (IOS-READINESS-2B-3).
+ *   • Native identity uses Keychain-backed getNativeSupabase via the 2B-4
+ *     serialized lifecycle (controller is the sole native AUTH publisher).
  *   • `useAuth()` can be called safely from **any** route (public or protected)
  *     and will gracefully return `{ user: null, isLoading: true, ... }` until
  *     the identity check completes.
@@ -42,10 +43,10 @@
  *   Supabase browser client). Native does not subscribe to its onChange bridge.
  * - `src/serverFns/auth.ts` is the cookie authority for **web** SSR/client reads.
  * - Native reads use dynamic import of `@/platform/supabase/native` only inside
- *   the Capacitor native branch (no static SecureStorage graph on web SSR).
+ *   infrastructure/lifecycle (no static SecureStorage graph on web SSR).
  */
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Capacitor } from "@capacitor/core";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -53,12 +54,16 @@ import { useServerFn } from "@tanstack/react-start";
 import { getCurrentUserServerFn } from "@/serverFns/auth";
 import type { AuthUser } from "@/lib/auth";
 import { logger } from "@/lib/logger";
-import {
-  UNRESOLVED_AUTH_IDENTITY,
-  applyAuthQueryCacheTransition,
-  type PreviousAuthIdentity,
-} from "@/lib/auth-query-lifecycle";
-import { mapNativeSupabaseUser } from "@/features/auth/infrastructure";
+import { getAuthIdentityTransitionController } from "@/lib/auth-query-lifecycle";
+
+/**
+ * Lazy native lifecycle via the auth slice public barrel (presentation
+ * re-exports). Dynamic import avoids static cycle with presentation hooks
+ * that import AUTH_USER_QUERY_KEY from this module.
+ */
+async function loadNativeAuthLifecycle() {
+  return import("@/features/auth");
+}
 
 /**
  * Canonical query key for the current authenticated user.
@@ -75,10 +80,6 @@ import { mapNativeSupabaseUser } from "@/features/auth/infrastructure";
  *   await qc.invalidateQueries({ queryKey: AUTH_USER_QUERY_KEY });
  */
 export const AUTH_USER_QUERY_KEY = ["auth", "currentUser"] as const;
-
-/** Temporary 2B-3 native sign-out guard (real native sign-out is 2B-4). */
-export const NATIVE_SIGNOUT_UNAVAILABLE_MESSAGE =
-  "Sign out is not available in this native authentication phase.";
 
 /**
  * Shape returned by `useAuth()`.
@@ -110,11 +111,10 @@ export interface UseAuthResult {
   hydrated: boolean;
 
   /**
-   * Convenience wrapper around the legacy web `auth.signOut()`.
-   * On native Capacitor, rejects with a bounded temporary error (2B-3) —
-   * does not clear Keychain or call browser signOut.
-   * Isolation of non-auth query cache is owned by the root AuthProvider
-   * lifecycle bridge (C4c-4), not by this wrapper.
+   * Web: convenience wrapper around the legacy `auth.signOut()`.
+   * Native: local Keychain sign-out + serialized A→null isolation (2B-4).
+   * Isolation of non-auth query cache is owned by the lifecycle controller,
+   * not by shell chrome.
    *
    * @deprecated You can also import { auth } from "@/lib/auth" directly when
    * the hook is not already in scope (e.g. inside event handlers in Sidebar).
@@ -126,8 +126,8 @@ export interface UseAuthResult {
  * The primary React hook for reading authentication state.
  *
  * Always safe to call in any component (protected or public). On web it
- * fetches via cookie serverFn; on native it reads the Keychain-backed native
- * Supabase session (IOS-READINESS-2B-3).
+ * fetches via cookie serverFn; on native it observes the Keychain-backed
+ * session via the 2B-4 lifecycle (canonical query is observer-only).
  *
  * Note: identity-boundary cache isolation is mounted only in AuthProvider
  * (single coordinator). Consumer calls to useAuth() do not install additional
@@ -137,34 +137,19 @@ export function useAuth(): UseAuthResult {
   // `useServerFn` wraps the `createServerFn` so it is callable from client
   // components while still executing its handler on the server (where cookies
   // are available via the request context). The returned function is stable.
-  // Native queryFn never invokes this function.
+  // Native never invokes this function for identity.
   const getCurrentUser = useServerFn(getCurrentUserServerFn);
+  const queryClient = useQueryClient();
+  const isNative = Capacitor.isNativePlatform();
 
   const query = useQuery<AuthUser | null, Error>({
     queryKey: AUTH_USER_QUERY_KEY,
+    // Native: observer-only. Controller is the sole AUTH publisher.
+    // Prevents React Query late-success from overwriting a later transition.
+    enabled: !isNative,
     queryFn: async () => {
       if (Capacitor.isNativePlatform()) {
-        try {
-          const { getNativeSupabase } = await import("@/platform/supabase/native");
-          const {
-            data: { session },
-            error,
-          } = await getNativeSupabase().auth.getSession();
-          if (error) {
-            if (process.env.NODE_ENV !== "production") {
-              logger.warn("[useAuth] native getSession error (treated as signed-out)");
-            }
-            return null;
-          }
-          return mapNativeSupabaseUser(session?.user);
-        } catch (err) {
-          if (process.env.NODE_ENV !== "production") {
-            logger.warn("[useAuth] native session read failed (treated as signed-out)", {
-              error: String(err),
-            });
-          }
-          return null;
-        }
+        throw new Error("Native auth identity must not fetch via React Query.");
       }
 
       try {
@@ -177,7 +162,6 @@ export function useAuth(): UseAuthResult {
         // The error is swallowed so that UI never crashes; callers can still
         // use `refetch()` to retry, and Sentry breadcrumbs from the serverFn
         // layer will have captured details.
-        // In a stricter app you might surface a toast on persistent errors.
         if (process.env.NODE_ENV !== "production") {
           logger.warn("[useAuth] getCurrentUserServerFn error (treated as signed-out)", {
             error: String(err),
@@ -192,34 +176,43 @@ export function useAuth(): UseAuthResult {
     staleTime: 5 * 60 * 1000,
     // Retain data for 10 minutes before React Query garbage-collects it.
     gcTime: 10 * 60 * 1000,
-    // Always attempt a background check on mount so hard-refreshes and
-    // tab restores get the freshest cookie-derived user.
-    refetchOnMount: true,
-    // If the user signs in on another tab or via OAuth redirect, we pick it up.
-    refetchOnWindowFocus: true,
+    // Web only — native uses AuthProvider observe + appStateChange.
+    refetchOnMount: !isNative,
+    refetchOnWindowFocus: !isNative,
     // One retry is plenty for an idempotent read; keeps UI responsive on flakes.
     retry: 1,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
   });
 
-  const { data, isLoading, refetch: rqRefetch } = query;
+  const { data, isLoading: webIsLoading, refetch: rqRefetch } = query;
 
-  // Normalised refetch that returns just the user (or null) for convenience.
+  // Native: undefined = unresolved/loading; null = explicit signed-out; user = auth.
+  const isLoading = isNative ? data === undefined : webIsLoading;
+  const user = (data ?? null) as AuthUser | null;
+  const isAuthenticated = Boolean(user);
+  const hydrated = isNative ? data !== undefined : !webIsLoading;
+
   const refetch = async (): Promise<AuthUser | null> => {
+    if (Capacitor.isNativePlatform()) {
+      const { observeNativeAuthIdentity } = await loadNativeAuthLifecycle();
+      const outcome = await observeNativeAuthIdentity(queryClient);
+      if (outcome.kind === "authenticated") return outcome.user;
+      if (outcome.kind === "signed-out") return null;
+      // Indeterminate: retain last successful identity if any.
+      const cached = queryClient.getQueryData<AuthUser | null>(AUTH_USER_QUERY_KEY);
+      return cached ?? null;
+    }
     const result = await rqRefetch();
-    // result.data is AuthUser | null | undefined
     return (result.data ?? null) as AuthUser | null;
   };
 
-  const user = (data ?? null) as AuthUser | null;
-  const isAuthenticated = Boolean(user);
-  const hydrated = !isLoading;
-
-  // Isolation is owned by AuthProvider's single lifecycle bridge.
+  // Isolation is owned by the per-QC controller (web onChange / native lifecycle).
   // Do not setQueryData(null) here — that would bypass cancel/remove.
   const signOut = async (): Promise<void> => {
     if (Capacitor.isNativePlatform()) {
-      throw new Error(NATIVE_SIGNOUT_UNAVAILABLE_MESSAGE);
+      const { signOutNativeAuthIdentity } = await loadNativeAuthLifecycle();
+      await signOutNativeAuthIdentity(queryClient);
+      return;
     }
     const { auth } = await import("@/lib/auth");
     await auth.signOut();
@@ -236,56 +229,83 @@ export function useAuth(): UseAuthResult {
 }
 
 /**
- * C4c-4: single app-lifetime auth/query-cache lifecycle bridge.
+ * C4c-4 / 2B-4: single app-lifetime auth/query-cache lifecycle bridge.
  *
  * Mounted only from AuthProvider so there is exactly one previous-identity
- * tracker and one serialized transition chain. Consumer useAuth() calls must
- * not install additional onChange isolation handlers.
+ * tracker (per QueryClient controller) and one serialized transition chain.
+ * Consumer useAuth() calls must not install additional isolation handlers.
  *
- * IOS-READINESS-2B-3: on Capacitor native, do not subscribe to legacy browser
- * browser auth listener (would overwrite Keychain-seeded AUTH_USER_QUERY_KEY with null).
+ * Web: auth.onChange → controller.commitKnown
+ * Native: initial observe + single appStateChange observer (no browser onChange)
  */
 function useAuthQueryCacheLifecycleBridge(): void {
   const queryClient = useQueryClient();
-  const previousIdentityRef = useRef<PreviousAuthIdentity>(UNRESOLVED_AUTH_IDENTITY);
-  const transitionChainRef = useRef(Promise.resolve());
 
   useEffect(() => {
-    // Native: no browser lifecycle subscription (Rules of Hooks: early return inside effect).
-    if (Capacitor.isNativePlatform()) {
-      return;
-    }
-
     let disposed = false;
+    let unbind: (() => void) | undefined;
+    let removeAppListener: (() => void) | undefined;
     let unsubscribe: (() => void) | undefined;
 
-    void import("@/lib/auth").then(({ auth }) => {
+    void (async () => {
+      const { bindNativeAuthIdentityQueryClient, observeNativeAuthIdentity } =
+        await loadNativeAuthLifecycle();
       if (disposed) return;
 
-      unsubscribe = auth.onChange((newUser) => {
-        transitionChainRef.current = transitionChainRef.current
-          .then(async () => {
-            if (disposed) return;
-            const result = await applyAuthQueryCacheTransition(
-              queryClient,
-              previousIdentityRef.current,
-              newUser,
-            );
-            if (!disposed) {
-              previousIdentityRef.current = result.nextPreviousIdentity;
-            }
-          })
-          .catch((err) => {
-            if (process.env.NODE_ENV !== "production") {
-              logger.warn("[useAuth] auth cache transition failed", { error: String(err) });
-            }
+      // Bind QC for shell useSignOut native path (no useQueryClient in that hook).
+      unbind = bindNativeAuthIdentityQueryClient(queryClient);
+
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await observeNativeAuthIdentity(queryClient);
+        } catch (err) {
+          if (process.env.NODE_ENV !== "production") {
+            logger.warn("[useAuth] native initial observe failed", { error: String(err) });
+          }
+        }
+        if (disposed) return;
+
+        try {
+          const { App } = await import("@capacitor/app");
+          const handle = await App.addListener("appStateChange", (state) => {
+            if (!state.isActive || disposed) return;
+            void observeNativeAuthIdentity(queryClient).catch((err) => {
+              if (process.env.NODE_ENV !== "production") {
+                logger.warn("[useAuth] native resume observe failed", { error: String(err) });
+              }
+            });
           });
+          if (disposed) {
+            void handle.remove();
+            return;
+          }
+          removeAppListener = () => {
+            void handle.remove();
+          };
+        } catch {
+          // @capacitor/app may be unavailable in unit tests — restore still ran.
+        }
+        return;
+      }
+
+      // Web: browser auth.onChange → controller.commitKnown
+      const controller = getAuthIdentityTransitionController(queryClient);
+      const { auth } = await import("@/lib/auth");
+      if (disposed) return;
+      unsubscribe = auth.onChange((newUser) => {
+        void controller.commitKnown(newUser).catch((err) => {
+          if (process.env.NODE_ENV !== "production") {
+            logger.warn("[useAuth] auth cache transition failed", { error: String(err) });
+          }
+        });
       });
-    });
+    })();
 
     return () => {
       disposed = true;
+      removeAppListener?.();
       unsubscribe?.();
+      unbind?.();
     };
   }, [queryClient]);
 }
@@ -294,7 +314,7 @@ function useAuthQueryCacheLifecycleBridge(): void {
  * Root-level Auth provider.
  *
  * Primes the auth query and installs the **single** auth/query-cache lifecycle
- * bridge for the application lifetime (web only for the browser onChange bridge).
+ * bridge for the application lifetime.
  *
  * Must be rendered **inside** a `<QueryClientProvider>` (it calls
  * `useQueryClient()` and `useQuery` via the hook).
@@ -319,7 +339,7 @@ function useAuthQueryCacheLifecycleBridge(): void {
  * `getCurrentUserServerFn`) so the value survives hard refresh / direct nav.
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Prime the auth query for the app lifetime.
+  // Prime the auth query for the app lifetime (web fetch / native cache observe).
   useAuth();
   // Exactly one lifecycle coordinator (must not live inside every useAuth call).
   useAuthQueryCacheLifecycleBridge();

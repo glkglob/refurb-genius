@@ -293,9 +293,8 @@ describe("useOAuthSignIn — source boundary", () => {
     expect(src).toMatch(/startNativeOAuthSignIn/);
     expect(src).toMatch(/openNativeAuthSession/);
     expect(src).toMatch(/classifyAuthReturnUrl/);
-    expect(src).toMatch(/completeNativeOAuthSignIn/);
-    expect(src).toMatch(/AUTH_USER_QUERY_KEY/);
-    expect(src).toMatch(/setQueryData/);
+    expect(src).toMatch(/completeAndPublishNativeOAuth/);
+    expect(src).not.toMatch(/setQueryData\s*\(/);
     expect(src).toMatch(/native-authenticated/);
     expect(src).toMatch(/trackEvent/);
     expect(src).toMatch(/auth\/callback/);
