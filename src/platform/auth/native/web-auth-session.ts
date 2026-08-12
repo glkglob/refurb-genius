@@ -5,6 +5,7 @@
  * No OAuth initiation, PKCE, exchange, or session ownership.
  */
 import { registerPlugin } from "@capacitor/core";
+import { z } from "zod";
 
 export type OpenAuthSessionOptions = {
   /** Absolute HTTPS URL to open in ASWebAuthenticationSession. */
@@ -16,12 +17,33 @@ export type OpenAuthSessionOptions = {
   callbackScheme: string;
 };
 
-export type OpenAuthSessionResult =
-  | { type: "success"; url: string }
-  | { type: "cancel" };
+export type OpenAuthSessionResult = { type: "success"; url: string } | { type: "cancel" };
+
+/** Runtime contract for native `openAuthSession` resolve payloads. */
+export const openAuthSessionResultSchema = z.discriminatedUnion("type", [
+  z
+    .object({
+      type: z.literal("success"),
+      url: z.string().min(1),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("cancel"),
+    })
+    .strict(),
+]);
+
+/**
+ * Validate native bridge output. Throws ZodError on unexpected shapes.
+ * Exported for focused tests — does not interpret tokens or sessions.
+ */
+export function parseOpenAuthSessionResult(value: unknown): OpenAuthSessionResult {
+  return openAuthSessionResultSchema.parse(value);
+}
 
 export interface WebAuthSessionPlugin {
-  openAuthSession(options: OpenAuthSessionOptions): Promise<OpenAuthSessionResult>;
+  openAuthSession(options: OpenAuthSessionOptions): Promise<unknown>;
 }
 
 /** Capacitor plugin name must match native `jsName` (`WebAuthSession`). */
@@ -33,10 +55,12 @@ export const NATIVE_OAUTH_CALLBACK_SCHEME = "com.refurbgenius.app";
 /**
  * Open a system auth session. Callers supply the already-built authorize URL.
  * Deferred to 2B-2+: actual signInWithOAuth / skipBrowserRedirect wiring.
+ * Native result is schema-validated before return.
  */
-export function openNativeAuthSession(url: string): Promise<OpenAuthSessionResult> {
-  return WebAuthSession.openAuthSession({
+export async function openNativeAuthSession(url: string): Promise<OpenAuthSessionResult> {
+  const raw = await WebAuthSession.openAuthSession({
     url,
     callbackScheme: NATIVE_OAUTH_CALLBACK_SCHEME,
   });
+  return parseOpenAuthSessionResult(raw);
 }

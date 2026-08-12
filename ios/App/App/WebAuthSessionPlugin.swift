@@ -3,6 +3,9 @@ import Capacitor
 import Foundation
 import UIKit
 
+/// Frozen custom-scheme callback authority for ASWebAuthenticationSession (2B contract).
+private let kAllowedCallbackScheme = "com.refurbgenius.app"
+
 /// Minimal first-party ASWebAuthenticationSession bridge (IOS-READINESS-2B-1).
 ///
 /// Opens an auth URL and returns the callback URL string to JS.
@@ -20,16 +23,32 @@ public class WebAuthSessionPlugin: CAPPlugin, CAPBridgedPlugin {
     private var presentationContextProvider: WebAuthPresentationContextProvider?
 
     @objc func openAuthSession(_ call: CAPPluginCall) {
-        guard let urlString = call.getString("url"), let url = URL(string: urlString) else {
-            call.reject("Missing or invalid url")
+        // Generic reject only — never echo caller URLs / schemes (may contain secrets later).
+        guard let urlString = call.getString("url"), !urlString.isEmpty else {
+            call.reject("Invalid auth session request")
             return
         }
-        guard let callbackScheme = call.getString("callbackScheme"), !callbackScheme.isEmpty else {
-            call.reject("Missing callbackScheme")
+        guard let url = URL(string: urlString),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "https",
+              let host = url.host,
+              !host.isEmpty
+        else {
+            call.reject("Invalid auth session request")
+            return
+        }
+        // Reject relative / opaque forms that URL(string:) can still parse loosely.
+        guard urlString.lowercased().hasPrefix("https://") else {
+            call.reject("Invalid auth session request")
+            return
+        }
+        guard let callbackScheme = call.getString("callbackScheme"),
+              callbackScheme == kAllowedCallbackScheme
+        else {
+            call.reject("Invalid auth session request")
             return
         }
 
-        // Never log url / callback URL contents (query/fragment may hold auth secrets later).
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
 
