@@ -1,0 +1,14 @@
+AGENTS.md
+  h_7ea6129503670a 13-19,32-34,54-61,70-73,79-88,115-118,120
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "48f4ca548e1173911245456126a2cdf176801464",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
