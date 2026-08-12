@@ -307,7 +307,98 @@ iOS-specific metadata:
 - Display name: `Refurb Genius`
 - Bundle identifier: `com.refurbgenius.app` (via Xcode)
 - Supported orientations: portrait + landscape
+- Custom URL scheme (2B-1): `com.refurbgenius.app` → callback `com.refurbgenius.app://auth/callback`
 - No unnecessary permissions
+
+### ios/App/App/App.entitlements
+
+Associated Domains **scaffold** only (not Production-operational yet):
+
+- `applinks:www.refurbgenius.info`
+
+---
+
+## IOS-READINESS-2B-1 — Auth return-channel foundation
+
+**Status:** Scaffolding only. No OAuth initiation, no native Supabase session, no PKCE exchange.
+
+### Frozen return surfaces
+
+| Role | Surface | Canonical use |
+|------|---------|----------------|
+| Custom scheme | `com.refurbgenius.app://auth/callback` | OAuth via ASWebAuthenticationSession; sim/dev fallback |
+| Universal Link | `https://www.refurbgenius.info/auth/native-callback` | Email magic-link / recovery return (Production when UL live) |
+
+**Prohibited in ordinary deep-link query:** `access_token`, `refresh_token`.
+
+### Dependencies (authorized)
+
+| Package | Version constraint | Role |
+|---------|-------------------|------|
+| `@capacitor/app` | `^8` (major 8) | `appUrlOpen`, `getLaunchUrl` |
+| `@aparajita/capacitor-secure-storage` | `8.0.0` exact | Keychain-backed storage plugin install only (no session write in 2B-1) |
+
+**Do not install:** `@capacitor/browser`, third-party OAuth bridges. Browser/SFSafariViewController is **not** equivalent to ASWebAuthenticationSession.
+
+### First-party ASWebAuthenticationSession plugin
+
+- Native: `ios/App/App/WebAuthSessionPlugin.swift` (`jsName`: `WebAuthSession`)
+- JS: `src/platform/auth/native/web-auth-session.ts`
+- API: `openAuthSession({ url, callbackScheme })` → `{ type: "success" \| "cancel", url? }`
+- Callback scheme: `com.refurbgenius.app`
+- Cancellation is non-exceptional (`type: "cancel"`)
+- Registered via `AppBridgeViewController` (storyboard host) — Capacitor 8 local-plugin pattern
+
+### Inbound URL lifecycle (inert)
+
+- JS: `src/platform/auth/native/auth-return.ts`
+- Mounted from `src/routes/__root.tsx` (root client lifecycle, not AuthExperience)
+- Accepts only the two frozen surfaces above; ignores unrelated URLs
+- No query/fragment logging; no exchange
+
+### AASA (ops prerequisite — not published by this phase)
+
+Intended Production `apple-app-site-association` (owner ops; **do not** ship a fake incomplete file):
+
+```json
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.com.refurbgenius.app",
+        "paths": ["/auth/native-callback", "/auth/native-callback/*"]
+      }
+    ]
+  }
+}
+```
+
+- Host: `www.refurbgenius.info`
+- Path: `/auth/native-callback`
+- `TEAMID` must be the real Apple Developer Team ID (never fabricate)
+- Publish at `https://www.refurbgenius.info/.well-known/apple-app-site-association` (and/or root)
+- **Universal Links are not claimed operational** until portal capability + AASA + signed build with Associated Domains are all true
+
+### Apple Developer / portal prerequisites (ops — not mutated here)
+
+1. Enable **Associated Domains** capability on App ID `com.refurbgenius.app`
+2. Provisioning profile includes Associated Domains
+3. Publish AASA with real `TEAMID.com.refurbgenius.app`
+4. Supabase Auth redirect allowlist updates are **out of 2B-1** (later slice)
+
+### Secure storage (2B-1 scope)
+
+- Plugin installed and synced for native registration proof only
+- **No** Supabase session keys written yet
+- Do not use Preferences / UserDefaults / localStorage for refresh tokens (2B contract)
+
+### 2A non-regression (must remain true)
+
+- `webDir` = `dist/ios/client`
+- No `server.url`
+- `vite.ios.config.ts` / `src/server.ios.ts` unchanged
+- Production CSRF / `pip-auth` / web auth unchanged (no `capacitor://` CSRF exception)
 
 ---
 

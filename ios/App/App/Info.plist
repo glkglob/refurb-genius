@@ -47,5 +47,21 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<!-- IOS-READINESS-2B-1: custom URL scheme for ASWebAuthenticationSession + dev/sim returns.
+	     Canonical OAuth callback: com.refurbgenius.app://auth/callback
+	     Do not design access_token/refresh_token into this URL. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.refurbgenius.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.refurbgenius.app</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

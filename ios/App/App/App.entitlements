@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Scaffold only. Universal Links are NOT operational until:
+	     1) Apple Developer portal enables Associated Domains for this App ID
+	     2) A valid apple-app-site-association is published at
+	        https://www.refurbgenius.info/.well-known/apple-app-site-association
+	        with appID = TEAMID.com.refurbgenius.app (real Team ID, never fabricated)
+	     3) Signing/provisioning includes this entitlement
+	-->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:www.refurbgenius.info</string>
+	</array>
+</dict>
+</plist>
