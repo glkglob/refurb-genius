@@ -1,0 +1,52 @@
+src/features/auth/application/completeNativeOAuthSignIn.test.ts
+  h_7ea6129503670a 1-118
+src/features/auth/application/completeNativeOAuthSignIn.ts
+  h_7ea6129503670a 1-73
+src/features/auth/application/index.ts
+  h_7ea6129503670a 2,10-21
+src/features/auth/application/mapNativeOAuthFailure.test.ts
+  h_7ea6129503670a 1-56
+src/features/auth/application/mapNativeOAuthFailure.ts
+  h_7ea6129503670a 1-71
+src/features/auth/application/mapNativeSupabaseUser.test.ts
+  h_7ea6129503670a 1-62
+src/features/auth/application/mapNativeSupabaseUser.ts
+  h_7ea6129503670a 1-34
+src/features/auth/infrastructure/exchangeNativeAuthCode.test.ts
+  h_7ea6129503670a 1-66
+src/features/auth/infrastructure/exchangeNativeAuthCode.ts
+  h_7ea6129503670a 1-27
+src/features/auth/infrastructure/extractNativeOAuthAuthorizationCode.test.ts
+  h_7ea6129503670a 1-84
+src/features/auth/infrastructure/extractNativeOAuthAuthorizationCode.ts
+  h_7ea6129503670a 1-50
+src/features/auth/infrastructure/index.ts
+  h_7ea6129503670a 21-28
+src/features/auth/presentation/AuthExperience.test.tsx
+  h_7ea6129503670a 266-270,281-282,716,729
+src/features/auth/presentation/AuthExperience.tsx
+  h_7ea6129503670a 332-334,336-340,355-357,359-361,376-378,380-382
+src/features/auth/presentation/hooks/useOAuthSignIn.test.ts
+  h_7ea6129503670a 2,6-7,10,16,46-49,56-61,67,77-81,105-108,125-126,135,140-143,153,155,158,165-169,171-174,178-206,209-215,228-231,238,241-248,251-259,265,267-272,274-279,288,296-299,305
+src/features/auth/presentation/hooks/useOAuthSignIn.ts
+  h_7ea6129503670a 2,6-7,9-10,12,14,16,19,23,27,55-107,113,121,131
+src/hooks/useAuth.ts
+  h_7ea6129503670a 23-24,27,40,42-45,49,54,61,79-82,113-115,128-130,134,140,146-169,221-224,244-246,254-258,260,262-283,288,297,318
+src/routes/_authed.platform-gate.test.ts
+  h_7ea6129503670a 1-352
+src/routes/_authed.tsx
+  h_7ea6129503670a 75,79,89-109,112-115,117-119,122-138,157
+tests/invariants/native-oauth-completion.invariant.test.ts
+  h_7ea6129503670a 1-111
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "8608aa8e355df0d51b8119b70c19d3613e3a942b",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
