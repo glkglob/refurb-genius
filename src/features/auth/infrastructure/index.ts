@@ -17,6 +17,7 @@ export {
   type AuthOAuthProvider,
   type StartOAuthSignInInput,
 } from "./startOAuthSignIn";
+export { startNativeOAuthSignIn, type StartNativeOAuthSignInInput } from "./startNativeOAuthSignIn";
 export { sendMagicLinkEmail, type SendMagicLinkEmailInput } from "./sendMagicLinkEmail";
 export {
   requestPasswordResetEmail,
