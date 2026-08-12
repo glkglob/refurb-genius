@@ -1,0 +1,26 @@
+src/features/auth/presentation/index.ts
+  h_7ea6129503670a 23-24
+src/features/auth/presentation/nativeAuthIdentityLifecycle.test.ts
+  h_7ea6129503670a 28-29,31-32,54-56,206-300
+src/features/auth/presentation/nativeAuthIdentityLifecycle.ts
+  h_7ea6129503670a 11-13,33-40,55-95,112,125-127,131-133
+src/hooks/useAuth.ts
+  h_7ea6129503670a 49,144-166,202,212-215,218,264,276-280,288-289,292
+src/routes/_authed.platform-gate.test.ts
+  h_7ea6129503670a 169-175,192-196,314,319-322,326-371
+tests/invariants/auth-query-cache-lifecycle.invariant.test.ts
+  h_7ea6129503670a 89,117-121
+tests/invariants/native-auth-lifecycle.invariant.test.ts
+  h_7ea6129503670a 42,56-58,60-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "2633b7c0d728048ac6c7e17f74d5d618aaf5d4ed",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
