@@ -1,6 +1,13 @@
 # AGENTS.md — Refurb Genius Development Guide
 
-> Single source of truth for AI coding agents and contributors. Read fully before making changes.
+> Primary governance authority for AI coding agents and contributors. Read
+> fully before making changes.
+>
+> Explicitly declared locked architecture specifications and operational
+> runbooks remain authoritative within their own scope (for example IA-0,
+> `docs/architecture/FEATURE_SLICE.md`, `docs/architecture/ai-platform.md`,
+> and `docs/operations/database-delivery-model-b.md`). On conflict, the
+> stricter current architecture, security, or governance rule wins.
 
 ---
 
@@ -58,6 +65,25 @@ Before publication or merge of a candidate:
 - checks from an earlier SHA do not certify a later SHA;
 - after the candidate mutates, previous check evidence is invalid for
   publication.
+
+Immediately before merge, all currently active repository and ruleset
+requirements must be satisfied, including where configured:
+
+- exact-head required checks;
+- required review-thread resolution;
+- required approvals;
+- conflict / mergeability requirements;
+- up-to-date branch requirements.
+
+Merge authorisation becomes stale and is invalid if, before merge:
+
+- the PR head changes;
+- the relevant base changes;
+- required checks regress;
+- review state materially changes;
+- repository or ruleset requirements materially change.
+
+No phase may bypass these requirements.
 
 A CI failure in a governed phase means:
 classify → report → STOP.
@@ -132,7 +158,7 @@ Refurb Genius is a property refurbishment estimation platform for UK property in
 
 **Maturity:** Late Alpha / Early Beta. Core features work end-to-end; test coverage and UI package migration are the main gaps.
 
-**Current AI:** Pure TS serverFns + OpenAI (gpt-4o) only. Railway/Python backend fully decommissioned (see docs/architecture/ai-platform.md).
+**Current AI:** Pure TS serverFns + OpenAI (gpt-4o) only. Railway/Python backend fully decommissioned (see docs/architecture/ai-platform.md). The native mobile API foundation does not move AI workloads off this serverFn authority; privileged native AI endpoints require the separately authorised 2C-2 phase.
 
 ---
 
@@ -180,6 +206,27 @@ CONTROLLED PUBLIC BETA + OBSERVATION
 ```
 
 Do **not** begin IA-9 or IA-10 without fresh explicit owner authority.
+
+---
+
+## iOS 2C programme
+
+```text
+IOS-READINESS-2C-1 = COMPLETED
+Native authenticated HTTP transport foundation
+(PR #149; candidate 4fa52d9696068dea2ad93aa1faecb572f29088b2;
+ merge 9c6fd68166481ecbacef5f2850c399ca5efba577)
+
+NOT implicitly authorised:
+  2C-HARDENING
+  2C-3 native data-path consumer wiring
+  2C-2 privileged AI mobile APIs
+  2C-4 Simulator / runtime verification
+```
+
+Do **not** begin 2C-HARDENING, 2C-2, 2C-3, or 2C-4 without fresh explicit
+owner authority. Completing 2C-1 does not encode an execution order for those
+phases.
 
 ---
 
@@ -311,9 +358,9 @@ The `tsconfig.json` defines these path aliases:
 @repo/supabase/* → packages/supabase/src/*
 ```
 
-### Server Functions
+### Server Functions (web default)
 
-Use `createServerFn` from `@tanstack/react-start` for all server-side logic. Always validate input with `.inputValidator()` and Zod:
+Web server operations normally use `createServerFn` from `@tanstack/react-start`. Always validate input with `.inputValidator()` and Zod. Authenticate with `requireUser()` from `src/serverFns/auth.server.ts` via a dynamic import inside the handler. Existing serverFn CSRF in `src/start.ts` (`handlerType === "serverFn"`) remains in force.
 
 ```ts
 import { createServerFn } from "@tanstack/react-start";
@@ -324,27 +371,67 @@ const inputSchema = z.object({ id: z.string().min(1) });
 export const myServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => inputSchema.parse(input))
   .handler(async ({ data }) => {
-    await requireServerAuth(); // Always verify auth first
-    // Server-only code here
+    const { requireUser } = await import("@/serverFns/auth.server");
+    await requireUser();
+    // Server-only web code here
   });
 ```
 
 **Do NOT use `"use server"` directives.** TanStack Start uses `createServerFn` instead.
 
-### Server Auth Pattern
+This is **not** a licence for arbitrary REST or ad-hoc HTTP endpoints.
 
-```ts
-async function requireServerAuth(): Promise<void> {
-  const { getCookies } = await import("@tanstack/react-start/server");
-  const { createServerSupabase } = await import("@repo/supabase/server");
-  const supabase = createServerSupabase(getCookies());
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) throw new Error("Unauthorized");
-}
-```
+### Native privileged mobile API (governed exception)
+
+The merged iOS architecture has one explicit exception to the serverFn default:
+
+- lives only under `/api/mobile/v1/*`;
+- is intercepted in `src/server.ts` and handled by `handleMobileApiRequest`;
+- is **not** a TanStack serverFn and must not use `/_serverFn`;
+- must not weaken or bypass web serverFn CSRF;
+- authenticates with `requireMobileBearer` → `verifyToken`;
+- identity comes only from the verified token (`resolveAuthoritativeUserId` ignores body/query `userId`);
+- new `/api/mobile/v1/*` endpoints require explicit governed phase authority.
+
+### Web and native auth authorities
+
+These authorities must never be bridged.
+
+**Web**
+
+- `createServerSupabase(getCookies(), { cookieName: "pip-auth" })`
+- `requireUser()` — no Bearer fallback
+- browser Supabase singleton for web clients
+- TanStack serverFns + existing serverFn CSRF
+
+**Native**
+
+- data plane: `getNativeSupabase()` / `getPlatformSupabase()` → native user JWT + RLS
+- control plane: `nativeAuthenticatedFetch` / `nativeAuthenticatedJson` → HTTPS `resolveProductionApiOrigin()` from `VITE_PUBLIC_URL` → `Authorization: Bearer`
+- server: `requireMobileBearer` + `verifyToken`; `createTokenSupabase` only after verified Bearer
+
+**Prohibit**
+
+- native session → pip-auth / `document.cookie` synthesis
+- body or query `userId` as identity
+- service-role credential on device
+- Bearer fallback inside `requireUser()`
+- mixing native and web session authority
+- Capacitor `server.url`
+
+### iOS / Capacitor architecture
+
+- iOS is a Capacitor static SPA shell. App origin is `capacitor://localhost`.
+- `capacitor.config.ts` has no `server.url`; the app uses the local `webDir` bundle only.
+- Native auth is Keychain-backed Supabase (`getNativeSupabase`).
+- Native data plane uses PostgREST / Storage under the native user JWT and RLS.
+- Native privileged control plane uses HTTPS Production + Bearer user token.
+- Canonical Production API origin is `VITE_PUBLIC_URL` via `resolveProductionApiOrigin` (HTTPS-only).
+- Mobile API namespace is `/api/mobile/v1/*` (canary `POST /api/mobile/v1/session/ping` via `pingNativeMobileSession`).
+- Web pip-auth / serverFn authority remains separate.
+- The mobile API does not authorise duplicating arbitrary serverFns as REST.
+- Foundation helpers `listProjectsNative` / `createProjectNative` exist and are **not** consumer-wired (`useProjects` / `createProjectServerFn` remain web).
+- New mobile endpoints require explicit governed phase authority.
 
 ### Logging
 
@@ -415,26 +502,28 @@ All UI components follow the shadcn/ui + Radix pattern:
 | ------------ | ----------------------------------------------------- |
 | Browser/hook | `createBrowserSupabase` from `@repo/supabase/browser` |
 | Server fn    | `createServerSupabase` from `@repo/supabase/server`   |
-| Token-based  | `createTokenSupabase` from `@repo/supabase/server`    |
+| Token-based  | `createTokenSupabase` / `verifyToken` from `@repo/supabase/server` |
 | Env helpers  | `resolveSupabaseEnv` from `@repo/supabase/env`        |
 
 Or import everything from the root: `from "@repo/supabase"`.
+
+Native app selection: `getPlatformSupabase()` / `getNativeSupabase()` in `src/platform/supabase/`. Token-based server clients (`createTokenSupabase`, `verifyToken`) are valid only after verified Bearer authentication under the governed `/api/mobile/v1/*` architecture.
 
 ### Critical Rules
 
 1. **NEVER** import from `@/integrations/supabase/*` in app code. That directory contains auto-generated types only. Use `@repo/supabase` or hooks.
 
-2. **Server auth** — always use `createServerSupabase` + `getCookies()` in server functions, **never** `createBrowserSupabase`:
+2. **Web serverFn auth** — always use `createServerSupabase` + `getCookies()` (pip-auth) in server functions, **never** `createBrowserSupabase`:
 
    ```ts
    const { getCookies } = await import("@tanstack/react-start/server");
    const { createServerSupabase } = await import("@repo/supabase/server");
-   const supabase = createServerSupabase(getCookies());
+   const supabase = createServerSupabase(getCookies(), { cookieName: "pip-auth" });
    ```
 
-3. **RLS is enforced** on all tables. Every query runs through row-level security policies. Never bypass RLS or use the service role key in client code.
+3. **RLS is enforced** on all tables. Every query runs through row-level security policies. Never bypass RLS or use the service role key in client or native-device code. Native direct Supabase operations use the native user JWT and RLS. Server-side service-role access remains separately governed and cannot be inferred from mobile Bearer auth.
 
-4. **Edge Functions** live in `supabase/functions/` and run on Deno. They are separate from TanStack `createServerFn` server functions.
+4. **Edge Functions** live in `supabase/functions/` and run on Deno. They are separate from TanStack `createServerFn` server functions and from `/api/mobile/v1/*`.
 
 5. **Migrations must be idempotent.** All `CREATE POLICY` (and recent `CREATE TABLE` / `CREATE INDEX` / `ADD COLUMN`) statements use `IF NOT EXISTS` guards or the `DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_policies ...) THEN CREATE POLICY ...` pattern. This prevents "already exists" errors during `supabase db push`, `supabase db reset`, re-deploys, or when replaying on existing DBs. Never add bare `create policy "..."` in new migrations.
 
@@ -455,13 +544,13 @@ pnpm admin:bootstrap      # Bootstrap admin user
 
 ### Pre-commit Checklist
 
-Before every commit, run:
+Default before every commit:
 
 ```bash
 pnpm typecheck && pnpm lint && pnpm test:invariants
 ```
 
-CI runs these same checks. A PR will not merge if any fail.
+An explicitly authorised narrow phase may use **candidate-scoped lint** locally when full-repository `pnpm lint` (`eslint .`) is disproportionately expensive. Candidate-scoped lint must pass on the exact candidate. This never waives `pnpm typecheck`, `pnpm test:invariants`, or repository-required exact-head CI. A phase cannot silently choose scoped lint unless its authority permits it. Full repository lint and other GitHub-required checks must still pass before merge.
 
 **Important:** Use `pnpm build:vercel` (not `pnpm build`) for deployment builds. The Vercel config uses `vite.vercel.config.ts` which adds Nitro with the `vercel` preset. Vercel install is locked with `--frozen-lockfile` (see vercel.json) and package.json has `"packageManager": "pnpm@9.15.9"` + cleaned pnpm-workspace.yaml + .npmrc for stable lockfile (no more pnpmfileChecksum mismatches).
 
@@ -495,7 +584,8 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR:
 - **PR body:** Use `## Summary` + `## Test plan` format
 - **Keep commits focused:** Do not bundle features with refactors, or mix archive/docs cleanup with UI migration or feature work
 - **Never force-push to main**
-- **Always run `pnpm typecheck && pnpm lint`** before pushing
+- **Always run `pnpm typecheck && pnpm lint`** before pushing (see the governed candidate-scoped lint exception above)
+- Immediately before merge, re-satisfy the Publication merge-revalidation rules (exact-head checks, thread resolution, approvals, mergeability, up-to-date branch). Merge authorisation is stale if those change.
 - **Prefer small, safe changes** — easier to review and revert
 
 ---
@@ -514,7 +604,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR:
 
 6. **Preserve the shim layer** — Don't delete `src/components/ui/` files during migration. Replace their contents with re-exports from `@repo/ui`.
 
-7. **Test before committing** — Run `pnpm typecheck && pnpm lint && pnpm test:invariants`.
+7. **Test before committing** — Default is `pnpm typecheck && pnpm lint && pnpm test:invariants`. Candidate-scoped lint is allowed only when the current phase explicitly authorises it; exact-head CI is never waived.
 
 8. **Don't create new packages** without discussing architecture first.
 
@@ -542,6 +632,10 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every push and PR:
 | Editing `src/routeTree.gen.ts`                  | Auto-generated by TanStack Router — never edit                                                          |
 | Adding bare `create policy` in migrations       | Always wrap in DO $$ IF NOT EXISTS (pg_policies) or use IF NOT EXISTS for tables/indexes/columns        |
 | Relying on .pnpmfile.cjs or unpinned pnpm       | Use "pnpm.onlyBuiltDependencies" + "packageManager" in package.json; keep .npmrc + clean workspace.yaml |
+| Bridging native session into pip-auth cookies   | Keep web cookies and native Keychain / Bearer authorities separate                                      |
+| Treating body/query `userId` as identity        | Use `requireUser()` (web) or verified Bearer identity (mobile API)                                      |
+| Adding `/api/mobile/*` without phase authority  | New mobile endpoints require an explicit governed phase                                                 |
+| Capacitor `server.url` or HTTP privileged calls | Local bundle only; privileged native transport is HTTPS `VITE_PUBLIC_URL`                               |
 
 ---
 
