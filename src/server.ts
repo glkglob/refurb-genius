@@ -98,6 +98,14 @@ export default {
     // One isolation scope for the full request: Start middleware, routes, serverFns, adapters.
     return withServerSentryIsolation(async () => {
       try {
+        // IOS-READINESS-2C-1: isolated native Bearer API (outside /_serverFn + CSRF).
+        // Must run before TanStack Start entry so serverFn CSRF is not applied.
+        const pathname = new URL(request.url).pathname;
+        if (pathname === "/api/mobile" || pathname.startsWith("/api/mobile/")) {
+          const { handleMobileApiRequest } = await import("@/platform/http/mobile-api.server");
+          return await handleMobileApiRequest(request);
+        }
+
         const handler = await getServerEntry();
         const response = await handler.fetch(request, env, ctx);
         return await normalizeCatastrophicSsrResponse(response);
