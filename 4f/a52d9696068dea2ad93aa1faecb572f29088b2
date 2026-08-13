@@ -1,0 +1,54 @@
+src/platform/http/errors.ts
+  h_7ea6129503670a 1-32
+src/platform/http/index.ts
+  h_7ea6129503670a 1-27
+src/platform/http/mobile-api.server.test.ts
+  h_7ea6129503670a 1-92
+src/platform/http/mobile-api.server.ts
+  h_7ea6129503670a 1-80
+src/platform/http/mobile-bearer.server.test.ts
+  h_7ea6129503670a 1-108
+src/platform/http/mobile-bearer.server.ts
+  h_7ea6129503670a 1-113
+src/platform/http/mobile-cors.server.test.ts
+  h_7ea6129503670a 1-64
+src/platform/http/mobile-cors.server.ts
+  h_7ea6129503670a 1-59
+src/platform/http/mobile-session-ping.ts
+  h_7ea6129503670a 1-19
+src/platform/http/native-access-token.test.ts
+  h_7ea6129503670a 1-132
+src/platform/http/native-access-token.ts
+  h_7ea6129503670a 1-146
+src/platform/http/native-authenticated-fetch.test.ts
+  h_7ea6129503670a 1-155
+src/platform/http/native-authenticated-fetch.ts
+  h_7ea6129503670a 1-153
+src/platform/http/origin.test.ts
+  h_7ea6129503670a 1-62
+src/platform/http/origin.ts
+  h_7ea6129503670a 1-67
+src/platform/http/web-dual-authority.test.ts
+  h_7ea6129503670a 1-45
+src/platform/supabase/client.test.ts
+  h_7ea6129503670a 1-43
+src/platform/supabase/client.ts
+  h_7ea6129503670a 1-44
+src/platform/supabase/native-projects.test.ts
+  h_7ea6129503670a 1-74
+src/platform/supabase/native-projects.ts
+  h_7ea6129503670a 1-103
+src/server.ts
+  h_7ea6129503670a 101-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "4fa52d9696068dea2ad93aa1faecb572f29088b2",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
