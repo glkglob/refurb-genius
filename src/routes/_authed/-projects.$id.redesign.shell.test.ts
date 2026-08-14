@@ -29,7 +29,7 @@ const REPO = readFileSync(
 describe("IA-5-R4A Redesign product generation and selection contract", () => {
   it("imports canonical generation, list, and selection serverFns", () => {
     expect(SRC).toMatch(/generateRedesignConceptsServerFn/);
-    expect(SRC).toMatch(/listRedesignConceptsServerFn/);
+    expect(SRC).toMatch(/listRedesignConceptsForClient/);
     expect(SRC).toMatch(/selectRedesignConceptServerFn/);
     expect(SRC).toMatch(/from ["']@\/features\/ai-design["']/);
   });
@@ -69,7 +69,7 @@ describe("IA-5-R4A Redesign product generation and selection contract", () => {
   });
 
   it("reload hydrates candidates from durable list, not mutation-only memory", () => {
-    expect(SRC).toMatch(/listRedesignConceptsServerFn/);
+    expect(SRC).toMatch(/listRedesignConceptsForClient/);
     expect(SRC).toMatch(/setCandidates\(durable/);
     expect(SRC).toMatch(/loadPhotoAnalysis/);
   });

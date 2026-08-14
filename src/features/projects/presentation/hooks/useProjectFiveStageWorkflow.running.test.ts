@@ -1,6 +1,9 @@
 /**
  * IA-6-R1 — five-stage hook forwards registry operation-running into compose.
  */
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
@@ -13,7 +16,9 @@ vi.mock("@/features/ai-upload", () => ({
 }));
 
 vi.mock("@/features/ai-design", () => ({
-  listRedesignConceptsServerFn: vi.fn(async () => []),
+  listRedesignConceptsForClient: vi.fn(async () => []),
+  selectedRedesignIdFromList: (items: { id: string; isSelected?: boolean }[]) =>
+    items.find((c) => c.isSelected)?.id ?? null,
 }));
 
 vi.mock("@/features/ai-design/infrastructure", () => ({
@@ -46,6 +51,19 @@ function wrapper({ children }: { children: ReactNode }) {
 
 beforeEach(() => {
   resetProjectWorkflowOperationRegistryForTests();
+});
+
+const HOOK_SRC = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), "useProjectFiveStageWorkflow.ts"),
+  "utf8",
+);
+
+describe("useProjectFiveStageWorkflow #151 list contract", () => {
+  it("does not call .find on (durable ?? []) — that crashed when durable was a Response", () => {
+    expect(HOOK_SRC).not.toMatch(/\(durable \?\? \[\]\)\.find/);
+    expect(HOOK_SRC).toMatch(/listRedesignConceptsForClient/);
+    expect(HOOK_SRC).toMatch(/selectedRedesignIdFromList\(durable\)/);
+  });
 });
 
 describe("useProjectFiveStageWorkflow operation running", () => {

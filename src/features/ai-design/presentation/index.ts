@@ -7,6 +7,7 @@ export {
   selectRedesignConceptServerFn,
   runScopeAnalysisServerFn,
 } from "./serverFns";
+export { listRedesignConceptsForClient } from "./listRedesignConceptsForClient";
 export {
   redesignProvider,
   mockRedesignProvider,

@@ -105,7 +105,11 @@ test("IA-5-R4A redesign UI wires generate+select through sealed server authority
   const page = read("src/routes/_authed/projects.$id.redesign.tsx");
   assert.match(page, /generateRedesignConceptsServerFn/);
   assert.match(page, /selectRedesignConceptServerFn/);
-  assert.match(page, /listRedesignConceptsServerFn/);
+  assert.match(page, /listRedesignConceptsForClient/);
+  const listClient = read("src/features/ai-design/presentation/listRedesignConceptsForClient.ts");
+  assert.match(listClient, /listRedesignConceptsServerFn/);
+  assert.match(listClient, /listRedesignConceptsNative/);
+  assert.match(listClient, /Capacitor\.isNativePlatform/);
   assert.match(page, /data-testid=["']redesign-generate["']/);
   assert.match(page, /generate concepts from current Analysis/);
   assert.match(page, /Select Redesign/);

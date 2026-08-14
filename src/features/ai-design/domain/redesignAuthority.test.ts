@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   analysisIdentityFromPhotoIds,
+  assertRedesignConceptList,
   conceptToPayload,
   parseRedesignPayload,
   payloadToConcept,
+  rowToDurableRedesignConcept,
+  selectedRedesignIdFromList,
 } from "./redesignAuthority";
 import type { RedesignConcept } from "./types";
 
@@ -52,6 +55,34 @@ describe("IA-4 redesignAuthority", () => {
         isSelected: true,
       }),
     ).toBeNull();
+  });
+
+  it("column is_selected wins over JSON isSelected when mapping a row", () => {
+    const concept = rowToDurableRedesignConcept({
+      id: "c1",
+      style: "Modern",
+      title: "t",
+      description: JSON.stringify({
+        tagline: "t",
+        palette: [],
+        flooring: "f",
+        lighting: "l",
+        furniture: "u",
+        afterGradient: "g",
+        analysisIdentity: "p1",
+        isSelected: true,
+      }),
+      image_url: null,
+      analysis_identity: "p1",
+      is_selected: false,
+    });
+    expect(concept?.isSelected).toBe(false);
+    expect(concept?.analysisIdentity).toBe("p1");
+  });
+
+  it("assertRedesignConceptList rejects #151 non-array payloads", () => {
+    expect(() => assertRedesignConceptList({ data: [] })).toThrow(/not an array/);
+    expect(selectedRedesignIdFromList(assertRedesignConceptList([]))).toBeNull();
   });
 
   it("valid payload with isSelected true still parseable for presentation", () => {

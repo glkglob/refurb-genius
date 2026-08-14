@@ -9,7 +9,11 @@ import {
   usePhotos,
   type RoomAnalysis,
 } from "@/features/ai-upload";
-import { listRedesignConceptsServerFn, type DurableRedesignConcept } from "@/features/ai-design";
+import {
+  listRedesignConceptsForClient,
+  selectedRedesignIdFromList,
+  type DurableRedesignConcept,
+} from "@/features/ai-design";
 import { getLatestScopeAuthorityHeader } from "@/features/ai-design/infrastructure";
 import {
   getLatestProjectEstimate,
@@ -25,6 +29,7 @@ import {
   type ProjectNextAction,
   type ProjectWorkflowState,
 } from "../../domain";
+import { logger } from "@/lib/logger";
 import { useProjectWorkflowOperationFlags } from "./useProjectWorkflowOperationFlags";
 
 export type ProjectFiveStageWorkflowResult = {
@@ -68,14 +73,21 @@ export function useProjectFiveStageWorkflow(projectId: string): ProjectFiveStage
     setLoading(true);
     try {
       const cached = getPhotoAnalysis(projectId);
-      const [persisted, durable, scope, snap] = await Promise.all([
+      const [persisted, durableSettled, scope, snap] = await Promise.all([
         loadPhotoAnalysis(projectId).catch(() => [] as RoomAnalysis[]),
-        listRedesignConceptsServerFn({ data: { projectId } }).catch(
-          () => [] as DurableRedesignConcept[],
+        listRedesignConceptsForClient(projectId).then(
+          (value) => ({ ok: true as const, value }),
+          (error: unknown) => ({ ok: false as const, error }),
         ),
         getLatestScopeAuthorityHeader(projectId).catch(() => null),
         getLatestExportSnapshot(projectId).catch(() => null),
       ]);
+      if (!durableSettled.ok) {
+        logger.error("[five-stage] redesign concepts load failed", {
+          message: durableSettled.error instanceof Error ? durableSettled.error.message : "unknown",
+        });
+      }
+      const durable = durableSettled.ok ? durableSettled.value : [];
       const preferred =
         cached && cached.length > 0 ? cached : persisted && persisted.length > 0 ? persisted : [];
       const analysisIdentity = [...preferred]
@@ -83,7 +95,7 @@ export function useProjectFiveStageWorkflow(projectId: string): ProjectFiveStage
         .filter((id): id is string => Boolean(id))
         .sort()
         .join("\u0001");
-      const selectedId = (durable ?? []).find((c) => c.isSelected)?.id ?? null;
+      const selectedId = selectedRedesignIdFromList(durable);
       // IA-5-R2: only pass Scope id when it matches current Analysis + selected Redesign.
       const currentScopeId =
         scope &&
@@ -94,7 +106,7 @@ export function useProjectFiveStageWorkflow(projectId: string): ProjectFiveStage
           : null;
       const est = await getLatestProjectEstimate(projectId, currentScopeId).catch(() => null);
       setAnalyses(preferred);
-      setCandidates(durable ?? []);
+      setCandidates(durable);
       setScopeHeader(scope);
       setEstimate(est);
       setExportSnap(snap);
@@ -127,10 +139,7 @@ export function useProjectFiveStageWorkflow(projectId: string): ProjectFiveStage
     [analyses],
   );
 
-  const selectedRedesignId = useMemo(
-    () => candidates.find((c) => c.isSelected)?.id ?? null,
-    [candidates],
-  );
+  const selectedRedesignId = useMemo(() => selectedRedesignIdFromList(candidates), [candidates]);
 
   const workflow = useMemo(() => {
     // Loading evidence ≠ operation running. Keep workflow null while hydrating so

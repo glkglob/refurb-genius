@@ -23,7 +23,7 @@ import {
 } from "@/features/ai-upload";
 import {
   generateRedesignConceptsServerFn,
-  listRedesignConceptsServerFn,
+  listRedesignConceptsForClient,
   selectRedesignConceptServerFn,
   type DurableRedesignConcept,
 } from "@/features/ai-design";
@@ -126,14 +126,12 @@ function RedesignPage() {
       const cached = getPhotoAnalysis(id);
       const [persisted, durable] = await Promise.all([
         loadPhotoAnalysis(id).catch(() => [] as RoomAnalysis[]),
-        listRedesignConceptsServerFn({ data: { projectId: id } }).catch(
-          () => [] as DurableRedesignConcept[],
-        ),
+        listRedesignConceptsForClient(id),
       ]);
       const preferred =
         cached && cached.length > 0 ? cached : persisted && persisted.length > 0 ? persisted : [];
       setAnalyses(preferred);
-      setCandidates(durable ?? []);
+      setCandidates(durable);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load Redesign.");
     } finally {
@@ -173,8 +171,8 @@ function RedesignPage() {
       toast.error(msg);
       // Preserve prior selection by reloading durable rows
       try {
-        const durable = await listRedesignConceptsServerFn({ data: { projectId: id } });
-        setCandidates(durable ?? []);
+        const durable = await listRedesignConceptsForClient(id);
+        setCandidates(durable);
       } catch {
         /* keep prior state */
       }

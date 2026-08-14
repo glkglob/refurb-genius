@@ -37,9 +37,13 @@ export {
 } from "./validation";
 export {
   analysisIdentityFromPhotoIds,
+  assertRedesignConceptList,
   conceptToPayload,
   parseRedesignPayload,
   payloadToConcept,
+  rowToDurableRedesignConcept,
+  selectedRedesignIdFromList,
   type DurableRedesignConcept,
+  type RedesignConceptLiveRow,
   type RedesignConceptPayload,
 } from "./redesignAuthority";

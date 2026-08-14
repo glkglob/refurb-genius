@@ -29,6 +29,77 @@ export type DurableRedesignConcept = RedesignConcept & {
   isSelected: boolean;
 };
 
+/** Persistence columns needed to project a durable concept. */
+export type RedesignConceptLiveRow = {
+  id: string;
+  style: string | null;
+  title: string | null;
+  description: string | null;
+  image_url: string | null;
+  analysis_identity?: string | null;
+  is_selected?: boolean | null;
+};
+
+function safeJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Canonical row → durable concept mapper.
+ * Authority fields come from columns, never from JSON isSelected.
+ */
+export function rowToDurableRedesignConcept(
+  row: RedesignConceptLiveRow,
+): DurableRedesignConcept | null {
+  const analysisIdentity = typeof row.analysis_identity === "string" ? row.analysis_identity : "";
+  const isSelected = Boolean(row.is_selected);
+
+  const fromJson = row.description ? parseRedesignPayload(safeJson(row.description)) : null;
+  if (fromJson) {
+    const concept = payloadToConcept(row.style || "Modern", fromJson, row.id);
+    return {
+      ...concept,
+      analysisIdentity,
+      isSelected,
+    };
+  }
+
+  if (!row.style && !row.title && !analysisIdentity && !isSelected) return null;
+
+  return {
+    id: row.id,
+    style: (row.style || "Modern") as DurableRedesignConcept["style"],
+    tagline: row.title || row.style || "Concept",
+    palette: [],
+    flooring: "",
+    lighting: "",
+    furniture:
+      typeof row.description === "string" && !row.description.startsWith("{")
+        ? row.description
+        : "",
+    afterGradient: "linear-gradient(135deg, #F5F5F2 0%, #E4DED2 100%)",
+    ...(row.image_url ? { afterImageUrl: row.image_url } : {}),
+    analysisIdentity,
+    isSelected,
+  };
+}
+
+/** Fail closed when a list read is not an array (native serverFn HTML/Response case). */
+export function assertRedesignConceptList(value: unknown): DurableRedesignConcept[] {
+  if (!Array.isArray(value)) {
+    throw new Error("Redesign concepts response was not an array");
+  }
+  return value as DurableRedesignConcept[];
+}
+
+export function selectedRedesignIdFromList(concepts: DurableRedesignConcept[]): string | null {
+  return concepts.find((c) => c.isSelected)?.id ?? null;
+}
+
 export function conceptToPayload(
   concept: RedesignConcept,
   analysisIdentity: string,

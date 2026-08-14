@@ -11,65 +11,13 @@ import "@tanstack/react-start/server-only";
 
 import {
   conceptToPayload,
-  parseRedesignPayload,
-  payloadToConcept,
+  rowToDurableRedesignConcept,
   type DurableRedesignConcept,
+  type RedesignConceptLiveRow,
 } from "../../domain/redesignAuthority";
 import type { RedesignConcept } from "../../domain";
 
-type LiveRow = {
-  id: string;
-  style: string | null;
-  title: string | null;
-  description: string | null;
-  image_url: string | null;
-  analysis_identity?: string | null;
-  is_selected?: boolean | null;
-};
-
-function rowToConcept(row: LiveRow): DurableRedesignConcept | null {
-  // Canonical authority: columns (not JSON isSelected).
-  const analysisIdentity = typeof row.analysis_identity === "string" ? row.analysis_identity : "";
-  const isSelected = Boolean(row.is_selected);
-
-  const fromJson = row.description ? parseRedesignPayload(safeJson(row.description)) : null;
-  if (fromJson) {
-    const concept = payloadToConcept(row.style || "Modern", fromJson, row.id);
-    return {
-      ...concept,
-      // Columns override JSON for authority fields.
-      analysisIdentity,
-      isSelected,
-    };
-  }
-
-  if (!row.style && !row.title && !analysisIdentity && !isSelected) return null;
-
-  return {
-    id: row.id,
-    style: (row.style || "Modern") as DurableRedesignConcept["style"],
-    tagline: row.title || row.style || "Concept",
-    palette: [],
-    flooring: "",
-    lighting: "",
-    furniture:
-      typeof row.description === "string" && !row.description.startsWith("{")
-        ? row.description
-        : "",
-    afterGradient: "linear-gradient(135deg, #F5F5F2 0%, #E4DED2 100%)",
-    ...(row.image_url ? { afterImageUrl: row.image_url } : {}),
-    analysisIdentity,
-    isSelected,
-  };
-}
-
-function safeJson(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-}
+type LiveRow = RedesignConceptLiveRow;
 
 function conceptToPresentationFields(
   concept: RedesignConcept,
@@ -110,7 +58,7 @@ export async function listDurableRedesignConcepts(
 
   const out: DurableRedesignConcept[] = [];
   for (const row of (data ?? []) as LiveRow[]) {
-    const c = rowToConcept(row);
+    const c = rowToDurableRedesignConcept(row);
     if (c) out.push(c);
   }
   return out;
@@ -168,7 +116,7 @@ export async function replaceRedesignCandidates(input: {
   if (rows.length > 0) {
     const out: DurableRedesignConcept[] = [];
     for (const row of rows) {
-      const c = rowToConcept(row);
+      const c = rowToDurableRedesignConcept(row);
       if (c) out.push(c);
     }
     if (out.length > 0) return out;
@@ -213,7 +161,7 @@ export async function selectDurableRedesignConcept(input: {
     throw new Error("Selection did not persist");
   }
 
-  const concept = rowToConcept(row);
+  const concept = rowToDurableRedesignConcept(row);
   if (!concept?.isSelected) {
     // Re-list for full presentation payload after RPC.
     const all = await listDurableRedesignConcepts(input.projectId);
