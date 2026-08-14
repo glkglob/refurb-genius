@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const requireMobileBearer = vi.fn();
+const handleMobileRedesignGenerate = vi.fn();
 
 vi.mock("./mobile-bearer.server", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./mobile-bearer.server")>();
@@ -10,11 +11,16 @@ vi.mock("./mobile-bearer.server", async (importOriginal) => {
   };
 });
 
+vi.mock("@/features/ai-design/presentation/mobileRedesignGenerate.server", () => ({
+  handleMobileRedesignGenerate: (...args: unknown[]) => handleMobileRedesignGenerate(...args),
+}));
+
 import { handleMobileApiRequest, MOBILE_SESSION_PING_PATHNAME } from "./mobile-api.server";
 
 describe("handleMobileApiRequest session ping canary", () => {
   beforeEach(() => {
     requireMobileBearer.mockReset();
+    handleMobileRedesignGenerate.mockReset();
   });
 
   it("OPTIONS is unauthenticated preflight", async () => {
@@ -87,6 +93,40 @@ describe("handleMobileApiRequest session ping canary", () => {
       }),
     );
     expect(res.status).toBe(404);
+    expect(requireMobileBearer).not.toHaveBeenCalled();
+  });
+
+  it("POST generate is dispatched to the Bearer generate handler", async () => {
+    handleMobileRedesignGenerate.mockResolvedValue(
+      new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const res = await handleMobileApiRequest(
+      new Request("https://www.refurbgenius.info/api/mobile/v1/redesign/generate", {
+        method: "POST",
+        headers: {
+          Origin: "capacitor://localhost",
+          Authorization: "Bearer synthetic",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ projectId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" }),
+      }),
+    );
+    expect(handleMobileRedesignGenerate).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("capacitor://localhost");
+  });
+
+  it("GET on generate is 405 and does not authenticate", async () => {
+    const res = await handleMobileApiRequest(
+      new Request("https://www.refurbgenius.info/api/mobile/v1/redesign/generate", {
+        method: "GET",
+        headers: { Origin: "capacitor://localhost" },
+      }),
+    );
+    expect(res.status).toBe(405);
     expect(requireMobileBearer).not.toHaveBeenCalled();
   });
 });

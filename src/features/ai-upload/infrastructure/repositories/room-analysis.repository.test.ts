@@ -1,9 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { ProjectPhoto } from "@/lib/photos-types";
 
-const { fetchProjectPhotosList, getUser } = vi.hoisted(() => ({
-  fetchProjectPhotosList: vi.fn(),
-  getUser: vi.fn(() => null as { id: string } | null),
+const { fetchProjectPhotosList, getUser, isNativePlatform, listRoomAnalysesNative } = vi.hoisted(
+  () => ({
+    fetchProjectPhotosList: vi.fn(),
+    getUser: vi.fn(() => null as { id: string } | null),
+    isNativePlatform: vi.fn(() => false),
+    listRoomAnalysesNative: vi.fn(),
+  }),
+);
+
+vi.mock("@capacitor/core", () => ({
+  Capacitor: {
+    isNativePlatform: () => isNativePlatform(),
+  },
+}));
+
+vi.mock("@/platform/supabase/native-room-analyses", () => ({
+  listRoomAnalysesNative: (...args: unknown[]) => listRoomAnalysesNative(...args),
 }));
 
 vi.mock("@/lib/queries/projects", () => ({
@@ -83,6 +97,11 @@ describe("jsonToStringArray (canonical Json → domain string[])", () => {
 });
 
 describe("row mapping keeps Json behind repository boundary", () => {
+  beforeEach(() => {
+    isNativePlatform.mockReturnValue(false);
+    listRoomAnalysesNative.mockReset();
+  });
+
   it("maps multiple room_analyses rows including jsonb list fields", async () => {
     // Fixture rows use migration-shaped jsonb values. Cast through unknown because
     // the tracked generated types still declare these columns as string[] until B6.
@@ -147,6 +166,58 @@ describe("row mapping keeps Json behind repository boundary", () => {
     // Domain objects expose string[], not raw Json bags
     expect(Array.isArray(first.visible_issues)).toBe(true);
     expect(first.visible_issues.every((x) => typeof x === "string")).toBe(true);
+    expect(listRoomAnalysesNative).not.toHaveBeenCalled();
+  });
+
+  it("native load uses listRoomAnalysesNative and does not call browser supabase", async () => {
+    isNativePlatform.mockReturnValue(true);
+    listRoomAnalysesNative.mockResolvedValue([
+      {
+        id: "r-n",
+        project_id: "proj-n",
+        user_id: "u1",
+        photo_id: "ph1",
+        photo_url: "https://u/n",
+        photo_name: "n.jpg",
+        room_type: "Kitchen",
+        condition_level: "Average",
+        refurbishment_level: "Light",
+        visible_issues: ["damp"],
+        recommended_works: ["paint"],
+        ai_summary: "n",
+        confidence_score: 0.7,
+        created_at: "2026-01-01T00:00:00Z",
+        source: "fallback",
+      },
+    ]);
+
+    const { supabase } = await import("@/platform/supabase/browser");
+    const from = vi.mocked(supabase.from);
+    from.mockClear();
+
+    const repo = new SupabaseRoomAnalysisRepository();
+    const loaded = await repo.load("proj-n");
+
+    expect(listRoomAnalysesNative).toHaveBeenCalledWith("proj-n");
+    expect(from).not.toHaveBeenCalled();
+    expect(loaded).toHaveLength(1);
+    expect(loaded![0]?.source).toBe("fallback");
+    expect(loaded![0]?.photo_id).toBe("ph1");
+    expect(loaded![0]?.visible_issues).toEqual(["damp"]);
+  });
+
+  it("native load returns undefined for empty rows", async () => {
+    isNativePlatform.mockReturnValue(true);
+    listRoomAnalysesNative.mockResolvedValue([]);
+    const repo = new SupabaseRoomAnalysisRepository();
+    await expect(repo.load("proj-empty")).resolves.toBeUndefined();
+  });
+
+  it("native load propagates transport errors", async () => {
+    isNativePlatform.mockReturnValue(true);
+    listRoomAnalysesNative.mockRejectedValue(new Error("not authenticated"));
+    const repo = new SupabaseRoomAnalysisRepository();
+    await expect(repo.load("proj-err")).rejects.toThrow(/not authenticated/);
   });
 });
 

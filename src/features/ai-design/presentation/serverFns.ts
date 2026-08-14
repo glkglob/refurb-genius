@@ -32,43 +32,17 @@ export const generateRedesignConceptsServerFn = createServerFn({ method: "POST" 
   .inputValidator((input: unknown) => runRedesignInputSchema.parse(input))
   .handler(async ({ data }) => {
     const user = await requireServerAuth();
-    const key = rateLimitKeyForUser(user.id, "ai-redesign");
-    const rl = checkRateLimit(key);
-    if (!rl.allowed) {
-      throw new Error(`Rate limit exceeded. Try again in ${rl.retryAfter || 60}s.`);
-    }
-
     // Server-side authority only. Client `analyses` are deliberately not used.
     void data.analyses;
-    const { resolveCurrentProjectAnalysisAuthority } =
-      await import("../infrastructure/resolveProjectAnalysisAuthority.server");
-    const analyses = await resolveCurrentProjectAnalysisAuthority({
+    const { createSupabaseServerClient } = await import("@/serverFns/auth.server");
+    const supabase = await createSupabaseServerClient();
+    const { runAuthenticatedRedesignGeneration } =
+      await import("../infrastructure/runAuthenticatedRedesignGeneration.server");
+    return runAuthenticatedRedesignGeneration({
       userId: user.id,
-      projectId: data.projectId,
-    });
-
-    const { analysisIdentityFromPhotoIds } = await import("../domain/redesignAuthority");
-    const analysisIdentity = analysisIdentityFromPhotoIds(analyses.map((a) => a.photo_id));
-    if (!analysisIdentity) {
-      throw new Error("Cannot generate Redesign without durable Analysis photo identity.");
-    }
-
-    const { runSecureRedesignGeneration } =
-      await import("../infrastructure/adapters/ai-redesign.adapter.server");
-    const concepts = await runSecureRedesignGeneration({
+      supabase: supabase as never,
       projectId: data.projectId,
       styles: data.styles,
-      analyses,
-    });
-
-    // IA-4: persist candidates (selection unchanged when analysis identity matches).
-    const { replaceRedesignCandidates } =
-      await import("../infrastructure/repositories/redesign-concepts.repository.server");
-    return replaceRedesignCandidates({
-      projectId: data.projectId,
-      userId: user.id,
-      analysisIdentity,
-      concepts,
     });
   });
 

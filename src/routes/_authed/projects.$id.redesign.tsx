@@ -22,9 +22,9 @@ import {
   type RoomAnalysis,
 } from "@/features/ai-upload";
 import {
-  generateRedesignConceptsServerFn,
-  listRedesignConceptsServerFn,
-  selectRedesignConceptServerFn,
+  generateRedesignConceptsForClient,
+  listRedesignConceptsForClient,
+  selectRedesignConceptForClient,
   type DurableRedesignConcept,
 } from "@/features/ai-design";
 import { DISCLAIMER } from "@/core/reports";
@@ -126,14 +126,12 @@ function RedesignPage() {
       const cached = getPhotoAnalysis(id);
       const [persisted, durable] = await Promise.all([
         loadPhotoAnalysis(id).catch(() => [] as RoomAnalysis[]),
-        listRedesignConceptsServerFn({ data: { projectId: id } }).catch(
-          () => [] as DurableRedesignConcept[],
-        ),
+        listRedesignConceptsForClient(id),
       ]);
       const preferred =
         cached && cached.length > 0 ? cached : persisted && persisted.length > 0 ? persisted : [];
       setAnalyses(preferred);
-      setCandidates(durable ?? []);
+      setCandidates(durable);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load Redesign.");
     } finally {
@@ -163,7 +161,7 @@ function RedesignPage() {
     try {
       // IA-6-R1: publish cross-route running for Dashboard/Overview view_stage_progress.
       const next = await withProjectWorkflowOperationRunning(id, "redesign", () =>
-        generateRedesignConceptsServerFn({ data: { projectId: id } }),
+        generateRedesignConceptsForClient({ projectId: id }),
       );
       setCandidates(next);
       toast.success("Redesign concepts ready — select one to continue.");
@@ -173,8 +171,8 @@ function RedesignPage() {
       toast.error(msg);
       // Preserve prior selection by reloading durable rows
       try {
-        const durable = await listRedesignConceptsServerFn({ data: { projectId: id } });
-        setCandidates(durable ?? []);
+        const durable = await listRedesignConceptsForClient(id);
+        setCandidates(durable);
       } catch {
         /* keep prior state */
       }
@@ -186,8 +184,9 @@ function RedesignPage() {
   const handleSelect = async (conceptId: string) => {
     setSelectingId(conceptId);
     try {
-      const selected = await selectRedesignConceptServerFn({
-        data: { projectId: id, conceptId },
+      const selected = await selectRedesignConceptForClient({
+        projectId: id,
+        conceptId,
       });
       setCandidates((prev) =>
         prev.map((c) => ({

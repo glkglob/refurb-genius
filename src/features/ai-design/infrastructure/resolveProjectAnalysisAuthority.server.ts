@@ -20,6 +20,13 @@ export type ResolveCurrentProjectAnalysisAuthorityInput = {
   projectId: string;
 };
 
+type AnalysisAuthorityClient = {
+  rpc: (
+    fn: string,
+    args?: Record<string, unknown>,
+  ) => PromiseLike<{ data: unknown; error: { message?: string } | null }>;
+};
+
 const VALID_SOURCES: ReadonlySet<string> = new Set<AnalysisSource>([
   "ai",
   "mock",
@@ -63,15 +70,13 @@ export function mapRoomAnalysisRow(r: Tables<"room_analyses">): RoomAnalysis {
  * Load a serialized current authority view via database RPC.
  * Does not run vision, mutate data, or use client cache/analyses.
  */
-export async function resolveCurrentProjectAnalysisAuthority(
+export async function resolveCurrentProjectAnalysisAuthorityWithClient(
+  supabase: AnalysisAuthorityClient,
   input: ResolveCurrentProjectAnalysisAuthorityInput,
 ): Promise<RoomAnalysis[]> {
   const { projectId } = input;
   // userId is enforced inside the RPC via auth.uid(); retained for call-site clarity.
   void input.userId;
-
-  const { createSupabaseServerClient } = await import("@/serverFns/auth.server");
-  const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase.rpc("get_current_project_analysis_authority", {
     p_project_id: projectId,
@@ -90,4 +95,15 @@ export async function resolveCurrentProjectAnalysisAuthority(
   }
 
   return (data as Tables<"room_analyses">[]).map(mapRoomAnalysisRow);
+}
+
+export async function resolveCurrentProjectAnalysisAuthority(
+  input: ResolveCurrentProjectAnalysisAuthorityInput,
+): Promise<RoomAnalysis[]> {
+  const { createSupabaseServerClient } = await import("@/serverFns/auth.server");
+  const supabase = await createSupabaseServerClient();
+  return resolveCurrentProjectAnalysisAuthorityWithClient(
+    supabase as unknown as AnalysisAuthorityClient,
+    input,
+  );
 }

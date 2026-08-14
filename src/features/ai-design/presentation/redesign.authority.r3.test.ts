@@ -199,8 +199,16 @@ describe("redesign provider client contract (R3)", () => {
       join(process.cwd(), "src/features/ai-design/presentation/serverFns.ts"),
       "utf8",
     );
-    expect(src).toContain("resolveProjectAnalysisAuthority.server");
-    expect(src).toContain("ai-redesign.adapter.server");
+    expect(src).toContain("runAuthenticatedRedesignGeneration");
     expect(src).toContain("void data.analyses");
+    const generate = readFileSync(
+      join(
+        process.cwd(),
+        "src/features/ai-design/infrastructure/runAuthenticatedRedesignGeneration.server.ts",
+      ),
+      "utf8",
+    );
+    expect(generate).toContain("resolveProjectAnalysisAuthority.server");
+    expect(generate).toContain("ai-redesign.adapter.server");
   });
 });

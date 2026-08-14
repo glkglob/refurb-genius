@@ -4,6 +4,7 @@
  * Durable authority is the transactional RPC replace_project_room_analyses.
  * In-memory cache is updated only after successful durable replacement.
  */
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/platform/supabase/browser";
 import { auth } from "@/lib/auth";
 import { logger } from "@/lib/logger";
@@ -67,6 +68,13 @@ export function rowToAnalysis(r: Tables<"room_analyses">): RoomAnalysis {
 }
 
 async function loadFromSupabase(projectId: string): Promise<RoomAnalysis[] | null> {
+  if (Capacitor.isNativePlatform()) {
+    const { listRoomAnalysesNative } = await import("@/platform/supabase/native-room-analyses");
+    const rows = await listRoomAnalysesNative(projectId);
+    if (!rows.length) return null;
+    return rows.map(rowToAnalysis);
+  }
+
   try {
     const { data, error } = await supabase
       .from("room_analyses")

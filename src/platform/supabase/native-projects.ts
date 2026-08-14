@@ -94,6 +94,27 @@ export async function listProjectsNative(): Promise<NativeProjectRow[]> {
   return listProjectsWithClient(getNativeSupabase());
 }
 
+/**
+ * Read one project for the authenticated native session (RLS filters by auth.uid()).
+ */
+export async function getProjectWithClient(
+  supabase: SupabaseClient<Database>,
+  id: string,
+): Promise<NativeProjectRow | null> {
+  const { data, error } = await supabase.from("projects").select("*").eq("id", id).maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+  return data ?? null;
+}
+
+/** Production entry: detail via native Keychain client. */
+export async function getProjectNative(id: string): Promise<NativeProjectRow | null> {
+  const { getNativeSupabase } = await import("./native");
+  return getProjectWithClient(getNativeSupabase(), id);
+}
+
 /** Production entry: create via native Keychain client + RLS. */
 export async function createProjectNative(
   input: NativeProjectInsertInput,

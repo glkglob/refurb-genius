@@ -18,6 +18,24 @@ const SERVER = readFileSync(
   "utf8",
 );
 
+const GENERATE = readFileSync(
+  join(
+    process.cwd(),
+    "src/features/ai-design/infrastructure/runAuthenticatedRedesignGeneration.server.ts",
+  ),
+  "utf8",
+);
+
+const GENERATE_CLIENT = readFileSync(
+  join(process.cwd(), "src/features/ai-design/presentation/generateRedesignConceptsForClient.ts"),
+  "utf8",
+);
+
+const SELECT_CLIENT = readFileSync(
+  join(process.cwd(), "src/features/ai-design/presentation/selectRedesignConceptForClient.ts"),
+  "utf8",
+);
+
 const REPO = readFileSync(
   join(
     process.cwd(),
@@ -27,11 +45,13 @@ const REPO = readFileSync(
 );
 
 describe("IA-5-R4A Redesign product generation and selection contract", () => {
-  it("imports canonical generation, list, and selection serverFns", () => {
-    expect(SRC).toMatch(/generateRedesignConceptsServerFn/);
-    expect(SRC).toMatch(/listRedesignConceptsServerFn/);
-    expect(SRC).toMatch(/selectRedesignConceptServerFn/);
+  it("imports canonical generation, list, and selection client boundaries", () => {
+    expect(SRC).toMatch(/generateRedesignConceptsForClient/);
+    expect(SRC).toMatch(/listRedesignConceptsForClient/);
+    expect(SRC).toMatch(/selectRedesignConceptForClient/);
     expect(SRC).toMatch(/from ["']@\/features\/ai-design["']/);
+    expect(SRC).not.toMatch(/generateRedesignConceptsServerFn/);
+    expect(SRC).not.toMatch(/selectRedesignConceptServerFn/);
   });
 
   it("generate CTA is discoverable as Create Redesign and Generate concepts", () => {
@@ -44,12 +64,12 @@ describe("IA-5-R4A Redesign product generation and selection contract", () => {
     expect(SRC).toMatch(/handleGenerate/);
   });
 
-  it("handleGenerate requires current Analysis and calls generation serverFn", () => {
+  it("handleGenerate requires current Analysis and calls the platform generate boundary", () => {
     expect(SRC).toMatch(/isProductionValidAnalysisSet/);
     expect(SRC).toMatch(/Current Analysis is required before generating Redesign/);
-    expect(SRC).toMatch(
-      /generateRedesignConceptsServerFn\(\{\s*data:\s*\{\s*projectId:\s*id\s*\}\s*\}\)/,
-    );
+    expect(SRC).toMatch(/generateRedesignConceptsForClient\(\{\s*projectId:\s*id\s*\}\)/);
+    expect(GENERATE_CLIENT).toMatch(/generateRedesignConceptsServerFn/);
+    expect(GENERATE_CLIENT).toMatch(/generateRedesignConceptsNative/);
   });
 
   it("generation alone does not Complete — select_redesign required", () => {
@@ -61,24 +81,37 @@ describe("IA-5-R4A Redesign product generation and selection contract", () => {
     expect(SRC).toMatch(/redesignCurrencyFromEvidence/);
   });
 
-  it("handleSelect uses canonical selection serverFn only", () => {
-    expect(SRC).toMatch(/selectRedesignConceptServerFn/);
+  it("handleSelect uses the platform selection boundary", () => {
+    expect(SRC).toMatch(/selectRedesignConceptForClient/);
     expect(SRC).toMatch(/projectId:\s*id/);
     expect(SRC).toMatch(/conceptId/);
     expect(SRC).toMatch(/data-testid=["']redesign-candidates["']/);
+    expect(SELECT_CLIENT).toMatch(/selectRedesignConceptServerFn/);
+    expect(SELECT_CLIENT).toMatch(/selectRedesignConceptNative/);
   });
 
   it("reload hydrates candidates from durable list, not mutation-only memory", () => {
-    expect(SRC).toMatch(/listRedesignConceptsServerFn/);
+    expect(SRC).toMatch(/listRedesignConceptsForClient/);
     expect(SRC).toMatch(/setCandidates\(durable/);
     expect(SRC).toMatch(/loadPhotoAnalysis/);
   });
 
-  it("serverFn resolves Analysis authority server-side then persists via replace RPC", () => {
-    expect(SERVER).toMatch(/resolveCurrentProjectAnalysisAuthority/);
-    expect(SERVER).toMatch(/runSecureRedesignGeneration/);
-    expect(SERVER).toMatch(/replaceRedesignCandidates/);
+  it("IA-4 Redesign gate still uses durable photo/Analysis reads (P1)", () => {
+    expect(SRC).toMatch(/usePhotos/);
+    expect(SRC).toMatch(/loadPhotoAnalysis/);
+    expect(SRC).toMatch(/isProductionValidAnalysisSet/);
+    expect(SRC).toMatch(/buildPhotosAnalysisWorkflowState/);
+    expect(SRC).toMatch(/photosAnalysisWorkflow\.analysis\.currency !== ["']current["']/);
+    expect(SRC).toMatch(/Current Analysis is required/);
+  });
+
+  it("server generation resolves Analysis authority then persists via replace RPC", () => {
+    expect(SERVER).toMatch(/runAuthenticatedRedesignGeneration/);
     expect(SERVER).toMatch(/void data\.analyses/);
+    expect(GENERATE).toMatch(/resolveCurrentProjectAnalysisAuthorityWithClient/);
+    expect(GENERATE).toMatch(/runSecureRedesignGeneration/);
+    expect(GENERATE).toMatch(/replaceRedesignCandidatesWithClient/);
+    expect(GENERATE).toMatch(/rateLimitKeyForUser\([^,]+,\s*["']ai-redesign["']\)/);
     expect(REPO).toMatch(/replace_project_redesign_candidates/);
     expect(REPO).toMatch(/select_project_redesign_concept/);
     expect(REPO).not.toMatch(/\.from\("redesign_concepts"\)\.insert/);

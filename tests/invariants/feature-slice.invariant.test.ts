@@ -168,9 +168,16 @@ test("ai-design presentation serverFns validates input and uses dynamic adapter 
   const serverFns = readTrimmed(join(ROOT, "src/features/ai-design/presentation/serverFns.ts"));
   assert.match(serverFns, /\.inputValidator\(/);
   assert.match(serverFns, /requireServerAuth/);
-  assert.match(serverFns, /ai-redesign\.adapter\.server/);
+  assert.match(serverFns, /runAuthenticatedRedesignGeneration\.server/);
   assert.match(serverFns, /ai-scope\.adapter\.server/);
   assert.match(serverFns, /await import\(/);
+  const generate = readTrimmed(
+    join(
+      ROOT,
+      "src/features/ai-design/infrastructure/runAuthenticatedRedesignGeneration.server.ts",
+    ),
+  );
+  assert.match(generate, /ai-redesign\.adapter\.server/);
 });
 
 test("estimate presentation serverFns validates input and uses dynamic adapter import", () => {

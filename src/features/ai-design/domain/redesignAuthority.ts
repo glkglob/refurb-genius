@@ -29,6 +29,113 @@ export type DurableRedesignConcept = RedesignConcept & {
   isSelected: boolean;
 };
 
+/** Persistence columns needed to project a durable concept. */
+export type RedesignConceptLiveRow = {
+  id: string;
+  style: string | null;
+  title: string | null;
+  description: string | null;
+  image_url: string | null;
+  analysis_identity?: string | null;
+  is_selected?: boolean | null;
+};
+
+function safeJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Canonical row → durable concept mapper.
+ * Authority fields come from columns, never from JSON isSelected.
+ */
+export function rowToDurableRedesignConcept(
+  row: RedesignConceptLiveRow,
+): DurableRedesignConcept | null {
+  const analysisIdentity = typeof row.analysis_identity === "string" ? row.analysis_identity : "";
+  const isSelected = Boolean(row.is_selected);
+
+  const fromJson = row.description ? parseRedesignPayload(safeJson(row.description)) : null;
+  if (fromJson) {
+    const concept = payloadToConcept(row.style || "Modern", fromJson, row.id);
+    return {
+      ...concept,
+      analysisIdentity,
+      isSelected,
+    };
+  }
+
+  if (!row.style && !row.title && !analysisIdentity && !isSelected) return null;
+
+  return {
+    id: row.id,
+    style: (row.style || "Modern") as DurableRedesignConcept["style"],
+    tagline: row.title || row.style || "Concept",
+    palette: [],
+    flooring: "",
+    lighting: "",
+    furniture:
+      typeof row.description === "string" && !row.description.startsWith("{")
+        ? row.description
+        : "",
+    afterGradient: "linear-gradient(135deg, #F5F5F2 0%, #E4DED2 100%)",
+    ...(row.image_url ? { afterImageUrl: row.image_url } : {}),
+    analysisIdentity,
+    isSelected,
+  };
+}
+
+/** Fail closed when a list read is not an array (native serverFn HTML/Response case). */
+export function assertRedesignConceptList(value: unknown): DurableRedesignConcept[] {
+  if (!Array.isArray(value)) {
+    throw new Error("Redesign concepts response was not an array");
+  }
+  return value as DurableRedesignConcept[];
+}
+
+/** Fail closed when a selection write does not return a concept object. */
+export function assertDurableRedesignConcept(value: unknown): DurableRedesignConcept {
+  if (!value || typeof value !== "object" || Array.isArray(value) || value instanceof Response) {
+    throw new Error("Redesign selection response was not a concept");
+  }
+  const o = value as Partial<DurableRedesignConcept>;
+  if (typeof o.id !== "string" || typeof o.isSelected !== "boolean") {
+    throw new Error("Redesign selection response was not a concept");
+  }
+  return value as DurableRedesignConcept;
+}
+
+/** Map sealed RPC error text to a stable client-facing Error. */
+export function interpretRedesignPersistenceError(
+  message: string,
+  kind: "select" | "replace",
+): Error {
+  const msg = message ?? "";
+  if (/redesign_requires_analysis_identity/i.test(msg)) {
+    return new Error("Cannot generate Redesign without durable Analysis photo identity.");
+  }
+  if (/redesign_concept_not_found|P0002/i.test(msg)) {
+    return new Error("Redesign concept not found for this project");
+  }
+  if (/project_not_authorised|42501/i.test(msg)) {
+    return new Error("Not authorised for this project");
+  }
+  if (/not_authenticated|28000/i.test(msg)) {
+    return new Error("Not authenticated");
+  }
+  if (kind === "select") {
+    return new Error(msg || "Failed to persist redesign selection");
+  }
+  return new Error(msg || "Failed to persist redesign candidates");
+}
+
+export function selectedRedesignIdFromList(concepts: DurableRedesignConcept[]): string | null {
+  return concepts.find((c) => c.isSelected)?.id ?? null;
+}
+
 export function conceptToPayload(
   concept: RedesignConcept,
   analysisIdentity: string,

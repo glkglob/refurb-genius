@@ -73,6 +73,40 @@ test("IA-3 photos adapter does not invent Scope/Estimate provenance fields", () 
   assert.doesNotMatch(adapter, /redesign_done|estimate_fingerprint|export_fingerprint/);
 });
 
+test("IOS-2C3-I-P1 native Redesign prerequisite reads use Keychain authority", () => {
+  const photos = read("src/platform/supabase/native-photos.ts");
+  assert.match(photos, /getNativeSupabase/);
+  assert.match(photos, /\.from\("photos"\)/);
+  assert.match(photos, /project_id/);
+  assert.doesNotMatch(photos, /userId|p_user_id|auth\.getUser/);
+  assert.doesNotMatch(photos, /import\s+\{[^}]*getNativeSupabase[^}]*\}\s+from/);
+  assert.doesNotMatch(photos, /\.insert\(|\.update\(|\.delete\(|\.rpc\(/);
+
+  const analyses = read("src/platform/supabase/native-room-analyses.ts");
+  assert.match(analyses, /getNativeSupabase/);
+  assert.match(analyses, /\.from\("room_analyses"\)/);
+  assert.match(analyses, /project_id/);
+  assert.doesNotMatch(analyses, /userId|p_user_id|auth\.getUser/);
+  assert.doesNotMatch(analyses, /import\s+\{[^}]*getNativeSupabase[^}]*\}\s+from/);
+  assert.doesNotMatch(analyses, /\.insert\(|\.update\(|\.delete\(|\.rpc\(/);
+
+  const factory = read("src/lib/queries/projects.ts");
+  assert.match(factory, /listPhotosNative/);
+  assert.match(factory, /import\(["']@\/platform\/supabase\/native-photos["']\)/);
+  assert.doesNotMatch(factory, /import\s+[^;]*from\s+["']@\/platform\/supabase\/native-photos["']/);
+
+  const repo = read(
+    "src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts",
+  );
+  assert.match(repo, /listRoomAnalysesNative/);
+  assert.match(repo, /import\(["']@\/platform\/supabase\/native-room-analyses["']\)/);
+  assert.doesNotMatch(
+    repo,
+    /import\s+[^;]*from\s+["']@\/platform\/supabase\/native-room-analyses["']/,
+  );
+  assert.match(repo, /replace_project_room_analyses/);
+});
+
 test("IA-3 replace_project_room_analyses remains the analysis publish authority", () => {
   const repo = read(
     "src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts",

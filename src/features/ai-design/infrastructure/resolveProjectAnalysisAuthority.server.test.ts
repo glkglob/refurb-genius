@@ -21,6 +21,7 @@ vi.mock("@/serverFns/auth.server", () => ({
 import {
   mapRoomAnalysisRow,
   resolveCurrentProjectAnalysisAuthority,
+  resolveCurrentProjectAnalysisAuthorityWithClient,
 } from "./resolveProjectAnalysisAuthority.server";
 
 function analysisRow(photoId: string, overrides: Partial<Tables<"room_analyses">> = {}) {
@@ -92,6 +93,22 @@ describe("resolveCurrentProjectAnalysisAuthority (R4 RPC)", () => {
     await expect(
       resolveCurrentProjectAnalysisAuthority({ userId, projectId }),
     ).rejects.toMatchObject({ code: PHOTO_ANALYSIS_STALE_REQUIRES_REANALYSIS });
+  });
+
+  it("WithClient uses the injected token client, not a cookie factory", async () => {
+    const injected = vi.fn(async () => ({
+      data: [analysisRow(p1)],
+      error: null,
+    }));
+    const out = await resolveCurrentProjectAnalysisAuthorityWithClient(
+      { rpc: injected },
+      { userId, projectId },
+    );
+    expect(injected).toHaveBeenCalledWith("get_current_project_analysis_authority", {
+      p_project_id: projectId,
+    });
+    expect(createSupabaseServerClient).not.toHaveBeenCalled();
+    expect(out[0]?.photo_id).toBe(p1);
   });
 
   it("mapRoomAnalysisRow preserves durable photo_id", () => {
