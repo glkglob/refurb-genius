@@ -138,9 +138,17 @@ export const estimateQueryOptions = (projectId: string) =>
  * Canonical authenticated project-photo list fetch (C5-1).
  * Single network authority for product-UI photo lists (usePhotos, route prefetch)
  * and AI source-photo catalog / mock room-analysis reads (C5-2).
+ * Web: browser pip-auth Supabase client.
+ * Native: Keychain getNativeSupabase via listPhotosNative (dynamic import).
  * Writes: src/lib/photos-write.ts. photoStore retired (C5-4).
  */
 export async function fetchProjectPhotosList(projectId: string): Promise<ProjectPhoto[]> {
+  if (Capacitor.isNativePlatform()) {
+    const { listPhotosNative } = await import("@/platform/supabase/native-photos");
+    const rows = await listPhotosNative(projectId);
+    return rows.map(rowToPhoto);
+  }
+
   const { data, error } = await supabase
     .from("photos")
     .select("*")

@@ -10,14 +10,21 @@ const PROJECTS_SRC = readFileSync(
   "utf8",
 );
 
-const { fromMock, loggerError, isNativePlatform, listProjectsNative, getProjectNative } =
-  vi.hoisted(() => ({
-    fromMock: vi.fn(),
-    loggerError: vi.fn(),
-    isNativePlatform: vi.fn(() => false),
-    listProjectsNative: vi.fn(),
-    getProjectNative: vi.fn(),
-  }));
+const {
+  fromMock,
+  loggerError,
+  isNativePlatform,
+  listProjectsNative,
+  getProjectNative,
+  listPhotosNative,
+} = vi.hoisted(() => ({
+  fromMock: vi.fn(),
+  loggerError: vi.fn(),
+  isNativePlatform: vi.fn(() => false),
+  listProjectsNative: vi.fn(),
+  getProjectNative: vi.fn(),
+  listPhotosNative: vi.fn(),
+}));
 
 vi.mock("@capacitor/core", () => ({
   Capacitor: {
@@ -34,6 +41,10 @@ vi.mock("@/platform/supabase/browser", () => ({
 vi.mock("@/platform/supabase/native-projects", () => ({
   listProjectsNative: (...args: unknown[]) => listProjectsNative(...args),
   getProjectNative: (...args: unknown[]) => getProjectNative(...args),
+}));
+
+vi.mock("@/platform/supabase/native-photos", () => ({
+  listPhotosNative: (...args: unknown[]) => listPhotosNative(...args),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -232,6 +243,15 @@ describe("projects query factory native-graph containment", () => {
     expect(PROJECTS_SRC).toMatch(/listProjectsNative/);
     expect(PROJECTS_SRC).toMatch(/getProjectNative/);
     expect(PROJECTS_SRC).toMatch(/rowToProject/);
+  });
+
+  it("dynamically imports native-photos on the native photo-list path", () => {
+    expect(PROJECTS_SRC).toMatch(/import\(["']@\/platform\/supabase\/native-photos["']\)/);
+    expect(PROJECTS_SRC).toMatch(/listPhotosNative/);
+    expect(PROJECTS_SRC).toMatch(/rowToPhoto/);
+    expect(PROJECTS_SRC).not.toMatch(
+      /import\s+[^;]*from\s+["']@\/platform\/supabase\/native-photos["']/,
+    );
   });
 
   it("keeps projectsListQueryOptions on fetchProjectsList and projectKeys.all", () => {
@@ -449,6 +469,8 @@ describe("fetchProjectPhotosList (C5-1 canonical product-photo list fetch)", () 
   beforeEach(() => {
     fromMock.mockReset();
     loggerError.mockReset();
+    isNativePlatform.mockReturnValue(false);
+    listPhotosNative.mockReset();
   });
 
   function mockPhotosChain(result: { data: unknown; error: { message: string } | null }) {
@@ -504,12 +526,53 @@ describe("fetchProjectPhotosList (C5-1 canonical product-photo list fetch)", () 
       expect.objectContaining({ projectId: "proj-1", error: "boom" }),
     );
   });
+
+  it("web does not call listPhotosNative", async () => {
+    isNativePlatform.mockReturnValue(false);
+    mockPhotosChain({ data: [], error: null });
+    await fetchProjectPhotosList("proj-1");
+    expect(listPhotosNative).not.toHaveBeenCalled();
+    expect(fromMock).toHaveBeenCalledWith("photos");
+  });
+
+  it("native uses listPhotosNative and the same canonical mapper", async () => {
+    isNativePlatform.mockReturnValue(true);
+    listPhotosNative.mockResolvedValue([
+      {
+        id: "ph-n",
+        project_id: "proj-n",
+        url: "https://example.com/n.jpg",
+        name: "n.jpg",
+        size: 20,
+        uploaded_at: "2026-02-01T00:00:00.000Z",
+        storage_path: "u/proj-n/n.jpg",
+      },
+    ]);
+
+    const out = await fetchProjectPhotosList("proj-n");
+
+    expect(listPhotosNative).toHaveBeenCalledWith("proj-n");
+    expect(fromMock).not.toHaveBeenCalled();
+    expect(out).toEqual([
+      {
+        id: "ph-n",
+        projectId: "proj-n",
+        url: "https://example.com/n.jpg",
+        name: "n.jpg",
+        size: 20,
+        uploadedAt: "2026-02-01T00:00:00.000Z",
+        storagePath: "u/proj-n/n.jpg",
+      },
+    ]);
+  });
 });
 
 describe("photosQueryOptions (C5-1 canonical product-photo list options)", () => {
   beforeEach(() => {
     fromMock.mockReset();
     loggerError.mockReset();
+    isNativePlatform.mockReturnValue(false);
+    listPhotosNative.mockReset();
   });
 
   it("queryKey equals projectKeys.photosByProject(projectId)", () => {

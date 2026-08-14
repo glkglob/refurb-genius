@@ -96,6 +96,15 @@ describe("IA-5-R4A Redesign product generation and selection contract", () => {
     expect(SRC).toMatch(/loadPhotoAnalysis/);
   });
 
+  it("IA-4 Redesign gate still uses durable photo/Analysis reads (P1)", () => {
+    expect(SRC).toMatch(/usePhotos/);
+    expect(SRC).toMatch(/loadPhotoAnalysis/);
+    expect(SRC).toMatch(/isProductionValidAnalysisSet/);
+    expect(SRC).toMatch(/buildPhotosAnalysisWorkflowState/);
+    expect(SRC).toMatch(/photosAnalysisWorkflow\.analysis\.currency !== ["']current["']/);
+    expect(SRC).toMatch(/Current Analysis is required/);
+  });
+
   it("server generation resolves Analysis authority then persists via replace RPC", () => {
     expect(SERVER).toMatch(/runAuthenticatedRedesignGeneration/);
     expect(SERVER).toMatch(/void data\.analyses/);
