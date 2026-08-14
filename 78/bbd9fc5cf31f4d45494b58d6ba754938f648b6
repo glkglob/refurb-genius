@@ -1,0 +1,32 @@
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.test.ts
+  h_7ea6129503670a 4-20,100-104,169-220
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts
+  h_7ea6129503670a 7,71-77
+src/lib/queries/projects.test.ts
+  h_7ea6129503670a 13-27,46-49,248-256,472-473,529-567,574-575
+src/lib/queries/projects.ts
+  h_7ea6129503670a 141-142,146-151
+src/platform/supabase/native-photos.test.ts
+  h_7ea6129503670a 1-56
+src/platform/supabase/native-photos.ts
+  h_7ea6129503670a 1-42
+src/platform/supabase/native-room-analyses.test.ts
+  h_7ea6129503670a 1-64
+src/platform/supabase/native-room-analyses.ts
+  h_7ea6129503670a 1-42
+src/routes/_authed/-projects.$id.redesign.shell.test.ts
+  h_7ea6129503670a 99-107
+tests/invariants/project-photos-analysis-continuity.invariant.test.ts
+  h_7ea6129503670a 76-109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "78bbd9fc5cf31f4d45494b58d6ba754938f648b6",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
