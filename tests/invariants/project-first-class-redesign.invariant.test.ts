@@ -103,13 +103,25 @@ test("IA-4-R2 write path sealed via DEFINER RPCs and DML revoke", () => {
 
 test("IA-5-R4A redesign UI wires generate+select through sealed server authority", () => {
   const page = read("src/routes/_authed/projects.$id.redesign.tsx");
-  assert.match(page, /generateRedesignConceptsServerFn/);
-  assert.match(page, /selectRedesignConceptServerFn/);
+  assert.match(page, /generateRedesignConceptsForClient/);
+  assert.match(page, /selectRedesignConceptForClient/);
   assert.match(page, /listRedesignConceptsForClient/);
+  assert.doesNotMatch(page, /generateRedesignConceptsServerFn/);
+  assert.doesNotMatch(page, /selectRedesignConceptServerFn/);
   const listClient = read("src/features/ai-design/presentation/listRedesignConceptsForClient.ts");
   assert.match(listClient, /listRedesignConceptsServerFn/);
   assert.match(listClient, /listRedesignConceptsNative/);
   assert.match(listClient, /Capacitor\.isNativePlatform/);
+  const generateClient = read(
+    "src/features/ai-design/presentation/generateRedesignConceptsForClient.ts",
+  );
+  assert.match(generateClient, /generateRedesignConceptsServerFn/);
+  assert.match(generateClient, /generateRedesignConceptsNative/);
+  const selectClient = read(
+    "src/features/ai-design/presentation/selectRedesignConceptForClient.ts",
+  );
+  assert.match(selectClient, /selectRedesignConceptServerFn/);
+  assert.match(selectClient, /selectRedesignConceptNative/);
   assert.match(page, /data-testid=["']redesign-generate["']/);
   assert.match(page, /generate concepts from current Analysis/);
   assert.match(page, /Select Redesign/);
@@ -118,7 +130,12 @@ test("IA-5-R4A redesign UI wires generate+select through sealed server authority
   assert.doesNotMatch(page, /redesign_done\s*=\s*true/);
 
   const server = read("src/features/ai-design/presentation/serverFns.ts");
-  assert.match(server, /resolveCurrentProjectAnalysisAuthority/);
-  assert.match(server, /replaceRedesignCandidates/);
+  assert.match(server, /runAuthenticatedRedesignGeneration/);
   assert.match(server, /selectDurableRedesignConcept/);
+  const generate = read(
+    "src/features/ai-design/infrastructure/runAuthenticatedRedesignGeneration.server.ts",
+  );
+  assert.match(generate, /resolveCurrentProjectAnalysisAuthorityWithClient/);
+  assert.match(generate, /replaceRedesignCandidatesWithClient/);
+  assert.match(generate, /rateLimitKeyForUser\([^,]+,\s*["']ai-redesign["']\)/);
 });

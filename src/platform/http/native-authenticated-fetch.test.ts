@@ -143,6 +143,28 @@ describe("nativeAuthenticatedFetch", () => {
     expect(tryGetNativeAccessToken).toHaveBeenCalledTimes(2);
   });
 
+  it("nativeAuthenticatedJson surfaces JSON error without leaking tokens", async () => {
+    tryGetNativeAccessToken.mockResolvedValue({ ok: true, accessToken: "tok-secret" });
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ error: "Rate limit exceeded. Try again in 9s." }), {
+          status: 429,
+        }),
+    );
+    const { nativeAuthenticatedJson } = await import("./native-authenticated-fetch");
+    await expect(
+      nativeAuthenticatedJson("/api/mobile/v1/redesign/generate", {
+        method: "POST",
+        json: { projectId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1" },
+        origin: "https://www.refurbgenius.info",
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+      }),
+    ).rejects.toMatchObject({
+      status: 429,
+      message: "Rate limit exceeded. Try again in 9s.",
+    });
+  });
+
   it("rejects non-native platform", async () => {
     isNativePlatform.mockReturnValue(false);
     const { nativeAuthenticatedFetch } = await import("./native-authenticated-fetch");

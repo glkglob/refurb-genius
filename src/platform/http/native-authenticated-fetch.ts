@@ -125,6 +125,34 @@ export async function nativeAuthenticatedFetch(
  * POST JSON helper that parses JSON and maps non-OK responses to NativeHttpError
  * without embedding Authorization material.
  */
+function looksLikeSecret(value: string): boolean {
+  return /access_token|refresh_token|Authorization|Bearer |eyJ[A-Za-z0-9_-]{20,}/i.test(value);
+}
+
+async function safeFailedResponseMessage(response: Response): Promise<string> {
+  try {
+    const text = await response.text();
+    if (!text || looksLikeSecret(text)) {
+      return `Request failed with status ${response.status}`;
+    }
+    const parsed: unknown = JSON.parse(text);
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      typeof (parsed as { error?: unknown }).error === "string"
+    ) {
+      const err = (parsed as { error: string }).error;
+      if (!err || looksLikeSecret(err)) {
+        return `Request failed with status ${response.status}`;
+      }
+      return err;
+    }
+  } catch {
+    /* ignore parse failures */
+  }
+  return `Request failed with status ${response.status}`;
+}
+
 export async function nativeAuthenticatedJson<T>(
   path: string,
   init?: Omit<NativeAuthenticatedFetchInit, "method"> & { method?: string },
@@ -139,7 +167,7 @@ export async function nativeAuthenticatedJson<T>(
   }
 
   if (!response.ok) {
-    throw new NativeHttpError(`Request failed with status ${response.status}`, {
+    throw new NativeHttpError(await safeFailedResponseMessage(response), {
       code: "http_error",
       status: response.status,
     });

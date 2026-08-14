@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   analysisIdentityFromPhotoIds,
+  assertDurableRedesignConcept,
   assertRedesignConceptList,
   conceptToPayload,
+  interpretRedesignPersistenceError,
   parseRedesignPayload,
   payloadToConcept,
   rowToDurableRedesignConcept,
@@ -83,6 +85,19 @@ describe("IA-4 redesignAuthority", () => {
   it("assertRedesignConceptList rejects #151 non-array payloads", () => {
     expect(() => assertRedesignConceptList({ data: [] })).toThrow(/not an array/);
     expect(selectedRedesignIdFromList(assertRedesignConceptList([]))).toBeNull();
+  });
+
+  it("interpretRedesignPersistenceError maps sealed RPC codes", () => {
+    expect(
+      interpretRedesignPersistenceError("redesign_concept_not_found", "select").message,
+    ).toMatch(/not found/);
+    expect(interpretRedesignPersistenceError("project_not_authorised", "select").message).toMatch(
+      /Not authorised/,
+    );
+    expect(
+      interpretRedesignPersistenceError("redesign_requires_analysis_identity", "replace").message,
+    ).toMatch(/durable Analysis/);
+    expect(() => assertDurableRedesignConcept({ id: "c1", isSelected: true })).not.toThrow();
   });
 
   it("valid payload with isSelected true still parseable for presentation", () => {

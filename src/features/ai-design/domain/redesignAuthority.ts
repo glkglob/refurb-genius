@@ -96,6 +96,42 @@ export function assertRedesignConceptList(value: unknown): DurableRedesignConcep
   return value as DurableRedesignConcept[];
 }
 
+/** Fail closed when a selection write does not return a concept object. */
+export function assertDurableRedesignConcept(value: unknown): DurableRedesignConcept {
+  if (!value || typeof value !== "object" || Array.isArray(value) || value instanceof Response) {
+    throw new Error("Redesign selection response was not a concept");
+  }
+  const o = value as Partial<DurableRedesignConcept>;
+  if (typeof o.id !== "string" || typeof o.isSelected !== "boolean") {
+    throw new Error("Redesign selection response was not a concept");
+  }
+  return value as DurableRedesignConcept;
+}
+
+/** Map sealed RPC error text to a stable client-facing Error. */
+export function interpretRedesignPersistenceError(
+  message: string,
+  kind: "select" | "replace",
+): Error {
+  const msg = message ?? "";
+  if (/redesign_requires_analysis_identity/i.test(msg)) {
+    return new Error("Cannot generate Redesign without durable Analysis photo identity.");
+  }
+  if (/redesign_concept_not_found|P0002/i.test(msg)) {
+    return new Error("Redesign concept not found for this project");
+  }
+  if (/project_not_authorised|42501/i.test(msg)) {
+    return new Error("Not authorised for this project");
+  }
+  if (/not_authenticated|28000/i.test(msg)) {
+    return new Error("Not authenticated");
+  }
+  if (kind === "select") {
+    return new Error(msg || "Failed to persist redesign selection");
+  }
+  return new Error(msg || "Failed to persist redesign candidates");
+}
+
 export function selectedRedesignIdFromList(concepts: DurableRedesignConcept[]): string | null {
   return concepts.find((c) => c.isSelected)?.id ?? null;
 }
