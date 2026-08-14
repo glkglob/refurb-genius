@@ -1,0 +1,70 @@
+src/features/ai-design/domain/index.ts
+  h_7ea6129503670a 40,43
+src/features/ai-design/domain/redesignAuthority.test.ts
+  h_7ea6129503670a 4,7,90-102
+src/features/ai-design/domain/redesignAuthority.ts
+  h_7ea6129503670a 99-134
+src/features/ai-design/infrastructure/repositories/redesign-concepts.repository.server.ts
+  h_7ea6129503670a 14,23-53,75-76,89-100,108-115,135,138-139,141,144,146-149,152-157,159-169,176,187,194-205
+src/features/ai-design/infrastructure/resolveProjectAnalysisAuthority.server.test.ts
+  h_7ea6129503670a 24,98-113
+src/features/ai-design/infrastructure/resolveProjectAnalysisAuthority.server.ts
+  h_7ea6129503670a 23-29,73-74,99-109
+src/features/ai-design/infrastructure/runAuthenticatedRedesignGeneration.server.test.ts
+  h_7ea6129503670a 1-104
+src/features/ai-design/infrastructure/runAuthenticatedRedesignGeneration.server.ts
+  h_7ea6129503670a 1-61
+src/features/ai-design/presentation/generateRedesignConceptsForClient.test.ts
+  h_7ea6129503670a 1-132
+src/features/ai-design/presentation/generateRedesignConceptsForClient.ts
+  h_7ea6129503670a 1-36
+src/features/ai-design/presentation/index.ts
+  h_7ea6129503670a 11-12
+src/features/ai-design/presentation/mobileRedesignGenerate.server.test.ts
+  h_7ea6129503670a 1-133
+src/features/ai-design/presentation/mobileRedesignGenerate.server.ts
+  h_7ea6129503670a 1-116
+src/features/ai-design/presentation/redesign.authority.r3.test.ts
+  h_7ea6129503670a 202,204-212
+src/features/ai-design/presentation/selectRedesignConceptForClient.test.ts
+  h_7ea6129503670a 1-151
+src/features/ai-design/presentation/selectRedesignConceptForClient.ts
+  h_7ea6129503670a 1-41
+src/features/ai-design/presentation/serverFns.ts
+  h_7ea6129503670a 37-41,43
+src/platform/http/mobile-api.server.test.ts
+  h_7ea6129503670a 4,14-17,23,98-131
+src/platform/http/mobile-api.server.ts
+  h_7ea6129503670a 12,44-49
+src/platform/http/mobile-redesign-generate.test.ts
+  h_7ea6129503670a 1-59
+src/platform/http/mobile-redesign-generate.ts
+  h_7ea6129503670a 1-32
+src/platform/http/native-authenticated-fetch.test.ts
+  h_7ea6129503670a 146-167
+src/platform/http/native-authenticated-fetch.ts
+  h_7ea6129503670a 128-155,170
+src/platform/supabase/native-redesign-select.test.ts
+  h_7ea6129503670a 1-76
+src/platform/supabase/native-redesign-select.ts
+  h_7ea6129503670a 1-66
+src/routes/_authed/-projects.$id.redesign.shell.test.ts
+  h_7ea6129503670a 21-38,48-49,51,53-54,67,70-72,84-85,89-90,99-100,102-105
+src/routes/_authed/projects.$id.redesign.tsx
+  h_7ea6129503670a 25,27,164,187-189
+tests/invariants/feature-slice.invariant.test.ts
+  h_7ea6129503670a 171,174-180
+tests/invariants/project-first-class-redesign.invariant.test.ts
+  h_7ea6129503670a 106-107,109-110,115-124,133,135-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "4ce385043495500fae4b9a1f5e4dc1a65a9f292c",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
