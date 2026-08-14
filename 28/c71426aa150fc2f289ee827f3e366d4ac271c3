@@ -1,0 +1,40 @@
+src/features/ai-design/domain/index.ts
+  h_7ea6129503670a 40,44-45,47
+src/features/ai-design/domain/redesignAuthority.test.ts
+  h_7ea6129503670a 4,8-9,60-87
+src/features/ai-design/domain/redesignAuthority.ts
+  h_7ea6129503670a 32-102
+src/features/ai-design/infrastructure/repositories/redesign-concepts.repository.server.ts
+  h_7ea6129503670a 14,16,20,61,119,164
+src/features/ai-design/presentation/index.ts
+  h_7ea6129503670a 10
+src/features/ai-design/presentation/listRedesignConceptsForClient.test.ts
+  h_7ea6129503670a 1-167
+src/features/ai-design/presentation/listRedesignConceptsForClient.ts
+  h_7ea6129503670a 1-33
+src/features/projects/presentation/hooks/useProjectFiveStageWorkflow.running.test.ts
+  h_7ea6129503670a 4-6,19-21,56-68
+src/features/projects/presentation/hooks/useProjectFiveStageWorkflow.ts
+  h_7ea6129503670a 12-16,32,76,78-80,85-90,98,109,142
+src/platform/supabase/native-redesign-concepts.test.ts
+  h_7ea6129503670a 1-55
+src/platform/supabase/native-redesign-concepts.ts
+  h_7ea6129503670a 1-46
+src/routes/_authed/-projects.$id.redesign.shell.test.ts
+  h_7ea6129503670a 32,72
+src/routes/_authed/projects.$id.redesign.tsx
+  h_7ea6129503670a 26,129,134,174-175
+tests/invariants/project-first-class-redesign.invariant.test.ts
+  h_7ea6129503670a 108-112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "28c71426aa150fc2f289ee827f3e366d4ac271c3",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
