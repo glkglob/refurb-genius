@@ -1,0 +1,16 @@
+src/platform/verify/ios-2c4-runtime-harness.ts
+  h_7ea6129503670a 1-168
+src/routes/__root.tsx
+  h_7ea6129503670a 26,294-308
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "4ce3bbdb3c33d02b478667c86267a02a2af37ec4",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
