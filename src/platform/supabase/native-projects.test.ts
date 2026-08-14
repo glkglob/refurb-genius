@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
-import { createProjectWithClient, listProjectsWithClient } from "./native-projects";
+import {
+  createProjectWithClient,
+  getProjectWithClient,
+  listProjectsWithClient,
+} from "./native-projects";
 
 function mockClient(opts: {
   userId?: string | null;
@@ -8,12 +12,19 @@ function mockClient(opts: {
   listError?: { message: string } | null;
   insertRow?: unknown;
   insertError?: { message: string } | null;
+  detailRow?: unknown;
+  detailError?: { message: string } | null;
 }) {
   const order = vi.fn(async () => ({
     data: opts.list ?? [],
     error: opts.listError ?? null,
   }));
-  const selectList = vi.fn(() => ({ order }));
+  const maybeSingle = vi.fn(async () => ({
+    data: opts.detailRow ?? null,
+    error: opts.detailError ?? null,
+  }));
+  const eq = vi.fn(() => ({ maybeSingle }));
+  const selectList = vi.fn(() => ({ order, eq }));
   const single = vi.fn(async () => ({
     data: opts.insertRow ?? null,
     error: opts.insertError ?? null,
@@ -70,5 +81,16 @@ describe("native project data plane foundation", () => {
     const { client, insert } = mockClient({ userId: null });
     await expect(createProjectWithClient(client, { name: "X" })).rejects.toThrow(/signed in/i);
     expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("reads one project via provided client (RLS-bound)", async () => {
+    const row = { id: "p1", name: "A" };
+    const { client } = mockClient({ detailRow: row });
+    await expect(getProjectWithClient(client, "p1")).resolves.toEqual(row);
+  });
+
+  it("returns null when the native detail row is absent", async () => {
+    const { client } = mockClient({ detailRow: null });
+    await expect(getProjectWithClient(client, "missing")).resolves.toBeNull();
   });
 });

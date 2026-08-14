@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/platform/supabase/browser";
 import { auth } from "@/lib/auth";
@@ -48,8 +49,18 @@ export const projectKeys = {
 /**
  * Canonical full Projects list fetch (C4c-6).
  * Single network authority for dashboard + catalog adapters.
+ *
+ * Web: browser pip-auth Supabase client.
+ * Native: Keychain-backed getNativeSupabase via listProjectsNative (dynamic import
+ * so SecureStorage is not in the web/SSR graph).
  */
 export async function fetchProjectsList(): Promise<ProjectWithProgress[]> {
+  if (Capacitor.isNativePlatform()) {
+    const { listProjectsNative } = await import("@/platform/supabase/native-projects");
+    const rows = await listProjectsNative();
+    return rows.map(rowToProject);
+  }
+
   const { data, error } = await supabase
     .from("projects")
     .select("*")
@@ -59,6 +70,28 @@ export async function fetchProjectsList(): Promise<ProjectWithProgress[]> {
     throw new Error(error.message);
   }
   return (data ?? []).map(rowToProject);
+}
+
+/**
+ * Canonical single-project fetch (C4c-2).
+ * Web uses the browser client; native uses getNativeSupabase (dynamic import).
+ */
+export async function fetchProjectById(id: string): Promise<ProjectWithProgress | null> {
+  if (Capacitor.isNativePlatform()) {
+    const { getProjectNative } = await import("@/platform/supabase/native-projects");
+    const row = await getProjectNative(id);
+    return row ? rowToProject(row) : null;
+  }
+
+  const { data, error } = await supabase.from("projects").select("*").eq("id", id).maybeSingle();
+
+  if (error) {
+    logger.error("[queries] project fetch failed", { projectId: id, error: error.message });
+    throw new Error(error.message);
+  }
+  if (!data) return null;
+
+  return rowToProject(data as Parameters<typeof rowToProject>[0]);
 }
 
 /**
@@ -79,22 +112,7 @@ export const projectsListQueryOptions = () =>
 export const projectQueryOptions = (id: string) =>
   queryOptions<ProjectWithProgress | null>({
     queryKey: projectKeys.byId(id),
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
-
-      if (error) {
-        logger.error("[queries] project fetch failed", { projectId: id, error: error.message });
-        throw new Error(error.message);
-      }
-      if (!data) return null;
-
-      // Reuse mapper for consistency with existing hooks/lib
-      return rowToProject(data as Parameters<typeof rowToProject>[0]);
-    },
+    queryFn: () => fetchProjectById(id),
     enabled: !!id,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes

@@ -1,16 +1,39 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
 import type { ProjectWithProgress } from "@/lib/mappers";
 
-const { fromMock, loggerError } = vi.hoisted(() => ({
-  fromMock: vi.fn(),
-  loggerError: vi.fn(),
+const PROJECTS_SRC = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), "projects.ts"),
+  "utf8",
+);
+
+const { fromMock, loggerError, isNativePlatform, listProjectsNative, getProjectNative } =
+  vi.hoisted(() => ({
+    fromMock: vi.fn(),
+    loggerError: vi.fn(),
+    isNativePlatform: vi.fn(() => false),
+    listProjectsNative: vi.fn(),
+    getProjectNative: vi.fn(),
+  }));
+
+vi.mock("@capacitor/core", () => ({
+  Capacitor: {
+    isNativePlatform: () => isNativePlatform(),
+  },
 }));
 
 vi.mock("@/platform/supabase/browser", () => ({
   supabase: {
     from: fromMock,
   },
+}));
+
+vi.mock("@/platform/supabase/native-projects", () => ({
+  listProjectsNative: (...args: unknown[]) => listProjectsNative(...args),
+  getProjectNative: (...args: unknown[]) => getProjectNative(...args),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -33,6 +56,8 @@ import {
   applyProjectStageOptimistic,
   restoreProjectStageCaches,
   seedProjectDetailCache,
+  fetchProjectsList,
+  fetchProjectById,
   fetchProjectPhotosList,
   photosQueryOptions,
 } from "./projects";
@@ -82,6 +107,136 @@ describe("projectKeys (C4c-1 serialized identity)", () => {
     expect(projectKeys.all).not.toContain("detail");
     expect(projectKeys.byId("abc")).not.toContain("list");
     expect(projectKeys.byId("abc")).not.toContain("detail");
+  });
+});
+
+function makeProjectRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "p1",
+    user_id: "u1",
+    name: "Alpha",
+    address: "1 High St",
+    postcode: "E1 1AA",
+    region: "London",
+    property_type: "Terraced",
+    bedrooms: 3,
+    bathrooms: 1,
+    size_sqm: 90,
+    purchase_price: 300_000,
+    estimated_gdv: 400_000,
+    notes: "",
+    created_at: "2026-01-01T00:00:00.000Z",
+    status: "Draft",
+    photos_done: false,
+    analysis_done: false,
+    estimate_done: false,
+    report_done: false,
+    ...overrides,
+  };
+}
+
+function mockProjectsListChain(result: { data: unknown; error: { message: string } | null }) {
+  const order = vi.fn().mockResolvedValue(result);
+  const select = vi.fn().mockReturnValue({ order });
+  fromMock.mockReturnValue({ select });
+  return { select, order };
+}
+
+describe("fetchProjectsList platform split", () => {
+  beforeEach(() => {
+    fromMock.mockReset();
+    loggerError.mockReset();
+    isNativePlatform.mockReturnValue(false);
+    listProjectsNative.mockReset();
+    getProjectNative.mockReset();
+  });
+
+  it("web uses the browser Supabase client and canonical mapper", async () => {
+    const { select, order } = mockProjectsListChain({
+      data: [makeProjectRow({ name: "Web Row" })],
+      error: null,
+    });
+
+    const out = await fetchProjectsList();
+
+    expect(isNativePlatform).toHaveBeenCalled();
+    expect(listProjectsNative).not.toHaveBeenCalled();
+    expect(fromMock).toHaveBeenCalledWith("projects");
+    expect(select).toHaveBeenCalledWith("*");
+    expect(order).toHaveBeenCalledWith("created_at", { ascending: false });
+    expect(out).toEqual([makeProject({ name: "Web Row" })]);
+  });
+
+  it("native uses listProjectsNative and the same canonical mapper", async () => {
+    isNativePlatform.mockReturnValue(true);
+    listProjectsNative.mockResolvedValue([makeProjectRow({ name: "Native Row" })]);
+
+    const out = await fetchProjectsList();
+
+    expect(listProjectsNative).toHaveBeenCalledTimes(1);
+    expect(fromMock).not.toHaveBeenCalled();
+    expect(out).toEqual([makeProject({ name: "Native Row" })]);
+  });
+});
+
+describe("fetchProjectById platform split", () => {
+  beforeEach(() => {
+    fromMock.mockReset();
+    loggerError.mockReset();
+    isNativePlatform.mockReturnValue(false);
+    listProjectsNative.mockReset();
+    getProjectNative.mockReset();
+  });
+
+  it("web uses the browser Supabase client", async () => {
+    const maybeSingle = vi.fn().mockResolvedValue({
+      data: makeProjectRow({ id: "detail-1", name: "Detail" }),
+      error: null,
+    });
+    const eq = vi.fn().mockReturnValue({ maybeSingle });
+    const select = vi.fn().mockReturnValue({ eq });
+    fromMock.mockReturnValue({ select });
+
+    const out = await fetchProjectById("detail-1");
+
+    expect(getProjectNative).not.toHaveBeenCalled();
+    expect(fromMock).toHaveBeenCalledWith("projects");
+    expect(eq).toHaveBeenCalledWith("id", "detail-1");
+    expect(out).toEqual(makeProject({ id: "detail-1", name: "Detail" }));
+  });
+
+  it("native uses getProjectNative and the same canonical mapper", async () => {
+    isNativePlatform.mockReturnValue(true);
+    getProjectNative.mockResolvedValue(makeProjectRow({ id: "detail-n", name: "Native Detail" }));
+
+    const out = await fetchProjectById("detail-n");
+
+    expect(getProjectNative).toHaveBeenCalledWith("detail-n");
+    expect(fromMock).not.toHaveBeenCalled();
+    expect(out).toEqual(makeProject({ id: "detail-n", name: "Native Detail" }));
+  });
+});
+
+describe("projects query factory native-graph containment", () => {
+  it("does not statically import native SecureStorage or native-projects", () => {
+    expect(PROJECTS_SRC).not.toMatch(
+      /import\s+[^;]*from\s+["']@\/platform\/supabase\/native(?:-projects)?["']/,
+    );
+    expect(PROJECTS_SRC).not.toMatch(
+      /import\s+[^;]*from\s+["']@\/platform\/auth\/native\/pkce-storage["']/,
+    );
+  });
+
+  it("dynamically imports native-projects on the native list/detail paths", () => {
+    expect(PROJECTS_SRC).toMatch(/import\(["']@\/platform\/supabase\/native-projects["']\)/);
+    expect(PROJECTS_SRC).toMatch(/listProjectsNative/);
+    expect(PROJECTS_SRC).toMatch(/getProjectNative/);
+    expect(PROJECTS_SRC).toMatch(/rowToProject/);
+  });
+
+  it("keeps projectsListQueryOptions on fetchProjectsList and projectKeys.all", () => {
+    expect(projectsListQueryOptions().queryFn).toBe(fetchProjectsList);
+    expect(projectsListQueryOptions().queryKey).toEqual(["projects"]);
   });
 });
 
