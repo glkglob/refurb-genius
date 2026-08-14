@@ -1,0 +1,20 @@
+src/lib/queries/projects.test.ts
+  h_7ea6129503670a 1-3,8-25,34-38,59-60,113-242
+src/lib/queries/projects.ts
+  h_7ea6129503670a 1,52-55,58-63,75-96,115
+src/platform/supabase/native-projects.test.ts
+  h_7ea6129503670a 2-6,15-16,22-27,85-95
+src/platform/supabase/native-projects.ts
+  h_7ea6129503670a 97-117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "51bcef0b9ada53f07b412b4ad590adb7b7533b73",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
