@@ -1,8 +1,15 @@
 /**
- * Canonical browser-side project-photo write primitives (C5-3B1 / C5-3B1R).
+ * Canonical project-photo write primitives (C5-3B1 / C5-3B1R).
  *
  * Centralises Storage path construction, Auth resolution for writes, upload
  * timeout/rollback, batch concurrency, and database-first delete.
+ *
+ * Web: browser pip-auth Supabase client.
+ * Native: Keychain-backed getNativeSupabase via dynamic import (same pattern as
+ * fetchProjectPhotosList) so SecureStorage is not in the web/SSR graph.
+ *
+ * One selected client is used for auth.getUser, Storage, and metadata RPC.
+ * Native never falls back to the web auth singleton.
  *
  * Does NOT coordinate React Query or the legacy in-memory photo cache —
  * consumers migrate in C5-3B2 / C5-3B3. Does not claim atomicity across
@@ -19,8 +26,9 @@
  * leave an orphan object; late metadata completion may race rollback.
  * Cleanup is best-effort; no transactional guarantee is claimed.
  */
+import { Capacitor } from "@capacitor/core";
 import { isImageFile, imageContentType } from "@/lib/file-utils";
-import { supabase } from "@/platform/supabase/browser";
+import { supabase as browserSupabase } from "@/platform/supabase/browser";
 import { auth, fromSupabaseUser, type AuthUser } from "@/lib/auth";
 import { captureUploadError, addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
@@ -52,6 +60,21 @@ const MAX_EXTENSION_LENGTH = 16;
 const sharedPhotoUploadLimiter = new ConcurrencyLimiter(MAX_CONCURRENT_PHOTO_UPLOADS);
 
 export const PHOTO_WRITE_AUTH_ERROR = "You must be signed in to manage project photos.";
+
+type PhotoWriteClient = typeof browserSupabase;
+
+/**
+ * Authority-correct write client for this runtime.
+ * Native loads getNativeSupabase only when Capacitor reports native — never
+ * statically, so web SSR cannot import SecureStorage.
+ */
+export async function getPhotoWriteClient(): Promise<PhotoWriteClient> {
+  if (Capacitor.isNativePlatform()) {
+    const { getNativeSupabase } = await import("@/platform/supabase/native");
+    return getNativeSupabase();
+  }
+  return browserSupabase;
+}
 
 // ── Stages & progress ─────────────────────────────────────────────
 
@@ -223,16 +246,20 @@ export function assertSafePathSegment(value: string, label: string): void {
 
 // ── Auth ──────────────────────────────────────────────────────────
 
-async function resolvePhotoWriteUser(): Promise<AuthUser> {
+async function resolvePhotoWriteUser(client: PhotoWriteClient): Promise<AuthUser> {
   const {
     data: { user: sessionUser },
     error,
-  } = await supabase.auth.getUser();
+  } = await client.auth.getUser();
   const fromSession = fromSupabaseUser(sessionUser);
   if (fromSession && !error) return fromSession;
 
-  const cached = auth.getUser();
-  if (cached) return cached;
+  // Web pip-auth in-memory cache only. Native must not use this singleton —
+  // it is a different authority from the Keychain session.
+  if (!Capacitor.isNativePlatform()) {
+    const cached = auth.getUser();
+    if (cached) return cached;
+  }
 
   throw new PhotoWriteError(PHOTO_WRITE_AUTH_ERROR, {
     stage: "authentication",
@@ -264,9 +291,12 @@ function createSafeEmitter(
 
 // ── Rollback ──────────────────────────────────────────────────────
 
-async function rollbackStorageObject(path: string): Promise<unknown | undefined> {
+async function rollbackStorageObject(
+  client: PhotoWriteClient,
+  path: string,
+): Promise<unknown | undefined> {
   try {
-    const { error } = await supabase.storage.from(PROJECT_PHOTOS_BUCKET).remove([path]);
+    const { error } = await client.storage.from(PROJECT_PHOTOS_BUCKET).remove([path]);
     if (error) {
       logger.error("[photos-write] rollback failed", { path, error: error.message });
       captureUploadError(error, { stage: "rollback" });
@@ -340,9 +370,10 @@ export async function uploadProjectPhoto(input: {
   }
 
   emit("authenticating");
+  const client = await getPhotoWriteClient();
   let user;
   try {
-    user = await resolvePhotoWriteUser();
+    user = await resolvePhotoWriteUser(client);
   } catch (err) {
     if (err instanceof PhotoWriteError) {
       emit("failed", { stage: err.stage, error: err });
@@ -381,7 +412,7 @@ export async function uploadProjectPhoto(input: {
   try {
     const uploadResult = await sharedPhotoUploadLimiter.run(() =>
       timeoutPromise(
-        supabase.storage
+        client.storage
           .from(PROJECT_PHOTOS_BUCKET)
           .upload(path, file, { contentType, upsert: false }),
         UPLOAD_TIMEOUT_MS,
@@ -451,7 +482,7 @@ export async function uploadProjectPhoto(input: {
     throw wrapped;
   }
 
-  const { data: pub } = supabase.storage.from(PROJECT_PHOTOS_BUCKET).getPublicUrl(path);
+  const { data: pub } = client.storage.from(PROJECT_PHOTOS_BUCKET).getPublicUrl(path);
   const url = pub.publicUrl;
 
   addDiagnosticBreadcrumb("photos-write:metadata:insert", { file: file.name, path });
@@ -464,7 +495,7 @@ export async function uploadProjectPhoto(input: {
   try {
     const insertResult = await timeoutPromise(
       Promise.resolve(
-        supabase.rpc("create_project_photo_metadata", {
+        client.rpc("create_project_photo_metadata", {
           p_project_id: projectId,
           p_photo_id: id,
           p_storage_path: path,
@@ -494,7 +525,7 @@ export async function uploadProjectPhoto(input: {
       });
 
       emit("rolling-back");
-      const rollbackError = await rollbackStorageObject(path);
+      const rollbackError = await rollbackStorageObject(client, path);
       const primary = new PhotoWriteError(errMsg, {
         stage: "metadata-insert",
         cause: insErr ?? new Error(errMsg),
@@ -509,7 +540,7 @@ export async function uploadProjectPhoto(input: {
     const rowObj = Array.isArray(row) ? row[0] : row;
     if (!rowObj) {
       emit("rolling-back");
-      const rollbackError = await rollbackStorageObject(path);
+      const rollbackError = await rollbackStorageObject(client, path);
       throw new PhotoWriteError("No data returned from insert", {
         stage: "metadata-insert",
         cause: new Error("empty RPC response"),
@@ -547,7 +578,7 @@ export async function uploadProjectPhoto(input: {
       stage: "metadata",
     });
     emit("rolling-back");
-    const rollbackError = await rollbackStorageObject(path);
+    const rollbackError = await rollbackStorageObject(client, path);
     const primary = new PhotoWriteError(errorMessage(metaErr), {
       stage: "metadata-insert",
       cause: metaErr,
@@ -699,12 +730,12 @@ function normaliseConcurrency(value: number | undefined): number {
 export async function removeProjectPhoto(input: { photoId: string }): Promise<PhotoRemovalResult> {
   assertSafePathSegment(input.photoId, "photoId");
 
-  await resolvePhotoWriteUser();
+  const client = await getPhotoWriteClient();
+  await resolvePhotoWriteUser(client);
 
-  const { data: deletedRows, error: dbError } = await supabase.rpc(
-    "delete_project_photo_metadata",
-    { p_photo_id: input.photoId },
-  );
+  const { data: deletedRows, error: dbError } = await client.rpc("delete_project_photo_metadata", {
+    p_photo_id: input.photoId,
+  });
 
   if (dbError) {
     logger.error("[photos-write] delete metadata failed", {
@@ -741,7 +772,7 @@ export async function removeProjectPhoto(input: { photoId: string }): Promise<Ph
     };
   }
 
-  const { error: storageError } = await supabase.storage
+  const { error: storageError } = await client.storage
     .from(PROJECT_PHOTOS_BUCKET)
     .remove([storagePath]);
 

@@ -1,11 +1,12 @@
 /**
  * Client-side upload health probe (ai-upload presentation).
  *
- * Verifies auth + storage write capability with a non-destructive probe object
- * under a dedicated health prefix. Always attempts cleanup in finally.
+ * Uses the same platform-authenticated write client as photos-write
+ * (web pip-auth / native Keychain). Verifies auth + storage write capability
+ * with a non-destructive probe object under a dedicated health prefix.
+ * Always attempts cleanup in finally.
  */
-import { supabase } from "@/platform/supabase/browser";
-import { PROJECT_PHOTOS_BUCKET } from "@/lib/photos-write";
+import { getPhotoWriteClient, PROJECT_PHOTOS_BUCKET } from "@/lib/photos-write";
 import { logger } from "@/lib/logger";
 
 export type UploadHealthStatus = "ok" | "auth" | "storage" | "unknown";
@@ -35,10 +36,11 @@ export async function checkUploadHealth(): Promise<UploadHealthResult> {
   const checkedAt = new Date().toISOString();
 
   try {
+    const client = await getPhotoWriteClient();
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser();
+    } = await client.auth.getUser();
 
     if (authError || !user) {
       return {
@@ -55,7 +57,7 @@ export async function checkUploadHealth(): Promise<UploadHealthResult> {
     let cleanupFailed = false;
 
     try {
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await client.storage
         .from(PROJECT_PHOTOS_BUCKET)
         .upload(probePath, new Blob([new Uint8Array(0)]), {
           contentType: "application/octet-stream",
@@ -95,7 +97,7 @@ export async function checkUploadHealth(): Promise<UploadHealthResult> {
       };
     } finally {
       try {
-        const { error: removeError } = await supabase.storage
+        const { error: removeError } = await client.storage
           .from(PROJECT_PHOTOS_BUCKET)
           .remove([probePath]);
         if (removeError) {

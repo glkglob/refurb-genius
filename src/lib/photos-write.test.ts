@@ -10,6 +10,15 @@ const {
   getPublicUrlMock,
   fromMock,
   rpcMock,
+  isNativePlatform,
+  getNativeSupabaseMock,
+  nativeGetUserMock,
+  nativeStorageFromMock,
+  nativeStorageUploadMock,
+  nativeStorageRemoveMock,
+  nativeGetPublicUrlMock,
+  nativeFromMock,
+  nativeRpcMock,
   loggerError,
   loggerWarn,
   captureUploadErrorMock,
@@ -28,6 +37,18 @@ const {
   const fromMock = vi.fn(() => {
     throw new Error("direct photos table DML is sealed; use metadata RPCs");
   });
+  const nativeStorageUploadMock = vi.fn();
+  const nativeStorageRemoveMock = vi.fn();
+  const nativeGetPublicUrlMock = vi.fn();
+  const nativeStorageFromMock = vi.fn(() => ({
+    upload: nativeStorageUploadMock,
+    remove: nativeStorageRemoveMock,
+    getPublicUrl: nativeGetPublicUrlMock,
+  }));
+  const nativeRpcMock = vi.fn();
+  const nativeFromMock = vi.fn(() => {
+    throw new Error("direct photos table DML is sealed; use metadata RPCs");
+  });
   return {
     getUserMock: vi.fn(),
     authGetUserMock: vi.fn(),
@@ -37,6 +58,15 @@ const {
     getPublicUrlMock,
     fromMock,
     rpcMock,
+    isNativePlatform: vi.fn(() => false),
+    getNativeSupabaseMock: vi.fn(),
+    nativeGetUserMock: vi.fn(),
+    nativeStorageFromMock,
+    nativeStorageUploadMock,
+    nativeStorageRemoveMock,
+    nativeGetPublicUrlMock,
+    nativeFromMock,
+    nativeRpcMock,
     loggerError: vi.fn(),
     loggerWarn: vi.fn(),
     captureUploadErrorMock: vi.fn(),
@@ -45,6 +75,12 @@ const {
   };
 });
 
+vi.mock("@capacitor/core", () => ({
+  Capacitor: {
+    isNativePlatform: () => isNativePlatform(),
+  },
+}));
+
 vi.mock("@/platform/supabase/browser", () => ({
   supabase: {
     auth: { getUser: getUserMock },
@@ -52,6 +88,10 @@ vi.mock("@/platform/supabase/browser", () => ({
     from: fromMock,
     rpc: rpcMock,
   },
+}));
+
+vi.mock("@/platform/supabase/native", () => ({
+  getNativeSupabase: () => getNativeSupabaseMock(),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -87,6 +127,7 @@ import {
   PHOTO_WRITE_AUTH_ERROR,
   buildProjectPhotoStoragePath,
   assertSafePathSegment,
+  getPhotoWriteClient,
   uploadProjectPhoto,
   uploadProjectPhotos,
   MAX_CONCURRENT_PHOTO_UPLOADS,
@@ -113,8 +154,8 @@ function makeRow(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function mockSuccessfulInserts() {
-  rpcMock.mockImplementation(async (fn: string, args?: Record<string, unknown>) => {
+function mockSuccessfulRpc(rpc: typeof rpcMock) {
+  rpc.mockImplementation(async (fn: string, args?: Record<string, unknown>) => {
     if (fn === "create_project_photo_metadata") {
       return {
         data: makeRow({
@@ -143,14 +184,31 @@ function mockSuccessfulInserts() {
   });
 }
 
+function mockSuccessfulInserts() {
+  mockSuccessfulRpc(rpcMock);
+  mockSuccessfulRpc(nativeRpcMock);
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   timeoutPromiseMock.mockImplementation((p: Promise<unknown>) => p);
   randomUUIDMock.mockReturnValue("uuid-fixed-0001");
   vi.stubGlobal("crypto", { randomUUID: randomUUIDMock });
 
+  isNativePlatform.mockReturnValue(false);
+  getNativeSupabaseMock.mockReturnValue({
+    auth: { getUser: nativeGetUserMock },
+    storage: { from: nativeStorageFromMock },
+    from: nativeFromMock,
+    rpc: nativeRpcMock,
+  });
+
   getUserMock.mockResolvedValue({
     data: { user: { id: "user-1", email: "a@b.co" } },
+    error: null,
+  });
+  nativeGetUserMock.mockResolvedValue({
+    data: { user: { id: "native-user-1", email: "n@b.co" } },
     error: null,
   });
   authGetUserMock.mockReturnValue(null);
@@ -159,6 +217,11 @@ beforeEach(() => {
   storageRemoveMock.mockResolvedValue({ data: [], error: null });
   getPublicUrlMock.mockReturnValue({
     data: { publicUrl: "https://cdn.example/user-1/proj-1/uuid-fixed-0001.jpg" },
+  });
+  nativeStorageUploadMock.mockResolvedValue({ error: null });
+  nativeStorageRemoveMock.mockResolvedValue({ data: [], error: null });
+  nativeGetPublicUrlMock.mockReturnValue({
+    data: { publicUrl: "https://cdn.example/native-user-1/proj-1/uuid-fixed-0001.jpg" },
   });
 
   mockSuccessfulInserts();
@@ -261,7 +324,7 @@ describe("auth resolution", () => {
     expect(storageUploadMock).toHaveBeenCalled();
   });
 
-  it("falls back to legacy auth.getUser when session missing", async () => {
+  it("on web, falls back to legacy auth.getUser when session missing", async () => {
     getUserMock.mockResolvedValue({ data: { user: null }, error: null });
     authGetUserMock.mockReturnValue({ id: "legacy-user", email: "l@x.co" });
 
@@ -768,6 +831,158 @@ describe("module import neutrality", () => {
 describe("module exports", () => {
   it("exports the canonical bucket constant", () => {
     expect(PROJECT_PHOTOS_BUCKET).toBe("project-photos");
+  });
+});
+
+describe("platform client selection", () => {
+  it("web selects the browser client and does not load native", async () => {
+    const client = await getPhotoWriteClient();
+    expect(isNativePlatform).toHaveBeenCalled();
+    expect(getNativeSupabaseMock).not.toHaveBeenCalled();
+    expect(client.auth.getUser).toBe(getUserMock);
+    expect(client.storage.from).toBe(storageFromMock);
+    expect(client.rpc).toBe(rpcMock);
+  });
+
+  it("native selects getNativeSupabase and not the browser client", async () => {
+    isNativePlatform.mockReturnValue(true);
+    const client = await getPhotoWriteClient();
+    expect(getNativeSupabaseMock).toHaveBeenCalledTimes(1);
+    expect(client.auth.getUser).toBe(nativeGetUserMock);
+    expect(client.storage.from).toBe(nativeStorageFromMock);
+    expect(client.rpc).toBe(nativeRpcMock);
+  });
+
+  it("web upload uses the same browser client for auth, Storage, and RPC", async () => {
+    await uploadProjectPhoto({ projectId: "proj-1", file: makeImageFile() });
+
+    expect(getUserMock).toHaveBeenCalled();
+    expect(nativeGetUserMock).not.toHaveBeenCalled();
+    expect(getNativeSupabaseMock).not.toHaveBeenCalled();
+    expect(storageUploadMock).toHaveBeenCalledWith(
+      "user-1/proj-1/uuid-fixed-0001.jpg",
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(rpcMock).toHaveBeenCalledWith(
+      "create_project_photo_metadata",
+      expect.objectContaining({
+        p_storage_path: "user-1/proj-1/uuid-fixed-0001.jpg",
+      }),
+    );
+    expect(nativeStorageUploadMock).not.toHaveBeenCalled();
+    expect(nativeRpcMock).not.toHaveBeenCalled();
+  });
+
+  it("native upload uses the same native client for auth, Storage, and RPC", async () => {
+    isNativePlatform.mockReturnValue(true);
+
+    await uploadProjectPhoto({ projectId: "proj-1", file: makeImageFile() });
+
+    expect(getNativeSupabaseMock).toHaveBeenCalled();
+    expect(nativeGetUserMock).toHaveBeenCalled();
+    expect(getUserMock).not.toHaveBeenCalled();
+    expect(authGetUserMock).not.toHaveBeenCalled();
+    expect(nativeStorageUploadMock).toHaveBeenCalledWith(
+      "native-user-1/proj-1/uuid-fixed-0001.jpg",
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(nativeRpcMock).toHaveBeenCalledWith(
+      "create_project_photo_metadata",
+      expect.objectContaining({
+        p_storage_path: "native-user-1/proj-1/uuid-fixed-0001.jpg",
+      }),
+    );
+    expect(storageUploadMock).not.toHaveBeenCalled();
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it("native Storage path first segment equals the native authenticated user id", async () => {
+    isNativePlatform.mockReturnValue(true);
+    nativeGetUserMock.mockResolvedValue({
+      data: { user: { id: "aaaa1111-bbbb-cccc-dddd-eeeeffff0000", email: "n@b.co" } },
+      error: null,
+    });
+
+    await uploadProjectPhoto({ projectId: "proj-1", file: makeImageFile() });
+
+    const [path] = nativeStorageUploadMock.mock.calls[0] as [string];
+    expect(path.startsWith("aaaa1111-bbbb-cccc-dddd-eeeeffff0000/")).toBe(true);
+    expect(path.split("/")[0]).toBe("aaaa1111-bbbb-cccc-dddd-eeeeffff0000");
+    expect(storageUploadMock).not.toHaveBeenCalled();
+  });
+
+  it("native missing session does not fall back to web auth and does not reach Storage", async () => {
+    isNativePlatform.mockReturnValue(true);
+    nativeGetUserMock.mockResolvedValue({ data: { user: null }, error: null });
+    authGetUserMock.mockReturnValue({ id: "web-cached-user", email: "w@x.co" });
+    getUserMock.mockResolvedValue({
+      data: { user: { id: "web-session-user", email: "w@x.co" } },
+      error: null,
+    });
+
+    await expect(
+      uploadProjectPhoto({ projectId: "proj-1", file: makeImageFile() }),
+    ).rejects.toMatchObject({
+      message: PHOTO_WRITE_AUTH_ERROR,
+      stage: "authentication",
+      code: "not_authenticated",
+    });
+
+    expect(authGetUserMock).not.toHaveBeenCalled();
+    expect(getUserMock).not.toHaveBeenCalled();
+    expect(nativeStorageUploadMock).not.toHaveBeenCalled();
+    expect(storageUploadMock).not.toHaveBeenCalled();
+    expect(nativeRpcMock).not.toHaveBeenCalled();
+    expect(rpcMock).not.toHaveBeenCalled();
+  });
+
+  it("web unauthenticated does not reach Storage", async () => {
+    getUserMock.mockResolvedValue({ data: { user: null }, error: null });
+    authGetUserMock.mockReturnValue(null);
+
+    await expect(
+      uploadProjectPhoto({ projectId: "proj-1", file: makeImageFile() }),
+    ).rejects.toMatchObject({
+      stage: "authentication",
+      code: "not_authenticated",
+    });
+    expect(storageUploadMock).not.toHaveBeenCalled();
+    expect(nativeStorageUploadMock).not.toHaveBeenCalled();
+  });
+
+  it("native remove uses the native client for auth, RPC, and Storage", async () => {
+    isNativePlatform.mockReturnValue(true);
+    nativeRpcMock.mockResolvedValue({
+      data: [{ id: "p1", storage_path: "native-user-1/proj-1/p1.jpg", project_id: "proj-1" }],
+      error: null,
+    });
+
+    const result = await removeProjectPhoto({ photoId: "p1" });
+
+    expect(nativeGetUserMock).toHaveBeenCalled();
+    expect(getUserMock).not.toHaveBeenCalled();
+    expect(nativeRpcMock).toHaveBeenCalledWith("delete_project_photo_metadata", {
+      p_photo_id: "p1",
+    });
+    expect(rpcMock).not.toHaveBeenCalled();
+    expect(nativeStorageRemoveMock).toHaveBeenCalledWith(["native-user-1/proj-1/p1.jpg"]);
+    expect(storageRemoveMock).not.toHaveBeenCalled();
+    expect(result.storageCleanup).toBe("removed");
+  });
+
+  it("source uses dynamic native import and no static SecureStorage client", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const src = readFileSync(join(process.cwd(), "src/lib/photos-write.ts"), "utf8");
+    expect(src).toMatch(/import\(["']@\/platform\/supabase\/native["']\)/);
+    expect(src).not.toMatch(
+      /import\s*\{[^}]*getNativeSupabase[^}]*\}\s*from\s*["']@\/platform\/supabase\/native["']/,
+    );
+    expect(src).not.toMatch(/from\s+["']@\/platform\/supabase\/client["']/);
+    expect(src).not.toMatch(/from\s+["']@\/platform\/auth\/native/);
+    expect(src).toMatch(/if\s*\(\s*!Capacitor\.isNativePlatform\(\)\s*\)/);
   });
 });
 
