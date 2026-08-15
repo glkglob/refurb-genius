@@ -8,7 +8,18 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
   // supabase/.temp is gitignored CLI runtime state (edge-runtime bootstrap, secrets).
   // CLI 2.111.0 writes TypeScript under start-secrets that must not be linted as app code.
-  { ignores: ["dist", ".output", ".vinxi", ".vercel", ".tmp", "supabase/.temp"] },
+  // ios/App/App/public is Capacitor-synced generated SPA output (minified Vite bundles).
+  {
+    ignores: [
+      "dist",
+      ".output",
+      ".vinxi",
+      ".vercel",
+      ".tmp",
+      "supabase/.temp",
+      "ios/App/App/public",
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
