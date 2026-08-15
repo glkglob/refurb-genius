@@ -17,7 +17,12 @@ export function Navbar() {
   const { isAuthenticated } = useAuth();
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur">
+    <header
+      // Padding on the header (no fixed height) so inset sits above the h-16 row
+      // instead of compressing it. Header background still covers the status area.
+      className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur supports-[padding:max(0px)]:pt-[env(safe-area-inset-top)]"
+      data-testid="marketing-navbar"
+    >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
@@ -64,7 +69,9 @@ export function Navbar() {
         <div className="flex items-center gap-2 md:hidden">
           {isAuthenticated ? (
             <Button asChild size="sm">
-              <Link to="/dashboard">Dashboard</Link>
+              <Link to="/dashboard" data-testid="marketing-nav-dashboard">
+                Dashboard
+              </Link>
             </Button>
           ) : (
             <Button asChild variant="ghost" size="sm">
@@ -74,9 +81,11 @@ export function Navbar() {
             </Button>
           )}
           <button
+            type="button"
             onClick={() => setMenuOpen((o) => !o)}
             className="rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground"
             aria-label="Toggle menu"
+            data-testid="marketing-nav-menu"
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
