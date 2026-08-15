@@ -1,0 +1,16 @@
+src/components/Navbar.test.tsx
+  h_7ea6129503670a 1-74
+src/components/Navbar.tsx
+  h_7ea6129503670a 20-25,72-74,84,88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "c2c00e1f97afd9cdb54bfe8b622264bd9c1cf866",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
