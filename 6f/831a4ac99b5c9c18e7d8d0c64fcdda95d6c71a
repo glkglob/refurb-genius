@@ -1,0 +1,14 @@
+ios/App/App/Info.plist
+  h_7ea6129503670a 50-51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "6f831a4ac99b5c9c18e7d8d0c64fcdda95d6c71a",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
