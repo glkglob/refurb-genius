@@ -47,6 +47,8 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Refurb Genius uses the camera so you can photograph rooms and property details for refurbishment analysis.</string>
 	<!-- IOS-READINESS-2B-1: custom URL scheme for ASWebAuthenticationSession + dev/sim returns.
 	     Canonical OAuth callback: com.refurbgenius.app://auth/callback
 	     Do not design access_token/refresh_token into this URL. -->
