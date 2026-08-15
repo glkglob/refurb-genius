@@ -1,0 +1,20 @@
+src/features/ai-upload/presentation/checkUploadHealth.test.ts
+  h_7ea6129503670a 1-135
+src/features/ai-upload/presentation/checkUploadHealth.ts
+  h_7ea6129503670a 4-7,9,39,43,60,100
+src/lib/photos-write.test.ts
+  h_7ea6129503670a 13-21,40-51,61-69,78-83,93-96,130,157-158,187-191,198-205,210-213,221-225,327,837-988
+src/lib/photos-write.ts
+  h_7ea6129503670a 2,7-13,29,31,64-78,249,253,257-262,294-297,299,373,376,415,485,498,528,543,581,733-734,736-738,775
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "3da51257bd397a7c0e344b38a2f9423745e8190a",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
