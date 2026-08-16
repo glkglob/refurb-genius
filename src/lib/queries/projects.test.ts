@@ -17,6 +17,8 @@ const {
   listProjectsNative,
   getProjectNative,
   listPhotosNative,
+  getLatestRoomEstimate,
+  getLatestProjectEstimate,
 } = vi.hoisted(() => ({
   fromMock: vi.fn(),
   loggerError: vi.fn(),
@@ -24,6 +26,8 @@ const {
   listProjectsNative: vi.fn(),
   getProjectNative: vi.fn(),
   listPhotosNative: vi.fn(),
+  getLatestRoomEstimate: vi.fn(),
+  getLatestProjectEstimate: vi.fn(),
 }));
 
 vi.mock("@capacitor/core", () => ({
@@ -45,6 +49,37 @@ vi.mock("@/platform/supabase/native-projects", () => ({
 
 vi.mock("@/platform/supabase/native-photos", () => ({
   listPhotosNative: (...args: unknown[]) => listPhotosNative(...args),
+}));
+
+vi.mock("@/features/estimate", () => ({
+  getLatestRoomEstimate: (...args: unknown[]) => getLatestRoomEstimate(...args),
+  getLatestProjectEstimate: (...args: unknown[]) => getLatestProjectEstimate(...args),
+}));
+
+vi.mock("@repo/services", () => ({
+  calculateFinancialPath: ({
+    purchase_price,
+    estimated_gdv,
+    region,
+  }: {
+    purchase_price?: number | null;
+    estimated_gdv?: number | null;
+    region?: string | null;
+  }) => ({
+    financials: {
+      purchasePrice: Number(purchase_price ?? 0),
+      estimatedGdv: Number(estimated_gdv ?? 0),
+      refurbBudget: 0,
+      totalProjectCost: Number(purchase_price ?? 0),
+      estimatedProfit: 0,
+      roiPercent: 0,
+      grossYield: 0,
+      investmentScore: 0,
+      riskLevel: "n/a",
+      timelineWeeks: 8,
+      region,
+    },
+  }),
 }));
 
 vi.mock("@/lib/logger", () => ({
@@ -71,6 +106,7 @@ import {
   fetchProjectById,
   fetchProjectPhotosList,
   photosQueryOptions,
+  financialsQueryOptions,
 } from "./projects";
 
 function makeProject(overrides: Partial<ProjectWithProgress> = {}): ProjectWithProgress {
@@ -260,6 +296,11 @@ describe("projects query factory native-graph containment", () => {
     expect(PROJECTS_SRC).toMatch(/rowToProject/);
   });
 
+  it("financialsQueryOptions uses getProjectNative on native", () => {
+    expect(PROJECTS_SRC).toMatch(/financialsQueryOptions/);
+    expect(PROJECTS_SRC).toMatch(/getProjectNative/);
+  });
+
   it("dynamically imports native-photos on the native photo-list path", () => {
     expect(PROJECTS_SRC).toMatch(/import\(["']@\/platform\/supabase\/native-photos["']\)/);
     expect(PROJECTS_SRC).toMatch(/listPhotosNative/);
@@ -272,6 +313,36 @@ describe("projects query factory native-graph containment", () => {
   it("keeps projectsListQueryOptions on fetchProjectsList and projectKeys.all", () => {
     expect(projectsListQueryOptions().queryFn).toBe(fetchProjectsList);
     expect(projectsListQueryOptions().queryKey).toEqual(["projects"]);
+  });
+});
+
+describe("financialsQueryOptions platform split", () => {
+  beforeEach(() => {
+    fromMock.mockReset();
+    isNativePlatform.mockReturnValue(false);
+    getProjectNative.mockReset();
+    getLatestRoomEstimate.mockReset();
+    getLatestProjectEstimate.mockReset();
+    getLatestRoomEstimate.mockResolvedValue(null);
+    getLatestProjectEstimate.mockResolvedValue(null);
+  });
+
+  it("native reads project via getProjectNative", async () => {
+    isNativePlatform.mockReturnValue(true);
+    getProjectNative.mockResolvedValue(
+      makeProjectRow({
+        id: "fin-n",
+        purchase_price: 250_000,
+        estimated_gdv: 320_000,
+        region: "London",
+      }),
+    );
+    const fn = financialsQueryOptions("fin-n").queryFn;
+    expect(fn).toBeTypeOf("function");
+    const out = await (fn as (ctx: unknown) => Promise<unknown>)({});
+    expect(getProjectNative).toHaveBeenCalledWith("fin-n");
+    expect(fromMock).not.toHaveBeenCalled();
+    expect(out).toMatchObject({ purchasePrice: 250_000, estimatedGdv: 320_000 });
   });
 });
 

@@ -2,12 +2,21 @@
  * Native RLS project data-plane foundation (IOS-READINESS-2C-1).
  *
  * Proves list/create via getNativeSupabase() under RLS.
- * Not wired into useProjects / createProjectServerFn consumers in this phase (2C-3).
+ * List/detail are wired from queries/projects.ts. Create is wired from
+ * useCreateProject on native (web still uses createProjectServerFn).
+ *
+ * Native create JIT-refreshes the Keychain session (autoRefreshToken:false)
+ * via resolveNativeAccessTokenFromAuth before insert. user_id comes from the
+ * aligned getSession() identity, never from the payload.
  *
  * Web must continue using existing cookie/serverFn paths.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@repo/supabase";
+import {
+  resolveNativeAccessTokenFromAuth,
+  type NativeAccessTokenFailureReason,
+} from "@/platform/http/native-access-token";
 
 export type NativeProjectInsertInput = {
   name: string;
@@ -42,27 +51,43 @@ export async function listProjectsWithClient(
   return data ?? [];
 }
 
+function nativeCreateAuthError(reason: NativeAccessTokenFailureReason): Error {
+  if (reason === "refresh_failed") {
+    return new Error("Your session expired. Sign in again.");
+  }
+  if (reason === "indeterminate") {
+    return new Error("Could not verify your session. Sign in again.");
+  }
+  return new Error("You must be signed in.");
+}
+
 /**
  * Create a project owned by the authenticated native user.
- * user_id is taken exclusively from auth.getUser() — never from the payload.
+ * JIT-refreshes a stale/near-expiry Keychain token first, then takes user_id
+ * exclusively from the aligned auth session — never from the payload.
  */
 export async function createProjectWithClient(
   supabase: SupabaseClient<Database>,
   input: NativeProjectInsertInput,
 ): Promise<NativeProjectRow> {
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+  const token = await resolveNativeAccessTokenFromAuth(supabase.auth);
+  if (!token.ok) {
+    throw nativeCreateAuthError(token.reason);
+  }
 
-  if (userError || !user?.id) {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+  const userId = session?.user?.id;
+  if (sessionError || !userId) {
     throw new Error("You must be signed in.");
   }
 
   const { data: row, error } = await supabase
     .from("projects")
     .insert({
-      user_id: user.id,
+      user_id: userId,
       name: input.name.trim(),
       address: input.address?.trim() ?? "",
       postcode: input.postcode?.trim() ?? "",
@@ -115,7 +140,7 @@ export async function getProjectNative(id: string): Promise<NativeProjectRow | n
   return getProjectWithClient(getNativeSupabase(), id);
 }
 
-/** Production entry: create via native Keychain client + RLS. */
+/** Production entry: create via native Keychain client + JIT refresh + RLS. */
 export async function createProjectNative(
   input: NativeProjectInsertInput,
 ): Promise<NativeProjectRow> {
