@@ -1,0 +1,28 @@
+src/features/gallery/application/ports.ts
+  h_7ea6129503670a 2,6,9-29,33-34
+src/features/gallery/application/publishingStubs.ts
+  h_7ea6129503670a 4-13
+src/features/gallery/domain/types.test.ts
+  h_7ea6129503670a 1-61
+src/features/gallery/domain/types.ts
+  h_7ea6129503670a 1-12,22,31-44,46-75
+src/features/gallery/infrastructure/galleryRepository.test.ts
+  h_7ea6129503670a 4-6,37-38,166-237
+src/features/gallery/infrastructure/galleryRepository.ts
+  h_7ea6129503670a 2,7-10,18,21,102-120
+src/features/gallery/infrastructure/index.ts
+  h_7ea6129503670a 1,6,10-17,21,26,29-47
+tests/invariants/gallery-public-retrieval.invariant.test.ts
+  h_7ea6129503670a 1-133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b863dc3aeb6d784b27913fcc088c6a342114d0af",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
