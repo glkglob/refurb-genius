@@ -8,10 +8,11 @@
 // `{auth.uid()}/...` for INSERT/DELETE (see
 // supabase/migrations/20260605123000_feature_foundation.sql), so callers
 // must always pass the current user's id as `userId`.
-import { supabase } from "@/platform/supabase/browser";
+import { resolveSupabaseEnv, supabase } from "@/platform/supabase/browser";
 import { logger } from "@/lib/logger";
 
 export const GALLERY_BUCKET = "gallery";
+const GALLERY_PUBLIC_PATH_PREFIX = `/storage/v1/object/public/${GALLERY_BUCKET}/`;
 
 /**
  * Upload a cover image for a project's public gallery listing.
@@ -42,26 +43,66 @@ export async function uploadGalleryCoverImage(
 }
 
 /**
- * Best-effort removal of a previously uploaded cover image.
- * Non-fatal: storage cleanup failures shouldn't block DB updates.
+ * Remove a gallery-bucket object by storage path.
+ * Callers that need privacy classification must use revokeGalleryCover.
  */
 export async function deleteGalleryStorageObject(path: string): Promise<void> {
   if (!path) return;
   const { error } = await supabase.storage.from(GALLERY_BUCKET).remove([path]);
   if (error) {
-    logger.warn("[gallery] storage delete warning (non-fatal)", { path, error: error.message });
+    logger.error("[gallery] storage delete failed", { path, error: error.message });
+    throw new Error(error.message);
   }
 }
 
 /**
- * Extract the storage path from a public gallery URL, e.g. for cleanup
- * before uploading a replacement. Returns null if the URL doesn't look
- * like a `gallery` bucket public URL.
+ * Extract a gallery-bucket object path from a public URL that belongs to the
+ * configured Supabase Storage origin.
+ * Returns null for empty, malformed, foreign-origin, non-gallery, or traversal paths.
+ * Query strings and fragments are ignored.
  */
 export function galleryPathFromPublicUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  const marker = `/object/public/${GALLERY_BUCKET}/`;
-  const idx = url.indexOf(marker);
-  if (idx === -1) return null;
-  return url.slice(idx + marker.length);
+  if (typeof url !== "string") return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  const configured = resolveSupabaseEnv().supabaseUrl?.trim();
+  if (!configured) return null;
+
+  let expected: URL;
+  try {
+    expected = new URL(configured);
+  } catch {
+    return null;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return null;
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+  if (parsed.username !== "" || parsed.password !== "") return null;
+  if (parsed.origin !== expected.origin) return null;
+  if (!parsed.pathname.startsWith(GALLERY_PUBLIC_PATH_PREFIX)) return null;
+
+  const raw = parsed.pathname.slice(GALLERY_PUBLIC_PATH_PREFIX.length);
+  if (!raw) return null;
+
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    return null;
+  }
+
+  if (decoded.includes("\\") || decoded.includes("\0")) return null;
+
+  const parts = decoded.split("/").filter((part) => part.length > 0);
+  if (parts.length < 2) return null;
+  if (parts.some((part) => part === "." || part === "..")) return null;
+
+  return parts.join("/");
 }

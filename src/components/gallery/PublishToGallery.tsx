@@ -31,6 +31,9 @@ export function PublishToGallery({ projectId, projectName }: PublishToGalleryPro
   });
 
   const upsert = useUpsertGalleryProject(projectId);
+  const pendingCleanups = upsert.pendingCoverCleanups;
+  const pendingCount = pendingCleanups.length;
+  const formLocked = galleryLoading || upsert.isPending || upsert.isRetryingCoverCleanup;
 
   const [isPublic, setIsPublic] = useState(false);
   const [featured, setFeatured] = useState(false);
@@ -101,10 +104,21 @@ export function PublishToGallery({ projectId, projectName }: PublishToGalleryPro
         cover_image_url: coverImageUrl,
       },
       {
-        onSuccess: () => {
+        onSuccess: (result) => {
+          if (result.obsoleteCoverCleanup?.status === "failed") {
+            toast.error(
+              "Gallery settings saved, but the previous cover image could not be removed.",
+            );
+            return;
+          }
           toast.success("Gallery settings saved");
         },
         onError: (err) => {
+          if (gallery) {
+            setIsPublic(gallery.is_public);
+            setFeatured(gallery.featured);
+            setCoverImageUrl(gallery.cover_image_url);
+          }
           toast.error(err instanceof Error ? err.message : "Failed to save gallery settings.");
         },
       },
@@ -173,7 +187,7 @@ export function PublishToGallery({ projectId, projectName }: PublishToGalleryPro
             <Switch
               id="gallery-is-public"
               checked={isPublic}
-              disabled={galleryLoading || upsert.isPending}
+              disabled={formLocked}
               onCheckedChange={(checked) => save({ is_public: checked })}
             />
           </div>
@@ -190,7 +204,7 @@ export function PublishToGallery({ projectId, projectName }: PublishToGalleryPro
             <Switch
               id="gallery-featured"
               checked={featured}
-              disabled={galleryLoading || upsert.isPending || !isPublic}
+              disabled={formLocked || !isPublic}
               onCheckedChange={(checked) => save({ featured: checked })}
             />
           </div>
@@ -205,7 +219,7 @@ export function PublishToGallery({ projectId, projectName }: PublishToGalleryPro
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={projectName || "e.g. 3-Bed Refurb Opportunity in Manchester"}
-              disabled={upsert.isPending}
+              disabled={formLocked}
             />
           </div>
 
@@ -217,7 +231,7 @@ export function PublishToGallery({ projectId, projectName }: PublishToGalleryPro
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the opportunity for prospective investors..."
               rows={4}
-              disabled={upsert.isPending}
+              disabled={formLocked}
             />
           </div>
 
@@ -248,7 +262,7 @@ export function PublishToGallery({ projectId, projectName }: PublishToGalleryPro
                   variant="outline"
                   size="sm"
                   onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading || upsert.isPending}
+                  disabled={uploading || formLocked}
                 >
                   {uploading ? (
                     <>
@@ -267,8 +281,37 @@ export function PublishToGallery({ projectId, projectName }: PublishToGalleryPro
           </div>
         </div>
 
+        {pendingCount > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4">
+            <p className="text-sm text-muted-foreground">
+              {pendingCount > 1
+                ? `${pendingCount} previous cover images still need cleanup`
+                : pendingCleanups[0]?.kind === "compensation"
+                  ? "The uploaded cover image could not be removed after the save failed."
+                  : "Gallery settings saved, but the previous cover image could not be removed."}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={formLocked}
+              onClick={() => {
+                void upsert.retryPendingCoverCleanup().then((result) => {
+                  if (result.status === "failed") {
+                    toast.error("Could not remove the previous cover image. You can retry.");
+                    return;
+                  }
+                  toast.success("Previous cover image removed");
+                });
+              }}
+            >
+              Retry cleanup
+            </Button>
+          </div>
+        ) : null}
+
         <div className="flex justify-end">
-          <Button onClick={() => save()} disabled={upsert.isPending || galleryLoading}>
+          <Button onClick={() => save()} disabled={formLocked}>
             {upsert.isPending ? "Saving..." : "Save gallery settings"}
           </Button>
         </div>

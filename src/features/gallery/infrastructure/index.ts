@@ -1,4 +1,4 @@
-import type { GalleryCoverLifecycle, GalleryRepository } from "@/features/gallery/application";
+import type { GalleryRepository } from "@/features/gallery/application";
 
 export {
   galleryRepository,
@@ -7,12 +7,13 @@ export {
   type UpsertGalleryProjectRecordInput,
 } from "./galleryRepository";
 
+export { createGalleryCoverLifecycle, revokeGalleryCover } from "./galleryCoverLifecycle";
+
 const NOT_IMPLEMENTED = {
   owner: "Gallery owner verification is not implemented yet.",
   publish: "Gallery publishing is not implemented yet.",
   list: "Public gallery listing read is not implemented yet.",
   byId: "Public gallery detail read is not implemented yet.",
-  cover: "Gallery cover revocation is not implemented yet.",
 } as const;
 
 /**
@@ -33,18 +34,6 @@ export function createGalleryRepository(): GalleryRepository {
     },
     getPublicPublicationById: async () => {
       throw new Error(NOT_IMPLEMENTED.byId);
-    },
-  };
-}
-
-/**
- * Scaffold cover lifecycle. GALLERY-C implements Storage revocation.
- * GALLERY-B must not delete or upload objects.
- */
-export function createGalleryCoverLifecycle(): GalleryCoverLifecycle {
-  return {
-    revokeCover: async () => {
-      throw new Error(NOT_IMPLEMENTED.cover);
     },
   };
 }

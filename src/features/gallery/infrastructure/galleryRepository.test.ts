@@ -227,12 +227,14 @@ describe("gallery repository security contract", () => {
 });
 
 describe("gallery port scaffolds", () => {
-  it("does not perform public photo reads or cover storage mutation", async () => {
+  it("does not perform public photo reads; cover revoke is already_absent without a URL", async () => {
     const repository = createGalleryRepository();
     const lifecycle = createGalleryCoverLifecycle();
 
     await expect(repository.listPublicPublications()).rejects.toThrow(/not implemented/);
     await expect(repository.getPublicPublicationById("gal-1")).rejects.toThrow(/not implemented/);
-    await expect(lifecycle.revokeCover({ coverImageUrl: null })).rejects.toThrow(/not implemented/);
+    await expect(lifecycle.revokeCover({ coverImageUrl: null })).resolves.toEqual({
+      status: "already_absent",
+    });
   });
 });
