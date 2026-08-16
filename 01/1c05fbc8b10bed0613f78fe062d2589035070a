@@ -1,0 +1,20 @@
+src/lib/queries/gallery.test.ts
+  h_7ea6129503670a 1-2,67,83-122
+src/routes/gallery.$slug.test.tsx
+  h_7ea6129503670a 1-113
+src/routes/gallery.$slug.tsx
+  h_7ea6129503670a 12
+tests/invariants/gallery-public-retrieval.invariant.test.ts
+  h_7ea6129503670a 2,4-6,18,21,30-31,95-99,112-126
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "011c05fbc8b10bed0613f78fe062d2589035070a",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
