@@ -19,6 +19,7 @@ import {
   isProductionValidAnalysisSet,
   loadPhotoAnalysis,
   usePhotos,
+  useProjectPhotoDisplayUrl,
   type RoomAnalysis,
 } from "@/features/ai-upload";
 import {
@@ -116,7 +117,16 @@ function RedesignPage() {
   const analysisFlags = analysisShellFlagsFromCurrency(photosAnalysisWorkflow.analysis.currency);
   const redesignFlags = redesignShellFlagsFromCurrency(redesignState.currency);
 
-  const heroUrl = analyses[0]?.photo_url ?? catalogue[0]?.url;
+  const heroPhoto =
+    (analyses[0]?.photo_id
+      ? (projectPhotos ?? []).find((p) => p.id === analyses[0]?.photo_id)
+      : undefined) ?? (projectPhotos ?? [])[0];
+  const { data: heroDisplay } = useProjectPhotoDisplayUrl({
+    projectId: id,
+    photoId: heroPhoto?.id ?? "",
+    storagePath: heroPhoto?.storagePath ?? "",
+  });
+  const heroUrl = heroDisplay?.signedUrl;
 
   const reload = useCallback(async () => {
     setLoadingAuthority(true);

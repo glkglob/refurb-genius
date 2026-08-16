@@ -12,6 +12,15 @@ import type {
   RoomAnalysis,
   RoomType,
 } from "../../domain";
+
+type VisionPhotoInput = AnalysisPhotoSource & { retrievalUrl?: string };
+
+function providerImageUrl(photo: VisionPhotoInput): string {
+  if (!photo.retrievalUrl) {
+    throw new Error("Authorized retrieval URL is required");
+  }
+  return photo.retrievalUrl;
+}
 import { buildMockRoomAnalyses, noSourcePhotosError } from "../../domain";
 import { safeParseRoomAnalysis } from "../../domain/validation";
 import {
@@ -126,7 +135,7 @@ function parseGptJson(text: string): unknown {
   return JSON.parse(inner);
 }
 
-async function analysePhoto(apiKey: string, photo: AnalysisPhotoSource): Promise<RoomAnalysis> {
+async function analysePhoto(apiKey: string, photo: VisionPhotoInput): Promise<RoomAnalysis> {
   try {
     addDiagnosticBreadcrumb("ai:gpt4o:analyze:start", {
       photo: photo.name,
@@ -150,7 +159,7 @@ async function analysePhoto(apiKey: string, photo: AnalysisPhotoSource): Promise
                 content: [
                   {
                     type: "image_url",
-                    image_url: { url: photo.url, detail: "low" },
+                    image_url: { url: providerImageUrl(photo), detail: "low" },
                   },
                   {
                     type: "text",
@@ -235,7 +244,7 @@ async function analysePhoto(apiKey: string, photo: AnalysisPhotoSource): Promise
 
 export async function runSecurePhotoAnalysis(input: {
   projectId: string;
-  photos: AnalysisPhotoSource[];
+  photos: VisionPhotoInput[];
 }): Promise<RoomAnalysis[]> {
   // Production (and all environments): never analyse an empty photo list.
   // Empty list must not fall back to bundled mock Kitchen/Bathroom/Living Room demos.

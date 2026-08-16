@@ -1,5 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { trackReportExported } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ import {
   loadPhotoAnalysis,
   isProductionValidAnalysisSet,
   usePhotos,
+  useProjectPhotoDisplayUrl,
+  retryProjectPhotoDisplayOnce,
   type RoomAnalysis,
 } from "@/features/ai-upload";
 import { useProject } from "@/hooks/useProjects";
@@ -405,7 +408,12 @@ function ReportPage() {
                     key={p.id}
                     className="aspect-4/3 overflow-hidden rounded-md border border-border bg-muted"
                   >
-                    <img src={p.url} alt={p.name} className="h-full w-full object-cover" />
+                    <ReportPhotoDisplay
+                      projectId={id}
+                      photoId={p.id}
+                      storagePath={p.storagePath}
+                      alt={p.name}
+                    />
                   </div>
                 ))}
               </div>
@@ -425,10 +433,15 @@ function ReportPage() {
                     className="grid gap-4 rounded-md border border-border p-4 sm:grid-cols-[140px_1fr]"
                   >
                     <div className="aspect-4/3 overflow-hidden rounded-md bg-muted">
-                      <img
-                        src={r.photo_url}
+                      <ReportPhotoDisplay
+                        projectId={id}
+                        photoId={r.photo_id ?? ""}
+                        storagePath={
+                          r.photo_id
+                            ? (photos.find((p) => p.id === r.photo_id)?.storagePath ?? "")
+                            : ""
+                        }
                         alt={r.room_type}
-                        className="h-full w-full object-cover"
                       />
                     </div>
                     <div>
@@ -620,5 +633,30 @@ function Stat({ label, value, highlight }: { label: string; value: string; highl
         <p className="mt-1 text-xl font-semibold tracking-tight text-foreground">{value}</p>
       </CardContent>
     </Card>
+  );
+}
+
+function ReportPhotoDisplay({
+  projectId,
+  photoId,
+  storagePath,
+  alt,
+}: {
+  projectId: string;
+  photoId: string;
+  storagePath: string;
+  alt: string;
+}) {
+  const queryClient = useQueryClient();
+  const retriedRef = useRef(false);
+  const { data: display } = useProjectPhotoDisplayUrl({ projectId, photoId, storagePath });
+  if (!display?.signedUrl) return null;
+  return (
+    <img
+      src={display.signedUrl}
+      alt={alt}
+      className="h-full w-full object-cover"
+      onError={() => retryProjectPhotoDisplayOnce(queryClient, projectId, photoId, retriedRef)}
+    />
   );
 }

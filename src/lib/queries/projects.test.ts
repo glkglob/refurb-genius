@@ -111,6 +111,21 @@ describe("projectKeys (C4c-1 serialized identity)", () => {
   it("nested resource keys remain descendants of byId", () => {
     expect(projectKeys.photosByProject("abc")).toEqual(["projects", "abc", "photos"]);
     expect(projectKeys.estimateByProject("abc")).toEqual(["projects", "abc", "estimate"]);
+    expect(projectKeys.photoDisplayByProject("abc")).toEqual(["projects", "abc", "photoDisplay"]);
+    expect(projectKeys.photoDisplay("abc", "photo-1")).toEqual([
+      "projects",
+      "abc",
+      "photoDisplay",
+      "photo-1",
+    ]);
+  });
+
+  it("photoDisplay keys are separate from durable photosByProject metadata", () => {
+    expect(projectKeys.photoDisplay("abc", "photo-1")).not.toEqual(
+      projectKeys.photosByProject("abc"),
+    );
+    expect(projectKeys.photoDisplayByProject("abc")[2]).toBe("photoDisplay");
+    expect(projectKeys.photosByProject("abc")[2]).toBe("photos");
   });
 
   it("does not introduce list/detail segments or user scoping", () => {

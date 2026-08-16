@@ -19,7 +19,24 @@ export {
 } from "./photo-analysis.provider";
 export { useRoomAnalyses, useRunPhotoAnalysis, photoAnalysisKeys } from "./hooks/usePhotoAnalysis";
 export { usePhotos, useUploadPhotos, useRemovePhoto } from "./hooks/usePhotos";
-export { useInvalidateProjectPhotos } from "./hooks/useInvalidateProjectPhotos";
+export {
+  useInvalidateProjectPhotos,
+  invalidateProjectPhotoQueries,
+} from "./hooks/useInvalidateProjectPhotos";
+export {
+  useProjectPhotoDisplayUrl,
+  useProjectPhotoDisplayUrls,
+  projectPhotoDisplayQueryOptions,
+  retryProjectPhotoDisplayOnce,
+} from "./hooks/useProjectPhotoDisplayUrl";
+export {
+  createProjectPhotoSignedUrl,
+  SIGNED_URL_TTL_SECONDS,
+  SIGNED_URL_REFRESH_MARGIN_SECONDS,
+  SIGNED_URL_STALE_TIME_MS,
+  isProjectPhotoDisplayFresh,
+  ProjectPhotoDisplayError,
+} from "./projectPhotoDisplay";
 export {
   useUpdatePhotoAnalysisResult,
   type UpdatePhotoAnalysisResultMutationInput,

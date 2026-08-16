@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Button } from "@repo/ui";
 import { Card, CardContent } from "@repo/ui";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@repo/ui";
@@ -9,7 +9,7 @@ import { Textarea } from "@repo/ui";
 import { Label } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { toast } from "sonner";
-import { useUpdatePhotoAnalysisResult } from "@/features/ai-upload";
+import { useUpdatePhotoAnalysisResult, useProjectPhotoDisplayUrl } from "@/features/ai-upload";
 import { useApplyPhotoAnalysesToEstimate } from "@/features/estimate";
 import { PhotoAnalysisFilters } from "./PhotoAnalysisFilters";
 import { PhotoAnalysisCard } from "./PhotoAnalysisCard";
@@ -307,6 +307,7 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
           {filteredItems.map(({ photo, analysis, hasAnalysis }) => (
             <PhotoAnalysisCard
               key={photo.id}
+              projectId={projectId}
               photo={photo}
               analysis={analysis}
               isSelected={analysis ? selectedIds.has(analysis.id) : false}
@@ -352,10 +353,10 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
 
               <div className="space-y-6 py-4">
                 {/* Image */}
-                <img
-                  src={editingAnalysis.photo.url}
-                  alt=""
-                  className="rounded w-full max-h-80 object-contain bg-black/5"
+                <EditingPhotoDisplay
+                  projectId={projectId}
+                  photoId={editingAnalysis.photo.id}
+                  storagePath={editingAnalysis.photo.storagePath}
                 />
 
                 {/* Editable fields */}
@@ -438,5 +439,35 @@ export function PhotoAnalysisViewer({ projectId, photos, analyses }: PhotoAnalys
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function EditingPhotoDisplay({
+  projectId,
+  photoId,
+  storagePath,
+}: {
+  projectId: string;
+  photoId: string;
+  storagePath: string;
+}) {
+  const retriedRef = useRef(false);
+  const { data: display, refetch } = useProjectPhotoDisplayUrl({
+    projectId,
+    photoId,
+    storagePath,
+  });
+  if (!display?.signedUrl) return <div className="rounded w-full max-h-80 bg-black/5" />;
+  return (
+    <img
+      src={display.signedUrl}
+      alt=""
+      className="rounded w-full max-h-80 object-contain bg-black/5"
+      onError={() => {
+        if (retriedRef.current) return;
+        retriedRef.current = true;
+        void refetch();
+      }}
+    />
   );
 }

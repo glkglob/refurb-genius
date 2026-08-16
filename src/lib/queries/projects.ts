@@ -34,6 +34,10 @@ export const projectKeys = {
   byId: (id: string) => [...projectKeys.all, id] as const,
   estimateByProject: (projectId: string) => [...projectKeys.byId(projectId), "estimate"] as const,
   photosByProject: (projectId: string) => [...projectKeys.byId(projectId), "photos"] as const,
+  photoDisplayByProject: (projectId: string) =>
+    [...projectKeys.byId(projectId), "photoDisplay"] as const,
+  photoDisplay: (projectId: string, photoId: string) =>
+    [...projectKeys.photoDisplayByProject(projectId), photoId] as const,
   financialsByProject: (projectId: string) =>
     [...projectKeys.byId(projectId), "financials"] as const,
   // New feature foundation keys (project-scoped data for tabs / prefetch)

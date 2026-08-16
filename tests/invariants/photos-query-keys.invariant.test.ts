@@ -45,6 +45,7 @@ const PHOTOS_TABLE_ALLOWLIST = new Set([
   "src/lib/queries/gallery.ts",
   "src/lib/ai-quality-audit.ts",
   "src/features/ai-upload/infrastructure/resolveAuthorizedPhotos.server.ts",
+  "src/features/ai-design/infrastructure/adapters/ai-scope.adapter.server.ts",
 ]);
 
 const SCAN_ROOTS = [

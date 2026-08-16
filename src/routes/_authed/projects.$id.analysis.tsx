@@ -574,7 +574,16 @@ function AnalysisPage() {
               </div>
               <div className="grid gap-5 md:grid-cols-2">
                 {group.analyses.map((r) => (
-                  <AnalysisCard key={r.id} analysis={r} />
+                  <AnalysisCard
+                    key={r.id}
+                    analysis={r}
+                    projectId={id}
+                    storagePath={
+                      r.photo_id
+                        ? projectPhotos?.find((p) => p.id === r.photo_id)?.storagePath
+                        : undefined
+                    }
+                  />
                 ))}
               </div>
             </section>

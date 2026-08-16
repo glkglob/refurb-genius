@@ -107,5 +107,15 @@ export const runScopeAnalysisServerFn = createServerFn({ method: "POST" })
     }
     const { runSecureScopeAnalysis } =
       await import("../infrastructure/adapters/ai-scope.adapter.server");
-    return runSecureScopeAnalysis(data);
+    // Client photo.url is identity/compat only — adapter re-resolves by id
+    // and signs storage_path. Client URL is never retrieval authority.
+    return runSecureScopeAnalysis({
+      ...data,
+      photos: data.photos.map((photo) => ({
+        id: photo.id,
+        url: photo.url,
+        name: photo.name,
+        size: photo.size,
+      })),
+    });
   });

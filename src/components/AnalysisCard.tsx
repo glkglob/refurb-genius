@@ -1,9 +1,16 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/StatusBadge";
-import { memo } from "react";
+import { memo, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Sparkles, AlertTriangle, Wrench } from "lucide-react";
-import { needsHumanReview, type RoomAnalysis, type ConditionLevel } from "@/features/ai-upload";
+import {
+  needsHumanReview,
+  retryProjectPhotoDisplayOnce,
+  useProjectPhotoDisplayUrl,
+  type RoomAnalysis,
+  type ConditionLevel,
+} from "@/features/ai-upload";
 import { AnalysisSourceBadge } from "./AnalysisSourceBadge";
 
 const conditionTone: Record<ConditionLevel, Parameters<typeof StatusBadge>[0]["tone"]> = {
@@ -16,21 +23,35 @@ const conditionTone: Record<ConditionLevel, Parameters<typeof StatusBadge>[0]["t
 
 export type AnalysisCardProps = {
   analysis: RoomAnalysis;
+  projectId: string;
+  storagePath?: string;
 };
 
-function AnalysisCardComponent({ analysis: r }: AnalysisCardProps) {
+function AnalysisCardComponent({ analysis: r, projectId, storagePath }: AnalysisCardProps) {
   const review = needsHumanReview(r);
+  const queryClient = useQueryClient();
+  const retriedRef = useRef(false);
+  const { data: display } = useProjectPhotoDisplayUrl({
+    projectId,
+    photoId: r.photo_id ?? "",
+    storagePath: storagePath ?? "",
+  });
 
   return (
     <Card className="overflow-hidden border border-border/60 shadow-sm transition hover:shadow-md">
       <div className="relative aspect-[16/10] w-full bg-muted">
-        <img
-          src={r.photo_url}
-          alt={r.room_type}
-          className="h-full w-full object-cover"
-          loading="lazy"
-          decoding="async"
-        />
+        {display?.signedUrl ? (
+          <img
+            src={display.signedUrl}
+            alt={r.room_type}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+            onError={() =>
+              retryProjectPhotoDisplayOnce(queryClient, projectId, r.photo_id ?? "", retriedRef)
+            }
+          />
+        ) : null}
         <div className="absolute left-3 top-3 flex flex-wrap gap-2">
           <Badge variant="secondary" className="bg-background/90 backdrop-blur">
             {r.room_type}

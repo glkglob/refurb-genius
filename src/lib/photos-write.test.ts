@@ -124,9 +124,11 @@ vi.mock("@/lib/timeout", async () => {
 
 import {
   PROJECT_PHOTOS_BUCKET,
+  PROJECT_PHOTO_CACHE_CONTROL,
   PHOTO_WRITE_AUTH_ERROR,
   buildProjectPhotoStoragePath,
   assertSafePathSegment,
+  getPhotoStorageClient,
   getPhotoWriteClient,
   uploadProjectPhoto,
   uploadProjectPhotos,
@@ -364,6 +366,7 @@ describe("uploadProjectPhoto", () => {
     expect(storageUploadMock).toHaveBeenCalledWith("user-1/proj-1/uuid-fixed-0001.jpg", file, {
       contentType: "image/jpeg",
       upsert: false,
+      cacheControl: PROJECT_PHOTO_CACHE_CONTROL,
     });
     expect(rpcMock).toHaveBeenCalledWith(
       "create_project_photo_metadata",
@@ -835,6 +838,23 @@ describe("module exports", () => {
 });
 
 describe("platform client selection", () => {
+  it("getPhotoWriteClient is a compatibility alias of getPhotoStorageClient", async () => {
+    const storage = await getPhotoStorageClient();
+    const write = await getPhotoWriteClient();
+    expect(write).toBe(storage);
+    expect(write.auth.getUser).toBe(getUserMock);
+    expect(getNativeSupabaseMock).not.toHaveBeenCalled();
+  });
+
+  it("web storage client selects the browser client and does not load native", async () => {
+    const client = await getPhotoStorageClient();
+    expect(isNativePlatform).toHaveBeenCalled();
+    expect(getNativeSupabaseMock).not.toHaveBeenCalled();
+    expect(client.auth.getUser).toBe(getUserMock);
+    expect(client.storage.from).toBe(storageFromMock);
+    expect(client.rpc).toBe(rpcMock);
+  });
+
   it("web selects the browser client and does not load native", async () => {
     const client = await getPhotoWriteClient();
     expect(isNativePlatform).toHaveBeenCalled();
@@ -842,6 +862,16 @@ describe("platform client selection", () => {
     expect(client.auth.getUser).toBe(getUserMock);
     expect(client.storage.from).toBe(storageFromMock);
     expect(client.rpc).toBe(rpcMock);
+  });
+
+  it("native storage client selects getNativeSupabase via dynamic import", async () => {
+    isNativePlatform.mockReturnValue(true);
+    const client = await getPhotoStorageClient();
+    expect(getNativeSupabaseMock).toHaveBeenCalledTimes(1);
+    expect(client.auth.getUser).toBe(nativeGetUserMock);
+    expect(client.storage.from).toBe(nativeStorageFromMock);
+    expect(client.rpc).toBe(nativeRpcMock);
+    expect(client.auth.getUser).not.toBe(getUserMock);
   });
 
   it("native selects getNativeSupabase and not the browser client", async () => {
@@ -970,6 +1000,26 @@ describe("platform client selection", () => {
     expect(nativeStorageRemoveMock).toHaveBeenCalledWith(["native-user-1/proj-1/p1.jpg"]);
     expect(storageRemoveMock).not.toHaveBeenCalled();
     expect(result.storageCleanup).toBe("removed");
+  });
+
+  it("new project-photo uploads send cacheControl 60; existing objects are not rewritten", async () => {
+    await uploadProjectPhoto({ projectId: "proj-1", file: makeImageFile() });
+    expect(PROJECT_PHOTO_CACHE_CONTROL).toBe("60");
+    expect(storageUploadMock).toHaveBeenCalledWith(
+      "user-1/proj-1/uuid-fixed-0001.jpg",
+      expect.anything(),
+      expect.objectContaining({
+        contentType: "image/jpeg",
+        upsert: false,
+        cacheControl: "60",
+      }),
+    );
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const src = readFileSync(join(process.cwd(), "src/lib/photos-write.ts"), "utf8");
+    expect(src).toMatch(/cacheControl:\s*PROJECT_PHOTO_CACHE_CONTROL/);
+    expect(src).not.toMatch(/\.update\(/);
+    expect(src).not.toMatch(/upsert:\s*true/);
   });
 
   it("source uses dynamic native import and no static SecureStorage client", async () => {
