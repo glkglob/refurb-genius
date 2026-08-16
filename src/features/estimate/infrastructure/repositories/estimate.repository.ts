@@ -4,6 +4,7 @@
  * Moved from `src/lib/estimates.ts` (which is now a shim re-exporting this
  * module). DB mapping only — pricing math never happens here.
  */
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/platform/supabase/browser";
 import { logger } from "@/lib/logger";
 import type { Database } from "@repo/supabase";
@@ -26,6 +27,30 @@ export { isAuthoritativePricingAuthority, selectCurrentAuthorityEstimateRow };
 type EstimateRow = Database["public"]["Tables"]["estimates"]["Row"];
 type EstimateItemRow = Database["public"]["Tables"]["estimate_items"]["Row"];
 type EstimateRoomRow = Database["public"]["Tables"]["estimate_rooms"]["Row"];
+
+type EstimateReadClient = {
+  from: typeof supabase.from;
+};
+
+async function resolveEstimateReadContext(): Promise<{
+  client: EstimateReadClient;
+  userId: string;
+} | null> {
+  if (Capacitor.isNativePlatform()) {
+    const { getNativeSupabase } = await import("@/platform/supabase/native");
+    const client = getNativeSupabase();
+    const {
+      data: { user },
+      error,
+    } = await client.auth.getUser();
+    if (error || !user?.id) return null;
+    return { client, userId: user.id };
+  }
+
+  const user = auth.getUser();
+  if (!user) return null;
+  return { client: supabase, userId: user.id };
+}
 
 export type PersistedProjectEstimate = {
   estimate: EstimateRow;
@@ -118,14 +143,14 @@ export async function getLatestProjectEstimate(
   projectId: string,
   currentScopeId?: string | null,
 ): Promise<PersistedProjectEstimate | null> {
-  const user = auth.getUser();
-  if (!user) return null;
+  const ctx = await resolveEstimateReadContext();
+  if (!ctx) return null;
 
-  const { data: rows, error: estimateError } = await supabase
+  const { data: rows, error: estimateError } = await ctx.client
     .from("estimates")
     .select("*")
     .eq("project_id", projectId)
-    .eq("user_id", user.id)
+    .eq("user_id", ctx.userId)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false })
     .limit(40);
@@ -140,7 +165,7 @@ export async function getLatestProjectEstimate(
 
   if (!estimate) return null;
 
-  const { data: items, error: itemsError } = await supabase
+  const { data: items, error: itemsError } = await ctx.client
     .from("estimate_items")
     .select("*")
     .eq("estimate_id", estimate.id)
@@ -368,14 +393,14 @@ export async function saveAIEstimate(input: SaveAIEstimateInput): Promise<Persis
 export async function getLatestRoomEstimate(
   projectId: string,
 ): Promise<PersistedRoomEstimate | null> {
-  const user = auth.getUser();
-  if (!user) return null;
+  const ctx = await resolveEstimateReadContext();
+  if (!ctx) return null;
 
-  const { data: estimate, error: estimateError } = await supabase
+  const { data: estimate, error: estimateError } = await ctx.client
     .from("estimates")
     .select("*")
     .eq("project_id", projectId)
-    .eq("user_id", user.id)
+    .eq("user_id", ctx.userId)
     .eq("ai_generated", true)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -384,7 +409,7 @@ export async function getLatestRoomEstimate(
   if (estimateError) throw new Error(estimateError.message);
   if (!estimate) return null;
 
-  const { data: rooms, error: roomsError } = await supabase
+  const { data: rooms, error: roomsError } = await ctx.client
     .from("estimate_rooms")
     .select("*")
     .eq("estimate_id", estimate.id)
@@ -392,7 +417,7 @@ export async function getLatestRoomEstimate(
 
   if (roomsError) throw new Error(roomsError.message);
 
-  const { data: items, error: itemsError } = await supabase
+  const { data: items, error: itemsError } = await ctx.client
     .from("estimate_items")
     .select("*")
     .eq("estimate_id", estimate.id)

@@ -1,16 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "./useAuth";
 import type { NewProjectInput } from "@/core/projects/domain";
+import { createProjectForClient } from "@/features/projects/infrastructure/createProjectForClient";
 import {
   projectKeys,
   projectsListQueryOptions,
   projectQueryOptions,
   seedProjectDetailCache,
 } from "@/lib/queries/projects";
-
-// NEW: server-side create mutation (SSR + hard-refresh safe).
-// Replaces the previous client-only supabase.auth.getUser() + insert.
-import { createProjectServerFn } from "@/serverFns/projects";
 
 export type { ProjectWithProgress } from "@/lib/mappers";
 
@@ -57,16 +54,14 @@ export function useCreateProject() {
      * followed by a direct insert. That always failed with "You must be signed in."
      * on hard refresh because the client Supabase singleton had no session in memory.
      *
-     * Now we delegate the entire authenticated insert to `createProjectServerFn`,
-     * which:
-     *   - runs its handler on the server
-     *   - calls `requireUser()` (cookie-validated via the server Supabase client)
-     *   - writes the row using the real `user.id` from the validated session
+     * Web: createProjectServerFn (cookie requireUser + server insert).
+     * Native: createProjectNative (Keychain getUser + RLS insert).
+     * user_id is never taken from the payload on either path.
      *
      * C4c-3: onSuccess seeds projectKeys.byId and invalidates the list with exact: true
      * so nested Project resource queries are not broadly refetched.
      */
-    mutationFn: (input: NewProjectInput) => createProjectServerFn({ data: input }),
+    mutationFn: (input: NewProjectInput) => createProjectForClient(input),
     onSuccess: (project) => {
       seedProjectDetailCache(queryClient, project);
       queryClient.invalidateQueries({ queryKey: projectKeys.all, exact: true });

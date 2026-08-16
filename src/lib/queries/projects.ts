@@ -197,15 +197,29 @@ export const financialsQueryOptions = (projectId: string) =>
     queryKey: projectKeys.financialsByProject(projectId),
     queryFn: async () => {
       // Fetch project for base numbers
-      const projectRes = await supabase
-        .from("projects")
-        .select("purchase_price, estimated_gdv, region")
-        .eq("id", projectId)
-        .maybeSingle();
+      let purchase_price: number | null | undefined;
+      let estimated_gdv: number | null | undefined;
+      let region: string | null | undefined;
 
-      if (projectRes.error || !projectRes.data) return null;
+      if (Capacitor.isNativePlatform()) {
+        const { getProjectNative } = await import("@/platform/supabase/native-projects");
+        const row = await getProjectNative(projectId);
+        if (!row) return null;
+        purchase_price = row.purchase_price;
+        estimated_gdv = row.estimated_gdv;
+        region = row.region;
+      } else {
+        const projectRes = await supabase
+          .from("projects")
+          .select("purchase_price, estimated_gdv, region")
+          .eq("id", projectId)
+          .maybeSingle();
 
-      const { purchase_price, estimated_gdv, region } = projectRes.data;
+        if (projectRes.error || !projectRes.data) return null;
+        purchase_price = projectRes.data.purchase_price;
+        estimated_gdv = projectRes.data.estimated_gdv;
+        region = projectRes.data.region;
+      }
 
       // Fetch latest estimate (prefer room-based for detailed budget)
       let midTotal: number | undefined;
