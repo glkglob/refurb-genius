@@ -1,0 +1,36 @@
+src/features/estimate/infrastructure/repositories/estimate.repository.read.test.ts
+  h_7ea6129503670a 1-79
+src/features/estimate/infrastructure/repositories/estimate.repository.ts
+  h_7ea6129503670a 7,31-54,146-147,149,153,168,396-397,399,403,412,420
+src/features/projects/infrastructure/createProjectForClient.test.ts
+  h_7ea6129503670a 1-93
+src/features/projects/infrastructure/createProjectForClient.ts
+  h_7ea6129503670a 1-32
+src/features/projects/infrastructure/projectStageRepository.test.ts
+  h_7ea6129503670a 6-15,19-34,37-42,49-52,57-67,71,74-86,94-96,152-248
+src/features/projects/infrastructure/projectStageRepository.ts
+  h_7ea6129503670a 4-7,10,13-16,45-54,58,63-73
+src/hooks/useProjects.create.test.ts
+  h_7ea6129503670a 1-49
+src/hooks/useProjects.ts
+  h_7ea6129503670a 4,57-59,64
+src/lib/queries/projects.test.ts
+  h_7ea6129503670a 20-21,29-30,54-84,109,299-303,319-348
+src/lib/queries/projects.ts
+  h_7ea6129503670a 200-222
+src/platform/supabase/native-projects.test.ts
+  h_7ea6129503670a 8-17,19-24,53-85,90-92,97-99,110,112,116-117,127-205,208-222,224
+src/platform/supabase/native-projects.ts
+  h_7ea6129503670a 5-10,16-19,54-63,66-67,73-76,78-83,90,143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e0613a5159da48a4243f04731f85cf7828c9d1cf",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
