@@ -1,0 +1,14 @@
+src/features/projects/infrastructure/useCreateProject.hook.test.ts
+  h_7ea6129503670a 9-12,20,24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "994c2ddc489135aaf9e1c1e4842faf1bd2a8cd7f",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
