@@ -1,0 +1,28 @@
+src/components/gallery/PublishToGallery.tsx
+  h_7ea6129503670a 34-36,107-113,117-121,190,207,222,234,265,284-312,314
+src/features/gallery/infrastructure/galleryCoverLifecycle.test.ts
+  h_7ea6129503670a 1-241
+src/features/gallery/infrastructure/galleryCoverLifecycle.ts
+  h_7ea6129503670a 1-51
+src/features/gallery/infrastructure/galleryRepository.test.ts
+  h_7ea6129503670a 230,236-238
+src/features/gallery/infrastructure/index.ts
+  h_7ea6129503670a 1,10-11
+src/features/gallery/presentation/hooks/useUpsertGalleryProject.test.ts
+  h_7ea6129503670a 4-5,14,30-40,49-55,100,162,164-169,294-295,322-323,330,344-351,428-1194
+src/features/gallery/presentation/hooks/useUpsertGalleryProject.ts
+  h_7ea6129503670a 2,8-10,14,17-22,26,37-135,146-181,185-258,263,279-281,284,303,306-360
+src/lib/gallery.ts
+  h_7ea6129503670a 11,15,46-47,53-54,59-62,65-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "e6d76e74cc24b7e1f07d4748d88dfedf85a6018f",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
