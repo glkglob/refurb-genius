@@ -1,0 +1,20 @@
+supabase/migrations/20260816155524_project_photos_private.sql
+  h_7ea6129503670a 1-6
+tests/invariants/config/data/migrations.ts
+  h_7ea6129503670a 89
+tests/invariants/config/data/storage.ts
+  h_7ea6129503670a 21,24,29,32-33
+tests/invariants/config/data/tenancy.ts
+  h_7ea6129503670a 53
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "ea09c36e9bf34d2701af0e0eff3bc7248a0abb48",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
