@@ -86,6 +86,7 @@ export const MIGRATION_FILENAMES = [
   "20260808140000_ia5_r2_semantic_current_estimate.sql",
   "20260809101000_trades_public_job_privacy_boundary.sql",
   "20260811062000_fix_is_admin_public_role_select_policies.sql",
+  "20260816155524_project_photos_private.sql",
 ] as const;
 
 export const MIGRATION_TIMESTAMP_PATTERN = /^\d{14}_[\w-]+\.sql$/;
