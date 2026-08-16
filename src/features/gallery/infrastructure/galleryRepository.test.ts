@@ -1,6 +1,9 @@
 /**
  * AO-1M3 / P1B4 — galleryRepository.upsertGalleryProject table contract.
  */
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const { fromMock, upsertMock, selectMock, singleMock, loggerError } = vi.hoisted(() => {
@@ -31,7 +34,8 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
-import { upsertGalleryProject } from "./galleryRepository";
+import { upsertGalleryProject, toPublicGalleryPublication } from "./galleryRepository";
+import { createGalleryCoverLifecycle, createGalleryRepository } from "./index";
 
 const PROJECT = "proj-gallery-1";
 const USER = "user-gallery-1";
@@ -158,5 +162,79 @@ describe("upsertGalleryProject", () => {
       "[gallery] upsert failed",
       expect.objectContaining({ projectId: PROJECT, error: "RLS denied" }),
     );
+  });
+
+  it("maps listing rows to cover-only public publication identity", () => {
+    const publication = toPublicGalleryPublication(serverRow);
+    expect(publication).toEqual({
+      id: "gal-1",
+      projectId: PROJECT,
+      isPublic: true,
+      featured: true,
+      title: "Victorian Terrace",
+      description: "Full refurb",
+      coverImageUrl: "https://example.com/cover.jpg",
+      viewCount: 3,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-02T00:00:00.000Z",
+    });
+    expect(publication).not.toHaveProperty("url");
+    expect(publication).not.toHaveProperty("storage_path");
+    expect(publication).not.toHaveProperty("storagePath");
+    expect(publication).not.toHaveProperty("photos");
+  });
+
+  it("does not query the photos table or require photo retrieval fields", async () => {
+    await upsertGalleryProject({
+      projectId: PROJECT,
+      userId: USER,
+      is_public: true,
+      cover_image_url: "https://example.com/cover.jpg",
+    });
+
+    expect(fromMock).toHaveBeenCalledWith("public_gallery_projects");
+    expect(fromMock).not.toHaveBeenCalledWith("photos");
+
+    const payload = upsertMock.mock.calls[0]![0] as Record<string, unknown>;
+    expect(payload).not.toHaveProperty("url");
+    expect(payload).not.toHaveProperty("storage_path");
+    expect(payload).not.toHaveProperty("photo_ids");
+  });
+
+  it("publication remains project-level (onConflict project_id)", async () => {
+    await upsertGalleryProject({
+      projectId: PROJECT,
+      userId: USER,
+      is_public: true,
+    });
+    expect(upsertMock).toHaveBeenCalledWith(expect.any(Object), { onConflict: "project_id" });
+  });
+});
+
+describe("gallery repository security contract", () => {
+  const source = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), "galleryRepository.ts"),
+    "utf8",
+  );
+
+  it("does not introduce a privileged signer or storage client", () => {
+    expect(source).not.toMatch(/service_role/);
+    expect(source).not.toMatch(/createSignedUrl/);
+    expect(source).not.toMatch(/storage\.from/);
+    expect(source).not.toMatch(/from\(\s*["']photos["']\s*\)/);
+    expect(source).not.toMatch(/project-photos/);
+  });
+});
+
+describe("gallery port scaffolds", () => {
+  it("does not perform public photo reads; cover revoke is already_absent without a URL", async () => {
+    const repository = createGalleryRepository();
+    const lifecycle = createGalleryCoverLifecycle();
+
+    await expect(repository.listPublicPublications()).rejects.toThrow(/not implemented/);
+    await expect(repository.getPublicPublicationById("gal-1")).rejects.toThrow(/not implemented/);
+    await expect(lifecycle.revokeCover({ coverImageUrl: null })).resolves.toEqual({
+      status: "already_absent",
+    });
   });
 });

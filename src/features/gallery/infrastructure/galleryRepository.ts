@@ -1,8 +1,12 @@
 /**
- * Gallery publication persistence (AO-1M3 / P1B4).
+ * Gallery publication persistence (AO-1M3 / P1B4 / SEC-1B-GALLERY-B).
  *
  * Browser Supabase upsert into public_gallery_projects.
  * Conflict identity: project_id (unique). Ownership enforced by RLS via project.
+ *
+ * Public gallery record = listing metadata + optional cover_image_url.
+ * This module must not join or retrieve project photos, must not read
+ * photos.url / photos.storage_path, and must not sign private objects.
  *
  * Canonical columns (migration 20260605123000):
  *   project_id, is_public, featured, title, description, cover_image_url,
@@ -11,9 +15,10 @@
  * Obsolete (not written): created_by, slug, is_published, summary, location, …
  * Public routes use gallery row `id` as the URL param (not a slug column).
  */
-import { supabase } from "@/platform/supabase/browser";
+import type { PublicGalleryPublication } from "@/features/gallery/domain";
 import { logger } from "@/lib/logger";
 import { mapPublicGalleryProjectRow, type PublicGalleryProjectRow } from "@/lib/queries/gallery";
+import { supabase } from "@/platform/supabase/browser";
 
 export interface UpsertGalleryProjectRecordInput {
   projectId: string;
@@ -94,3 +99,22 @@ export async function upsertGalleryProject(
 export const galleryRepository = {
   upsertGalleryProject,
 };
+
+/**
+ * Map a listing row to the public publication contract.
+ * Imagery is coverImageUrl only — no project-photo fields.
+ */
+export function toPublicGalleryPublication(row: PublicGalleryProjectRow): PublicGalleryPublication {
+  return {
+    id: row.id,
+    projectId: row.project_id,
+    isPublic: row.is_public,
+    featured: row.featured,
+    title: row.title,
+    description: row.description,
+    coverImageUrl: row.cover_image_url,
+    viewCount: row.view_count,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
