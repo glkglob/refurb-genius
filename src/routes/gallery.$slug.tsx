@@ -6,11 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import {
   publicGalleryProjectByIdQueryOptions,
-  publicProjectPhotosQueryOptions,
   type PublicGalleryProjectRow,
 } from "@/lib/queries/gallery";
 import { LeadCaptureForm } from "@/components/gallery/LeadCaptureForm";
-import { ArrowLeft, MapPin, TrendingUp, Ruler, Home, Camera, Layers } from "lucide-react";
+import { ArrowLeft, MapPin, TrendingUp, Ruler, Home, Layers } from "lucide-react";
 
 export const Route = createFileRoute("/gallery/$slug")({
   head: ({ params }) => ({
@@ -38,10 +37,6 @@ function GalleryDetailPage() {
   const { data: gallery, isLoading: galleryLoading } = useQuery(
     publicGalleryProjectByIdQueryOptions(slug),
   );
-  const { data: photos = [], isLoading: photosLoading } = useQuery({
-    ...publicProjectPhotosQueryOptions(gallery?.project_id || ""),
-    enabled: !!gallery?.project_id,
-  });
 
   if (galleryLoading) {
     return (
@@ -215,39 +210,6 @@ function GalleryDetailPage() {
                 Figures are estimates from the project analysis. Full sensitivity and detailed
                 breakdown available to qualified investors upon inquiry.
               </p>
-            </section>
-
-            {/* Photos */}
-            <section>
-              <h2 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                <Camera className="h-5 w-5" /> Project Photos
-              </h2>
-              {photosLoading ? (
-                <div className="text-sm text-muted-foreground">Loading photos...</div>
-              ) : photos.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {photos.slice(0, 6).map((ph) => (
-                    <a
-                      key={ph.id}
-                      href={ph.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block overflow-hidden rounded-lg border"
-                    >
-                      <img
-                        src={ph.url}
-                        alt={ph.name}
-                        className="w-full h-40 object-cover hover:scale-105 transition"
-                      />
-                    </a>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">
-                  Cover image shown above. Additional project photos are available in the private
-                  owner dashboard.
-                </div>
-              )}
             </section>
 
             {/* 3D Teaser */}

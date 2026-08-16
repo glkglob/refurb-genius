@@ -1,11 +1,9 @@
 /**
- * SEC-1B-GALLERY-B — public gallery retrieval is cover-only.
+ * SEC-1B-GALLERY-D — public gallery retrieval is cover-only.
  *
- * Seals the gallery feature contract and already-safe public surfaces so they
- * cannot grow a private project-photo retrieval dependency.
- *
- * Known residual (GALLERY-D): src/routes/gallery.$slug.tsx still calls
- * publicProjectPhotosQueryOptions. That file is excluded here on purpose.
+ * Seals the gallery feature contract and public surfaces so they cannot grow
+ * a private project-photo retrieval dependency. The public detail route is
+ * included: anonymous Gallery may read listing metadata + optional cover only.
  */
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -17,8 +15,10 @@ const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const FEATURE_ROOT = join(ROOT, "src/features/gallery");
 const PUBLIC_SURFACES = [
   "src/routes/gallery.tsx",
+  "src/routes/gallery.$slug.tsx",
   "src/components/gallery/ProjectCard.tsx",
   "src/components/gallery/LeadCaptureForm.tsx",
+  "src/lib/queries/gallery.ts",
 ] as const;
 
 const FORBIDDEN = [
@@ -27,6 +27,8 @@ const FORBIDDEN = [
   { pattern: /projectPhotoDisplay/, label: "project-photo signed retrieval" },
   { pattern: /useProjectPhotoDisplayUrl/, label: "useProjectPhotoDisplayUrl" },
   { pattern: /from\(\s*["']photos["']\s*\)/, label: "photos table query" },
+  { pattern: /photos\.url/, label: "photos.url retrieval" },
+  { pattern: /ph\.url/, label: "ph.url rendering" },
   { pattern: /service_role/, label: "service_role" },
   { pattern: /project-photos/, label: "project-photos bucket" },
 ] as const;
@@ -90,7 +92,11 @@ test("gallery public-retrieval — feature contract forbids private photo retrie
   assert.deepEqual(violations, [], `forbidden public-gallery retrieval:\n${violations.join("\n")}`);
 });
 
-test("gallery public-retrieval — list/card/lead surfaces do not use project photos", () => {
+test("gallery public-retrieval — list/card/lead/detail surfaces do not use project photos", () => {
+  assert.ok(
+    PUBLIC_SURFACES.includes("src/routes/gallery.$slug.tsx"),
+    "public detail route must be in the sealed surface set",
+  );
   const violations: string[] = [];
   for (const rel of PUBLIC_SURFACES) {
     const text = read(rel);
@@ -101,6 +107,21 @@ test("gallery public-retrieval — list/card/lead surfaces do not use project ph
     }
   }
   assert.deepEqual(violations, [], `forbidden public surface retrieval:\n${violations.join("\n")}`);
+});
+
+test("gallery public-retrieval — probe: public detail project-photo tokens are forbidden", () => {
+  const sample = `
+    const q = publicProjectPhotosQueryOptions(id);
+    const { data } = await supabase.from("photos").select("id, url");
+    <img src={ph.url} />
+    createSignedUrl(storage_path)
+    useProjectPhotoDisplayUrl()
+  `;
+  assert.match(sample, /publicProjectPhotosQueryOptions/);
+  assert.match(sample, /from\(\s*["']photos["']\s*\)/);
+  assert.match(sample, /ph\.url/);
+  assert.match(sample, /createSignedUrl/);
+  assert.match(sample, /useProjectPhotoDisplayUrl/);
 });
 
 test("gallery public-retrieval — domain names cover as the public image", () => {

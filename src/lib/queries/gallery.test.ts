@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { publicGalleryProjectsQueryOptions, publicGalleryProjectByIdQueryOptions } from "./gallery";
 
@@ -62,6 +64,7 @@ describe("gallery queries", () => {
     const result = await (opts.queryFn as () => Promise<unknown>)();
 
     expect(fromMock).toHaveBeenCalledWith("public_gallery_projects");
+    expect(fromMock).not.toHaveBeenCalledWith("photos");
     expect(result).toEqual([
       {
         id: "1",
@@ -76,5 +79,45 @@ describe("gallery queries", () => {
         updated_at: "u",
       },
     ]);
+  });
+
+  it("publicGalleryProjectByIdQueryOptions reads public_gallery_projects by id and keeps cover", async () => {
+    const mockRow = {
+      id: "gal-1",
+      project_id: "p1",
+      is_public: true,
+      featured: true,
+      title: "Cover listing",
+      description: "Desc",
+      cover_image_url: "https://example.test/storage/v1/object/public/gallery/u/p/c.jpg",
+      view_count: 4,
+      created_at: "c",
+      updated_at: "u",
+    };
+    const fromMock = vi.mocked(supabase.from);
+    fromMock.mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: mockRow, error: null }),
+    });
+
+    const opts = publicGalleryProjectByIdQueryOptions("gal-1");
+    const result = await (opts.queryFn as () => Promise<unknown>)();
+
+    expect(fromMock).toHaveBeenCalledWith("public_gallery_projects");
+    expect(fromMock).not.toHaveBeenCalledWith("photos");
+    expect(result).toMatchObject({
+      id: "gal-1",
+      cover_image_url: mockRow.cover_image_url,
+    });
+  });
+
+  it("does not export or implement a public project-photo query", () => {
+    const source = readFileSync(join(process.cwd(), "src/lib/queries/gallery.ts"), "utf8");
+    expect(source).not.toMatch(/publicProjectPhotosQueryOptions/);
+    expect(source).not.toMatch(/from\(\s*["']photos["']\s*\)/);
+    expect(source).not.toMatch(/publicPhotos/);
+    expect(source).toMatch(/public_gallery_projects/);
+    expect(source).toMatch(/cover_image_url/);
   });
 });

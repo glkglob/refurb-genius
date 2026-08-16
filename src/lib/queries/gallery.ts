@@ -260,31 +260,3 @@ export const publicGalleryProjectByIdQueryOptions = (galleryId: string) =>
     gcTime: 30 * 60 * 1000,
     retry: 1,
   });
-
-/**
- * Public photos for a gallery project.
- */
-export const publicProjectPhotosQueryOptions = (projectId: string) =>
-  queryOptions<Array<{ id: string; url: string; name: string }>>({
-    queryKey: ["publicPhotos", projectId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("photos")
-        .select("id, url, name")
-        .eq("project_id", projectId)
-        .order("uploaded_at", { ascending: true })
-        .limit(12);
-
-      if (error) {
-        return [];
-      }
-      return (data ?? []).map((p) => ({
-        id: p.id as string,
-        url: p.url as string,
-        name: p.name as string,
-      }));
-    },
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 1,
-  });
