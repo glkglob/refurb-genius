@@ -6,7 +6,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, act } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 
-const SRC = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "useProjects.ts"), "utf8");
+const SRC = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), "../../../hooks/useProjects.ts"),
+  "utf8",
+);
 
 const createProjectForClient = vi.hoisted(() => vi.fn());
 
@@ -14,11 +17,11 @@ vi.mock("@/features/projects/infrastructure/createProjectForClient", () => ({
   createProjectForClient: (input: unknown) => createProjectForClient(input),
 }));
 
-vi.mock("./useAuth", () => ({
+vi.mock("@/hooks/useAuth", () => ({
   useAuth: () => ({ user: { id: "u1" } }),
 }));
 
-import { useCreateProject } from "./useProjects";
+import { useCreateProject } from "@/hooks/useProjects";
 
 function wrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
