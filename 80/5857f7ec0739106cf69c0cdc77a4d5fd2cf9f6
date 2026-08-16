@@ -1,0 +1,20 @@
+ios/App/App.xcodeproj/project.pbxproj
+  h_7ea6129503670a 19,35,72,167
+ios/App/App/AppDelegate.swift
+  h_7ea6129503670a 76-90
+ios/App/App/Info.plist
+  h_7ea6129503670a 27-43
+ios/App/App/SceneDelegate.swift
+  h_7ea6129503670a 1-57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "805857f7ec0739106cf69c0cdc77a4d5fd2cf9f6",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
