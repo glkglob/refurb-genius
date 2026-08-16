@@ -1,0 +1,74 @@
+src/components/AnalysisCard.tsx
+  h_7ea6129503670a 4-5,7-13,26-27,30,32-38,43-54
+src/components/photos/PhotoAnalysisCard.tsx
+  h_7ea6129503670a 3-4,12,37,54,101-107,114-124
+src/components/photos/PhotoAnalysisViewer.test.tsx
+  h_7ea6129503670a 23-32
+src/components/photos/PhotoAnalysisViewer.tsx
+  h_7ea6129503670a 3,12,310,356-359,444-473
+src/features/ai-design/infrastructure/adapters/ai-scope.adapter.server.test.ts
+  h_7ea6129503670a 1-139
+src/features/ai-design/infrastructure/adapters/ai-scope.adapter.server.ts
+  h_7ea6129503670a 14-85,310-312,315,321
+src/features/ai-design/presentation/serverFns.ts
+  h_7ea6129503670a 110-120
+src/features/ai-upload/infrastructure/adapters/ai-vision.adapter.server.test.ts
+  h_7ea6129503670a 33-92
+src/features/ai-upload/infrastructure/adapters/ai-vision.adapter.server.ts
+  h_7ea6129503670a 15-23,138,162,247
+src/features/ai-upload/infrastructure/adapters/hf-vision.adapter.server.test.ts
+  h_7ea6129503670a 1-79
+src/features/ai-upload/infrastructure/adapters/hf-vision.adapter.server.ts
+  h_7ea6129503670a 23-31,154,174,263
+src/features/ai-upload/infrastructure/resolveAuthorizedPhotos.server.test.ts
+  h_7ea6129503670a 1-143
+src/features/ai-upload/infrastructure/resolveAuthorizedPhotos.server.ts
+  h_7ea6129503670a 4,15-17,26-30,34,38,65,80,86-97,103-104
+src/features/ai-upload/presentation/hooks/useInvalidateProjectPhotos.test.ts
+  h_7ea6129503670a 33,41,45-47,50,58-62,75,90,95-97,100-102,159
+src/features/ai-upload/presentation/hooks/useInvalidateProjectPhotos.ts
+  h_7ea6129503670a 2,7,10,14,17-26,29,37
+src/features/ai-upload/presentation/hooks/usePhotos.test.ts
+  h_7ea6129503670a 177-183,270-276
+src/features/ai-upload/presentation/hooks/usePhotos.ts
+  h_7ea6129503670a 22,79,120,162
+src/features/ai-upload/presentation/hooks/useProjectPhotoDisplayUrl.test.ts
+  h_7ea6129503670a 1-258
+src/features/ai-upload/presentation/hooks/useProjectPhotoDisplayUrl.ts
+  h_7ea6129503670a 1-83
+src/features/ai-upload/presentation/index.ts
+  h_7ea6129503670a 22-39
+src/features/ai-upload/presentation/projectPhotoDisplay.test.ts
+  h_7ea6129503670a 1-178
+src/features/ai-upload/presentation/projectPhotoDisplay.ts
+  h_7ea6129503670a 1-87
+src/lib/photos-write.test.ts
+  h_7ea6129503670a 127,131,369,841-857,867-876,1005-1024
+src/lib/photos-write.ts
+  h_7ea6129503670a 49-54,73,77,85-89,426-430
+src/lib/queries/projects.test.ts
+  h_7ea6129503670a 114-128
+src/lib/queries/projects.ts
+  h_7ea6129503670a 37-40
+src/routes/_authed/projects.$id.analysis.tsx
+  h_7ea6129503670a 577-586
+src/routes/_authed/projects.$id.redesign.tsx
+  h_7ea6129503670a 22,120-129
+src/routes/_authed/projects.$id.report.tsx
+  h_7ea6129503670a 3,33-34,411-416,436-443,638-662
+src/routes/_authed/projects.$id.upload.tsx
+  h_7ea6129503670a 28,35-36,582-585,617-643
+tests/invariants/photos-query-keys.invariant.test.ts
+  h_7ea6129503670a 48
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "4d082fff75be9909c5112cc477687b5d9f6c9bc0",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
