@@ -20,6 +20,16 @@ const useApplyPhotoAnalysesToEstimate = vi.fn();
 
 let mockIsPending = false;
 
+vi.mock("@/features/ai-upload/presentation/hooks/useProjectPhotoDisplayUrl", () => ({
+  useProjectPhotoDisplayUrl: () => ({
+    data: { signedUrl: "https://signed.example/kitchen.jpg", expiresAt: Date.now() + 900_000 },
+    isSuccess: true,
+  }),
+  useProjectPhotoDisplayUrls: () => ({ queries: [], urlByPhotoId: new Map() }),
+  retryProjectPhotoDisplayOnce: vi.fn(),
+  projectPhotoDisplayQueryOptions: vi.fn(),
+}));
+
 vi.mock("@/features/ai-upload", async () => {
   const actual =
     await vi.importActual<typeof import("@/features/ai-upload")>("@/features/ai-upload");

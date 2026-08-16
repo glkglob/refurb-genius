@@ -1,6 +1,7 @@
 /**
  * Server-only project/photo ownership resolution for photo analysis.
  * Client-supplied URLs/names are never trusted as authority.
+ * Retrieval uses owner-authorised signed URLs from storage_path.
  */
 import "@tanstack/react-start/server-only";
 
@@ -11,6 +12,9 @@ import {
   sourceSetMismatchError,
   noSourcePhotosError,
 } from "../domain";
+import { PROJECT_PHOTOS_BUCKET } from "@/lib/photos-write";
+
+export const AI_SIGNED_URL_TTL_SECONDS = 300;
 
 export type ResolveAuthorizedPhotosInput = {
   userId: string;
@@ -19,13 +23,19 @@ export type ResolveAuthorizedPhotosInput = {
   photoIds: string[];
 };
 
+export type AuthorizedProjectPhoto = AnalysisPhotoSource & {
+  storagePath: string;
+  retrievalUrl: string;
+};
+
 /**
  * Re-resolve canonical photos from the database for the authenticated user.
  * Rejects unauthorized/mismatched/duplicate sets before any vision call.
+ * Provider retrieval URL is signed from storage_path; durable url is unchanged.
  */
 export async function resolveAuthorizedProjectPhotos(
   input: ResolveAuthorizedPhotosInput,
-): Promise<AnalysisPhotoSource[]> {
+): Promise<AuthorizedProjectPhoto[]> {
   const { userId, projectId, photoIds } = input;
 
   if (!photoIds.length) {
@@ -52,7 +62,7 @@ export async function resolveAuthorizedProjectPhotos(
 
   const { data: photos, error: photosError } = await supabase
     .from("photos")
-    .select("id,url,name,size,project_id,user_id")
+    .select("id,url,name,size,project_id,user_id,storage_path")
     .eq("project_id", projectId)
     .eq("user_id", userId)
     .in("id", photoIds);
@@ -67,17 +77,31 @@ export async function resolveAuthorizedProjectPhotos(
 
   // Preserve client-requested order using server-canonical metadata.
   const byId = new Map(photos.map((p) => [p.id, p]));
-  const ordered: AnalysisPhotoSource[] = [];
+  const ordered: AuthorizedProjectPhoto[] = [];
   for (const id of photoIds) {
     const row = byId.get(id);
     if (!row || row.project_id !== projectId || row.user_id !== userId) {
       throw sourceNotAuthorisedError();
     }
+    if (!row.storage_path) {
+      throw sourceNotAuthorisedError();
+    }
+
+    const { data: signed, error: signError } = await supabase.storage
+      .from(PROJECT_PHOTOS_BUCKET)
+      .createSignedUrl(row.storage_path, AI_SIGNED_URL_TTL_SECONDS);
+
+    if (signError || !signed?.signedUrl) {
+      throw sourceNotAuthorisedError();
+    }
+
     ordered.push({
       id: row.id,
       url: row.url,
       name: row.name,
       size: row.size ?? undefined,
+      storagePath: row.storage_path,
+      retrievalUrl: signed.signedUrl,
     });
   }
   return ordered;

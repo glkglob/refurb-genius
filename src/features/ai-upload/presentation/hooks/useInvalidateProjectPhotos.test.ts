@@ -30,7 +30,7 @@ describe("useInvalidateProjectPhotos", () => {
     qc = createQc();
   });
 
-  it("invalidates projectKeys.photosByProject(projectId) once per call", () => {
+  it("invalidates photosByProject and photoDisplayByProject once each per call", () => {
     const invalidateSpy = vi.spyOn(qc, "invalidateQueries");
     const { result } = renderHook(() => useInvalidateProjectPhotos(PROJECT_A), {
       wrapper: createWrapper(qc),
@@ -38,13 +38,16 @@ describe("useInvalidateProjectPhotos", () => {
 
     result.current();
 
-    expect(invalidateSpy).toHaveBeenCalledTimes(1);
+    expect(invalidateSpy).toHaveBeenCalledTimes(2);
     expect(invalidateSpy.mock.calls[0]![0]).toEqual({
       queryKey: projectKeys.photosByProject(PROJECT_A),
     });
+    expect(invalidateSpy.mock.calls[1]![0]).toEqual({
+      queryKey: projectKeys.photoDisplayByProject(PROJECT_A),
+    });
   });
 
-  it("concrete key is [projects, projectId, photos]", () => {
+  it("concrete keys are [projects, projectId, photos] and photoDisplay prefix", () => {
     const invalidateSpy = vi.spyOn(qc, "invalidateQueries");
     const { result } = renderHook(() => useInvalidateProjectPhotos(PROJECT_A), {
       wrapper: createWrapper(qc),
@@ -52,8 +55,11 @@ describe("useInvalidateProjectPhotos", () => {
 
     result.current();
 
-    const key = invalidateSpy.mock.calls[0]![0]?.queryKey as unknown[];
-    expect(key).toEqual(["projects", PROJECT_A, "photos"]);
+    const keys = invalidateSpy.mock.calls.map((call) => call[0]?.queryKey as unknown[]);
+    expect(keys).toEqual([
+      ["projects", PROJECT_A, "photos"],
+      ["projects", PROJECT_A, "photoDisplay"],
+    ]);
   });
 
   it("invokes once per callback invocation (not once for lifetime)", () => {
@@ -66,7 +72,7 @@ describe("useInvalidateProjectPhotos", () => {
     result.current();
     result.current();
 
-    expect(invalidateSpy).toHaveBeenCalledTimes(3);
+    expect(invalidateSpy).toHaveBeenCalledTimes(6);
   });
 
   it("isolates project A and project B keys", () => {
@@ -81,12 +87,18 @@ describe("useInvalidateProjectPhotos", () => {
     resultA.current();
     resultB.current();
 
-    expect(invalidateSpy).toHaveBeenCalledTimes(2);
+    expect(invalidateSpy).toHaveBeenCalledTimes(4);
     expect(invalidateSpy.mock.calls[0]![0]).toEqual({
       queryKey: projectKeys.photosByProject(PROJECT_A),
     });
     expect(invalidateSpy.mock.calls[1]![0]).toEqual({
+      queryKey: projectKeys.photoDisplayByProject(PROJECT_A),
+    });
+    expect(invalidateSpy.mock.calls[2]![0]).toEqual({
       queryKey: projectKeys.photosByProject(PROJECT_B),
+    });
+    expect(invalidateSpy.mock.calls[3]![0]).toEqual({
+      queryKey: projectKeys.photoDisplayByProject(PROJECT_B),
     });
   });
 
@@ -144,6 +156,7 @@ describe("useInvalidateProjectPhotos", () => {
     expect(stripped).toMatch(/useQueryClient/);
     expect(stripped).toMatch(/invalidateQueries/);
     expect(stripped).toMatch(/projectKeys\.photosByProject/);
+    expect(stripped).toMatch(/projectKeys\.photoDisplayByProject/);
     expect(stripped).not.toMatch(/setQueryData/);
     expect(stripped).not.toMatch(/getQueryData/);
     expect(stripped).not.toMatch(/cancelQueries/);

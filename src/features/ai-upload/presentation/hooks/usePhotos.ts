@@ -19,6 +19,7 @@ import { photosQueryOptions, projectKeys } from "@/lib/queries/projects";
 import { logger } from "@/lib/logger";
 import { trackEvent } from "@/lib/analytics";
 import { classifyPhotoUploadAnalyticsError } from "../classifyPhotoUploadAnalyticsError";
+import { invalidateProjectPhotoQueries } from "./useInvalidateProjectPhotos";
 
 export function usePhotos(projectId: string) {
   const { user } = useAuth();
@@ -47,7 +48,6 @@ export type UploadPhotosVariables = {
  */
 export function useUploadPhotos(projectId: string) {
   const queryClient = useQueryClient();
-  const photosKey = projectKeys.photosByProject(projectId);
 
   return useMutation({
     mutationFn: async (input: File[] | UploadPhotosVariables): Promise<ProjectPhoto[]> => {
@@ -76,7 +76,7 @@ export function useUploadPhotos(projectId: string) {
       } catch (error) {
         if (error instanceof PhotoUploadBatchError) {
           if (error.successes.length > 0) {
-            void queryClient.invalidateQueries({ queryKey: photosKey });
+            invalidateProjectPhotoQueries(queryClient, projectId);
             // Canonical success funnel for every persisted photo, including partial batches.
             trackEvent("photos_uploaded", {
               projectId,
@@ -117,7 +117,7 @@ export function useUploadPhotos(projectId: string) {
       }
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: photosKey });
+      invalidateProjectPhotoQueries(queryClient, projectId);
     },
   });
 }
@@ -159,7 +159,7 @@ export function useRemovePhoto(projectId: string) {
       if (context?.previous) queryClient.setQueryData(photosKey, context.previous);
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: photosKey });
+      invalidateProjectPhotoQueries(queryClient, projectId);
     },
   });
 }

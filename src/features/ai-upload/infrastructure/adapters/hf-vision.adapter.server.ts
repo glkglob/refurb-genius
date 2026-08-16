@@ -20,6 +20,15 @@ import type {
   RoomAnalysis,
   RoomType,
 } from "../../domain";
+
+type VisionPhotoInput = AnalysisPhotoSource & { retrievalUrl?: string };
+
+function providerImageUrl(photo: VisionPhotoInput): string {
+  if (!photo.retrievalUrl) {
+    throw new Error("Authorized retrieval URL is required");
+  }
+  return photo.retrievalUrl;
+}
 import { buildMockRoomAnalyses, noSourcePhotosError } from "../../domain";
 import { safeParseRoomAnalysis } from "../../domain/validation";
 import {
@@ -142,7 +151,7 @@ function parseGptJson(text: string): unknown {
 
 async function analysePhoto(
   config: ReturnType<typeof getHuggingFaceConfig>,
-  photo: AnalysisPhotoSource,
+  photo: VisionPhotoInput,
 ): Promise<RoomAnalysis> {
   try {
     addDiagnosticBreadcrumb("ai:hf:analyze:start", {
@@ -162,7 +171,7 @@ async function analysePhoto(
               content: [
                 {
                   type: "image_url",
-                  image_url: { url: photo.url, detail: "low" },
+                  image_url: { url: providerImageUrl(photo), detail: "low" },
                 },
                 {
                   type: "text",
@@ -251,7 +260,7 @@ async function analysePhoto(
 
 export async function runSecurePhotoAnalysisHuggingFace(input: {
   projectId: string;
-  photos: AnalysisPhotoSource[];
+  photos: VisionPhotoInput[];
 }): Promise<RoomAnalysis[]> {
   // Never invent bundled demo analyses for an empty photo list.
   if (!input.photos.length) {

@@ -47,6 +47,12 @@ export const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 export const MAX_PHOTOS_PER_BATCH = 30;
 
 /**
+ * Cache-Control for NEW project-photo Storage objects only.
+ * Existing objects are not rewritten and may retain historical values (~3600).
+ */
+export const PROJECT_PHOTO_CACHE_CONTROL = "60";
+
+/**
  * Canonical max simultaneous Storage writes across all uploadProjectPhotos
  * calls in one JavaScript runtime (browser tab / process / isolate).
  * Not cross-tab or distributed global enforcement.
@@ -64,16 +70,21 @@ export const PHOTO_WRITE_AUTH_ERROR = "You must be signed in to manage project p
 type PhotoWriteClient = typeof browserSupabase;
 
 /**
- * Authority-correct write client for this runtime.
+ * Authority-correct Storage client for this runtime (read signing + writes).
  * Native loads getNativeSupabase only when Capacitor reports native — never
  * statically, so web SSR cannot import SecureStorage.
  */
-export async function getPhotoWriteClient(): Promise<PhotoWriteClient> {
+export async function getPhotoStorageClient(): Promise<PhotoWriteClient> {
   if (Capacitor.isNativePlatform()) {
     const { getNativeSupabase } = await import("@/platform/supabase/native");
     return getNativeSupabase();
   }
   return browserSupabase;
+}
+
+/** Compatibility alias — same authority as getPhotoStorageClient. */
+export async function getPhotoWriteClient(): Promise<PhotoWriteClient> {
+  return getPhotoStorageClient();
 }
 
 // ── Stages & progress ─────────────────────────────────────────────
@@ -412,9 +423,11 @@ export async function uploadProjectPhoto(input: {
   try {
     const uploadResult = await sharedPhotoUploadLimiter.run(() =>
       timeoutPromise(
-        client.storage
-          .from(PROJECT_PHOTOS_BUCKET)
-          .upload(path, file, { contentType, upsert: false }),
+        client.storage.from(PROJECT_PHOTOS_BUCKET).upload(path, file, {
+          contentType,
+          upsert: false,
+          cacheControl: PROJECT_PHOTO_CACHE_CONTROL,
+        }),
         UPLOAD_TIMEOUT_MS,
         `Upload ${file.name} to storage`,
       ),

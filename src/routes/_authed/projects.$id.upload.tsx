@@ -25,12 +25,15 @@ import {
   XCircle,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useProject } from "@/hooks/useProjects";
 import { useSetProjectStage } from "@/features/projects";
 import {
   usePhotos,
   useUploadPhotos,
   useRemovePhoto,
+  useProjectPhotoDisplayUrl,
+  retryProjectPhotoDisplayOnce,
   getPhotoAnalysis,
   loadPhotoAnalysis,
   isImageFile,
@@ -576,12 +579,11 @@ function UploadPage() {
                   {photos.map((p) => (
                     <Card key={p.id} className="group relative overflow-hidden p-0">
                       <div className="relative aspect-square bg-secondary">
-                        <img
-                          src={p.url}
+                        <UploadPhotoDisplay
+                          projectId={id}
+                          photoId={p.id}
+                          storagePath={p.storagePath}
                           alt={p.name}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                          decoding="async"
                         />
                         <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground backdrop-blur">
                           <Sparkles className="h-3 w-3 text-accent" /> Ready for analysis
@@ -610,5 +612,32 @@ function UploadPage() {
         </CardContent>
       </Card>
     </ProjectWorkflowShell>
+  );
+}
+
+function UploadPhotoDisplay({
+  projectId,
+  photoId,
+  storagePath,
+  alt,
+}: {
+  projectId: string;
+  photoId: string;
+  storagePath: string;
+  alt: string;
+}) {
+  const queryClient = useQueryClient();
+  const retriedRef = useRef(false);
+  const { data: display } = useProjectPhotoDisplayUrl({ projectId, photoId, storagePath });
+  if (!display?.signedUrl) return null;
+  return (
+    <img
+      src={display.signedUrl}
+      alt={alt}
+      className="h-full w-full object-cover"
+      loading="lazy"
+      decoding="async"
+      onError={() => retryProjectPhotoDisplayOnce(queryClient, projectId, photoId, retriedRef)}
+    />
   );
 }

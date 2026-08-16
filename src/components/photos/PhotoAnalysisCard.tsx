@@ -1,5 +1,7 @@
 "use client";
 
+import { useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader } from "@repo/ui";
 import { Badge } from "@repo/ui";
 import { Button } from "@repo/ui";
@@ -7,6 +9,7 @@ import { Checkbox } from "@repo/ui";
 import { AlertTriangle, CheckCircle, Sparkles, Edit2 } from "lucide-react";
 import type { ProjectPhoto } from "@/lib/photos-types";
 import type { PhotoAnalysisResultRow } from "@/lib/queries/photo-analysis";
+import { retryProjectPhotoDisplayOnce, useProjectPhotoDisplayUrl } from "@/features/ai-upload";
 
 interface ParsedDefect {
   description: string;
@@ -31,6 +34,7 @@ interface ParsedAnalysis {
 }
 
 interface PhotoAnalysisCardProps {
+  projectId: string;
   photo: ProjectPhoto;
   analysis?: PhotoAnalysisResultRow;
   isSelected?: boolean;
@@ -47,6 +51,7 @@ function getSeverityColor(sev: string) {
 }
 
 export function PhotoAnalysisCard({
+  projectId,
   photo,
   analysis,
   isSelected,
@@ -93,18 +98,30 @@ export function PhotoAnalysisCard({
     : null;
 
   const confidence = analysis?.confidence_score ?? parsed.confidence ?? 0;
+  const queryClient = useQueryClient();
+  const retriedRef = useRef(false);
+  const { data: display } = useProjectPhotoDisplayUrl({
+    projectId,
+    photoId: photo.id,
+    storagePath: photo.storagePath,
+  });
 
   return (
     <Card
       className={`group overflow-hidden transition-all ${isSelected ? "ring-2 ring-primary" : "hover:shadow-md"}`}
     >
       <div className="relative aspect-video bg-muted overflow-hidden">
-        <img
-          src={photo.url}
-          alt={photo.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-          loading="lazy"
-        />
+        {display?.signedUrl ? (
+          <img
+            src={display.signedUrl}
+            alt={photo.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+            loading="lazy"
+            onError={() =>
+              retryProjectPhotoDisplayOnce(queryClient, projectId, photo.id, retriedRef)
+            }
+          />
+        ) : null}
         <div className="absolute top-2 left-2 flex gap-1">
           {hasAnalysis ? (
             <Badge variant="default" className="bg-green-600">

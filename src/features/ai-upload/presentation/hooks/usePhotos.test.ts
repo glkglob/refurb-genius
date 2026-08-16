@@ -174,6 +174,13 @@ describe("useUploadPhotos", () => {
     expect(photoKeyCalls[0]?.[0]).toEqual({
       queryKey: projectKeys.photosByProject(PROJECT_ID),
     });
+    expect(
+      invalidateSpy.mock.calls.some(
+        (call) =>
+          Array.isArray(call[0]?.queryKey) &&
+          (call[0]?.queryKey as unknown[])[2] === "photoDisplay",
+      ),
+    ).toBe(true);
 
     const broadProjectInvalidations = invalidateSpy.mock.calls.filter((call) => {
       const key = call[0]?.queryKey as unknown[] | undefined;
@@ -260,6 +267,13 @@ describe("useUploadPhotos", () => {
       );
     });
     expect(photoKeyCalls).toHaveLength(1);
+    expect(
+      invalidateSpy.mock.calls.some(
+        (call) =>
+          Array.isArray(call[0]?.queryKey) &&
+          (call[0]?.queryKey as unknown[])[2] === "photoDisplay",
+      ),
+    ).toBe(true);
     await waitFor(() => {
       expect(result.current.isError).toBe(true);
       expect(result.current.error).toBe(batchError);

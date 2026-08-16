@@ -11,6 +11,78 @@ import type {
   ScopeRecommendedItem,
   ScopeRoom,
 } from "../../domain";
+import { PROJECT_PHOTOS_BUCKET } from "@/lib/photos-write";
+
+const AI_SIGNED_URL_TTL_SECONDS = 300;
+
+type AuthorizedScopePhoto = {
+  id: string;
+  url: string;
+  name: string;
+  retrievalUrl: string;
+};
+
+async function resolveAndSignScopePhotos(
+  input: ScopeAnalysisInput,
+): Promise<AuthorizedScopePhoto[]> {
+  const photoIds = input.photos.map((p) => p.id);
+  if (new Set(photoIds).size !== photoIds.length) {
+    throw new Error("Source photo set mismatch");
+  }
+
+  const { requireUser, createSupabaseServerClient } = await import("@/serverFns/auth.server");
+  const user = await requireUser();
+  const supabase = await createSupabaseServerClient();
+
+  const { data: project, error: projectError } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("id", input.projectId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (projectError || !project) {
+    throw new Error("Project not authorised");
+  }
+
+  const { data: photos, error: photosError } = await supabase
+    .from("photos")
+    .select("id,url,name,storage_path,project_id,user_id")
+    .eq("project_id", input.projectId)
+    .eq("user_id", user.id)
+    .in("id", photoIds);
+
+  if (photosError || !photos || photos.length !== photoIds.length) {
+    throw new Error("Source photos not authorised");
+  }
+
+  const byId = new Map(photos.map((p) => [p.id, p]));
+  const ordered: AuthorizedScopePhoto[] = [];
+  for (const id of photoIds) {
+    const row = byId.get(id);
+    if (
+      !row ||
+      row.project_id !== input.projectId ||
+      row.user_id !== user.id ||
+      !row.storage_path
+    ) {
+      throw new Error("Source photos not authorised");
+    }
+    const { data: signed, error: signError } = await supabase.storage
+      .from(PROJECT_PHOTOS_BUCKET)
+      .createSignedUrl(row.storage_path, AI_SIGNED_URL_TTL_SECONDS);
+    if (signError || !signed?.signedUrl) {
+      throw new Error("Source photos not authorised");
+    }
+    ordered.push({
+      id: row.id,
+      url: row.url,
+      name: row.name,
+      retrievalUrl: signed.signedUrl,
+    });
+  }
+  return ordered;
+}
 import { buildMockScopeResult } from "../../domain/scopeMockData";
 import { safeParseScopeResult } from "../../domain/validation";
 import {
@@ -235,16 +307,18 @@ export async function runSecureScopeAnalysis(
       | { type: "text"; text: string }
     > = [];
 
-    for (const photo of input.photos.slice(0, 10)) {
+    const authorizedPhotos = await resolveAndSignScopePhotos(input);
+
+    for (const photo of authorizedPhotos.slice(0, 10)) {
       userContent.push({
         type: "image_url",
-        image_url: { url: photo.url, detail: "low" },
+        image_url: { url: photo.retrievalUrl, detail: "low" },
       });
     }
 
     userContent.push({
       type: "text",
-      text: `Analyse these ${input.photos.length} property photos and produce the scope analysis. Photos are named: ${input.photos.map((p) => p.name).join(", ")}.`,
+      text: `Analyse these ${authorizedPhotos.length} property photos and produce the scope analysis. Photos are named: ${authorizedPhotos.map((p) => p.name).join(", ")}.`,
     });
 
     const openai = getOpenAIClient(apiKey);
