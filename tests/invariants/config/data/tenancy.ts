@@ -50,13 +50,7 @@ export const TENANT_BOUNDARIES: TenantBoundary[] = [
       "public_gallery_projects public read; trades_jobs posted select; share_links token read + resolve_share_link; some storage public buckets.",
     enforcementStatus: "partial",
     futureIntent: "Keep public surfaces explicit; avoid accidental public tables.",
-    examples: [
-      "public_gallery_projects",
-      "trades_jobs (posted)",
-      "share_links",
-      "gallery bucket",
-      "project-photos public read",
-    ],
+    examples: ["public_gallery_projects", "trades_jobs (posted)", "share_links", "gallery bucket"],
   },
   {
     id: "party-scoped",

@@ -18,17 +18,19 @@ export type StorageBucketRecord = {
 export const STORAGE_BUCKETS: StorageBucketRecord[] = [
   {
     id: "project-photos",
-    public: true,
+    public: false,
     owner: "refurb-genius",
     purpose: "Project photos (+ deal opportunity photos reuse)",
-    accessSummary: "Public read; insert/update/delete own folder paths",
+    accessSummary: "Owner-scoped folder policies; signed retrieval",
     enforcementStatus: "enforced",
     evidencePaths: [
       "supabase/migrations/20260508155054_53140776-1cf3-48c6-b05a-c2238aa4068d.sql",
       "supabase/migrations/20260610120000_ensure_project_photos_bucket.sql",
+      "supabase/migrations/20260816155524_project_photos_private.sql",
       "src/lib/photos-write.ts",
     ],
-    migrationEvidence: "20260508155054_*, 20260610120000_ensure_project_photos_bucket.sql",
+    migrationEvidence:
+      "20260508155054_*, 20260610120000_ensure_project_photos_bucket.sql, 20260816155524_project_photos_private.sql",
   },
   {
     id: "floorplans",
