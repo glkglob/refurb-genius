@@ -365,9 +365,6 @@ export function estimateLabourCostForPostcode(
   postcode: string,
 ): { low: number; mid: number; high: number; region: UKRegion } {
   const region = postcodeToUkRegion(postcode);
-  if (!region) {
-    throw new Error("Unrecognised postcode area");
-  }
   return { ...estimateLabourCost(tradeId, days, region), region };
 }
 

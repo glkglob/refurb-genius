@@ -93,15 +93,15 @@ describe("L1EstimateForm progressive journey", () => {
     expect(screen.getByText(/confidence:\s*low/i)).toBeInTheDocument();
   });
 
-  it("shows an error for ZZ1 1ZZ instead of pricing as London", () => {
+  it("keeps Low for ZZ1 1ZZ with fallback assumption", () => {
     render(<L1EstimateForm />);
     fillL1({ postcode: "ZZ1 1ZZ" });
     openDetails();
     fireEvent.click(screen.getByRole("button", { name: "Premium" }));
     fireEvent.change(screen.getByLabelText(/floor area/i), { target: { value: "120" } });
     submit();
+    expect(screen.getByText(/confidence:\s*low/i)).toBeInTheDocument();
     expect(screen.getByText(/postcode area was missing or unrecognised/i)).toBeInTheDocument();
-    expect(screen.queryByText(/confidence:\s*low/i)).not.toBeInTheDocument();
   });
 
   it("does not show size not provided for explicit 90 m²", () => {

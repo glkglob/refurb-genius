@@ -18,13 +18,18 @@ import { PROPERTY_TYPES, UK_REGIONS } from "@/core/constants";
 import { type PropertyType, type UKRegion } from "@/core/projects";
 import { useCreateProject } from "@/hooks/useProjects";
 import { trackEvent } from "@/lib/analytics";
-import { requireProjectPricingRegion, UNRESOLVED_POSTCODE_REGION_MESSAGE } from "@repo/services";
+import {
+  requireProjectPricingRegion,
+  resolveAuthoritativePricingRegion,
+  UNRESOLVED_POSTCODE_REGION_MESSAGE,
+} from "@repo/services";
 
 /**
  * IA-0 / IA-1 / IA-7-R1 canonical project-entry form.
  *
- * - Name is the only required field.
- * - Address, postcode, property type, notes, and financials are optional.
+ * - Name is required.
+ * - Address, property type, notes, and financials are optional.
+ * - Region is required when the postcode is missing, invalid, or unmapped.
  * - Successful durable creation navigates to Photos (`/projects/$id/upload`).
  *
  * Shared by `/analyze` (canonical New Analysis) and `/projects/new` (alias).
@@ -46,6 +51,9 @@ export function NewProjectEntry() {
   const [purchasePrice, setPurchasePrice] = useState("");
   const [estimatedGdv, setEstimatedGdv] = useState("");
   const [notes, setNotes] = useState("");
+
+  const postcodeMapped = resolveAuthoritativePricingRegion(postcode).status === "matched";
+  const regionRequired = !postcodeMapped;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -160,10 +168,10 @@ export function NewProjectEntry() {
                 />
               </Field>
 
-              <Field label="Region">
+              <Field label={regionRequired ? "Region (required)" : "Region"}>
                 <Select value={region || undefined} onValueChange={(v) => setRegion(v as UKRegion)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Optional" />
+                  <SelectTrigger aria-required={regionRequired}>
+                    <SelectValue placeholder={regionRequired ? "Choose a region" : "Optional"} />
                   </SelectTrigger>
                   <SelectContent>
                     {UK_REGIONS.map((r) => (

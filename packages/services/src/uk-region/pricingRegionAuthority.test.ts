@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { REGION_MULTIPLIERS } from "../pricing/pricingEngine";
 import {
-  NAME_ONLY_PLACEHOLDER_REGION,
   regionAfterPostcodeChange,
   requireProjectPricingRegion,
   resolveAuthoritativePricingRegion,
@@ -99,11 +98,14 @@ describe("resolveProjectPricingRegion", () => {
     });
   });
 
-  it("uses name-only placeholder London only when postcode and region are both missing", () => {
+  it("rejects missing postcode with no explicit region instead of London", () => {
     expect(resolveProjectPricingRegion({ postcode: "", explicitRegion: "" })).toEqual({
-      ok: true,
-      region: NAME_ONLY_PLACEHOLDER_REGION,
-      source: "name-only-placeholder",
+      ok: false,
+      reason: "unresolved",
+    });
+    expect(resolveProjectPricingRegion({ postcode: null, explicitRegion: null })).toEqual({
+      ok: false,
+      reason: "unresolved",
     });
   });
 
@@ -126,11 +128,30 @@ describe("resolveProjectPricingRegion", () => {
       source: "explicit",
     });
   });
+
+  it("keeps a stored valid region on a legacy project with no postcode", () => {
+    expect(
+      resolveProjectPricingRegion({
+        postcode: "",
+        explicitRegion: "West Midlands",
+      }),
+    ).toEqual({
+      ok: true,
+      region: "West Midlands",
+      source: "explicit",
+    });
+  });
 });
 
 describe("requireProjectPricingRegion / regionAfterPostcodeChange", () => {
   it("throws for unknown postcode without explicit region", () => {
     expect(() => requireProjectPricingRegion({ postcode: "ZZ1 1ZZ" })).toThrow(
+      UNRESOLVED_POSTCODE_REGION_MESSAGE,
+    );
+  });
+
+  it("throws for missing postcode and missing region", () => {
+    expect(() => requireProjectPricingRegion({ postcode: "", explicitRegion: "" })).toThrow(
       UNRESOLVED_POSTCODE_REGION_MESSAGE,
     );
   });

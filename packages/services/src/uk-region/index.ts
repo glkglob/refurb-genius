@@ -10,8 +10,6 @@ export {
   type AuthoritativePricingRegion,
   type ProjectPricingRegionResult,
   type ProjectPricingRegionSource,
-  NAME_ONLY_PLACEHOLDER_REGION,
-  UNMAPPED_POSTCODE_REGION_MESSAGE,
   UNRESOLVED_POSTCODE_REGION_MESSAGE,
   isUkRegion,
   regionAfterPostcodeChange,

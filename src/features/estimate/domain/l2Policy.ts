@@ -7,7 +7,6 @@
  */
 import {
   REFERENCE_SIZE_SQM,
-  UNMAPPED_POSTCODE_REGION_MESSAGE,
   resolvePostcodeRegion,
   sizeMultiplier,
   type PricingEngineInputs,
@@ -23,7 +22,7 @@ import {
 } from "./progressiveChips";
 
 /** Bump when maps, bounds or confidence rules change. */
-export const L2_POLICY_VERSION = "2026-08-17.1";
+export const L2_POLICY_VERSION = "2026-07-30.1";
 
 export const L2_MIN_SIZE_SQM = 20;
 export const L2_MAX_SIZE_SQM = 500;
@@ -97,8 +96,10 @@ export function resolveL2Inputs(user: L2UserInput): L2ResolvedInputs {
   const regionMapped = postcodeResolution.matched;
   const postcodeConfidenceEligible = isPostcodeConfidenceEligible(user.postcode, regionMapped);
 
-  if (!regionMapped || !region) {
-    throw new L2PolicyError(UNMAPPED_POSTCODE_REGION_MESSAGE);
+  if (!regionMapped) {
+    appliedDefaults.push(
+      "Region defaulted to London because the postcode area was missing or unrecognised",
+    );
   }
 
   const property_condition = conditionFromChip(user.condition);

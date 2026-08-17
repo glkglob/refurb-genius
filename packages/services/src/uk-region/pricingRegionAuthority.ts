@@ -1,20 +1,16 @@
 /**
- * Canonical postcode → pricing-region authority.
+ * Canonical postcode → pricing-region authority for project create and Quick Estimate.
  *
- * When a postcode maps, it is authoritative. Unknown/invalid postcodes never
- * become London. Name-only projects (missing postcode, no explicit region)
- * persist the documented placeholder London so the NOT NULL column is filled.
+ * When a postcode maps, it is authoritative. Unknown, invalid or missing
+ * postcodes never become London. A valid explicit/stored region is used only
+ * when the postcode does not map. Missing postcode + no explicit region is a
+ * validation failure — it must not persist a placeholder London.
  */
 import { UK_REGIONS, type UKRegion } from "@repo/types";
 import { resolvePostcodeRegion } from "./regionMap";
 
-export const NAME_ONLY_PLACEHOLDER_REGION: UKRegion = "London";
-
 export const UNRESOLVED_POSTCODE_REGION_MESSAGE =
   "Enter a recognised UK postcode or choose a region.";
-
-export const UNMAPPED_POSTCODE_REGION_MESSAGE =
-  "Region cannot be determined because the postcode area was missing or unrecognised";
 
 export type AuthoritativePricingRegion =
   | { status: "matched"; area: string; region: UKRegion }
@@ -34,7 +30,7 @@ export function resolveAuthoritativePricingRegion(
   }
 
   const resolved = resolvePostcodeRegion(postcode);
-  if (resolved.matched && resolved.region) {
+  if (resolved.matched) {
     return { status: "matched", area: resolved.area, region: resolved.region };
   }
   if (!resolved.area) {
@@ -43,7 +39,7 @@ export function resolveAuthoritativePricingRegion(
   return { status: "unknown", area: resolved.area };
 }
 
-export type ProjectPricingRegionSource = "postcode" | "explicit" | "name-only-placeholder";
+export type ProjectPricingRegionSource = "postcode" | "explicit";
 
 export type ProjectPricingRegionResult =
   | { ok: true; region: UKRegion; source: ProjectPricingRegionSource }
@@ -52,6 +48,8 @@ export type ProjectPricingRegionResult =
 /**
  * Resolve the region a project/estimate should use.
  * Matched postcodes win over any stored/explicit region.
+ * Unmapped/missing postcode + valid explicit/stored region keeps that region.
+ * Unmapped/missing postcode + no explicit region is unresolved.
  */
 export function resolveProjectPricingRegion(input: {
   postcode?: string | null;
@@ -63,13 +61,6 @@ export function resolveProjectPricingRegion(input: {
   }
   if (isUkRegion(input.explicitRegion)) {
     return { ok: true, region: input.explicitRegion, source: "explicit" };
-  }
-  if (mapped.status === "missing") {
-    return {
-      ok: true,
-      region: NAME_ONLY_PLACEHOLDER_REGION,
-      source: "name-only-placeholder",
-    };
   }
   return { ok: false, reason: "unresolved" };
 }

@@ -113,6 +113,7 @@ describe("native project data plane foundation", () => {
 
     const result = await createProjectWithClient(client, {
       name: "N",
+      region: "London",
       user_id: "forged-from-form",
     } as never);
 
@@ -148,7 +149,7 @@ describe("native project data plane foundation", () => {
       insertRow: row,
     });
 
-    const result = await createProjectWithClient(client, { name: "N" });
+    const result = await createProjectWithClient(client, { name: "N", region: "London" });
 
     expect(result).toEqual(row);
     expect(refreshSession).toHaveBeenCalledTimes(1);
@@ -178,7 +179,9 @@ describe("native project data plane foundation", () => {
       insertRow: row,
     });
 
-    await expect(createProjectWithClient(client, { name: "N" })).resolves.toEqual(row);
+    await expect(createProjectWithClient(client, { name: "N", region: "London" })).resolves.toEqual(
+      row,
+    );
     expect(refreshSession).toHaveBeenCalledTimes(1);
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({ user_id: "user-1" }));
   });
@@ -249,6 +252,31 @@ describe("native project data plane foundation", () => {
       createProjectWithClient(client, { name: "X", postcode: "ZZ1 1ZZ" }),
     ).rejects.toThrow(/recognised UK postcode or choose a region/i);
     expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("rejects missing postcode and missing region instead of persisting London", async () => {
+    const { client, insert } = mockClient({});
+    await expect(createProjectWithClient(client, { name: "X" })).rejects.toThrow(
+      /recognised UK postcode or choose a region/i,
+    );
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("persists an explicit region when postcode is missing", async () => {
+    const row = { id: "p-legacy", name: "Legacy", region: "Scotland" };
+    const { client, insert } = mockClient({ insertRow: row });
+
+    await createProjectWithClient(client, {
+      name: "Legacy",
+      region: "Scotland",
+    });
+
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        postcode: "",
+        region: "Scotland",
+      }),
+    );
   });
 
   it("reads one project via provided client (RLS-bound)", async () => {

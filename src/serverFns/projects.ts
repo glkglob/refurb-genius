@@ -64,16 +64,17 @@ import { requireProjectPricingRegion } from "@repo/services";
 /**
  * Zod schema for the New Project creation payload.
  *
- * IA-0 / IA-1 contract: only `name` is mandatory. Address, postcode, property
- * type, notes, and financials are optional. Empty optional strings and zero
- * numerics are accepted so name-only creation can create a durable project ID
- * and enter Photos immediately.
+ * IA-0 / IA-1 contract: `name` is mandatory. Address, property type, notes,
+ * and financials remain optional. Region is derived from a mapped postcode;
+ * otherwise a valid explicit region is required. Missing postcode + missing
+ * region is a validation failure — it must not persist London.
  *
  * Notes:
  * - `notes` is optional on the wire (form can be empty) → defaults to "".
  * - All numeric fields arrive as numbers from the React caller (JSON serialised).
- * - region is derived from postcode when the area maps. Name-only projects
- *   (missing postcode, no explicit region) persist the documented placeholder.
+ * - region is derived from postcode when the area maps. Unmapped/missing
+ *   postcode keeps a valid explicit region. Unmapped/missing postcode with no
+ *   explicit region is rejected.
  * - property_type defaults when omitted so NOT NULL DB columns stay satisfied.
  */
 const createProjectInputSchema = z.object({

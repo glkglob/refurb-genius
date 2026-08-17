@@ -143,8 +143,7 @@ export function runNewBuildEstimate(input: NewBuildInput): NewBuildResult {
     throw new Error("totalAreaM2 must be between 1 and 10,000");
   }
 
-  const mapped = input.postcode ? postcodeToUkRegion(input.postcode) : null;
-  const region = mapped ?? input.region;
+  const region = input.postcode ? postcodeToUkRegion(input.postcode) : input.region;
   const regionalMultiplier = DEFAULT_COST_LIBRARY.regionalMultipliers[region] ?? 1;
   const storeys = Math.max(1, Math.min(20, input.storeys ?? 2));
   const rates = baseBuildRates[input.propertyType][input.spec];

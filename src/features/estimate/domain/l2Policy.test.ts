@@ -96,11 +96,17 @@ describe("resolveL2Inputs", () => {
     expect(resolved.postcodeConfidenceEligible).toBe(false);
   });
 
-  it("refuses ZZ1 instead of defaulting the engine region to London", () => {
-    expect(() => resolveL2Inputs({ ...base, postcode: "ZZ1 1ZZ" })).toThrow(L2PolicyError);
-    expect(() => resolveL2Inputs({ ...base, postcode: "ZZ1 1ZZ" })).toThrow(
-      /postcode area was missing or unrecognised/i,
-    );
+  it("marks ZZ1 as unmapped and not confidence-eligible with fallback assumption", () => {
+    const resolved = resolveL2Inputs({ ...base, postcode: "ZZ1 1ZZ" });
+    expect(resolved.regionMapped).toBe(false);
+    expect(resolved.postcodeConfidenceEligible).toBe(false);
+    expect(
+      resolved.appliedDefaults.some((d) =>
+        d.includes(
+          "Region defaulted to London because the postcode area was missing or unrecognised",
+        ),
+      ),
+    ).toBe(true);
   });
 
   it("flags extreme sizes that hit engine size mult caps", () => {
@@ -142,15 +148,14 @@ describe("resolveL2DisplayConfidence", () => {
     expect(resolveL2DisplayConfidence(resolved)).toBe("low");
   });
 
-  it("refuses ZZ1 even when finish and size are provided", () => {
-    expect(() =>
-      resolveL2Inputs({
-        ...base,
-        postcode: "ZZ1 1ZZ",
-        finish: "Premium",
-        property_size_sqm: 100,
-      }),
-    ).toThrow(/postcode area was missing or unrecognised/i);
+  it("stays low for ZZ1 even with finish and size", () => {
+    const resolved = resolveL2Inputs({
+      ...base,
+      postcode: "ZZ1 1ZZ",
+      finish: "Premium",
+      property_size_sqm: 100,
+    });
+    expect(resolveL2DisplayConfidence(resolved)).toBe("low");
   });
 
   it("stays low when size triggers extreme/capped warning", () => {
