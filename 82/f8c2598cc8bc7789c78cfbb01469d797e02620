@@ -1,0 +1,40 @@
+src/features/ai-design/domain/index.ts
+  h_7ea6129503670a 52-60
+src/features/ai-design/domain/redesignCurrentness.test.ts
+  h_7ea6129503670a 1-193
+src/features/ai-design/domain/redesignCurrentness.ts
+  h_7ea6129503670a 1-67
+src/features/ai-upload/domain/index.ts
+  h_7ea6129503670a 34
+src/features/ai-upload/domain/rules.test.ts
+  h_7ea6129503670a 18,283-320
+src/features/ai-upload/domain/rules.ts
+  h_7ea6129503670a 273-296
+src/features/projects/domain/composeProjectWorkflowState.test.ts
+  h_7ea6129503670a 170-266
+src/features/projects/domain/composeProjectWorkflowState.ts
+  h_7ea6129503670a 7-10,61-64,73-77
+src/features/projects/domain/redesignWorkflowAdapter.test.ts
+  h_7ea6129503670a 51-84,89-94,175-190,242-253
+src/features/projects/domain/redesignWorkflowAdapter.ts
+  h_7ea6129503670a 8-11,14-17,47-55,59,61,82
+src/features/projects/presentation/hooks/useProjectFiveStageWorkflow.running.test.ts
+  h_7ea6129503670a 16-19,24-25,69-70
+src/features/projects/presentation/hooks/useProjectFiveStageWorkflow.ts
+  h_7ea6129503670a 5,7,9,11-12,17,19,77-83,87-93,110-123,141,147-153,156-164,168-172,175-182,239
+src/routes/_authed/-projects.$id.redesign.shell.test.ts
+  h_7ea6129503670a 105-130
+src/routes/_authed/projects.$id.redesign.tsx
+  h_7ea6129503670a 14,18,22-23,29,31,33-34,76,79-98,153-155,160,166-170,178,184-190,223-227,331-332,449,471,493,498
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "82f8c2598cc8bc7789c78cfbb01469d797e02620",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
