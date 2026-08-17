@@ -6,7 +6,7 @@
  */
 import { Badge, Card, CardContent } from "@repo/ui";
 import type { ConditionLevel } from "@repo/types";
-import type { ConditionLevelCompareRow } from "../../application/compareConditionLevels";
+import type { ConditionLevelCompareRow } from "../../application";
 
 export type ConditionLevelCompareProps = {
   rows: ConditionLevelCompareRow[];
@@ -28,16 +28,26 @@ export function ConditionLevelCompare({ rows, selectedCondition }: ConditionLeve
         <div className="border-b border-border p-5">
           <h3 className="text-base font-semibold text-foreground">Condition comparison</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            {`Advisory only. Property condition materially affects cost. The selected condition (${selectedCondition}) remains the saved and working estimate.`}
+            {`Advisory only. Property condition materially affects cost. The selected condition (${selectedCondition}) remains the working estimate. Alternative rows are not saved automatically.`}
           </p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
+            <caption className="sr-only">
+              Advisory cost comparison by property condition. The selected condition remains the
+              working estimate.
+            </caption>
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="px-5 py-3 font-medium">Condition</th>
-                <th className="px-5 py-3 font-medium">Mid estimate</th>
-                <th className="px-5 py-3 font-medium">Range</th>
+                <th scope="col" className="px-5 py-3 font-medium">
+                  Condition
+                </th>
+                <th scope="col" className="px-5 py-3 font-medium">
+                  Mid estimate
+                </th>
+                <th scope="col" className="px-5 py-3 font-medium">
+                  Range
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -50,12 +60,12 @@ export function ConditionLevelCompare({ rows, selectedCondition }: ConditionLeve
                       : "border-b border-border last:border-0"
                   }
                 >
-                  <td className="px-5 py-3 font-medium text-foreground">
+                  <th scope="row" className="px-5 py-3 text-left font-medium text-foreground">
                     <span className="inline-flex items-center gap-2">
                       {row.condition}
                       {row.selected ? <Badge variant="outline">Current estimate</Badge> : null}
                     </span>
-                  </td>
+                  </th>
                   <td className="px-5 py-3 tabular-nums text-foreground">
                     {formatGbp(row.pricing.mid_total)}
                   </td>
