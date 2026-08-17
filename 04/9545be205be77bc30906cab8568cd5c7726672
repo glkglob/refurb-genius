@@ -1,0 +1,58 @@
+packages/services/src/enhanced-estimate/enhancedEstimate.ts
+  h_7ea6129503670a 175-176
+packages/services/src/new-build/newBuildEstimate.ts
+  h_7ea6129503670a 146-147
+packages/services/src/trade-rates/tradeRates.ts
+  h_7ea6129503670a 368-370
+packages/services/src/uk-region/index.ts
+  h_7ea6129503670a 9-21
+packages/services/src/uk-region/pricingRegionAuthority.test.ts
+  h_7ea6129503670a 1-171
+packages/services/src/uk-region/pricingRegionAuthority.ts
+  h_7ea6129503670a 1-97
+packages/services/src/uk-region/regionMap.test.ts
+  h_7ea6129503670a 24,26,28,31,33,38,40,43-50,54-55,57-58
+packages/services/src/uk-region/regionMap.ts
+  h_7ea6129503670a 55-56,63-64,108,113-116
+src/components/marketplace/LabourRateGuide.tsx
+  h_7ea6129503670a 63
+src/features/estimate/application/runL2Estimate.test.ts
+  h_7ea6129503670a 48-57
+src/features/estimate/domain/l1Policy.test.ts
+  h_7ea6129503670a 47-64,67,69,73-74
+src/features/estimate/domain/l1Policy.ts
+  h_7ea6129503670a 13,28,60-61
+src/features/estimate/domain/l2Policy.test.ts
+  h_7ea6129503670a 99-103,145-153
+src/features/estimate/domain/l2Policy.ts
+  h_7ea6129503670a 10,26,100-101
+src/features/estimate/presentation/components/L1EstimateForm.test.tsx
+  h_7ea6129503670a 96,104
+src/features/projects/domain/projectPricingRegion.test.ts
+  h_7ea6129503670a 1-23
+src/features/projects/presentation/components/NewProjectEntry.tsx
+  h_7ea6129503670a 21,70-79,85,97
+src/platform/supabase/native-projects.test.ts
+  h_7ea6129503670a 125,229-253
+src/platform/supabase/native-projects.ts
+  h_7ea6129503670a 20,88-93,100-101
+src/routes/_authed/projects.$id.estimate.tsx
+  h_7ea6129503670a 61,146-154,170-171,494
+src/routes/_authed/projects.$id.index.tsx
+  h_7ea6129503670a 39,154-161,248
+src/serverFns/projects.ts
+  h_7ea6129503670a 62,75-77,83,122-125,136
+tests/invariants/estimator-engines.invariant.test.ts
+  h_7ea6129503670a 25-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "049545be205be77bc30906cab8568cd5c7726672",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
