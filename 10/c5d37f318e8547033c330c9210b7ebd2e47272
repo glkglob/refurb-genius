@@ -1,0 +1,34 @@
+src/features/ai-upload/presentation/components/PhotoRemoveButton.test.tsx
+  h_7ea6129503670a 1-25
+src/features/ai-upload/presentation/components/PhotoRemoveButton.tsx
+  h_7ea6129503670a 1-28
+src/features/ai-upload/presentation/components/index.ts
+  h_7ea6129503670a 11
+src/features/ai-upload/presentation/hooks/usePhotos.test.ts
+  h_7ea6129503670a 452,469,598-622
+src/features/ai-upload/presentation/hooks/usePhotos.ts
+  h_7ea6129503670a 8,23-30,143,170
+src/features/ai-upload/presentation/index.ts
+  h_7ea6129503670a 50,52
+src/features/projects/domain/photosAnalysisWorkflowAdapter.test.ts
+  h_7ea6129503670a 90-107
+src/lib/photos-write.test.ts
+  h_7ea6129503670a 12,22,39-54,64-79,88,98,248-256,756,759-760,773-775,788,799,813,823,833-840,846-873,877-879,892-899,1078,1082-1084
+src/lib/photos-write.ts
+  h_7ea6129503670a 735-765,768,774-777,779,783
+src/routes/_authed/projects.$id.upload.tsx
+  h_7ea6129503670a 34,591-595
+tests/invariants/photos-query-keys.invariant.test.ts
+  h_7ea6129503670a 47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "10c5d37f318e8547033c330c9210b7ebd2e47272",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
