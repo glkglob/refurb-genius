@@ -5,7 +5,7 @@
  * Writes: canonical photos-write primitives (uploadProjectPhotos / removeProjectPhoto).
  * Hook-path writes no longer use the legacy in-memory store; BulkPhotoUpload remains deferred to C5-3B3.
  */
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import type { ProjectPhoto } from "@/lib/photos-types";
 import {
@@ -20,6 +20,14 @@ import { logger } from "@/lib/logger";
 import { trackEvent } from "@/lib/analytics";
 import { classifyPhotoUploadAnalyticsError } from "../classifyPhotoUploadAnalyticsError";
 import { invalidateProjectPhotoQueries } from "./useInvalidateProjectPhotos";
+import { photoAnalysisKeys } from "./usePhotoAnalysis";
+
+function invalidateAfterPhotoRemoval(queryClient: QueryClient, projectId: string): void {
+  invalidateProjectPhotoQueries(queryClient, projectId);
+  void queryClient.invalidateQueries({ queryKey: projectKeys.byId(projectId) });
+  void queryClient.invalidateQueries({ queryKey: projectKeys.photoAnalysisByProject(projectId) });
+  void queryClient.invalidateQueries({ queryKey: photoAnalysisKeys.byProject(projectId) });
+}
 
 export function usePhotos(projectId: string) {
   const { user } = useAuth();
@@ -132,7 +140,7 @@ export function useRemovePhoto(projectId: string) {
 
   return useMutation({
     mutationFn: async (photoId: string): Promise<PhotoRemovalResult> => {
-      const result = await removeProjectPhoto({ photoId });
+      const result = await removeProjectPhoto({ photoId, projectId });
       if (result.storageCleanup === "orphan-warning") {
         logger.warn("[photos] storage orphan after metadata delete", {
           photoId: result.photoId,
@@ -159,7 +167,7 @@ export function useRemovePhoto(projectId: string) {
       if (context?.previous) queryClient.setQueryData(photosKey, context.previous);
     },
     onSettled: () => {
-      invalidateProjectPhotoQueries(queryClient, projectId);
+      invalidateAfterPhotoRemoval(queryClient, projectId);
     },
   });
 }

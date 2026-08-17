@@ -15,7 +15,6 @@ import { formatFileSize } from "@/lib/file-utils";
 import {
   Upload,
   ImagePlus,
-  X,
   Sparkles,
   Loader2,
   AlertCircle,
@@ -32,6 +31,7 @@ import {
   usePhotos,
   useUploadPhotos,
   useRemovePhoto,
+  PhotoRemoveButton,
   useProjectPhotoDisplayUrl,
   retryProjectPhotoDisplayOnce,
   getPhotoAnalysis,
@@ -588,14 +588,11 @@ function UploadPage() {
                         <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-[10px] font-medium text-muted-foreground backdrop-blur">
                           <Sparkles className="h-3 w-3 text-accent" /> Ready for analysis
                         </span>
-                        <button
-                          type="button"
-                          onClick={() => removePhoto.mutate(p.id)}
-                          aria-label={`Remove ${p.name}`}
-                          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-background/90 text-foreground opacity-0 backdrop-blur transition-opacity hover:bg-destructive hover:text-destructive-foreground group-hover:opacity-100 focus:opacity-100"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
+                        <PhotoRemoveButton
+                          photoName={p.name}
+                          onRemove={() => removePhoto.mutate(p.id)}
+                          disabled={removePhoto.isPending}
+                        />
                       </div>
                       <div className="p-3">
                         <p className="truncate text-xs font-medium text-foreground">{p.name}</p>

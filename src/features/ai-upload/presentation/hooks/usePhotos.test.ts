@@ -449,7 +449,7 @@ describe("useUploadPhotos", () => {
 // ─── Removal ─────────────────────────────────────────────────────────────────
 
 describe("useRemovePhoto", () => {
-  it("calls removeProjectPhoto with only photoId", async () => {
+  it("calls removeProjectPhoto with photoId and hook projectId", async () => {
     const removal: PhotoRemovalResult = {
       photoId: "p1",
       storagePath: "user-1/proj-1/p1.jpg",
@@ -466,10 +466,9 @@ describe("useRemovePhoto", () => {
     });
 
     expect(removeProjectPhoto).toHaveBeenCalledTimes(1);
-    expect(removeProjectPhoto).toHaveBeenCalledWith({ photoId: "p1" });
+    expect(removeProjectPhoto).toHaveBeenCalledWith({ photoId: "p1", projectId: PROJECT_ID });
     const arg = removeProjectPhoto.mock.calls[0]![0] as Record<string, unknown>;
     expect(arg).not.toHaveProperty("storagePath");
-    expect(arg).not.toHaveProperty("projectId");
   });
 
   it("source remove path uses removeProjectPhoto only", async () => {
@@ -595,6 +594,31 @@ describe("useRemovePhoto", () => {
         (call) =>
           Array.isArray(call[0]?.queryKey) && (call[0]?.queryKey as unknown[])[2] === "photos",
       ),
+    ).toBe(true);
+    expect(
+      invalidateSpy.mock.calls.some((call) => {
+        const key = call[0]?.queryKey as unknown[] | undefined;
+        return (
+          Array.isArray(key) && key[0] === "projects" && key[1] === PROJECT_ID && key.length === 2
+        );
+      }),
+    ).toBe(true);
+    expect(
+      invalidateSpy.mock.calls.some((call) => {
+        const key = call[0]?.queryKey as unknown[] | undefined;
+        return (
+          Array.isArray(key) &&
+          key[0] === "projects" &&
+          key[1] === PROJECT_ID &&
+          key[2] === "photoAnalysis"
+        );
+      }),
+    ).toBe(true);
+    expect(
+      invalidateSpy.mock.calls.some((call) => {
+        const key = call[0]?.queryKey as unknown[] | undefined;
+        return Array.isArray(key) && key[0] === "photo-analysis" && key[1] === PROJECT_ID;
+      }),
     ).toBe(true);
   });
 

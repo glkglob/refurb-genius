@@ -9,6 +9,7 @@ const {
   storageRemoveMock,
   getPublicUrlMock,
   fromMock,
+  maybeSingleMock,
   rpcMock,
   isNativePlatform,
   getNativeSupabaseMock,
@@ -18,6 +19,7 @@ const {
   nativeStorageRemoveMock,
   nativeGetPublicUrlMock,
   nativeFromMock,
+  nativeMaybeSingleMock,
   nativeRpcMock,
   loggerError,
   loggerWarn,
@@ -34,9 +36,22 @@ const {
     getPublicUrl: getPublicUrlMock,
   }));
   const rpcMock = vi.fn();
-  const fromMock = vi.fn(() => {
-    throw new Error("direct photos table DML is sealed; use metadata RPCs");
-  });
+  const maybeSingleMock = vi.fn(
+    async (): Promise<{
+      data: { id: string; project_id: string } | null;
+      error: { message: string } | null;
+    }> => ({
+      data: { id: "p1", project_id: "proj-1" },
+      error: null,
+    }),
+  );
+  const fromMock = vi.fn(() => ({
+    select: () => ({
+      eq: () => ({
+        maybeSingle: maybeSingleMock,
+      }),
+    }),
+  }));
   const nativeStorageUploadMock = vi.fn();
   const nativeStorageRemoveMock = vi.fn();
   const nativeGetPublicUrlMock = vi.fn();
@@ -46,9 +61,22 @@ const {
     getPublicUrl: nativeGetPublicUrlMock,
   }));
   const nativeRpcMock = vi.fn();
-  const nativeFromMock = vi.fn(() => {
-    throw new Error("direct photos table DML is sealed; use metadata RPCs");
-  });
+  const nativeMaybeSingleMock = vi.fn(
+    async (): Promise<{
+      data: { id: string; project_id: string } | null;
+      error: { message: string } | null;
+    }> => ({
+      data: { id: "p1", project_id: "proj-1" },
+      error: null,
+    }),
+  );
+  const nativeFromMock = vi.fn(() => ({
+    select: () => ({
+      eq: () => ({
+        maybeSingle: nativeMaybeSingleMock,
+      }),
+    }),
+  }));
   return {
     getUserMock: vi.fn(),
     authGetUserMock: vi.fn(),
@@ -57,6 +85,7 @@ const {
     storageRemoveMock,
     getPublicUrlMock,
     fromMock,
+    maybeSingleMock,
     rpcMock,
     isNativePlatform: vi.fn(() => false),
     getNativeSupabaseMock: vi.fn(),
@@ -66,6 +95,7 @@ const {
     nativeStorageRemoveMock,
     nativeGetPublicUrlMock,
     nativeFromMock,
+    nativeMaybeSingleMock,
     nativeRpcMock,
     loggerError: vi.fn(),
     loggerWarn: vi.fn(),
@@ -214,6 +244,15 @@ beforeEach(() => {
     error: null,
   });
   authGetUserMock.mockReturnValue(null);
+
+  maybeSingleMock.mockResolvedValue({
+    data: { id: "p1", project_id: "proj-1" },
+    error: null,
+  });
+  nativeMaybeSingleMock.mockResolvedValue({
+    data: { id: "p1", project_id: "proj-1" },
+    error: null,
+  });
 
   storageUploadMock.mockResolvedValue({ error: null });
   storageRemoveMock.mockResolvedValue({ data: [], error: null });
@@ -714,11 +753,12 @@ describe("removeProjectPhoto", () => {
       error: null,
     });
 
-    const result = await removeProjectPhoto({ photoId: "p1" });
+    const result = await removeProjectPhoto({ photoId: "p1", projectId: "proj-1" });
 
     expect(getUserMock).toHaveBeenCalled();
+    expect(fromMock).toHaveBeenCalledWith("photos");
+    expect(maybeSingleMock).toHaveBeenCalled();
     expect(rpcMock).toHaveBeenCalledWith("delete_project_photo_metadata", { p_photo_id: "p1" });
-    expect(fromMock).not.toHaveBeenCalled();
     expect(storageRemoveMock).toHaveBeenCalledWith(["user-1/proj-1/p1.jpg"]);
     expect(result).toEqual({
       photoId: "p1",
@@ -730,7 +770,9 @@ describe("removeProjectPhoto", () => {
   it("throws on zero-row delete and does not call Storage", async () => {
     rpcMock.mockResolvedValue({ data: [], error: null });
 
-    await expect(removeProjectPhoto({ photoId: "missing" })).rejects.toMatchObject({
+    await expect(
+      removeProjectPhoto({ photoId: "missing", projectId: "proj-1" }),
+    ).rejects.toMatchObject({
       stage: "metadata-delete",
       message: "Photo not found",
     });
@@ -743,7 +785,7 @@ describe("removeProjectPhoto", () => {
       error: { message: "fk violation" },
     });
 
-    await expect(removeProjectPhoto({ photoId: "p1" })).rejects.toMatchObject({
+    await expect(removeProjectPhoto({ photoId: "p1", projectId: "proj-1" })).rejects.toMatchObject({
       stage: "metadata-delete",
       message: "fk violation",
     });
@@ -754,7 +796,7 @@ describe("removeProjectPhoto", () => {
     getUserMock.mockResolvedValue({ data: { user: null }, error: null });
     authGetUserMock.mockReturnValue(null);
 
-    await expect(removeProjectPhoto({ photoId: "p1" })).rejects.toMatchObject({
+    await expect(removeProjectPhoto({ photoId: "p1", projectId: "proj-1" })).rejects.toMatchObject({
       stage: "authentication",
     });
     expect(rpcMock).not.toHaveBeenCalled();
@@ -768,7 +810,7 @@ describe("removeProjectPhoto", () => {
       error: { message: "Object not found", statusCode: "404" },
     });
 
-    const result = await removeProjectPhoto({ photoId: "p1" });
+    const result = await removeProjectPhoto({ photoId: "p1", projectId: "proj-1" });
     expect(result.storageCleanup).toBe("already-missing");
   });
 
@@ -778,7 +820,7 @@ describe("removeProjectPhoto", () => {
       error: { message: "permission denied", statusCode: "403" },
     });
 
-    const result = await removeProjectPhoto({ photoId: "p1" });
+    const result = await removeProjectPhoto({ photoId: "p1", projectId: "proj-1" });
     expect(result.storageCleanup).toBe("orphan-warning");
     expect(result.storageError).toEqual(expect.objectContaining({ message: "permission denied" }));
     expect(loggerWarn).toHaveBeenCalledWith(
@@ -788,17 +830,53 @@ describe("removeProjectPhoto", () => {
   });
 
   it("rejects empty photoId before Auth", async () => {
-    await expect(removeProjectPhoto({ photoId: "" })).rejects.toMatchObject({
+    await expect(removeProjectPhoto({ photoId: "", projectId: "proj-1" })).rejects.toMatchObject({
       stage: "validation",
     });
     expect(getUserMock).not.toHaveBeenCalled();
   });
 
-  it("does not accept caller-supplied storagePath (API is photoId-only)", async () => {
+  it("rejects empty projectId before Auth", async () => {
+    await expect(removeProjectPhoto({ photoId: "p1", projectId: "" })).rejects.toMatchObject({
+      stage: "validation",
+    });
+    expect(getUserMock).not.toHaveBeenCalled();
+  });
+
+  it("denies wrong project/photo pairing before RPC and Storage", async () => {
+    maybeSingleMock.mockResolvedValue({
+      data: { id: "p1", project_id: "other-proj" },
+      error: null,
+    });
+
+    await expect(removeProjectPhoto({ photoId: "p1", projectId: "proj-1" })).rejects.toMatchObject({
+      stage: "metadata-delete",
+      message: "Photo not found",
+    });
+    expect(rpcMock).not.toHaveBeenCalled();
+    expect(storageRemoveMock).not.toHaveBeenCalled();
+  });
+
+  it("denies nonexistent photo before RPC and Storage", async () => {
+    maybeSingleMock.mockResolvedValue({ data: null, error: null });
+
+    await expect(
+      removeProjectPhoto({ photoId: "missing", projectId: "proj-1" }),
+    ).rejects.toMatchObject({
+      stage: "metadata-delete",
+      message: "Photo not found",
+    });
+    expect(rpcMock).not.toHaveBeenCalled();
+    expect(storageRemoveMock).not.toHaveBeenCalled();
+  });
+
+  it("does not accept caller-supplied storagePath", async () => {
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
     const src = readFileSync(join(process.cwd(), "src/lib/photos-write.ts"), "utf8");
-    expect(src).toMatch(/removeProjectPhoto\(input: \{\s*photoId: string/);
+    expect(src).toMatch(/removeProjectPhoto\(input: \{/);
+    expect(src).toMatch(/photoId: string/);
+    expect(src).toMatch(/projectId: string/);
     expect(src).toMatch(/delete_project_photo_metadata/);
     expect(src).toMatch(/deletedRow\.storage_path/);
     expect(src).not.toMatch(/input\.storagePath|photo\.storagePath/);
@@ -810,6 +888,14 @@ describe("removeProjectPhoto", () => {
     const src = readFileSync(join(process.cwd(), "src/lib/photos-write.ts"), "utf8");
     expect(src).not.toMatch(/photoStore\s*\./);
     expect(src).toMatch(/import\s+type\s+\{\s*ProjectPhoto\s*\}/);
+  });
+
+  it("does not introduce service_role or persist signed URLs", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const src = readFileSync(join(process.cwd(), "src/lib/photos-write.ts"), "utf8");
+    expect(src).not.toMatch(/service_role/);
+    expect(src).not.toMatch(/createSignedUrl/);
   });
 });
 
@@ -989,10 +1075,13 @@ describe("platform client selection", () => {
       error: null,
     });
 
-    const result = await removeProjectPhoto({ photoId: "p1" });
+    const result = await removeProjectPhoto({ photoId: "p1", projectId: "proj-1" });
 
     expect(nativeGetUserMock).toHaveBeenCalled();
     expect(getUserMock).not.toHaveBeenCalled();
+    expect(nativeFromMock).toHaveBeenCalledWith("photos");
+    expect(nativeMaybeSingleMock).toHaveBeenCalled();
+    expect(fromMock).not.toHaveBeenCalled();
     expect(nativeRpcMock).toHaveBeenCalledWith("delete_project_photo_metadata", {
       p_photo_id: "p1",
     });

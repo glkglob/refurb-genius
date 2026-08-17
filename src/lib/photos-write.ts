@@ -732,19 +732,55 @@ function normaliseConcurrency(value: number | undefined): number {
 // ── Remove ────────────────────────────────────────────────────────
 
 /**
- * Remove a project photo: database row first via serialized RPC, then Storage.
+ * Confirm the photo belongs to the caller-supplied project before the delete RPC.
+ * Mismatch and missing rows use the same not-found surface so foreign photos are not leaked.
+ * SELECT only — writes remain sealed behind delete_project_photo_metadata.
+ */
+async function assertPhotoBelongsToProject(
+  client: PhotoWriteClient,
+  input: { photoId: string; projectId: string },
+): Promise<void> {
+  const { data, error } = await client
+    .from("photos")
+    .select("id, project_id")
+    .eq("id", input.photoId)
+    .maybeSingle();
+
+  if (error) {
+    throw new PhotoWriteError(error.message, {
+      stage: "metadata-delete",
+      cause: error,
+    });
+  }
+
+  if (!data || data.project_id !== input.projectId) {
+    throw new PhotoWriteError("Photo not found", {
+      stage: "metadata-delete",
+      cause: new Error("Photo not found"),
+    });
+  }
+}
+
+/**
+ * Remove a project photo: pairing check, database row first via serialized RPC, then Storage.
  *
  * - Auth required before any remote write.
+ * - projectId + photoId must match an owned photos row (checked before RPC).
  * - delete_project_photo_metadata takes projects FOR UPDATE and clears analysis_done.
  * - Zero-row / unauthorized delete throws; Storage is not called.
  * - Storage path always comes from the deleted database row (never caller-supplied).
  * - Non-missing Storage failures after metadata delete yield orphan-warning (no throw).
  */
-export async function removeProjectPhoto(input: { photoId: string }): Promise<PhotoRemovalResult> {
+export async function removeProjectPhoto(input: {
+  photoId: string;
+  projectId: string;
+}): Promise<PhotoRemovalResult> {
   assertSafePathSegment(input.photoId, "photoId");
+  assertSafePathSegment(input.projectId, "projectId");
 
   const client = await getPhotoWriteClient();
   await resolvePhotoWriteUser(client);
+  await assertPhotoBelongsToProject(client, input);
 
   const { data: deletedRows, error: dbError } = await client.rpc("delete_project_photo_metadata", {
     p_photo_id: input.photoId,
