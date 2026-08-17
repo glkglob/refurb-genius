@@ -271,6 +271,30 @@ export function isStaleAnalysisRelativeToCatalogue(
 }
 
 /**
+ * Choose Analysis evidence for a current photo catalogue.
+ * Prefer in-memory cache only when it is production-valid against the catalogue.
+ * Otherwise use durable persisted rows. Does not change currentness rules.
+ */
+export function preferAnalysesForCurrentCatalogue(input: {
+  cached?: RoomAnalysis[] | null;
+  persisted?: RoomAnalysis[] | null;
+  catalogue: Array<Pick<AnalysisPhotoSource, "id">>;
+}): RoomAnalysis[] {
+  const cached = input.cached ?? [];
+  const persisted = input.persisted ?? [];
+  const catalogue: CataloguePhotoIdentity[] = input.catalogue.map((photo) => ({
+    id: photo.id,
+    url: "",
+    name: "",
+  }));
+  if (cached.length > 0 && isProductionValidAnalysisSet(cached, catalogue)) {
+    return cached;
+  }
+  if (persisted.length > 0) return persisted;
+  return cached;
+}
+
+/**
  * Assert vision output is grounded in the supplied project photos using photo_id.
  * Rejects empty inputs, cardinality drift, mock rows, duplicates, and unlinked results.
  */

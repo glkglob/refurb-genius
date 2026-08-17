@@ -11,20 +11,27 @@ import { Badge } from "@/components/ui/badge";
 import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import { RedesignCard } from "@/components/RedesignCard";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AlertCircle, ArrowRight, Palette, RefreshCw, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import {
+  durablePhotoCatalogueIdentity,
   getPhotoAnalysis,
   isProductionValidAnalysisSet,
   loadPhotoAnalysis,
+  preferAnalysesForCurrentCatalogue,
+  subscribePhotoAnalysis,
   usePhotos,
   useProjectPhotoDisplayUrl,
   type RoomAnalysis,
 } from "@/features/ai-upload";
 import {
+  currentSelectedRedesignConcept,
   generateRedesignConceptsForClient,
+  isCurrentRedesignConcept,
   listRedesignConceptsForClient,
+  resolveCurrentAnalysisIdentity,
+  selectCurrentRedesignConcepts,
   selectRedesignConceptForClient,
   type DurableRedesignConcept,
 } from "@/features/ai-design";
@@ -66,14 +73,29 @@ function RedesignPage() {
     () => isProductionValidAnalysisSet(analyses, catalogue),
     [analyses, catalogue],
   );
+  const catalogueIdentity = useMemo(() => durablePhotoCatalogueIdentity(catalogue), [catalogue]);
   const currentAnalysisIdentity = useMemo(
     () =>
-      [...analyses]
-        .map((a) => a.photo_id)
-        .filter((pid): pid is string => Boolean(pid))
-        .sort()
-        .join("\u0001"),
-    [analyses],
+      resolveCurrentAnalysisIdentity({
+        analysisIsCurrent: analysisIsValid,
+        photoIds: analyses.map((a) => a.photo_id),
+      }),
+    [analysisIsValid, analyses],
+  );
+  const currentness = useMemo(
+    () => ({
+      analysisIsCurrent: analysisIsValid,
+      currentAnalysisIdentity,
+    }),
+    [analysisIsValid, currentAnalysisIdentity],
+  );
+  const currentConcepts = useMemo(
+    () => selectCurrentRedesignConcepts(candidates, currentness),
+    [candidates, currentness],
+  );
+  const currentSelected = useMemo(
+    () => currentSelectedRedesignConcept(candidates, currentness),
+    [candidates, currentness],
   );
 
   const photosAnalysisWorkflow = useMemo(
@@ -128,18 +150,24 @@ function RedesignPage() {
   });
   const heroUrl = heroDisplay?.signedUrl;
 
+  const catalogueRef = useRef(catalogue);
+  catalogueRef.current = catalogue;
+
   const reload = useCallback(async () => {
     setLoadingAuthority(true);
     setError(null);
     try {
-      // Prefer client cache from Analysis page, then durable load.
+      void catalogueIdentity;
       const cached = getPhotoAnalysis(id);
       const [persisted, durable] = await Promise.all([
         loadPhotoAnalysis(id).catch(() => [] as RoomAnalysis[]),
         listRedesignConceptsForClient(id),
       ]);
-      const preferred =
-        cached && cached.length > 0 ? cached : persisted && persisted.length > 0 ? persisted : [];
+      const preferred = preferAnalysesForCurrentCatalogue({
+        cached,
+        persisted,
+        catalogue: catalogueRef.current,
+      });
       setAnalyses(preferred);
       setCandidates(durable);
     } catch (err) {
@@ -147,19 +175,19 @@ function RedesignPage() {
     } finally {
       setLoadingAuthority(false);
     }
-  }, [id]);
+  }, [id, catalogueIdentity]);
 
   useEffect(() => {
     void reload();
   }, [reload]);
 
-  // Re-evaluate once photos settle (catalogue needed for Analysis currentness).
-  useEffect(() => {
-    if (photosLoading || loadingAuthority) return;
-    if (analyses.length === 0 && catalogue.length > 0) {
-      void reload();
-    }
-  }, [photosLoading, catalogue.length, analyses.length, loadingAuthority, reload]);
+  useEffect(
+    () =>
+      subscribePhotoAnalysis(() => {
+        void reload();
+      }),
+    [reload],
+  );
 
   const handleGenerate = async () => {
     if (!analysisIsValid) {
@@ -192,6 +220,11 @@ function RedesignPage() {
   };
 
   const handleSelect = async (conceptId: string) => {
+    const target = candidates.find((c) => c.id === conceptId);
+    if (!target || !isCurrentRedesignConcept(target, currentness)) {
+      toast.error("This concept is from a previous Analysis.");
+      return;
+    }
     setSelectingId(conceptId);
     try {
       const selected = await selectRedesignConceptForClient({
@@ -295,8 +328,8 @@ function RedesignPage() {
       children: (
         <EmptyState
           icon={AlertCircle}
-          title="Current Analysis is required"
-          description="Redesign only uses the current durable Analysis for this project's photos. Complete or update Analysis first."
+          title="Analysis has changed"
+          description="Re-run Analysis before generating Redesign concepts."
           action={
             <Button asChild>
               <Link to="/projects/$id/analysis" params={{ id }} search={{ focus: undefined }}>
@@ -413,7 +446,7 @@ function RedesignPage() {
           </div>
         ) : null}
 
-        {primaryIsSelect && candidates.length > 0 ? (
+        {primaryIsSelect && currentConcepts.length > 0 ? (
           <div
             role="status"
             className="mb-5 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground"
@@ -435,7 +468,7 @@ function RedesignPage() {
           </p>
         </div>
 
-        {candidates.length === 0 && !generating ? (
+        {currentConcepts.length === 0 && !generating ? (
           <EmptyState
             icon={Sparkles}
             title="No redesign concepts yet"
@@ -457,12 +490,12 @@ function RedesignPage() {
             className="grid gap-6 md:grid-cols-2 xl:grid-cols-3"
             data-testid="redesign-candidates"
           >
-            {candidates.map((c) => (
+            {currentConcepts.map((c) => (
               <RedesignCard
                 key={c.id}
                 concept={c}
                 beforePhotoUrl={heroUrl}
-                selected={c.isSelected}
+                selected={currentSelected?.id === c.id}
                 selectDisabled={selectingId !== null || generating}
                 onSelect={() => void handleSelect(c.id)}
                 selectLabel="Select Redesign"

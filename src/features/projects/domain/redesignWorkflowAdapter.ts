@@ -5,13 +5,16 @@
  * identity into RedesignWorkflowState. No React, Supabase, AI, or mutation.
  *
  * Currentness:
- *   redesign current iff selected durable concept exists AND its
- *   analysisIdentity equals the current Analysis catalogue identity AND
- *   Analysis is current.
- *
- * Generated candidates alone never equal selected/current Redesign.
+ *   redesign current iff a current-selected concept exists (Analysis current
+ *   AND analysisIdentity equals the current Analysis identity).
+ *   Historical/stale is_selected is ignored. Generated candidates alone
+ *   never equal selected/current Redesign.
  */
 
+import {
+  currentSelectedRedesignConcept,
+  selectCurrentRedesignConcepts,
+} from "@/features/ai-design/domain";
 import type { RedesignWorkflowState, WorkflowAuthorityCurrency } from "./projectWorkflowState";
 
 /** Minimal durable Redesign candidate evidence. */
@@ -41,34 +44,23 @@ export function redesignCurrencyFromEvidence(input: RedesignAdapterInput): Redes
     return { currency: "running" };
   }
 
-  // Without current Analysis, Redesign cannot be Ready/current.
-  if (input.analysisCurrency !== "current") {
-    // Preserve non_current signal if a selection exists against a prior Analysis
-    // so UI can explain stale once Analysis is restored.
-    const selected = input.candidates.find((c) => c.isSelected);
-    if (selected && selected.analysisIdentity !== input.currentAnalysisIdentity) {
-      return { currency: "non_current" };
-    }
+  const analysisIsCurrent = input.analysisCurrency === "current";
+  const currentness = {
+    analysisIsCurrent,
+    currentAnalysisIdentity: analysisIsCurrent ? input.currentAnalysisIdentity : "",
+  };
+  const currentCandidates = selectCurrentRedesignConcepts(input.candidates, currentness);
+  const selected = currentSelectedRedesignConcept(currentCandidates, currentness);
+
+  if (!analysisIsCurrent) {
     return { currency: "absent" };
   }
-
-  const selected = input.candidates.find((c) => c.isSelected);
   if (selected) {
-    if (
-      selected.analysisIdentity.length > 0 &&
-      selected.analysisIdentity === input.currentAnalysisIdentity
-    ) {
-      return { currency: "current" };
-    }
-    // Selected against older Analysis catalogue.
-    return { currency: "non_current" };
+    return { currency: "current" };
   }
-
-  if (input.candidates.length > 0) {
-    // Candidates present but none selected → absent + hasUnselectedCandidates.
+  if (currentCandidates.length > 0) {
     return { currency: "absent", hasUnselectedCandidates: true };
   }
-
   return { currency: "absent", hasUnselectedCandidates: false };
 }
 
@@ -87,7 +79,7 @@ export function redesignShellFlagsFromCurrency(currency: WorkflowAuthorityCurren
     case "current":
       return { redesignDone: true, redesignNeedsAttention: false };
     case "non_current":
-      return { redesignDone: true, redesignNeedsAttention: true };
+      return { redesignDone: false, redesignNeedsAttention: true };
     case "running":
     case "absent":
       return { redesignDone: false, redesignNeedsAttention: false };

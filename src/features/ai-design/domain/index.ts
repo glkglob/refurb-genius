@@ -49,3 +49,12 @@ export {
   type RedesignConceptLiveRow,
   type RedesignConceptPayload,
 } from "./redesignAuthority";
+export {
+  currentSelectedRedesignConcept,
+  currentSelectedRedesignId,
+  isCurrentRedesignConcept,
+  resolveCurrentAnalysisIdentity,
+  selectCurrentRedesignConcepts,
+  type RedesignConceptCurrentnessEvidence,
+  type RedesignCurrentnessInput,
+} from "./redesignCurrentness";

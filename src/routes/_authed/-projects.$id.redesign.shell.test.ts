@@ -102,7 +102,32 @@ describe("IA-5-R4A Redesign product generation and selection contract", () => {
     expect(SRC).toMatch(/isProductionValidAnalysisSet/);
     expect(SRC).toMatch(/buildPhotosAnalysisWorkflowState/);
     expect(SRC).toMatch(/photosAnalysisWorkflow\.analysis\.currency !== ["']current["']/);
-    expect(SRC).toMatch(/Current Analysis is required/);
+    expect(SRC).toMatch(/Analysis has changed/);
+  });
+
+  it("T29: live grid uses current-concept selector, not raw isSelected dump", () => {
+    expect(SRC).toMatch(/selectCurrentRedesignConcepts/);
+    expect(SRC).toMatch(/currentSelectedRedesignConcept/);
+    expect(SRC).toMatch(/currentConcepts\.map/);
+    expect(SRC).toMatch(/selected=\{currentSelected\?\.id === c\.id\}/);
+    expect(SRC).toMatch(/data-testid=["']redesign-candidates["']/);
+  });
+
+  it("T30: recovery copy tells the user Analysis has changed", () => {
+    expect(SRC).toMatch(/Analysis has changed/);
+    expect(SRC).toMatch(/Re-run Analysis before generating Redesign concepts/);
+  });
+
+  it("T31: select handler refuses non-current concepts", () => {
+    expect(SRC).toMatch(/isCurrentRedesignConcept/);
+    expect(SRC).toMatch(/This concept is from a previous Analysis/);
+  });
+
+  it("T32: reload follows catalogue identity, not analyses.length === 0 only", () => {
+    expect(SRC).toMatch(/durablePhotoCatalogueIdentity/);
+    expect(SRC).toMatch(/subscribePhotoAnalysis/);
+    expect(SRC).toMatch(/preferAnalysesForCurrentCatalogue/);
+    expect(SRC).not.toMatch(/analyses\.length === 0 && catalogue\.length > 0/);
   });
 
   it("server generation resolves Analysis authority then persists via replace RPC", () => {

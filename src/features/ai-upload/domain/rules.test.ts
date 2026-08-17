@@ -15,6 +15,7 @@ import {
   isMockOnlyAnalysisSet,
   isStaleAnalysisRelativeToCatalogue,
   isProductionValidAnalysisSet,
+  preferAnalysesForCurrentCatalogue,
   durablePhotoCatalogueIdentity,
   catalogueIdentityFingerprint,
   assertAnalysisProvenance,
@@ -278,5 +279,43 @@ describe("ai-upload domain rules", () => {
     ];
     const catalogue = [{ id: "p1", url: "https://signed/new", name: "a.jpg" }];
     expect(isProductionValidAnalysisSet(rows, catalogue)).toBe(true);
+  });
+
+  it("T33: evidence picker prefers cache only when production-valid against catalogue", () => {
+    const cached = [analysis({ id: "p1", photo_id: "p1", source: "ai" })];
+    const persisted = [analysis({ id: "p2", photo_id: "p2", source: "ai" })];
+    expect(
+      preferAnalysesForCurrentCatalogue({
+        cached,
+        persisted,
+        catalogue: [{ id: "p1" }],
+      }),
+    ).toBe(cached);
+  });
+
+  it("T34: non-current 4-photo cache loses to persisted 3+NULL", () => {
+    const deleted = "937a24a4-855e-4bb7-8627-fc8470dac3dd";
+    const remain = [
+      "d04cad1d-69fa-46bd-8431-136ee1f20f3c",
+      "d7b2c46a-379a-45a4-bd65-e21940ed7543",
+      "fdc70554-bbf9-432a-8887-5e14d125a5d4",
+    ];
+    const cached = [deleted, ...remain].map((id) => analysis({ id, photo_id: id, source: "ai" }));
+    const persisted = [
+      ...remain.map((id) => analysis({ id, photo_id: id, source: "ai" })),
+      analysis({ id: "orphan", photo_id: null, source: "ai" }),
+    ];
+    const chosen = preferAnalysesForCurrentCatalogue({
+      cached,
+      persisted,
+      catalogue: remain.map((id) => ({ id })),
+    });
+    expect(chosen).toBe(persisted);
+    expect(
+      isProductionValidAnalysisSet(
+        cached,
+        remain.map((id) => ({ id, url: "", name: "" })),
+      ),
+    ).toBe(false);
   });
 });

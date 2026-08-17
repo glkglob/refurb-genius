@@ -4,6 +4,10 @@
  * Pure: no React, Supabase, AI, or mutation.
  */
 
+import {
+  currentSelectedRedesignId,
+  resolveCurrentAnalysisIdentity,
+} from "@/features/ai-design/domain";
 import type { ProjectWorkflowState, WorkflowAuthorityCurrency } from "./projectWorkflowState";
 import {
   analysisCurrencyFromEvidence,
@@ -21,14 +25,6 @@ import {
   type EstimateAuthorityEvidence,
 } from "./estimateWorkflowAdapter";
 import { exportCurrencyFromEvidence, type ExportSnapshotEvidence } from "./exportWorkflowAdapter";
-
-/** Same catalogue identity rule as Redesign/Analysis (sorted photo ids + U+0001). */
-function analysisIdentityFromPhotoIds(photoIds: Array<string | null | undefined>): string {
-  return [...photoIds]
-    .filter((id): id is string => typeof id === "string" && id.length > 0)
-    .sort()
-    .join("\u0001");
-}
 
 export type ComposeProjectWorkflowStateInput = {
   photos: DurablePhotoIdentity[];
@@ -62,9 +58,10 @@ export function composeProjectWorkflowState(
     analysisOperationRunning: input.analysisOperationRunning,
   });
 
-  const currentAnalysisIdentity = analysisIdentityFromPhotoIds(
-    input.analyses.map((a) => a.photoId),
-  );
+  const currentAnalysisIdentity = resolveCurrentAnalysisIdentity({
+    analysisIsCurrent: analysis.currency === "current",
+    photoIds: input.analyses.map((a) => a.photoId),
+  });
 
   const redesign = redesignCurrencyFromEvidence({
     analysisCurrency: analysis.currency,
@@ -73,8 +70,11 @@ export function composeProjectWorkflowState(
     redesignOperationRunning: input.redesignOperationRunning,
   });
 
-  const selected = input.redesignCandidates.find((c) => c.isSelected);
-  const currentSelectedRedesignIdentity = selected?.id ?? "";
+  const currentSelectedRedesignIdentity =
+    currentSelectedRedesignId(input.redesignCandidates, {
+      analysisIsCurrent: analysis.currency === "current",
+      currentAnalysisIdentity,
+    }) ?? "";
 
   const scope = scopeCurrencyFromEvidence({
     analysisCurrency: analysis.currency,

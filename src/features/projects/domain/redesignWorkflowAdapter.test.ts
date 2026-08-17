@@ -48,14 +48,50 @@ describe("IA-4 redesignCurrencyFromEvidence", () => {
     ).toBe("current");
   });
 
-  it("selected against older Analysis → non_current", () => {
+  it("T17: selected against older Analysis is absent, not Complete", () => {
+    const state = redesignCurrencyFromEvidence({
+      analysisCurrency: "current",
+      currentAnalysisIdentity: ID_B,
+      candidates: [{ id: "c1", style: "Modern", analysisIdentity: ID_A, isSelected: true }],
+    });
+    expect(state).toEqual({ currency: "absent", hasUnselectedCandidates: false });
+    expect(redesignShellFlagsFromCurrency(state.currency).redesignDone).toBe(false);
+  });
+
+  it("T18: current unselected candidates ignore historical selected", () => {
+    const state = redesignCurrencyFromEvidence({
+      analysisCurrency: "current",
+      currentAnalysisIdentity: ID_B,
+      candidates: [
+        { id: "c-old", style: "Modern", analysisIdentity: ID_A, isSelected: true },
+        { id: "c-new", style: "Luxury", analysisIdentity: ID_B, isSelected: false },
+      ],
+    });
+    expect(state).toEqual({ currency: "absent", hasUnselectedCandidates: true });
+    expect(redesignShellFlagsFromCurrency(state.currency).redesignDone).toBe(false);
+  });
+
+  it("T19: non-current Analysis + historical selected is absent", () => {
+    expect(
+      redesignCurrencyFromEvidence({
+        analysisCurrency: "non_current",
+        currentAnalysisIdentity: ID_A,
+        candidates: [{ id: "c1", style: "Modern", analysisIdentity: ID_A, isSelected: true }],
+      }),
+    ).toEqual({ currency: "absent" });
+  });
+
+  it("T22: hasUnselectedCandidates ignores historical-only rows", () => {
     expect(
       redesignCurrencyFromEvidence({
         analysisCurrency: "current",
         currentAnalysisIdentity: ID_B,
-        candidates: [{ id: "c1", style: "Modern", analysisIdentity: ID_A, isSelected: true }],
-      }).currency,
-    ).toBe("non_current");
+        candidates: [
+          { id: "c1", style: "Modern", analysisIdentity: ID_A, isSelected: false },
+          { id: "c2", style: "Luxury", analysisIdentity: ID_A, isSelected: true },
+        ],
+      }).hasUnselectedCandidates,
+    ).toBe(false);
   });
 
   it("generation alone (no selection) is not Complete", () => {
@@ -136,7 +172,22 @@ describe("IA-4 adapter → resolveProjectNextAction", () => {
     expect(n.actionKind).not.toBe("create_redesign");
   });
 
-  it("stale selection → update_redesign", () => {
+  it("T21: stale selected mapping produces create_redesign, not update_redesign", () => {
+    const redesign = redesignCurrencyFromEvidence({
+      analysisCurrency: "current",
+      currentAnalysisIdentity: ID_B,
+      candidates: [{ id: "c1", style: "Modern", analysisIdentity: ID_A, isSelected: true }],
+    });
+    expect(redesign.currency).toBe("absent");
+    const n = next(redesign);
+    expect(n).toMatchObject({
+      stage: "redesign",
+      actionKind: "create_redesign",
+      route: `/projects/${PROJECT_ID}/redesign`,
+    });
+  });
+
+  it("resolver still maps emitted non_current to update_redesign", () => {
     const n = next({ currency: "non_current" });
     expect(n).toMatchObject({
       stage: "redesign",
@@ -188,20 +239,18 @@ describe("IA-4 shell flags", () => {
     expect(stages.find((s) => s.id === "redesign")?.status).toBe("Complete");
   });
 
-  it("non_current → Needs attention", () => {
-    const flags = redesignShellFlagsFromCurrency("non_current");
-    const stages = buildProjectWorkflowStages({
-      progress: {
-        photosDone: true,
-        analysisDone: true,
-        redesignDone: flags.redesignDone,
-        redesignNeedsAttention: flags.redesignNeedsAttention,
-        estimateDone: false,
-        reportDone: false,
-        photoCount: 1,
-      },
-      route: { surface: "redesign" },
+  it("T23: only current sets redesignDone", () => {
+    expect(redesignShellFlagsFromCurrency("current")).toEqual({
+      redesignDone: true,
+      redesignNeedsAttention: false,
     });
-    expect(stages.find((s) => s.id === "redesign")?.status).toBe("Needs attention");
+    expect(redesignShellFlagsFromCurrency("non_current")).toEqual({
+      redesignDone: false,
+      redesignNeedsAttention: true,
+    });
+    expect(redesignShellFlagsFromCurrency("absent")).toEqual({
+      redesignDone: false,
+      redesignNeedsAttention: false,
+    });
   });
 });

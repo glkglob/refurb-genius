@@ -2,16 +2,21 @@
  * IA-5 — Load durable five-stage evidence and compose ProjectWorkflowState.
  * Browser presentation helper; pure currentness lives in domain adapters.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  durablePhotoCatalogueIdentity,
   getPhotoAnalysis,
+  isProductionValidAnalysisSet,
   loadPhotoAnalysis,
+  preferAnalysesForCurrentCatalogue,
+  subscribePhotoAnalysis,
   usePhotos,
   type RoomAnalysis,
 } from "@/features/ai-upload";
 import {
+  currentSelectedRedesignId,
   listRedesignConceptsForClient,
-  selectedRedesignIdFromList,
+  resolveCurrentAnalysisIdentity,
   type DurableRedesignConcept,
 } from "@/features/ai-design";
 import { getLatestScopeAuthorityHeader } from "@/features/ai-design/infrastructure";
@@ -69,9 +74,23 @@ export function useProjectFiveStageWorkflow(projectId: string): ProjectFiveStage
     ReturnType<typeof getLatestExportSnapshot>
   > | null>(null);
 
+  const catalogueIdentity = useMemo(
+    () => durablePhotoCatalogueIdentity((projectPhotos ?? []).map((p) => ({ id: p.id }))),
+    [projectPhotos],
+  );
+  const projectPhotosRef = useRef(projectPhotos);
+  projectPhotosRef.current = projectPhotos;
+
   const reload = useCallback(async () => {
     setLoading(true);
     try {
+      // catalogueIdentity is the reload key: membership change must rebuild evidence.
+      const catalogue = (projectPhotosRef.current ?? []).map((p) => ({
+        id: p.id,
+        url: p.url,
+        name: p.name,
+      }));
+      void catalogueIdentity;
       const cached = getPhotoAnalysis(projectId);
       const [persisted, durableSettled, scope, snap] = await Promise.all([
         loadPhotoAnalysis(projectId).catch(() => [] as RoomAnalysis[]),
@@ -88,14 +107,20 @@ export function useProjectFiveStageWorkflow(projectId: string): ProjectFiveStage
         });
       }
       const durable = durableSettled.ok ? durableSettled.value : [];
-      const preferred =
-        cached && cached.length > 0 ? cached : persisted && persisted.length > 0 ? persisted : [];
-      const analysisIdentity = [...preferred]
-        .map((a) => a.photo_id)
-        .filter((id): id is string => Boolean(id))
-        .sort()
-        .join("\u0001");
-      const selectedId = selectedRedesignIdFromList(durable);
+      const preferred = preferAnalysesForCurrentCatalogue({
+        cached,
+        persisted,
+        catalogue,
+      });
+      const analysisIsCurrent = isProductionValidAnalysisSet(preferred, catalogue);
+      const analysisIdentity = resolveCurrentAnalysisIdentity({
+        analysisIsCurrent,
+        photoIds: preferred.map((a) => a.photo_id),
+      });
+      const selectedId = currentSelectedRedesignId(durable, {
+        analysisIsCurrent,
+        currentAnalysisIdentity: analysisIdentity,
+      });
       // IA-5-R2: only pass Scope id when it matches current Analysis + selected Redesign.
       const currentScopeId =
         scope &&
@@ -113,33 +138,48 @@ export function useProjectFiveStageWorkflow(projectId: string): ProjectFiveStage
     } finally {
       setLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, catalogueIdentity]);
 
   useEffect(() => {
     void reload();
   }, [reload]);
 
-  // Re-load once photo catalogue settles.
-  useEffect(() => {
-    if (photosLoading) return;
-    if (analyses.length === 0 && (projectPhotos?.length ?? 0) > 0) {
-      void reload();
-    }
-  }, [photosLoading, projectPhotos, analyses.length, reload]);
+  useEffect(
+    () =>
+      subscribePhotoAnalysis(() => {
+        void reload();
+      }),
+    [reload],
+  );
 
   const photos = useMemo(() => (projectPhotos ?? []).map((p) => ({ id: p.id })), [projectPhotos]);
+  const catalogue = useMemo(
+    () => (projectPhotos ?? []).map((p) => ({ id: p.id, url: p.url, name: p.name })),
+    [projectPhotos],
+  );
+
+  const analysisIsCurrent = useMemo(
+    () => isProductionValidAnalysisSet(analyses, catalogue),
+    [analyses, catalogue],
+  );
 
   const currentAnalysisIdentity = useMemo(
     () =>
-      [...analyses]
-        .map((a) => a.photo_id)
-        .filter((id): id is string => Boolean(id))
-        .sort()
-        .join("\u0001"),
-    [analyses],
+      resolveCurrentAnalysisIdentity({
+        analysisIsCurrent,
+        photoIds: analyses.map((a) => a.photo_id),
+      }),
+    [analysisIsCurrent, analyses],
   );
 
-  const selectedRedesignId = useMemo(() => selectedRedesignIdFromList(candidates), [candidates]);
+  const selectedRedesignId = useMemo(
+    () =>
+      currentSelectedRedesignId(candidates, {
+        analysisIsCurrent,
+        currentAnalysisIdentity,
+      }),
+    [candidates, analysisIsCurrent, currentAnalysisIdentity],
+  );
 
   const workflow = useMemo(() => {
     // Loading evidence ≠ operation running. Keep workflow null while hydrating so
@@ -196,8 +236,7 @@ export function useProjectFiveStageWorkflow(projectId: string): ProjectFiveStage
     // (In progress is represented via isActive / resolver CTA, not done flags).
     const analysisDone =
       workflow.analysis.currency === "current" || workflow.analysis.currency === "non_current";
-    const redesignDone =
-      workflow.redesign.currency === "current" || workflow.redesign.currency === "non_current";
+    const redesignDone = workflow.redesign.currency === "current";
     return {
       photosDone: workflow.photos.currency === "current",
       analysisDone,

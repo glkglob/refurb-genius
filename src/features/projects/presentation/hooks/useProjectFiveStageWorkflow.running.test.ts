@@ -13,12 +13,16 @@ vi.mock("@/features/ai-upload", () => ({
   getPhotoAnalysis: () => null,
   loadPhotoAnalysis: vi.fn(async () => []),
   usePhotos: () => ({ data: [{ id: "p1" }], isLoading: false }),
+  preferAnalysesForCurrentCatalogue: () => [],
+  isProductionValidAnalysisSet: () => false,
+  durablePhotoCatalogueIdentity: () => "",
+  subscribePhotoAnalysis: () => () => undefined,
 }));
 
 vi.mock("@/features/ai-design", () => ({
   listRedesignConceptsForClient: vi.fn(async () => []),
-  selectedRedesignIdFromList: (items: { id: string; isSelected?: boolean }[]) =>
-    items.find((c) => c.isSelected)?.id ?? null,
+  currentSelectedRedesignId: () => null,
+  resolveCurrentAnalysisIdentity: () => "",
 }));
 
 vi.mock("@/features/ai-design/infrastructure", () => ({
@@ -62,7 +66,8 @@ describe("useProjectFiveStageWorkflow #151 list contract", () => {
   it("does not call .find on (durable ?? []) — that crashed when durable was a Response", () => {
     expect(HOOK_SRC).not.toMatch(/\(durable \?\? \[\]\)\.find/);
     expect(HOOK_SRC).toMatch(/listRedesignConceptsForClient/);
-    expect(HOOK_SRC).toMatch(/selectedRedesignIdFromList\(durable\)/);
+    expect(HOOK_SRC).toMatch(/currentSelectedRedesignId\(durable/);
+    expect(HOOK_SRC).not.toMatch(/selectedRedesignIdFromList\(durable\)/);
   });
 });
 
