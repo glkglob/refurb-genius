@@ -1,0 +1,34 @@
+src/features/ai-upload/application/analyzePhotos.test.ts
+  h_7ea6129503670a 5,212-234
+src/features/ai-upload/domain/index.ts
+  h_7ea6129503670a 34
+src/features/ai-upload/domain/rules.test.ts
+  h_7ea6129503670a 5,19,271-337
+src/features/ai-upload/domain/rules.ts
+  h_7ea6129503670a 260-273
+src/features/ai-upload/presentation/AnalysisRecoveryActions.test.tsx
+  h_7ea6129503670a 1-30
+src/features/ai-upload/presentation/AnalysisRecoveryActions.tsx
+  h_7ea6129503670a 1-53
+src/features/ai-upload/presentation/index.ts
+  h_7ea6129503670a 21-24
+src/features/projects/domain/photosAnalysisWorkflowAdapter.test.ts
+  h_7ea6129503670a 60-71,179-195,276,281-282,285-286,288
+src/features/projects/domain/photosAnalysisWorkflowAdapter.ts
+  h_7ea6129503670a 9-10,69-70,99,108,155,157
+src/routes/_authed/-projects.$id.analysis.trust.test.ts
+  h_7ea6129503670a 15,18-19
+src/routes/_authed/projects.$id.analysis.tsx
+  h_7ea6129503670a 20,22,83-86,131-135,278-282,528,530-534,541-545,554-556,558-564,636
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "5b9343ddcc9967422c1e8ed63c39125ca166ce51",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
