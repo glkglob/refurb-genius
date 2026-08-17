@@ -30,3 +30,7 @@ export {
   type CostSummaryConfidence,
 } from "./components/CostSummary";
 export { L1EstimateForm, type L1EstimateFormProps } from "./components/L1EstimateForm";
+export {
+  ConditionLevelCompare,
+  type ConditionLevelCompareProps,
+} from "./components/ConditionLevelCompare";
