@@ -1,0 +1,52 @@
+src/features/ai-upload/domain/index.ts
+  h_7ea6129503670a 37
+src/features/ai-upload/domain/rules.ts
+  h_7ea6129503670a 359-366
+src/features/ai-upload/infrastructure/listAuthorizedProjectPhotos.server.test.ts
+  h_7ea6129503670a 1-94
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.server.test.ts
+  h_7ea6129503670a 1-115
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.server.ts
+  h_7ea6129503670a 1-137
+src/features/ai-upload/infrastructure/resolveAuthorizedPhotos.server.ts
+  h_7ea6129503670a 109-230
+src/features/ai-upload/infrastructure/runAuthenticatedPhotoAnalysis.server.test.ts
+  h_7ea6129503670a 1-192
+src/features/ai-upload/infrastructure/runAuthenticatedPhotoAnalysis.server.ts
+  h_7ea6129503670a 1-130
+src/features/ai-upload/presentation/index.ts
+  h_7ea6129503670a 20
+src/features/ai-upload/presentation/mobilePhotoAnalysisGenerate.server.test.ts
+  h_7ea6129503670a 1-163
+src/features/ai-upload/presentation/mobilePhotoAnalysisGenerate.server.ts
+  h_7ea6129503670a 1-136
+src/features/ai-upload/presentation/photo-analysis.provider.ts
+  h_7ea6129503670a 76-78
+src/features/ai-upload/presentation/retryWeakAnalyses.native.test.ts
+  h_7ea6129503670a 1-78
+src/features/ai-upload/presentation/retryWeakAnalyses.ts
+  h_7ea6129503670a 3-5,7,9,34-40
+src/features/ai-upload/presentation/runPhotoAnalysisForClient.test.ts
+  h_7ea6129503670a 1-95
+src/features/ai-upload/presentation/runPhotoAnalysisForClient.ts
+  h_7ea6129503670a 1-29
+src/platform/http/mobile-api.server.test.ts
+  h_7ea6129503670a 5,19-23,30,129-152
+src/platform/http/mobile-api.server.ts
+  h_7ea6129503670a 13,51-56
+src/platform/http/mobile-photo-analysis-generate.test.ts
+  h_7ea6129503670a 1-56
+src/platform/http/mobile-photo-analysis-generate.ts
+  h_7ea6129503670a 1-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "49eb6daef92d71d41450555ffc61de0b1133ae87",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
