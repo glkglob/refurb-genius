@@ -22,6 +22,9 @@ export {
   type AIEstimateBuilderSaveItem,
 } from "./buildAIEstimateBuilderSaveInput";
 
+/** Advisory ConditionLevel comparison — Quick estimate, non-persisting. */
+export { compareConditionLevels, type ConditionLevelCompareRow } from "./compareConditionLevels";
+
 /** L1 progressive estimate — pure engine path, non-persisting. */
 export { runL1Estimate, type L1EstimateResult } from "./runL1Estimate";
 

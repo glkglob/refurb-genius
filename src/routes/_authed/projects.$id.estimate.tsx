@@ -61,7 +61,12 @@ import {
 import { runRoiEngine, type RoiRiskLevel as RiskLevel } from "@/features/roi";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { bindEstimateToScope, saveAuthorityCategoryEstimateServerFn } from "@/features/estimate";
+import {
+  bindEstimateToScope,
+  compareConditionLevels,
+  ConditionLevelCompare,
+  saveAuthorityCategoryEstimateServerFn,
+} from "@/features/estimate";
 import { projectKeys } from "@/lib/queries/projects";
 import { trackEvent } from "@/lib/analytics";
 import {
@@ -176,6 +181,18 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
   const result = useMemo(
     () =>
       runPricingEngine({
+        region,
+        property_condition: condition,
+        finish_quality: finish,
+        selected_categories: categories,
+        property_size_sqm: estimateSizeSqm,
+      }),
+    [region, condition, finish, categories, estimateSizeSqm],
+  );
+
+  const conditionCompare = useMemo(
+    () =>
+      compareConditionLevels({
         region,
         property_condition: condition,
         finish_quality: finish,
@@ -598,6 +615,8 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
               hint={`Multiplier ×${result.multiplier}`}
             />
           </div>
+
+          <ConditionLevelCompare rows={conditionCompare} selectedCondition={condition} />
 
           {/* Investor metrics */}
           {metrics && (
