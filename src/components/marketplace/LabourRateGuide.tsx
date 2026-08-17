@@ -60,7 +60,7 @@ export function LabourRateGuide({
   }, [trade, postcode, region, days]);
 
   const inferredRegion = postcode?.trim()
-    ? postcodeToUkRegion(postcode.trim())
+    ? (postcodeToUkRegion(postcode.trim()) ?? region ?? "West Midlands")
     : (region ?? "West Midlands");
 
   if (!trade || !labour) return null;

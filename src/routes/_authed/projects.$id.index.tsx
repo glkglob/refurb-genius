@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 
 import { estimatedRefurbCost, estimatedProfit } from "@/core/projects";
+import { resolveProjectPricingRegion } from "@repo/services";
 import {
   ProjectWorkflowShell,
   useProjectFiveStageWorkflow,
@@ -150,6 +151,14 @@ function ProjectDetail() {
         photoCount: photos.length,
       };
 
+  const displayRegion = (() => {
+    const resolved = resolveProjectPricingRegion({
+      postcode: project.postcode,
+      explicitRegion: project.region,
+    });
+    return resolved.ok ? resolved.region : project.region || "Not set";
+  })();
+
   const stagePresentations = buildProjectWorkflowStages({
     progress: shellProgress,
     route: { surface: "overview" },
@@ -236,7 +245,7 @@ function ProjectDetail() {
             label="Postcode"
             value={project.postcode?.trim() ? project.postcode : "Not set"}
           />
-          <Detail label="Region" value={project.region || "Not set"} />
+          <Detail label="Region" value={displayRegion} />
           <Detail label="Property type" value={project.property_type || "Not set"} icon={Home} />
           <Detail
             label="Bedrooms"

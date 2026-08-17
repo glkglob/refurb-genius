@@ -17,6 +17,7 @@ import {
   resolveNativeAccessTokenFromAuth,
   type NativeAccessTokenFailureReason,
 } from "@/platform/http/native-access-token";
+import { requireProjectPricingRegion } from "@repo/services";
 
 export type NativeProjectInsertInput = {
   name: string;
@@ -84,14 +85,20 @@ export async function createProjectWithClient(
     throw new Error("You must be signed in.");
   }
 
+  const postcode = input.postcode?.trim() ?? "";
+  const { region } = requireProjectPricingRegion({
+    postcode,
+    explicitRegion: input.region,
+  });
+
   const { data: row, error } = await supabase
     .from("projects")
     .insert({
       user_id: userId,
       name: input.name.trim(),
       address: input.address?.trim() ?? "",
-      postcode: input.postcode?.trim() ?? "",
-      region: input.region ?? "London",
+      postcode,
+      region,
       property_type: input.property_type ?? "Terraced",
       bedrooms: input.bedrooms ?? 0,
       bathrooms: input.bathrooms ?? 0,

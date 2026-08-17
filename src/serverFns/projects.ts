@@ -59,6 +59,7 @@ import { UK_REGIONS, PROPERTY_TYPES } from "@/core/projects/domain";
 // Pure mapper — safe to import at top level (only type imports inside it,
 // no side-effects, no browser clients).
 import { rowToProject } from "@/lib/mappers";
+import { requireProjectPricingRegion } from "@repo/services";
 
 /**
  * Zod schema for the New Project creation payload.
@@ -71,14 +72,15 @@ import { rowToProject } from "@/lib/mappers";
  * Notes:
  * - `notes` is optional on the wire (form can be empty) → defaults to "".
  * - All numeric fields arrive as numbers from the React caller (JSON serialised).
- * - region / property_type default when omitted so NOT NULL DB columns stay satisfied
- *   without requiring user input (presentation defaults, not business authority).
+ * - region is derived from postcode when the area maps. Name-only projects
+ *   (missing postcode, no explicit region) persist the documented placeholder.
+ * - property_type defaults when omitted so NOT NULL DB columns stay satisfied.
  */
 const createProjectInputSchema = z.object({
   name: z.string().trim().min(1, "Project name is required"),
   address: z.string().trim().default(""),
   postcode: z.string().trim().default(""),
-  region: z.enum(UK_REGIONS).default("London"),
+  region: z.enum(UK_REGIONS).optional(),
   property_type: z.enum(PROPERTY_TYPES).default("Terraced"),
   bedrooms: z.number().int().min(0).max(50).default(0),
   bathrooms: z.number().int().min(0).max(50).default(0),
@@ -117,6 +119,10 @@ export const createProjectServerFn = createServerFn({ method: "POST" })
 
     // No generic needed on the wrapper (it always returns the Database-typed client).
     const supabase = await createSupabaseServerClient();
+    const { region } = requireProjectPricingRegion({
+      postcode: data.postcode,
+      explicitRegion: data.region,
+    });
 
     const { data: row, error } = await supabase
       .from("projects")
@@ -127,7 +133,7 @@ export const createProjectServerFn = createServerFn({ method: "POST" })
         name: data.name,
         address: data.address,
         postcode: data.postcode,
-        region: data.region,
+        region,
         property_type: data.property_type,
         bedrooms: data.bedrooms,
         bathrooms: data.bathrooms,

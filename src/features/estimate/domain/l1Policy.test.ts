@@ -44,31 +44,34 @@ describe("resolveL1Inputs", () => {
     expect(resolved.regionMapped).toBe(true);
   });
 
-  it("treats unknown postcode area as unmatched London default", () => {
-    const resolved = resolveL1Inputs({
-      postcode: "ZZ1 1ZZ",
-      condition: "dated",
-      intent: "cosmetic",
-    });
-    expect(resolved.engineInputs.region).toBe("London");
-    expect(resolved.regionMapped).toBe(false);
-    expect(
-      resolved.appliedDefaults.some((d) =>
-        d.includes(
-          "Region defaulted to London because the postcode area was missing or unrecognised",
-        ),
-      ),
-    ).toBe(true);
+  it("refuses unknown postcode instead of defaulting to London", () => {
+    expect(() =>
+      resolveL1Inputs({
+        postcode: "ZZ1 1ZZ",
+        condition: "dated",
+        intent: "cosmetic",
+      }),
+    ).toThrow(/postcode area was missing or unrecognised/i);
   });
 
-  it("treats empty postcode as unmapped", () => {
+  it("refuses empty postcode instead of defaulting to London", () => {
+    expect(() =>
+      resolveL1Inputs({
+        postcode: "",
+        condition: "dated",
+        intent: "cosmetic",
+      }),
+    ).toThrow(/postcode area was missing or unrecognised/i);
+  });
+
+  it("maps BS16 2EG to South West England", () => {
     const resolved = resolveL1Inputs({
-      postcode: "",
+      postcode: "BS16 2EG",
       condition: "dated",
       intent: "cosmetic",
     });
-    expect(resolved.engineInputs.region).toBe("London");
-    expect(resolved.regionMapped).toBe(false);
+    expect(resolved.engineInputs.region).toBe("South West England");
+    expect(resolved.regionMapped).toBe(true);
   });
 
   it("does not describe a known London postcode as an unknown fallback", () => {

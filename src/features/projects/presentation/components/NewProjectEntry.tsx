@@ -18,6 +18,7 @@ import { PROPERTY_TYPES, UK_REGIONS } from "@/core/constants";
 import { type PropertyType, type UKRegion } from "@/core/projects";
 import { useCreateProject } from "@/hooks/useProjects";
 import { trackEvent } from "@/lib/analytics";
+import { requireProjectPricingRegion, UNRESOLVED_POSTCODE_REGION_MESSAGE } from "@repo/services";
 
 /**
  * IA-0 / IA-1 / IA-7-R1 canonical project-entry form.
@@ -66,13 +67,22 @@ export function NewProjectEntry() {
     if (!Number.isFinite(price) || price < 0) return setError("Enter a valid purchase price.");
     if (!Number.isFinite(gdv) || gdv < 0) return setError("Enter a valid estimated GDV.");
 
+    let derivedRegion: UKRegion;
+    try {
+      derivedRegion = requireProjectPricingRegion({
+        postcode,
+        explicitRegion: region || undefined,
+      }).region;
+    } catch {
+      return setError(UNRESOLVED_POSTCODE_REGION_MESSAGE);
+    }
+
     createProject.mutate(
       {
         name: name.trim(),
         address: address.trim(),
         postcode: postcode.trim().toUpperCase(),
-        // Server defaults apply when optional fields are omitted; send safe values for typed path.
-        region: (region || "London") as UKRegion,
+        region: derivedRegion,
         property_type: (propertyType || "Terraced") as PropertyType,
         bedrooms: beds,
         bathrooms: baths,
@@ -84,7 +94,7 @@ export function NewProjectEntry() {
       {
         onSuccess: (project) => {
           trackEvent("project_created", {
-            region: region || "unspecified",
+            region: derivedRegion,
             property_type: propertyType || "unspecified",
           });
           // Preferred IA-0 continuation: durable ID → Photos immediately available.

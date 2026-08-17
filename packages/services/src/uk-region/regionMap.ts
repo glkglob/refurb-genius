@@ -52,14 +52,16 @@ export const UK_TO_REGION_SLUG: Record<UKRegion, RegionSlug> = {
 /** Resolution of a postcode area to a UK region, including match honesty. */
 export type PostcodeRegionResolution = {
   area: string;
-  region: UKRegion;
+  /** Canonical region when matched; never a silent London fallback. */
+  region: UKRegion | null;
   /** True only when the postcode area is present in the canonical area sets. */
   matched: boolean;
 };
 
 /**
  * Resolve a UK postcode (district or full) to a region with an explicit match flag.
- * Unknown, empty or malformed areas fall back to London with matched=false.
+ * Unknown, empty or malformed areas return matched=false and region=null.
+ * They must not be silently converted to London.
  */
 export function resolvePostcodeRegion(postcode: string): PostcodeRegionResolution {
   const area = extractPostcodeArea(postcode);
@@ -103,14 +105,15 @@ export function resolvePostcodeRegion(postcode: string): PostcodeRegionResolutio
 
   return {
     area,
-    region: "London",
+    region: null,
     matched: false,
   };
 }
 
-/** Infer UK region from a UK postcode (district or full). Defaults to London. */
-export function postcodeToUkRegion(postcode: string): UKRegion {
-  return resolvePostcodeRegion(postcode).region;
+/** Infer UK region from a UK postcode. Returns null when the area is unknown. */
+export function postcodeToUkRegion(postcode: string): UKRegion | null {
+  const resolved = resolvePostcodeRegion(postcode);
+  return resolved.matched ? resolved.region : null;
 }
 
 function extractPostcodeArea(postcode: string): string {

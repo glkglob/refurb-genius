@@ -58,6 +58,7 @@ import {
   type EstimateCategory,
   type FinishLevel,
 } from "@/core/pricing";
+import { resolveProjectPricingRegion } from "@repo/services";
 import { runRoiEngine, type RoiRiskLevel as RiskLevel } from "@/features/roi";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
@@ -142,7 +143,15 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
     }
   }, [from, id]);
 
-  const [region, setRegion] = useState<UKRegion>(project.region);
+  const derivedProjectRegion = useMemo(() => {
+    const resolved = resolveProjectPricingRegion({
+      postcode: project.postcode,
+      explicitRegion: project.region,
+    });
+    return resolved.ok ? resolved.region : project.region;
+  }, [project.postcode, project.region]);
+
+  const [region, setRegion] = useState<UKRegion>(derivedProjectRegion);
   const [condition, setCondition] = useState<ConditionLevel>("Dated");
   const [finish, setFinish] = useState<FinishLevel>("Standard");
   const [categories, setCategories] = useState<EstimateCategory[]>(DEFAULT_CATEGORIES);
@@ -158,8 +167,8 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
   }, []);
 
   useEffect(() => {
-    setRegion(project.region);
-  }, [project.region]);
+    setRegion(derivedProjectRegion);
+  }, [derivedProjectRegion]);
 
   /**
    * Project size is optional at create. Authority save requires property_size_sqm > 0.
@@ -482,7 +491,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
             bedrooms={project.bedrooms}
             bathrooms={project.bathrooms}
             sizeSqm={project.size_sqm}
-            initialRegion={project.region}
+            initialRegion={derivedProjectRegion}
             postcode={project.postcode}
             initialScopeRooms={scopeRooms}
             // Draft-only path: must not mark projects.estimate_done.

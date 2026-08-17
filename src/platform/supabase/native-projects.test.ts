@@ -122,6 +122,7 @@ describe("native project data plane foundation", () => {
       expect.objectContaining({
         user_id: "user-1",
         name: "N",
+        region: "London",
       }),
     );
     expect(insert).not.toHaveBeenCalledWith(
@@ -222,6 +223,31 @@ describe("native project data plane foundation", () => {
     });
     await expect(createProjectWithClient(client, { name: "X" })).rejects.toThrow(/signed in/i);
     expect(refreshSession).not.toHaveBeenCalled();
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("derives South West England from BS16 2EG instead of defaulting London", async () => {
+    const row = { id: "p-bs", name: "New", region: "South West England" };
+    const { client, insert } = mockClient({ insertRow: row });
+
+    await createProjectWithClient(client, {
+      name: "New",
+      postcode: "BS16 2EG",
+    });
+
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        postcode: "BS16 2EG",
+        region: "South West England",
+      }),
+    );
+  });
+
+  it("rejects unknown postcode without an explicit region", async () => {
+    const { client, insert } = mockClient({});
+    await expect(
+      createProjectWithClient(client, { name: "X", postcode: "ZZ1 1ZZ" }),
+    ).rejects.toThrow(/recognised UK postcode or choose a region/i);
     expect(insert).not.toHaveBeenCalled();
   });
 

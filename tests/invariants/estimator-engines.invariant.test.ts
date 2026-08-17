@@ -22,6 +22,9 @@ test("postcodeToUkRegion maps common districts", () => {
   assert.equal(postcodeToUkRegion("M1 1AE"), "North West England");
   assert.equal(postcodeToUkRegion("EH1 1YZ"), "Scotland");
   assert.equal(postcodeToUkRegion("BT1 5GS"), "Northern Ireland");
+  assert.equal(postcodeToUkRegion("BS16 2EG"), "South West England");
+  assert.notEqual(postcodeToUkRegion("BS16 2EG"), "London");
+  assert.equal(postcodeToUkRegion("ZZ1 1ZZ"), null);
 });
 
 test("trade rates: labour cost scales with region and days", () => {

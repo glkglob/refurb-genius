@@ -10,6 +10,7 @@
  */
 import {
   REFERENCE_SIZE_SQM,
+  UNMAPPED_POSTCODE_REGION_MESSAGE,
   resolvePostcodeRegion,
   type PricingEngineInputs,
 } from "@repo/services";
@@ -24,7 +25,7 @@ import {
 } from "./progressiveChips";
 
 /** Bump when maps or default values change so diagnostics stay auditable. */
-export const L1_POLICY_VERSION = "2026-07-30.1";
+export const L1_POLICY_VERSION = "2026-08-17.1";
 
 export type { L1ConditionChip, L1IntentChip };
 export { L1_CONDITION_OPTIONS, L1_INTENT_OPTIONS };
@@ -56,10 +57,8 @@ export function resolveL1Inputs(user: L1UserInput): L1ResolvedInputs {
   const region = postcodeResolution.region;
   const regionMapped = postcodeResolution.matched;
 
-  if (!regionMapped) {
-    appliedDefaults.push(
-      "Region defaulted to London because the postcode area was missing or unrecognised",
-    );
+  if (!regionMapped || !region) {
+    throw new Error(UNMAPPED_POSTCODE_REGION_MESSAGE);
   }
 
   const property_condition = conditionFromChip(user.condition);

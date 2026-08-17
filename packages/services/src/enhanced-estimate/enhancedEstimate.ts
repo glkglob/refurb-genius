@@ -172,7 +172,8 @@ export function runEnhancedEstimate(input: EnhancedEstimateInput): EnhancedEstim
     throw new Error("totalAreaM2 must be between 1 and 10,000");
   }
 
-  const region = input.postcode ? postcodeToUkRegion(input.postcode) : input.region;
+  const mapped = input.postcode ? postcodeToUkRegion(input.postcode) : null;
+  const region = mapped ?? input.region;
   const regionalMultiplier = DEFAULT_COST_LIBRARY.regionalMultipliers[region] ?? 1;
   const qualityMultiplier = DEFAULT_COST_LIBRARY.finishMultipliers[input.qualityTier];
   const propertyComplexity = propertyComplexityMultipliers[input.propertyCategory];

@@ -45,22 +45,16 @@ describe("runL2Estimate", () => {
     expect(result.displayConfidence).toBe("low");
   });
 
-  it("keeps low confidence for ZZ1 with fallback assumption", () => {
-    const result = runL2Estimate({
-      postcode: "ZZ1 1ZZ",
-      condition: "dated",
-      intent: "full-refurb",
-      finish: "Standard",
-      property_size_sqm: 100,
-    });
-    expect(result.displayConfidence).toBe("low");
-    expect(
-      result.assumptions.some((a) =>
-        a.includes(
-          "Region defaulted to London because the postcode area was missing or unrecognised",
-        ),
-      ),
-    ).toBe(true);
+  it("refuses ZZ1 instead of pricing as London", () => {
+    expect(() =>
+      runL2Estimate({
+        postcode: "ZZ1 1ZZ",
+        condition: "dated",
+        intent: "full-refurb",
+        finish: "Standard",
+        property_size_sqm: 100,
+      }),
+    ).toThrow(/postcode area was missing or unrecognised/i);
   });
 
   it("does not claim size was not provided when user enters exactly 90 m²", () => {
