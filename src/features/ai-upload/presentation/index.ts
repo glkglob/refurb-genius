@@ -17,6 +17,7 @@ export {
   type PhotoAnalysisInput,
   type PhotoAnalysisProvider,
 } from "./photo-analysis.provider";
+export { runPhotoAnalysisForClient } from "./runPhotoAnalysisForClient";
 export { useRoomAnalyses, useRunPhotoAnalysis, photoAnalysisKeys } from "./hooks/usePhotoAnalysis";
 export { usePhotos, useUploadPhotos, useRemovePhoto } from "./hooks/usePhotos";
 export {

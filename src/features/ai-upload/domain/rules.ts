@@ -356,6 +356,14 @@ export function assertAnalysisProvenance(
  * Non-destructive AI pre-fill: never overwrite a non-empty user value.
  * Returns the value to keep plus optional suggestion when AI differs.
  */
+/** Fail closed when a native/web analysis payload is not an array. */
+export function assertRoomAnalysisList(value: unknown): RoomAnalysis[] {
+  if (!Array.isArray(value)) {
+    throw new Error("Photo analysis response was not an array");
+  }
+  return value as RoomAnalysis[];
+}
+
 export function suggestWithoutOverwrite(
   current: string,
   aiSuggestion: string,

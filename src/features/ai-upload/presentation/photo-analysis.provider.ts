@@ -73,7 +73,9 @@ export async function loadPhotoAnalysis(projectId: string): Promise<RoomAnalysis
 }
 
 export function runPhotoAnalysis(input: PhotoAnalysisInput): Promise<RoomAnalysis[]> {
-  return photoAnalysisProvider.run(input);
+  return import("./runPhotoAnalysisForClient").then(({ runPhotoAnalysisForClient }) =>
+    runPhotoAnalysisForClient(input),
+  );
 }
 
 export function subscribePhotoAnalysis(fn: () => void): () => void {

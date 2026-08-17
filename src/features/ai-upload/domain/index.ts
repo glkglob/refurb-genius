@@ -34,6 +34,7 @@ export {
   durablePhotoCatalogueIdentity,
   catalogueIdentityFingerprint,
   assertAnalysisProvenance,
+  assertRoomAnalysisList,
   PHOTO_ANALYSIS_NO_SOURCE_PHOTOS,
   PHOTO_ANALYSIS_CARDINALITY_MISMATCH,
   PHOTO_ANALYSIS_PROVENANCE_MISMATCH,
