@@ -57,6 +57,18 @@ describe("IA-3 analysisCurrencyFromEvidence", () => {
     ).toBe("current");
   });
 
+  it("all-fallback coverage is non_current recovery, not current Complete", () => {
+    expect(
+      analysisCurrencyFromEvidence({
+        photos: [{ id: "p1" }, { id: "p2" }],
+        analyses: [
+          { photoId: "p1", source: "fallback" },
+          { photoId: "p2", source: "fallback" },
+        ],
+      }).currency,
+    ).toBe("non_current");
+  });
+
   it("mock analyses → non_current (never current)", () => {
     expect(
       analysisCurrencyFromEvidence({
@@ -164,6 +176,23 @@ describe("IA-3 adapter → resolveProjectNextAction integration", () => {
     });
   });
 
+  it("all-fallback Analysis → update_analysis recovery, not Redesign", () => {
+    const workflow = buildPhotosAnalysisWorkflowState({
+      photos: [{ id: "p1" }, { id: "p2" }],
+      analyses: [
+        { photoId: "p1", source: "fallback" },
+        { photoId: "p2", source: "fallback" },
+      ],
+    });
+    const next = resolveProjectNextAction({ projectId: PROJECT_ID, workflow });
+    expect(next).toMatchObject({
+      stage: "analysis",
+      status: "Needs attention",
+      actionKind: "update_analysis",
+    });
+    expect(next.actionKind).not.toBe("create_redesign");
+  });
+
   it("current Analysis → advances to Redesign (create_redesign), not Estimate", () => {
     const workflow = buildPhotosAnalysisWorkflowState({
       photos: [{ id: "p1" }],
@@ -244,19 +273,19 @@ describe("IA-3-R1 analysisShellFlagsFromCurrency + shell/resolver consistency", 
     expect(shellAnalysisStatus("current", 1)).not.toBe("Needs attention");
   });
 
-  it("current fallback Analysis → shell Complete + create_redesign (not Needs attention)", () => {
+  it("all-fallback Analysis is non_current recovery, not Complete Redesign", () => {
     const workflow = buildPhotosAnalysisWorkflowState({
       photos: [{ id: "p1" }],
       analyses: [{ photoId: "p1", source: "fallback" }],
     });
-    expect(workflow.analysis.currency).toBe("current");
-    expect(shellAnalysisStatus("current", 1)).toBe("Complete");
+    expect(workflow.analysis.currency).toBe("non_current");
+    expect(shellAnalysisStatus("non_current", 1)).toBe("Needs attention");
     const next = resolveProjectNextAction({ projectId: PROJECT_ID, workflow });
     expect(next).toMatchObject({
-      stage: "redesign",
-      actionKind: "create_redesign",
+      stage: "analysis",
+      actionKind: "update_analysis",
     });
-    expect(shellAnalysisStatus("current", 1)).not.toBe("Needs attention");
+    expect(next.actionKind).not.toBe("create_redesign");
   });
 
   it("low-confidence current Analysis still maps to Complete (advisory is separate)", () => {

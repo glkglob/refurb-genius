@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import type { RoomAnalysis } from "./types";
 import {
   needsHumanReview,
+  countNeedingReview,
   isRetryableAnalysis,
   photoAiStatus,
   groupAnalysesByRoom,
@@ -15,6 +16,7 @@ import {
   isMockOnlyAnalysisSet,
   isStaleAnalysisRelativeToCatalogue,
   isProductionValidAnalysisSet,
+  isSuccessfulProductionAnalysisSet,
   durablePhotoCatalogueIdentity,
   catalogueIdentityFingerprint,
   assertAnalysisProvenance,
@@ -264,6 +266,73 @@ describe("ai-upload domain rules", () => {
     expect(durablePhotoCatalogueIdentity([{ id: "p1" }])).not.toBe(
       durablePhotoCatalogueIdentity([{ id: "p1" }, { id: "p2" }]),
     );
+  });
+
+  it("all-fallback matching catalogue is current evidence but not successful completion", () => {
+    const catalogue = [
+      { id: "p1", url: "https://cdn/p1.jpg", name: "a.jpg" },
+      { id: "p2", url: "https://cdn/p2.jpg", name: "b.jpg" },
+    ];
+    const allFallback = catalogue.map((p) =>
+      analysis({
+        id: p.id,
+        photo_id: p.id,
+        photo_url: p.url,
+        photo_name: p.name,
+        source: "fallback",
+        confidence_score: 0,
+        ai_summary: "AI analysis could not be completed for this photo.",
+      }),
+    );
+    expect(isProductionValidAnalysisSet(allFallback, catalogue)).toBe(true);
+    expect(isSuccessfulProductionAnalysisSet(allFallback, catalogue)).toBe(false);
+    expect(isStaleAnalysisRelativeToCatalogue(allFallback, catalogue)).toBe(false);
+    expect(countNeedingReview(allFallback)).toBe(2);
+  });
+
+  it("partial AI + fallback remains successful current Analysis", () => {
+    const catalogue = [
+      { id: "p1", url: "https://cdn/p1.jpg", name: "a.jpg" },
+      { id: "p2", url: "https://cdn/p2.jpg", name: "b.jpg" },
+    ];
+    const mixed = [
+      analysis({
+        id: "p1",
+        photo_id: "p1",
+        photo_url: "https://cdn/p1.jpg",
+        photo_name: "a.jpg",
+        source: "ai",
+        confidence_score: 0.9,
+      }),
+      analysis({
+        id: "p2",
+        photo_id: "p2",
+        photo_url: "https://cdn/p2.jpg",
+        photo_name: "b.jpg",
+        source: "fallback",
+        confidence_score: 0,
+      }),
+    ];
+    expect(isProductionValidAnalysisSet(mixed, catalogue)).toBe(true);
+    expect(isSuccessfulProductionAnalysisSet(mixed, catalogue)).toBe(true);
+    expect(isRetryableAnalysis(mixed[1]!)).toBe(true);
+    expect(isRetryableAnalysis(mixed[0]!)).toBe(false);
+  });
+
+  it("all-AI successful current set still passes", () => {
+    const catalogue = [{ id: "p1", url: "https://cdn/p1.jpg", name: "a.jpg" }];
+    const rows = [
+      analysis({
+        id: "p1",
+        photo_id: "p1",
+        photo_url: "https://cdn/p1.jpg",
+        photo_name: "a.jpg",
+        source: "ai",
+        confidence_score: 0.88,
+      }),
+    ];
+    expect(isProductionValidAnalysisSet(rows, catalogue)).toBe(true);
+    expect(isSuccessfulProductionAnalysisSet(rows, catalogue)).toBe(true);
   });
 
   it("IA-3: signed URL drift alone does not invalidate current Analysis", () => {

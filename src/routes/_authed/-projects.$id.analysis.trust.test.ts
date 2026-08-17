@@ -12,8 +12,11 @@ describe("Analysis trust hierarchy (IA-8-VR-R1)", () => {
     expect(SRC).toMatch(/analysis-trust-summary/);
     expect(SRC).toMatch(/analysis-workflow-status/);
     expect(SRC).toMatch(/Workflow:\s*Complete/);
+    expect(SRC).toMatch(/Workflow:\s*Recovery required/);
     expect(SRC).toMatch(/analysis-review-quality/);
     expect(SRC).toMatch(/Review recommended/);
+    expect(SRC).toMatch(/AnalysisRecoveryActions/);
+    expect(SRC).toMatch(/isSuccessfulProductionAnalysisSet/);
   });
 
   it("does not claim results are invalid when continuation is allowed", () => {

@@ -18,6 +18,10 @@ export {
   type PhotoAnalysisProvider,
 } from "./photo-analysis.provider";
 export { runPhotoAnalysisForClient } from "./runPhotoAnalysisForClient";
+export {
+  AnalysisRecoveryActions,
+  type AnalysisRecoveryActionsProps,
+} from "./AnalysisRecoveryActions";
 export { useRoomAnalyses, useRunPhotoAnalysis, photoAnalysisKeys } from "./hooks/usePhotoAnalysis";
 export { usePhotos, useUploadPhotos, useRemovePhoto } from "./hooks/usePhotos";
 export {

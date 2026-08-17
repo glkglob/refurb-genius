@@ -258,6 +258,20 @@ export function isProductionValidAnalysisSet(
 }
 
 /**
+ * Successful completed production Analysis (2C-2).
+ *
+ * Catalogue currentness (isProductionValidAnalysisSet) may include per-photo
+ * fallback rows. An all-fallback batch is grounded evidence, not completed AI.
+ * analysis_done and "Workflow: Complete" require at least one successful AI row.
+ */
+export function isSuccessfulProductionAnalysisSet(
+  analyses: RoomAnalysis[],
+  catalogue: CataloguePhotoIdentity[],
+): boolean {
+  return isProductionValidAnalysisSet(analyses, catalogue) && analyses.some(isSuccessfulAnalysis);
+}
+
+/**
  * Persisted analysis is stale relative to the canonical project photo catalogue when
  * it is non-empty and fails the production validity guard (mock, missing photo_id,
  * incomplete/mismatched coverage, or catalogue drift).

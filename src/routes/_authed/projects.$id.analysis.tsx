@@ -17,7 +17,9 @@ import {
   groupAnalysesByRoom,
   countNeedingReview,
   isProductionValidAnalysisSet,
+  isSuccessfulProductionAnalysisSet,
   isStaleAnalysisRelativeToCatalogue,
+  AnalysisRecoveryActions,
   catalogueIdentityFingerprint,
   usePhotos,
   type RoomAnalysis,
@@ -78,6 +80,10 @@ function AnalysisPage() {
     () => isProductionValidAnalysisSet(results, catalogue),
     [results, catalogue],
   );
+  const analysisIsSuccessful = useMemo(
+    () => isSuccessfulProductionAnalysisSet(results, catalogue),
+    [results, catalogue],
+  );
   const hasFallbackResults = useMemo(() => results.some((r) => r.source === "fallback"), [results]);
   const avgConfidencePct = useMemo(() => {
     if (results.length === 0) return null;
@@ -122,7 +128,11 @@ function AnalysisPage() {
       setResults(r);
       setUiState("ready");
       setAnalysing(false);
-      setStage.mutate({ id, stage: "analysis", value: true });
+      const completed = isSuccessfulProductionAnalysisSet(r, catalogue);
+      setStage.mutate({ id, stage: "analysis", value: completed });
+      if (!completed) {
+        return;
+      }
       trackEvent("ai_analysis_completed", { room_count: r.length });
 
       const fallbacks = r.filter((a) => a.source === "fallback").length;
@@ -265,7 +275,11 @@ function AnalysisPage() {
       }
       setResults(fresh);
       setUiState("ready");
-      setStage.mutate({ id, stage: "analysis", value: true });
+      setStage.mutate({
+        id,
+        stage: "analysis",
+        value: isSuccessfulProductionAnalysisSet(fresh, catalogue),
+      });
 
       const stillNeedReview = countNeedingReview(fresh);
       if (stillNeedReview > 0) {
@@ -511,16 +525,24 @@ function AnalysisPage() {
             <CardContent className="space-y-3 p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="secondary" data-testid="analysis-workflow-status">
-                  Workflow: Complete
+                  {analysisIsSuccessful ? "Workflow: Complete" : "Workflow: Recovery required"}
                 </Badge>
-                <span className="text-sm text-muted-foreground">Analysis processed</span>
+                <span className="text-sm text-muted-foreground">
+                  {analysisIsSuccessful
+                    ? "Analysis processed"
+                    : "AI analysis did not complete for these photos"}
+                </span>
               </div>
               {needsReviewCount > 0 ? (
                 <div
                   className="rounded-md border border-amber-300/50 bg-amber-50 p-3 text-sm text-amber-950 dark:border-amber-500/30 dark:bg-amber-950/30 dark:text-amber-100"
                   data-testid="analysis-review-quality"
                 >
-                  <p className="font-medium">Review recommended</p>
+                  <p className="font-medium">
+                    {analysisIsSuccessful
+                      ? "Review recommended"
+                      : "Analysis could not be completed"}
+                  </p>
                   <p className="mt-1">
                     {needsReviewCount === 1
                       ? "1 result needs review"
@@ -529,9 +551,17 @@ function AnalysisPage() {
                     {hasFallbackResults ? " · Fallback analysis present" : ""}
                   </p>
                   <p className="mt-1 text-xs opacity-90">
-                    You can continue, but review these results before relying on them for Scope or
-                    pricing.
+                    {analysisIsSuccessful
+                      ? "You can continue, but review these results before relying on them for Scope or pricing."
+                      : "These rows are recovery evidence only. They are not completed AI analysis."}
                   </p>
+                  <AnalysisRecoveryActions
+                    mode={analysisIsSuccessful ? "retry-weak" : "recover"}
+                    disabled={analysing || retrying}
+                    busy={retrying || analysing}
+                    onRetryWeak={() => void handleRetryWeak()}
+                    onRecover={() => void runFreshAnalysis()}
+                  />
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground" data-testid="analysis-review-quality">
@@ -603,7 +633,7 @@ function AnalysisPage() {
           />
         ) : null}
 
-        {analysisIsValid ? (
+        {analysisIsSuccessful ? (
           <Card className="mt-8 border-dashed" data-testid="analysis-continue-card">
             <CardContent className="flex flex-col items-start justify-between gap-4 p-6 sm:flex-row sm:items-center">
               <div>

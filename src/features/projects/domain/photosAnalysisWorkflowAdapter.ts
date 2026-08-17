@@ -6,7 +6,8 @@
  *
  * Currentness rule (aligned with ai-upload production validity):
  *   analysis current iff non-mock authoritative rows cover exactly the
- *   current durable photo id set.
+ *   current durable photo id set AND at least one row is source=ai.
+ *   All-fallback coverage is recoverable evidence, not current Complete.
  *
  * Legacy `*_done` flags are intentionally not inputs.
  */
@@ -65,7 +66,8 @@ function isAuthoritativeSource(source: string | null | undefined): boolean {
  *
  * - mock / incomplete / mismatched photo_id sets → non_current when rows exist
  * - empty analyses + current photos → absent
- * - exact photo_id coverage + authoritative sources → current
+ * - exact photo_id coverage + authoritative sources + at least one ai row → current
+ * - exact coverage but every row is fallback → non_current (recovery)
  */
 export function analysisCurrencyFromEvidence(input: {
   photos: DurablePhotoIdentity[];
@@ -94,6 +96,7 @@ export function analysisCurrencyFromEvidence(input: {
 
   const hasMock = input.analyses.some((a) => a.source === "mock");
   const allAuthoritative = input.analyses.every((a) => isAuthoritativeSource(a.source));
+  const hasSuccessfulAi = input.analyses.some((a) => a.source === "ai");
   const analysisIds = input.analyses
     .map((a) => a.photoId)
     .filter((id): id is string => Boolean(id));
@@ -102,6 +105,7 @@ export function analysisCurrencyFromEvidence(input: {
   const completeCoverage =
     !hasMock &&
     allAuthoritative &&
+    hasSuccessfulAi &&
     analysisIds.length === input.analyses.length &&
     analysisSet.size === analysisIds.length &&
     analysisSet.size === catSet.size &&
@@ -148,8 +152,9 @@ export function buildPhotosAnalysisWorkflowState(
  * IA-3-R1 — Map Analysis currency to IA-1 shell progress flags.
  *
  * Canonical contract:
- * - current (incl. authoritative fallback / low-confidence review recommended)
+ * - current (incl. mixed AI + per-photo fallback / low-confidence review)
  *   → analysisDone + NOT Needs attention (shell Complete; resolver may advance)
+ * - all-fallback coverage is non_current (recovery), not current Complete
  * - non_current (stale catalogue, mock, incomplete coverage)
  *   → analysisDone + Needs attention (shell recovery; update_analysis)
  * - running / absent → not done, not attention (Ready / In progress by route)

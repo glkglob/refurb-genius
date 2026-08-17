@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { makeAnalyzePhotos } from "./analyzePhotos";
 import {
   PHOTO_ANALYSIS_NO_SOURCE_PHOTOS,
+  isSuccessfulProductionAnalysisSet,
   type AnalysisPhotoSource,
   type RoomAnalysis,
 } from "../domain";
@@ -207,5 +208,28 @@ describe("makeAnalyzePhotos (C5-2 async catalog + P0 real-photo authority)", () 
     const analyze = makeAnalyzePhotos({ vision, analyses, photos });
     await expect(analyze({ projectId: "proj-1" })).rejects.toThrow("vision down");
     expect(analyses.save).not.toHaveBeenCalled();
+  });
+
+  it("all-fallback grounded batch may persist as evidence but is not successful completion", async () => {
+    const photosList: AnalysisPhotoSource[] = [
+      { id: "p1", url: "https://cdn/p1.jpg", name: "a.jpg" },
+      { id: "p2", url: "https://cdn/p2.jpg", name: "b.jpg" },
+    ];
+    vision.analyzePhotos = vi.fn(async ({ photos: list }: { photos: AnalysisPhotoSource[] }) =>
+      list.map((p: AnalysisPhotoSource) =>
+        makeAnalysis(p.id, {
+          photo_id: p.id,
+          photo_url: p.url,
+          photo_name: p.name,
+          source: "fallback",
+          confidence_score: 0,
+          ai_summary: "AI analysis could not be completed for this photo.",
+        }),
+      ),
+    );
+    const analyze = makeAnalyzePhotos({ vision, analyses, photos });
+    const result = await analyze({ projectId: "proj-1", photos: photosList });
+    expect(analyses.save).toHaveBeenCalledWith("proj-1", result);
+    expect(isSuccessfulProductionAnalysisSet(result, photosList)).toBe(false);
   });
 });
