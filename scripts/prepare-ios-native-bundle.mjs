@@ -12,7 +12,6 @@
  *   pnpm ios:verify-app-bundle -- --app /path/to/App.app
  */
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -20,20 +19,28 @@ import {
   IosProvenanceError,
   NATIVE_CAPACITOR_CONFIG_REL,
   NATIVE_PUBLIC_REL,
+  ROLLUP_MAP_REL,
   WEB_DIR_REL,
+  assertAuthorityChunkContainsOrigin,
+  assertRollupMapHandoff,
   assertSourceSha,
   assertSourceTreeClean,
+  assertSpaReady,
   buildProvenanceManifest,
   createChildEnv,
   formatPrepareReport,
   hashWebDirFiles,
   readGitHead,
   readGitStatusPorcelain,
+  readRollupMap,
   resolveIosApiOrigin,
   verifyAppBundle,
   verifyCopiedBundle,
   writeProvenanceArtifacts,
 } from "./lib/ios-build-provenance.mjs";
+
+const RUNNER_PATH = fileURLToPath(new URL("./run-ios-vite-build.mjs", import.meta.url));
+export const BUILD_HARD_TIMEOUT_MS = 10 * 60 * 1000;
 
 /**
  * @param {string[]} argv
@@ -81,104 +88,82 @@ export function parseCliArgs(argv) {
 }
 
 /**
- * Vite/Nitro SPA prerender can leave an idle event loop after writing
- * dist/ios/client/index.html. Treat a successful emit as PASS even if the
- * child is then terminated so prepare can continue to copy/verify.
+ * Classify the governed Vite runner exit. No signal is ever success.
  *
- * @param {{ code: number | null, signal: NodeJS.Signals | null, indexHtmlExists: boolean }} args
+ * @param {{ code: number | null, signal: NodeJS.Signals | string | null, timedOut?: boolean }} args
  */
-export function resolveViteIosBuildStatus(args) {
-  if (args.code === 0) return 0;
-  if (args.indexHtmlExists && args.signal) return 0;
-  return args.code ?? 1;
-}
-
-const INDEX_STABLE_MS = 8000;
-const BUILD_HARD_TIMEOUT_MS = 10 * 60 * 1000;
-
-/**
- * @param {number | undefined} pid
- * @param {NodeJS.Signals} signal
- */
-function stopProcessGroup(pid, signal) {
-  if (!pid) return;
-  try {
-    if (process.platform !== "win32") {
-      process.kill(-pid, signal);
-      return;
-    }
-  } catch {
-    /* fall through to direct kill */
+export function classifyRunnerExit(args) {
+  if (args.timedOut) {
+    return { ok: false, state: "failed_timeout" };
   }
-  try {
-    process.kill(pid, signal);
-  } catch {
-    /* already gone */
+  if (args.signal) {
+    return { ok: false, state: "failed_signal" };
   }
+  if (args.code === 0) {
+    return { ok: true, state: "succeeded" };
+  }
+  if (args.code == null) {
+    return { ok: false, state: "failed_crash" };
+  }
+  return { ok: false, state: "failed_nonzero" };
 }
 
 /**
- * @param {{ cwd: string, env: NodeJS.ProcessEnv }} args
- * @returns {Promise<{ status: number | null }>}
+ * @param {{
+ *   cwd: string,
+ *   env: NodeJS.ProcessEnv,
+ *   timeoutMs?: number,
+ *   spawnImpl?: typeof spawn,
+ *   runnerPath?: string,
+ * }} args
+ * @returns {Promise<{ status: number, state: string, code: number | null, signal: NodeJS.Signals | string | null, timedOut: boolean, killCount: number }>}
  */
 export function defaultSpawnBuild(args) {
   return new Promise((resolve) => {
-    const indexHtml = join(args.cwd, WEB_DIR_REL, "index.html");
-    const child = spawn("pnpm", ["build:ios"], {
+    const spawnImpl = args.spawnImpl ?? spawn;
+    const runnerPath = args.runnerPath ?? RUNNER_PATH;
+    const timeoutMs = args.timeoutMs ?? BUILD_HARD_TIMEOUT_MS;
+    const child = spawnImpl(process.execPath, [runnerPath], {
       cwd: args.cwd,
       env: args.env,
       stdio: "inherit",
-      detached: process.platform !== "win32",
     });
 
-    const started = Date.now();
-    let sawMissing = !existsSync(indexHtml);
-    let lastSize = -1;
-    let lastMtimeMs = -1;
-    let stableSince = 0;
     let finished = false;
+    let timedOut = false;
+    let killCount = 0;
+    /** @type {NodeJS.Timeout | null} */
+    let timeoutHandle = null;
 
     const finish = (code, signal) => {
       if (finished) return;
       finished = true;
-      clearInterval(timer);
+      if (timeoutHandle) {
+        clearTimeout(timeoutHandle);
+        timeoutHandle = null;
+      }
+      const classified = classifyRunnerExit({ code, signal, timedOut });
       resolve({
-        status: resolveViteIosBuildStatus({
-          code,
-          signal,
-          indexHtmlExists: existsSync(indexHtml),
-        }),
+        status: classified.ok ? 0 : 1,
+        state: classified.state,
+        code,
+        signal,
+        timedOut,
+        killCount,
       });
     };
 
-    const timer = setInterval(() => {
-      const now = Date.now();
-      if (!existsSync(indexHtml)) {
-        sawMissing = true;
-        lastSize = -1;
-        lastMtimeMs = -1;
-        stableSince = 0;
-      } else if (sawMissing) {
-        const st = statSync(indexHtml);
-        if (st.size === lastSize && st.mtimeMs === lastMtimeMs && st.size > 0) {
-          if (!stableSince) stableSince = now;
-          else if (now - stableSince >= INDEX_STABLE_MS) {
-            process.stderr.write(
-              "IOS-BUILD-PROVENANCE: Vite iOS emit is complete; terminating idle build process so prepare can continue.\n",
-            );
-            stopProcessGroup(child.pid, "SIGTERM");
-            setTimeout(() => stopProcessGroup(child.pid, "SIGKILL"), 4000);
-          }
-        } else {
-          lastSize = st.size;
-          lastMtimeMs = st.mtimeMs;
-          stableSince = now;
+    timeoutHandle = setTimeout(() => {
+      timedOut = true;
+      if (child.exitCode == null && child.signalCode == null) {
+        killCount += 1;
+        try {
+          child.kill("SIGKILL");
+        } catch {
+          /* already gone */
         }
       }
-      if (now - started > BUILD_HARD_TIMEOUT_MS) {
-        stopProcessGroup(child.pid, "SIGKILL");
-      }
-    }, 500);
+    }, timeoutMs);
 
     child.on("error", () => finish(1, null));
     child.on("exit", (code, signal) => finish(code, signal));
@@ -252,13 +237,35 @@ export async function runPrepareIosNativeBundle(options) {
   const childEnv = createChildEnv(env, apiOrigin);
   const spawnBuild = hooks.spawnBuild ?? defaultSpawnBuild;
   const buildResult = await Promise.resolve(spawnBuild({ cwd, env: childEnv }));
+  if (buildResult.timedOut || buildResult.state === "failed_timeout") {
+    throw new IosProvenanceError("Governed Vite runner timed out", { code: "failed_timeout" });
+  }
+  if (buildResult.signal || buildResult.state === "failed_signal") {
+    throw new IosProvenanceError("Governed Vite runner exited on a signal", {
+      code: "failed_signal",
+    });
+  }
+  if (buildResult.state === "failed_crash") {
+    throw new IosProvenanceError("Governed Vite runner crashed without an exit code or signal", {
+      code: "failed_crash",
+    });
+  }
   if ((buildResult.status ?? 1) !== 0) {
-    throw new IosProvenanceError("pnpm build:ios failed", { code: "vite_ios_failed" });
+    throw new IosProvenanceError("Governed Vite runner failed", { code: "vite_ios_failed" });
   }
 
   const webDir = join(cwd, WEB_DIR_REL);
+  const rollupMap = readRollupMap(join(cwd, ROLLUP_MAP_REL));
+  const originAuthorityChunk = assertRollupMapHandoff(rollupMap, webDir, apiOrigin);
+  assertSpaReady(webDir);
+  assertAuthorityChunkContainsOrigin(webDir, originAuthorityChunk, apiOrigin);
   const files = hashWebDirFiles(webDir);
-  const manifest = buildProvenanceManifest({ sourceSha, apiOrigin, files });
+  const manifest = buildProvenanceManifest({
+    sourceSha,
+    apiOrigin,
+    files,
+    originAuthorityChunk,
+  });
   writeProvenanceArtifacts({
     webDir,
     expectedPath: join(cwd, EXPECTED_PROVENANCE_REL),

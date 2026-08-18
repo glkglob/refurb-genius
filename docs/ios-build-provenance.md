@@ -44,13 +44,14 @@ VITE_PUBLIC_URL=https://<preview-host>.vercel.app pnpm prepare:ios
 1. Validates and **normalizes** process-env `VITE_PUBLIC_URL` (HTTPS origin only).
 2. Reads `git rev-parse HEAD` and fails if the SHA is not a full 40-character hex.
 3. Fails if there are tracked modifications or non-ignored untracked source files. Ignored generated outputs (`dist/`, `ios/App/App/public/`, generated `capacitor.config.json`) do not themselves block preparation.
-4. Spawns `pnpm build:ios` with an **explicit child environment** whose `VITE_PUBLIC_URL` is the normalized origin. It does not mutate the parent process/shell env. If Vite/Nitro leaves an idle process after `dist/ios/client/index.html` is stably written, prepare terminates that child so copy/verify can run. A missing `index.html` is still a failed build.
-5. Writes `ios-build-provenance.json` after Vite (`emptyOutDir` would wipe a pre-build file) to:
-   - `dist/ios/client/ios-build-provenance.json` (packaged with the webDir)
-   - `dist/ios/ios-build-provenance.json` (operator expected copy)
-6. Runs `pnpm exec cap copy ios` (not `cap sync`).
-7. Verifies `ios/App/App/public` against the SHA-256 file map.
-8. Fails if generated `ios/App/App/capacitor.config.json` contains `server.url`.
+4. Spawns `scripts/run-ios-vite-build.mjs` with an **explicit child environment** whose `VITE_PUBLIC_URL` is the normalized origin. The runner deletes this worktree's `dist/ios`, then uses Vite's public environment-aware API: `createBuilder({ configFile: vite.ios.config.ts })` followed by `await builder.buildApp()`. That is what runs TanStack Start's client and server environments and the post-build SPA prerender that writes `dist/ios/client/index.html`. Legacy Vite `build()` is not a governed iOS success path.
+5. During `generateBundle`, a capture plugin records origin-module chunks in state isolated per actual `this.environment`. A matching environment must have `environment.config.consumer === "client"` **and** an exact resolved `environment.config.build.outDir` equal to the packaged client root (`dist/ios/client`). After deduplication by emitted `fileName`: 0 matches fail `origin_module_unmapped`; more than one fail `origin_authority_ambiguous`. The single selected chunk is independently re-read from disk and must contain the exact normalized `apiOrigin` before the temporary Rollup sidecar is written. The sidecar is handoff evidence, not certification authority. `process.exit(0)` happens only after those writes.
+6. A resolved `buildApp()` plus runner exit 0 is the only Vite success event. SIGTERM, SIGKILL, timeout, crash without an exit code, external/unexpected signals, nonzero exit, and `buildApp()` rejection are always FAIL. File presence cannot upgrade those outcomes.
+7. After runner exit 0: validate the sidecar (`schemaVersion === 1`, `originModule === src/platform/http/origin.ts`, `originFoundInChunk === true`, safe relative `originAuthorityChunk`), HTML local-reference completeness, re-check of the mapped authority chunk for `apiOrigin`, then write schema v2 `ios-build-provenance.json` (includes `originAuthorityChunk` in the fingerprint; that chunk must exist in `files`) to:
+   - `dist/ios/client/ios-build-provenance.json`
+   - `dist/ios/ios-build-provenance.json`
+8. Runs `pnpm exec cap copy ios` (not `cap sync`).
+9. Verifies `ios/App/App/public` against the SHA-256 file map, HTML refs, authority chunk origin, and no `server.url`.
 
 Certification identity is:
 
@@ -93,7 +94,7 @@ File: `ios-build-provenance.json`
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "sourceSha": "<full git sha>",
   "apiOrigin": "https://www.refurbgenius.info",
   "buildIdentity": "ios-capacitor-spa",
@@ -101,6 +102,7 @@ File: `ios-build-provenance.json`
   "viteConfig": "vite.ios.config.ts",
   "webDir": "dist/ios/client",
   "nativePublicDir": "ios/App/App/public",
+  "originAuthorityChunk": "assets/<chunk>.js",
   "files": {
     "index.html": "<sha256>",
     "assets/…": "<sha256>"
@@ -113,7 +115,11 @@ Rules:
 
 - Files are hashed as raw bytes (SHA-256).
 - `files` and `bundleFingerprint` cover the Vite webDir **excluding** `ios-build-provenance.json` (no self-hash).
-- `bundleFingerprint` is SHA-256 of the canonical JSON of `{ schemaVersion, sourceSha, apiOrigin, buildIdentity, buildMode, files }`.
+- `originAuthorityChunk` is a safe relative path under `webDir` (no absolute, scheme, or `..` paths). It names the emitted client chunk that contains `src/platform/http/origin.ts`.
+- Provenance validation requires `originAuthorityChunk` to exist as a key in `files` before copied-bundle or App.app verification.
+- `bundleFingerprint` is SHA-256 of the canonical JSON of `{ schemaVersion, sourceSha, apiOrigin, buildIdentity, buildMode, originAuthorityChunk, files }`.
+- `verify-copied` and `verify-app-bundle` re-read that exact chunk and require `apiOrigin` inside it.
+- The Rollup sidecar is schema version 1 and is never certification authority.
 - Timestamps are not authority and are not present.
 - No env dumps, tokens, keys, or `service_role`.
 

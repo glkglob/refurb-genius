@@ -8,14 +8,18 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
+export const SIDECAR_SCHEMA_VERSION = 1;
 export const BUILD_IDENTITY = "ios-capacitor-spa";
 export const BUILD_MODE = "production";
 export const VITE_CONFIG = "vite.ios.config.ts";
 export const PROVENANCE_FILE_NAME = "ios-build-provenance.json";
 export const WEB_DIR_REL = "dist/ios/client";
 export const EXPECTED_PROVENANCE_REL = "dist/ios/ios-build-provenance.json";
+export const ROLLUP_MAP_REL = "dist/ios/ios-vite-rollup-map.json";
+export const ORIGIN_AUTHORITY_MODULE = "src/platform/http/origin.ts";
 export const NATIVE_PUBLIC_REL = "ios/App/App/public";
 export const NATIVE_CAPACITOR_CONFIG_REL = "ios/App/App/capacitor.config.json";
 export const APP_BUNDLE_PUBLIC_DIR = "public";
@@ -33,6 +37,7 @@ export const PROVENANCE_KEYS = Object.freeze([
   "viteConfig",
   "webDir",
   "nativePublicDir",
+  "originAuthorityChunk",
   "files",
   "bundleFingerprint",
 ]);
@@ -111,6 +116,263 @@ export function normalizeHttpsOrigin(raw) {
  */
 export function createChildEnv(parentEnv, apiOrigin) {
   return { ...parentEnv, VITE_PUBLIC_URL: apiOrigin };
+}
+
+/**
+ * Normalize Rollup/Vite module IDs before matching origin.ts.
+ *
+ * @param {unknown} id
+ * @returns {string}
+ */
+export function normalizeRollupModuleId(id) {
+  if (typeof id !== "string" || id.length === 0) return "";
+  let value = id.replace(/\\/g, "/");
+  const q = value.indexOf("?");
+  if (q !== -1) value = value.slice(0, q);
+  if (value.startsWith("file:")) {
+    try {
+      value = fileURLToPath(value).replace(/\\/g, "/");
+    } catch {
+      value = value.replace(/^file:\/\//, "");
+    }
+  }
+  return value;
+}
+
+/**
+ * @param {unknown} id
+ * @returns {boolean}
+ */
+export function isOriginAuthorityModule(id) {
+  const normalized = normalizeRollupModuleId(id);
+  return (
+    normalized.endsWith(`/${ORIGIN_AUTHORITY_MODULE}`) ||
+    normalized.endsWith(ORIGIN_AUTHORITY_MODULE)
+  );
+}
+
+/**
+ * Safe relative path under webDir. No absolute, scheme, or traversal paths.
+ *
+ * @param {unknown} raw
+ * @returns {string}
+ */
+export function assertSafeWebDirRelativePath(raw) {
+  if (typeof raw !== "string" || raw.trim() === "") {
+    throw new IosProvenanceError("originAuthorityChunk must be a relative webDir path", {
+      code: "origin_authority_chunk_invalid",
+    });
+  }
+  const trimmed = raw.trim().replace(/\\/g, "/");
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed) || trimmed.startsWith("//")) {
+    throw new IosProvenanceError("originAuthorityChunk must not include a URL scheme", {
+      code: "origin_authority_chunk_invalid",
+    });
+  }
+  if (trimmed.startsWith("/") || /^[a-zA-Z]:\//.test(trimmed)) {
+    throw new IosProvenanceError("originAuthorityChunk must not be an absolute path", {
+      code: "origin_authority_chunk_invalid",
+    });
+  }
+  const parts = trimmed.split("/");
+  if (parts.some((part) => part === ".." || part === "")) {
+    throw new IosProvenanceError("originAuthorityChunk must not contain path traversal", {
+      code: "origin_authority_chunk_invalid",
+    });
+  }
+  return parts.join("/");
+}
+
+/**
+ * @param {Buffer} buf
+ * @returns {string}
+ */
+export function decodeTextBuffer(buf) {
+  if (buf.length >= 2 && buf[0] === 0xff && buf[1] === 0xfe) {
+    return buf.subarray(2).toString("utf16le");
+  }
+  if (buf.length >= 2 && buf[0] === 0xfe && buf[1] === 0xff) {
+    const swapped = Buffer.alloc(buf.length - 2);
+    for (let i = 2; i + 1 < buf.length; i += 2) {
+      swapped[i - 2] = buf[i + 1];
+      swapped[i - 1] = buf[i];
+    }
+    return swapped.toString("utf16le");
+  }
+  const utf8 = buf.toString("utf8");
+  const nulCount = (utf8.match(/\u0000/g) || []).length;
+  if (nulCount > 8 && buf.length % 2 === 0) {
+    return buf.toString("utf16le").replace(/\u0000/g, "");
+  }
+  return utf8;
+}
+
+/**
+ * Local asset references from the SPA entry document.
+ *
+ * @param {string} html
+ * @returns {string[]}
+ */
+export function collectLocalAssetRefs(html) {
+  const refs = new Set();
+  const attrRe = /\b(?:src|href)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/gi;
+  let match;
+  while ((match = attrRe.exec(html))) {
+    addLocalRef(refs, match[1] || match[2] || match[3] || "");
+  }
+  const srcsetRe = /\bsrcset\s*=\s*(?:"([^"]*)"|'([^']*)')/gi;
+  while ((match = srcsetRe.exec(html))) {
+    const value = match[1] || match[2] || "";
+    for (const part of value.split(",")) {
+      addLocalRef(refs, part.trim().split(/\s+/)[0] || "");
+    }
+  }
+  return [...refs].sort();
+}
+
+/**
+ * @param {Set<string>} refs
+ * @param {string} raw
+ */
+function addLocalRef(refs, raw) {
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("?")) return;
+  if (/^(?:https?:|data:|blob:|mailto:|capacitor:|\/\/)/i.test(trimmed)) return;
+  const pathOnly = trimmed.split("#")[0].split("?")[0];
+  if (!pathOnly || pathOnly === ".") return;
+  refs.add(pathOnly);
+}
+
+/**
+ * @param {string} webDir
+ * @param {string} ref
+ * @returns {string}
+ */
+export function resolveLocalAssetRel(ref) {
+  const withoutDot = ref.replace(/^\.\//, "");
+  const rel = withoutDot.startsWith("/") ? withoutDot.slice(1) : withoutDot;
+  return assertSafeWebDirRelativePath(rel);
+}
+
+/**
+ * Index.html plus every local HTML-referenced file must exist under webDir.
+ *
+ * @param {string} webDir
+ */
+export function assertSpaReady(webDir) {
+  const indexPath = join(webDir, "index.html");
+  if (!existsSync(indexPath) || !statSync(indexPath).isFile()) {
+    throw new IosProvenanceError("SPA index.html is missing", { code: "spa_incomplete" });
+  }
+  const html = decodeTextBuffer(readFileSync(indexPath));
+  for (const ref of collectLocalAssetRefs(html)) {
+    const rel = resolveLocalAssetRel(ref);
+    const abs = join(webDir, rel);
+    if (!existsSync(abs) || !statSync(abs).isFile()) {
+      throw new IosProvenanceError(`SPA is missing referenced asset: ${rel}`, {
+        code: "spa_incomplete",
+      });
+    }
+  }
+}
+
+/**
+ * Module-linked origin proof: the authority chunk itself must contain apiOrigin.
+ *
+ * @param {string} dir
+ * @param {unknown} chunkRel
+ * @param {string} apiOrigin
+ */
+export function assertAuthorityChunkContainsOrigin(dir, chunkRel, apiOrigin) {
+  const rel = assertSafeWebDirRelativePath(chunkRel);
+  const abs = join(dir, rel);
+  if (!existsSync(abs) || !statSync(abs).isFile()) {
+    throw new IosProvenanceError(`Origin authority chunk missing: ${rel}`, {
+      code: "origin_authority_chunk_missing",
+    });
+  }
+  const text = decodeTextBuffer(readFileSync(abs));
+  if (!text.includes(apiOrigin)) {
+    throw new IosProvenanceError(`Normalized API origin is not present in authority chunk ${rel}`, {
+      code: "origin_not_baked",
+    });
+  }
+}
+
+/**
+ * @param {string} filePath
+ */
+export function readRollupMap(filePath) {
+  if (!existsSync(filePath)) {
+    throw new IosProvenanceError(`Rollup map sidecar missing: ${filePath}`, {
+      code: "origin_module_unmapped",
+    });
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSync(filePath, "utf8"));
+  } catch {
+    throw new IosProvenanceError("Rollup map sidecar is not valid JSON", {
+      code: "origin_module_unmapped",
+    });
+  }
+  if (!parsed || typeof parsed !== "object") {
+    throw new IosProvenanceError("Rollup map sidecar is invalid", {
+      code: "origin_module_unmapped",
+    });
+  }
+  return parsed;
+}
+
+/**
+ * Sidecar is handoff only. Re-check the mapped client chunk on disk.
+ *
+ * @param {unknown} map
+ * @param {string} webDir
+ * @param {string} apiOrigin
+ * @returns {string}
+ */
+export function assertRollupMapHandoff(map, webDir, apiOrigin) {
+  const record = /** @type {Record<string, unknown>} */ (map);
+  if (record.schemaVersion !== SIDECAR_SCHEMA_VERSION) {
+    throw new IosProvenanceError("Rollup map sidecar schemaVersion must be 1", {
+      code: "origin_module_unmapped",
+    });
+  }
+  if (record.originModule !== ORIGIN_AUTHORITY_MODULE) {
+    throw new IosProvenanceError("Rollup map does not name the origin authority module", {
+      code: "origin_module_unmapped",
+    });
+  }
+  if (record.originFoundInChunk !== true) {
+    throw new IosProvenanceError("Rollup map did not confirm origin in the authority chunk", {
+      code: "origin_not_baked",
+    });
+  }
+  const chunk = assertSafeWebDirRelativePath(record.originAuthorityChunk);
+  assertAuthorityChunkContainsOrigin(webDir, chunk, apiOrigin);
+  return chunk;
+}
+
+/**
+ * Certification requires the named authority chunk to be one of the hashed files.
+ *
+ * @param {unknown} originAuthorityChunk
+ * @param {unknown} files
+ * @returns {string}
+ */
+export function assertAuthorityChunkListedInFiles(originAuthorityChunk, files) {
+  const rel = assertSafeWebDirRelativePath(originAuthorityChunk);
+  if (!files || typeof files !== "object" || Array.isArray(files)) {
+    throw new IosProvenanceError("Provenance files map is missing", { code: "provenance_invalid" });
+  }
+  if (!Object.hasOwn(/** @type {object} */ (files), rel)) {
+    throw new IosProvenanceError(
+      `originAuthorityChunk is not present in the hashed file map: ${rel}`,
+      { code: "provenance_invalid" },
+    );
+  }
+  return rel;
 }
 
 /**
@@ -282,24 +544,32 @@ export function canonicalize(value) {
  * @returns {string}
  */
 export function computeBundleFingerprint(input) {
+  const originAuthorityChunk = assertSafeWebDirRelativePath(input.originAuthorityChunk);
   const payload = {
     schemaVersion: input.schemaVersion ?? SCHEMA_VERSION,
     sourceSha: input.sourceSha,
     apiOrigin: input.apiOrigin,
     buildIdentity: input.buildIdentity ?? BUILD_IDENTITY,
     buildMode: input.buildMode ?? BUILD_MODE,
+    originAuthorityChunk,
     files: input.files,
   };
   return sha256Bytes(JSON.stringify(canonicalize(payload)));
 }
 
 /**
- * @param {{ sourceSha: string, apiOrigin: string, files: Record<string, string> }} input
+ * @param {{
+ *   sourceSha: string,
+ *   apiOrigin: string,
+ *   files: Record<string, string>,
+ *   originAuthorityChunk: string,
+ * }} input
  */
 export function buildProvenanceManifest(input) {
   const sourceSha = assertSourceSha(input.sourceSha);
   const apiOrigin = resolveIosApiOrigin(input.apiOrigin);
   const files = sortFileMap(input.files);
+  const originAuthorityChunk = assertAuthorityChunkListedInFiles(input.originAuthorityChunk, files);
   const manifest = {
     schemaVersion: SCHEMA_VERSION,
     sourceSha,
@@ -309,8 +579,14 @@ export function buildProvenanceManifest(input) {
     viteConfig: VITE_CONFIG,
     webDir: WEB_DIR_REL,
     nativePublicDir: NATIVE_PUBLIC_REL,
+    originAuthorityChunk,
     files,
-    bundleFingerprint: computeBundleFingerprint({ sourceSha, apiOrigin, files }),
+    bundleFingerprint: computeBundleFingerprint({
+      sourceSha,
+      apiOrigin,
+      files,
+      originAuthorityChunk,
+    }),
   };
   assertProvenanceHasNoSecrets(manifest);
   return manifest;
@@ -397,10 +673,15 @@ export function assertValidProvenance(manifest) {
       code: "provenance_invalid",
     });
   }
+  const originAuthorityChunk = assertAuthorityChunkListedInFiles(
+    record.originAuthorityChunk,
+    record.files,
+  );
   const expectedFp = computeBundleFingerprint({
     sourceSha: /** @type {string} */ (record.sourceSha),
     apiOrigin: /** @type {string} */ (record.apiOrigin),
     files: /** @type {Record<string, string>} */ (record.files),
+    originAuthorityChunk,
   });
   if (expectedFp !== record.bundleFingerprint) {
     throw new IosProvenanceError("Provenance bundleFingerprint does not match file map", {
@@ -536,6 +817,7 @@ export function verifyCopiedBundle(args) {
     sourceSha: manifest.sourceSha,
     apiOrigin: manifest.apiOrigin,
     files: liveFiles,
+    originAuthorityChunk: manifest.originAuthorityChunk,
   });
   if (liveFingerprint !== manifest.bundleFingerprint) {
     throw new IosProvenanceError("Copied webDir no longer matches provenance fingerprint", {
@@ -545,6 +827,13 @@ export function verifyCopiedBundle(args) {
 
   assertFileMapMatchesDir(manifest.files, args.publicDir, "copied_bundle_mismatch");
   assertNoStaleExtras(args.publicDir, manifest.files);
+  assertSpaReady(args.webDir);
+  assertSpaReady(args.publicDir);
+  assertAuthorityChunkContainsOrigin(
+    args.publicDir,
+    manifest.originAuthorityChunk,
+    manifest.apiOrigin,
+  );
   assertCapacitorConfigHasNoServerUrl(
     args.capacitorConfigPath,
     "Generated native capacitor.config.json",
@@ -585,6 +874,8 @@ export function verifyAppBundle(args) {
   const manifest = readProvenanceFile(args.expectedProvenancePath);
   assertFileMapMatchesDir(manifest.files, publicDir, "app_bundle_mismatch");
   assertNoStaleExtras(publicDir, manifest.files);
+  assertSpaReady(publicDir);
+  assertAuthorityChunkContainsOrigin(publicDir, manifest.originAuthorityChunk, manifest.apiOrigin);
   assertCapacitorConfigHasNoServerUrl(
     capacitorConfigPath,
     "Packaged App.app capacitor.config.json",
@@ -640,6 +931,7 @@ export function formatPrepareReport(manifest) {
     `apiOrigin: ${manifest.apiOrigin}`,
     `buildIdentity: ${manifest.buildIdentity}`,
     `buildMode: ${manifest.buildMode}`,
+    `originAuthorityChunk: ${manifest.originAuthorityChunk}`,
     `bundleFingerprint: ${manifest.bundleFingerprint}`,
     "server.url: absent",
     "",

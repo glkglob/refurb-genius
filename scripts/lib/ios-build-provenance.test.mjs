@@ -5,7 +5,7 @@
  *   or: pnpm test:ios-provenance
  */
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -13,18 +13,30 @@ import {
   BUILD_IDENTITY,
   BUILD_MODE,
   IosProvenanceError,
+  ORIGIN_AUTHORITY_MODULE,
   PROVENANCE_FILE_NAME,
+  SCHEMA_VERSION,
+  SIDECAR_SCHEMA_VERSION,
+  assertAuthorityChunkContainsOrigin,
+  assertAuthorityChunkListedInFiles,
   assertCapacitorConfigHasNoServerUrl,
+  assertValidProvenance,
   assertNoServerUrl,
   assertProvenanceHasNoSecrets,
+  assertRollupMapHandoff,
+  assertSafeWebDirRelativePath,
   assertSourceSha,
   assertSourceTreeClean,
+  assertSpaReady,
   buildProvenanceManifest,
   classifyGitPorcelain,
+  collectLocalAssetRefs,
   computeBundleFingerprint,
   createChildEnv,
   hashWebDirFiles,
+  isOriginAuthorityModule,
   normalizeHttpsOrigin,
+  normalizeRollupModuleId,
   resolveIosApiOrigin,
   serializeProvenance,
   sha256Bytes,
@@ -169,8 +181,18 @@ test("fingerprint is stable and excludes provenance self-hash", () => {
   const files = hashWebDirFiles(root);
   assert.ok(!Object.hasOwn(files, PROVENANCE_FILE_NAME));
   assert.equal(Object.keys(files).sort().join(","), "assets/app.js,index.html");
-  const a = computeBundleFingerprint({ sourceSha: SOURCE_SHA, apiOrigin: PRODUCTION, files });
-  const b = computeBundleFingerprint({ sourceSha: SOURCE_SHA, apiOrigin: PRODUCTION, files });
+  const a = computeBundleFingerprint({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: PRODUCTION,
+    files,
+    originAuthorityChunk: "assets/app.js",
+  });
+  const b = computeBundleFingerprint({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: PRODUCTION,
+    files,
+    originAuthorityChunk: "assets/app.js",
+  });
   assert.equal(a, b);
   assert.match(a, /^[0-9a-f]{64}$/);
 });
@@ -182,29 +204,42 @@ test("fingerprint changes when a file byte changes", () => {
     sourceSha: SOURCE_SHA,
     apiOrigin: PRODUCTION,
     files: filesA,
+    originAuthorityChunk: "assets/app.js",
   });
   const b = computeBundleFingerprint({
     sourceSha: SOURCE_SHA,
     apiOrigin: PRODUCTION,
     files: filesB,
+    originAuthorityChunk: "assets/app.js",
   });
   assert.notEqual(a, b);
 });
 
 test("golden manifest records SHA, origin, identity and has no secrets", () => {
-  const files = { "index.html": sha256Bytes("<html/>") };
+  const files = {
+    "index.html": sha256Bytes("<html/>"),
+    "assets/app.js": sha256Bytes("origin"),
+  };
   const manifest = buildProvenanceManifest({
     sourceSha: SOURCE_SHA,
     apiOrigin: `${PRODUCTION}/`,
     files,
+    originAuthorityChunk: "assets/app.js",
   });
   assert.equal(manifest.sourceSha, SOURCE_SHA);
   assert.equal(manifest.apiOrigin, PRODUCTION);
   assert.equal(manifest.buildIdentity, BUILD_IDENTITY);
   assert.equal(manifest.buildMode, BUILD_MODE);
+  assert.equal(manifest.originAuthorityChunk, "assets/app.js");
+  assert.equal(manifest.schemaVersion, 2);
   assert.equal(
     manifest.bundleFingerprint,
-    computeBundleFingerprint({ sourceSha: SOURCE_SHA, apiOrigin: PRODUCTION, files }),
+    computeBundleFingerprint({
+      sourceSha: SOURCE_SHA,
+      apiOrigin: PRODUCTION,
+      files,
+      originAuthorityChunk: "assets/app.js",
+    }),
   );
   assert.doesNotThrow(() => assertProvenanceHasNoSecrets(manifest));
   const json = serializeProvenance(manifest);
@@ -212,8 +247,16 @@ test("golden manifest records SHA, origin, identity and has no secrets", () => {
 });
 
 test("planted secrets in a manifest are rejected", () => {
-  const files = { "index.html": sha256Bytes("x") };
-  const manifest = buildProvenanceManifest({ sourceSha: SOURCE_SHA, apiOrigin: PRODUCTION, files });
+  const files = {
+    "index.html": sha256Bytes("x"),
+    "assets/app.js": sha256Bytes("y"),
+  };
+  const manifest = buildProvenanceManifest({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: PRODUCTION,
+    files,
+    originAuthorityChunk: "assets/app.js",
+  });
   assert.equal(
     codeOf(() => assertProvenanceHasNoSecrets({ ...manifest, OPENAI_API_KEY: "planted" })),
     "provenance_secrets",
@@ -239,13 +282,21 @@ test("copied-bundle exact equality plus Capacitor extras passes", () => {
   const publicDir = join(root, "public");
   const expectedPath = join(root, "expected.json");
   const capPath = join(root, "capacitor.config.json");
-  writeTree(webDir, { "index.html": "<html>fresh</html>", "assets/app.js": "ok" });
+  writeTree(webDir, {
+    "index.html": `<html><script src="./assets/app.js"></script></html>`,
+    "assets/app.js": `const origin=${JSON.stringify(PRODUCTION)}`,
+  });
   const files = hashWebDirFiles(webDir);
-  const manifest = buildProvenanceManifest({ sourceSha: SOURCE_SHA, apiOrigin: PRODUCTION, files });
+  const manifest = buildProvenanceManifest({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: PRODUCTION,
+    files,
+    originAuthorityChunk: "assets/app.js",
+  });
   writeProvenanceArtifacts({ webDir, expectedPath, manifest });
   writeTree(publicDir, {
-    "index.html": "<html>fresh</html>",
-    "assets/app.js": "ok",
+    "index.html": `<html><script src="./assets/app.js"></script></html>`,
+    "assets/app.js": `const origin=${JSON.stringify(PRODUCTION)}`,
     "cordova.js": "/* capacitor */",
     "cordova_plugins.js": "[]",
   });
@@ -269,13 +320,21 @@ test("stale copied native assets fail", () => {
   const publicDir = join(root, "public");
   const expectedPath = join(root, "expected.json");
   const capPath = join(root, "capacitor.config.json");
-  writeTree(webDir, { "index.html": "<html>fresh</html>", "assets/new.js": "new" });
+  writeTree(webDir, {
+    "index.html": `<html><script src="./assets/new.js"></script></html>`,
+    "assets/new.js": `const origin=${JSON.stringify(PRODUCTION)}`,
+  });
   const files = hashWebDirFiles(webDir);
-  const manifest = buildProvenanceManifest({ sourceSha: SOURCE_SHA, apiOrigin: PRODUCTION, files });
+  const manifest = buildProvenanceManifest({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: PRODUCTION,
+    files,
+    originAuthorityChunk: "assets/new.js",
+  });
   writeProvenanceArtifacts({ webDir, expectedPath, manifest });
   writeTree(publicDir, {
-    "index.html": "<html>fresh</html>",
-    "assets/new.js": "new",
+    "index.html": `<html><script src="./assets/new.js"></script></html>`,
+    "assets/new.js": `const origin=${JSON.stringify(PRODUCTION)}`,
     "assets/old-stale.js": "old",
   });
   writeFileSync(join(publicDir, PROVENANCE_FILE_NAME), serializeProvenance(manifest));
@@ -299,11 +358,22 @@ test("hash mismatch fails copied_bundle_mismatch", () => {
   const publicDir = join(root, "public");
   const expectedPath = join(root, "expected.json");
   const capPath = join(root, "capacitor.config.json");
-  writeTree(webDir, { "index.html": "<html>fresh</html>" });
+  writeTree(webDir, {
+    "index.html": `<html><script src="./assets/app.js"></script></html>`,
+    "assets/app.js": `const origin=${JSON.stringify(PRODUCTION)}`,
+  });
   const files = hashWebDirFiles(webDir);
-  const manifest = buildProvenanceManifest({ sourceSha: SOURCE_SHA, apiOrigin: PRODUCTION, files });
+  const manifest = buildProvenanceManifest({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: PRODUCTION,
+    files,
+    originAuthorityChunk: "assets/app.js",
+  });
   writeProvenanceArtifacts({ webDir, expectedPath, manifest });
-  writeTree(publicDir, { "index.html": "<html>STALE</html>" });
+  writeTree(publicDir, {
+    "index.html": `<html><script src="./assets/app.js"></script></html>`,
+    "assets/app.js": "STALE",
+  });
   writeFileSync(join(publicDir, PROVENANCE_FILE_NAME), serializeProvenance(manifest));
   writeFileSync(capPath, JSON.stringify({ appId: "com.refurbgenius.app" }));
   assert.equal(
@@ -363,15 +433,23 @@ test("verify-app-bundle accepts a local App.app and rejects server.url / missing
   const root = fixtureRoot();
   const webDir = join(root, "web");
   const expectedPath = join(root, "expected.json");
-  writeTree(webDir, { "index.html": "<html>app</html>", "assets/a.js": "1" });
+  writeTree(webDir, {
+    "index.html": `<html><script src="./assets/a.js"></script></html>`,
+    "assets/a.js": `const origin=${JSON.stringify(PREVIEW)}`,
+  });
   const files = hashWebDirFiles(webDir);
-  const manifest = buildProvenanceManifest({ sourceSha: SOURCE_SHA, apiOrigin: PREVIEW, files });
+  const manifest = buildProvenanceManifest({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: PREVIEW,
+    files,
+    originAuthorityChunk: "assets/a.js",
+  });
   writeProvenanceArtifacts({ webDir, expectedPath, manifest });
 
   const app = join(root, "App.app");
   writeTree(join(app, "public"), {
-    "index.html": "<html>app</html>",
-    "assets/a.js": "1",
+    "index.html": `<html><script src="./assets/a.js"></script></html>`,
+    "assets/a.js": `const origin=${JSON.stringify(PREVIEW)}`,
     "cordova.js": "/* cap */",
   });
   writeFileSync(join(app, "public", PROVENANCE_FILE_NAME), serializeProvenance(manifest));
@@ -399,5 +477,296 @@ test("verify-app-bundle accepts a local App.app and rejects server.url / missing
   assert.equal(
     codeOf(() => verifyAppBundle({ appPath: bare, expectedProvenancePath: expectedPath })),
     "app_bundle_provenance_missing",
+  );
+});
+
+test("HTML local refs must exist and ignore remote URLs", () => {
+  const root = fixtureRoot();
+  writeTree(root, {
+    "index.html": `<html><script src="./assets/app.js"></script><link href="https://fonts.example/x.css" /></html>`,
+  });
+  assert.equal(
+    codeOf(() => assertSpaReady(root)),
+    "spa_incomplete",
+  );
+  mkdirSync(join(root, "assets"), { recursive: true });
+  writeFileSync(join(root, "assets/app.js"), "ok");
+  assert.doesNotThrow(() => assertSpaReady(root));
+  assert.deepEqual(collectLocalAssetRefs(readFileSync(join(root, "index.html"), "utf8")), [
+    "./assets/app.js",
+  ]);
+});
+
+test("authority chunk path traversal and missing origin fail", () => {
+  assert.equal(
+    codeOf(() => assertSafeWebDirRelativePath("../secret.js")),
+    "origin_authority_chunk_invalid",
+  );
+  assert.equal(
+    codeOf(() => assertSafeWebDirRelativePath("/tmp/abs.js")),
+    "origin_authority_chunk_invalid",
+  );
+  assert.equal(
+    codeOf(() => assertSafeWebDirRelativePath("file:///tmp/x.js")),
+    "origin_authority_chunk_invalid",
+  );
+  const root = fixtureRoot();
+  writeTree(root, { "assets/app.js": "no origin here" });
+  assert.equal(
+    codeOf(() => assertAuthorityChunkContainsOrigin(root, "assets/missing.js", PRODUCTION)),
+    "origin_authority_chunk_missing",
+  );
+  assert.equal(
+    codeOf(() => assertAuthorityChunkContainsOrigin(root, "assets/app.js", PRODUCTION)),
+    "origin_not_baked",
+  );
+});
+
+test("origin only in an unrelated Production literal is not authority proof", () => {
+  const root = fixtureRoot();
+  writeTree(root, {
+    "index.html": `<html><script src="./assets/app.js"></script></html>`,
+    "assets/app.js": "export const other = 1",
+    "assets/root.js": `const SITE=${JSON.stringify(PRODUCTION)}`,
+  });
+  assert.equal(
+    codeOf(() => assertAuthorityChunkContainsOrigin(root, "assets/app.js", PRODUCTION)),
+    "origin_not_baked",
+  );
+});
+
+test("copied authority chunk missing from public fails copied_bundle_mismatch", () => {
+  const root = fixtureRoot();
+  const webDir = join(root, "web");
+  const publicDir = join(root, "public");
+  const expectedPath = join(root, "expected.json");
+  const capPath = join(root, "capacitor.config.json");
+  writeTree(webDir, {
+    "index.html": `<html><script src="./assets/app.js"></script></html>`,
+    "assets/app.js": `const origin=${JSON.stringify(PRODUCTION)}`,
+  });
+  const files = hashWebDirFiles(webDir);
+  const manifest = buildProvenanceManifest({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: PRODUCTION,
+    files,
+    originAuthorityChunk: "assets/app.js",
+  });
+  writeProvenanceArtifacts({ webDir, expectedPath, manifest });
+  writeTree(publicDir, {
+    "index.html": `<html><script src="./assets/app.js"></script></html>`,
+  });
+  writeFileSync(join(publicDir, PROVENANCE_FILE_NAME), serializeProvenance(manifest));
+  writeFileSync(capPath, JSON.stringify({ appId: "com.refurbgenius.app" }));
+  assert.equal(
+    codeOf(() =>
+      verifyCopiedBundle({
+        webDir,
+        publicDir,
+        expectedProvenancePath: expectedPath,
+        capacitorConfigPath: capPath,
+      }),
+    ),
+    "copied_bundle_mismatch",
+  );
+});
+
+test("copied hashed authority chunk without apiOrigin fails origin_not_baked", () => {
+  const root = fixtureRoot();
+  const webDir = join(root, "web");
+  const publicDir = join(root, "public");
+  const expectedPath = join(root, "expected.json");
+  const capPath = join(root, "capacitor.config.json");
+  const hashedChunk = "export const other = 1";
+  writeTree(webDir, {
+    "index.html": `<html><script src="./assets/app.js"></script></html>`,
+    "assets/app.js": hashedChunk,
+  });
+  const files = hashWebDirFiles(webDir);
+  const manifest = buildProvenanceManifest({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: PRODUCTION,
+    files,
+    originAuthorityChunk: "assets/app.js",
+  });
+  writeProvenanceArtifacts({ webDir, expectedPath, manifest });
+  writeTree(publicDir, {
+    "index.html": `<html><script src="./assets/app.js"></script></html>`,
+    "assets/app.js": hashedChunk,
+  });
+  writeFileSync(join(publicDir, PROVENANCE_FILE_NAME), serializeProvenance(manifest));
+  writeFileSync(capPath, JSON.stringify({ appId: "com.refurbgenius.app" }));
+  assert.equal(
+    codeOf(() =>
+      verifyCopiedBundle({
+        webDir,
+        publicDir,
+        expectedProvenancePath: expectedPath,
+        capacitorConfigPath: capPath,
+      }),
+    ),
+    "origin_not_baked",
+  );
+});
+
+test("App.app hashed authority chunk without apiOrigin fails origin_not_baked", () => {
+  const root = fixtureRoot();
+  const webDir = join(root, "web");
+  const expectedPath = join(root, "expected.json");
+  const hashedChunk = "export const other = 1";
+  writeTree(webDir, {
+    "index.html": `<html><script src="./assets/a.js"></script></html>`,
+    "assets/a.js": hashedChunk,
+  });
+  const files = hashWebDirFiles(webDir);
+  const manifest = buildProvenanceManifest({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: PREVIEW,
+    files,
+    originAuthorityChunk: "assets/a.js",
+  });
+  writeProvenanceArtifacts({ webDir, expectedPath, manifest });
+  const app = join(root, "App.app");
+  writeTree(join(app, "public"), {
+    "index.html": `<html><script src="./assets/a.js"></script></html>`,
+    "assets/a.js": hashedChunk,
+  });
+  writeFileSync(join(app, "public", PROVENANCE_FILE_NAME), serializeProvenance(manifest));
+  writeFileSync(join(app, "capacitor.config.json"), JSON.stringify({}));
+  assert.equal(
+    codeOf(() => verifyAppBundle({ appPath: app, expectedProvenancePath: expectedPath })),
+    "origin_not_baked",
+  );
+});
+
+test("tampering originAuthorityChunk to another hashed file breaks fingerprint validation", () => {
+  const files = {
+    "assets/app.js": sha256Bytes("x"),
+    "assets/other.js": sha256Bytes("y"),
+  };
+  const manifest = buildProvenanceManifest({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: PRODUCTION,
+    files,
+    originAuthorityChunk: "assets/app.js",
+  });
+  const tampered = { ...manifest, originAuthorityChunk: "assets/other.js" };
+  assert.equal(
+    codeOf(() => assertValidProvenance(tampered)),
+    "provenance_mismatch",
+  );
+});
+
+test("schemaVersion other than 2 is provenance_invalid", () => {
+  const files = {
+    "index.html": sha256Bytes("<html/>"),
+    "assets/app.js": sha256Bytes("origin"),
+  };
+  const manifest = buildProvenanceManifest({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: PRODUCTION,
+    files,
+    originAuthorityChunk: "assets/app.js",
+  });
+  assert.equal(manifest.schemaVersion, SCHEMA_VERSION);
+  assert.equal(
+    codeOf(() => assertValidProvenance({ ...manifest, schemaVersion: 1 })),
+    "provenance_invalid",
+  );
+  assert.equal(
+    codeOf(() => assertValidProvenance({ ...manifest, schemaVersion: 3 })),
+    "provenance_invalid",
+  );
+});
+
+test("originAuthorityChunk must exist in the hashed files map", () => {
+  const files = { "index.html": sha256Bytes("<html/>") };
+  assert.equal(
+    codeOf(() => assertAuthorityChunkListedInFiles("assets/app.js", files)),
+    "provenance_invalid",
+  );
+  assert.equal(
+    codeOf(() =>
+      buildProvenanceManifest({
+        sourceSha: SOURCE_SHA,
+        apiOrigin: PRODUCTION,
+        files,
+        originAuthorityChunk: "assets/app.js",
+      }),
+    ),
+    "provenance_invalid",
+  );
+  const listed = {
+    "index.html": sha256Bytes("<html/>"),
+    "assets/app.js": sha256Bytes("origin"),
+  };
+  const manifest = buildProvenanceManifest({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: PRODUCTION,
+    files: listed,
+    originAuthorityChunk: "assets/app.js",
+  });
+  const unlisted = {
+    ...manifest,
+    files: { "index.html": listed["index.html"] },
+  };
+  assert.equal(
+    codeOf(() => assertValidProvenance(unlisted)),
+    "provenance_invalid",
+  );
+});
+
+test("sidecar handoff requires schema v1, origin module, baked flag, and safe chunk", () => {
+  const root = fixtureRoot();
+  writeTree(root, {
+    "assets/app.js": `const origin=${JSON.stringify(PRODUCTION)}`,
+  });
+  const valid = {
+    schemaVersion: SIDECAR_SCHEMA_VERSION,
+    originModule: ORIGIN_AUTHORITY_MODULE,
+    originAuthorityChunk: "assets/app.js",
+    originFoundInChunk: true,
+  };
+  assert.equal(assertRollupMapHandoff(valid, root, PRODUCTION), "assets/app.js");
+
+  assert.equal(
+    codeOf(() => assertRollupMapHandoff({ ...valid, schemaVersion: 2 }, root, PRODUCTION)),
+    "origin_module_unmapped",
+  );
+  assert.equal(
+    codeOf(() => assertRollupMapHandoff({ ...valid, schemaVersion: undefined }, root, PRODUCTION)),
+    "origin_module_unmapped",
+  );
+  assert.equal(
+    codeOf(() =>
+      assertRollupMapHandoff({ ...valid, originModule: "src/routes/__root.tsx" }, root, PRODUCTION),
+    ),
+    "origin_module_unmapped",
+  );
+  assert.equal(
+    codeOf(() => assertRollupMapHandoff({ ...valid, originFoundInChunk: false }, root, PRODUCTION)),
+    "origin_not_baked",
+  );
+  assert.equal(
+    codeOf(() =>
+      assertRollupMapHandoff({ ...valid, originFoundInChunk: "true" }, root, PRODUCTION),
+    ),
+    "origin_not_baked",
+  );
+  assert.equal(
+    codeOf(() =>
+      assertRollupMapHandoff({ ...valid, originAuthorityChunk: "../secret.js" }, root, PRODUCTION),
+    ),
+    "origin_authority_chunk_invalid",
+  );
+});
+
+test("Rollup module IDs are normalized before origin.ts matching", () => {
+  assert.equal(isOriginAuthorityModule("/repo/src/platform/http/origin.ts"), true);
+  assert.equal(isOriginAuthorityModule("file:///repo/src/platform/http/origin.ts?v=1"), true);
+  assert.equal(isOriginAuthorityModule("/repo/src/routes/__root.tsx"), false);
+  assert.match(
+    normalizeRollupModuleId("file:///tmp/src/platform/http/origin.ts?query=1"),
+    /origin\.ts$/,
   );
 });
