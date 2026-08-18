@@ -10,16 +10,18 @@
  * post-build SPA prerender. Legacy `build()` is a single-environment
  * shortcut and is not a governed iOS success path.
  *
- * Origin authority is captured per `this.environment` during generateBundle.
- * A matching environment must have consumer === "client" and an exact
- * resolved build.outDir equal to the packaged client root. After
- * fileName deduplication, zero matches fail, more than one match is
- * ambiguous, and the single selected chunk is re-read from disk before
- * the handoff sidecar is written.
+ * Origin and Supabase authority are captured independently per
+ * `this.environment` during generateBundle. A matching environment must
+ * have consumer === "client" and an exact resolved build.outDir equal to
+ * the packaged client root. After fileName deduplication, zero matches
+ * fail and more than one match is ambiguous. The selected chunks are
+ * re-read from disk. The origin chunk must contain the normalized API
+ * origin. The Supabase chunk must contain the normalized URL and the
+ * exact selected public key. Unused Supabase VITE_* names are empty-string
+ * tombstones on process.env so Vite cannot refill them from ignored dotenv
+ * files. The sidecar is handoff evidence only and never stores the raw key.
  *
- * Signals, timeouts, and rejections are failures. The sidecar is handoff
- * evidence only; certification authority is the schema v2 provenance
- * manifest written by prepare.
+ * Signals, timeouts, and rejections are failures.
  */
 import { rm, writeFile } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
@@ -30,12 +32,17 @@ import {
   ORIGIN_AUTHORITY_MODULE,
   ROLLUP_MAP_REL,
   SIDECAR_SCHEMA_VERSION,
+  SUPABASE_AUTHORITY_MODULE,
   VITE_CONFIG,
   WEB_DIR_REL,
   assertAuthorityChunkContainsOrigin,
+  assertAuthorityChunkContainsSupabaseConfig,
   assertSafeWebDirRelativePath,
+  createChildEnv,
   isOriginAuthorityModule,
+  isSupabaseAuthorityModule,
   resolveIosApiOrigin,
+  resolveIosSupabaseRuntimeConfig,
 } from "./lib/ios-build-provenance.mjs";
 
 export const DIST_IOS_REL = "dist/ios";
@@ -118,15 +125,21 @@ export function collectChunkModuleIds(item) {
 
 /**
  * Isolated capture state keyed by the actual `this.environment` object.
- * Never overwrites a single last-environment record.
+ * Origin and Supabase mappings are tracked independently. Never overwrites
+ * a single last-environment record.
  *
  * @returns {{
- *   byEnvironment: Map<object, { consumer: unknown, outDir: unknown, fileNames: Set<string> }>,
+ *   byEnvironment: Map<object, {
+ *     consumer: unknown,
+ *     outDir: unknown,
+ *     fileNames: Set<string>,
+ *     supabaseFileNames: Set<string>,
+ *   }>,
  *   plugin: { name: string, apply: string, generateBundle: Function },
  * }}
  */
 export function createOriginAuthorityCaptureState() {
-  /** @type {Map<object, { consumer: unknown, outDir: unknown, fileNames: Set<string> }>} */
+  /** @type {Map<object, { consumer: unknown, outDir: unknown, fileNames: Set<string>, supabaseFileNames: Set<string> }>} */
   const byEnvironment = new Map();
   return {
     byEnvironment,
@@ -142,17 +155,19 @@ export function createOriginAuthorityCaptureState() {
             consumer: environment.config?.consumer,
             outDir: environment.config?.build?.outDir,
             fileNames: new Set(),
+            supabaseFileNames: new Set(),
           };
           byEnvironment.set(environment, rec);
         }
         if (!bundle || typeof bundle !== "object") return;
         for (const item of Object.values(bundle)) {
           if (!item || /** @type {{ type?: unknown }} */ (item).type !== "chunk") continue;
-          if (!collectChunkModuleIds(item).some((id) => isOriginAuthorityModule(id))) continue;
+          const ids = collectChunkModuleIds(item);
           const fileName = String(
             /** @type {{ fileName?: unknown }} */ (item).fileName || "",
           ).replace(/\\/g, "/");
-          rec.fileNames.add(fileName);
+          if (ids.some((id) => isOriginAuthorityModule(id))) rec.fileNames.add(fileName);
+          if (ids.some((id) => isSupabaseAuthorityModule(id))) rec.supabaseFileNames.add(fileName);
         }
       },
     },
@@ -161,36 +176,64 @@ export function createOriginAuthorityCaptureState() {
 
 /**
  * After deduplication by emitted fileName:
- *   0 → origin_module_unmapped
+ *   0 → *_module_unmapped
  *   1 → that relative path
- *  >1 → origin_authority_ambiguous
+ *  >1 → *_authority_ambiguous
  *
- * @param {Map<object, { consumer: unknown, outDir: unknown, fileNames: Set<string> }>} byEnvironment
+ * @param {Map<object, { consumer: unknown, outDir: unknown, fileNames?: Set<string>, supabaseFileNames?: Set<string> }>} byEnvironment
  * @param {string} expectedClientOutDir
+ * @param {"origin" | "supabase"} kind
  * @returns {string}
  */
-export function selectUniqueClientAuthorityChunk(byEnvironment, expectedClientOutDir) {
+function selectUniqueClientChunk(byEnvironment, expectedClientOutDir, kind) {
   /** @type {Set<string>} */
   const distinct = new Set();
+  const isSupabase = kind === "supabase";
+  const pathOpts = isSupabase
+    ? { field: "supabaseAuthorityChunk", code: "supabase_authority_chunk_invalid" }
+    : undefined;
   for (const rec of byEnvironment.values()) {
     if (!isPackagedClientEnvironment(rec, expectedClientOutDir)) continue;
-    for (const fileName of rec.fileNames) {
-      distinct.add(assertSafeWebDirRelativePath(fileName));
+    const names = isSupabase ? rec.supabaseFileNames : rec.fileNames;
+    for (const fileName of names ?? []) {
+      distinct.add(assertSafeWebDirRelativePath(fileName, pathOpts));
     }
   }
   if (distinct.size === 0) {
     throw new IosProvenanceError(
-      `Could not map ${ORIGIN_AUTHORITY_MODULE} to a client chunk under ${WEB_DIR_REL}`,
-      { code: "origin_module_unmapped" },
+      isSupabase
+        ? `Could not map ${SUPABASE_AUTHORITY_MODULE} to a client chunk under ${WEB_DIR_REL}`
+        : `Could not map ${ORIGIN_AUTHORITY_MODULE} to a client chunk under ${WEB_DIR_REL}`,
+      { code: isSupabase ? "supabase_module_unmapped" : "origin_module_unmapped" },
     );
   }
   if (distinct.size > 1) {
     throw new IosProvenanceError(
-      `Origin authority module mapped to multiple client chunks: ${[...distinct].join(", ")}`,
-      { code: "origin_authority_ambiguous" },
+      isSupabase
+        ? `Supabase authority module mapped to multiple client chunks: ${[...distinct].join(", ")}`
+        : `Origin authority module mapped to multiple client chunks: ${[...distinct].join(", ")}`,
+      { code: isSupabase ? "supabase_authority_ambiguous" : "origin_authority_ambiguous" },
     );
   }
   return [...distinct][0];
+}
+
+/**
+ * @param {Map<object, { consumer: unknown, outDir: unknown, fileNames?: Set<string> }>} byEnvironment
+ * @param {string} expectedClientOutDir
+ * @returns {string}
+ */
+export function selectUniqueClientAuthorityChunk(byEnvironment, expectedClientOutDir) {
+  return selectUniqueClientChunk(byEnvironment, expectedClientOutDir, "origin");
+}
+
+/**
+ * @param {Map<object, { consumer: unknown, outDir: unknown, supabaseFileNames?: Set<string> }>} byEnvironment
+ * @param {string} expectedClientOutDir
+ * @returns {string}
+ */
+export function selectUniqueClientSupabaseAuthorityChunk(byEnvironment, expectedClientOutDir) {
+  return selectUniqueClientChunk(byEnvironment, expectedClientOutDir, "supabase");
 }
 
 /**
@@ -203,45 +246,90 @@ export function selectUniqueClientAuthorityChunk(byEnvironment, expectedClientOu
 export async function runIosViteBuild(args) {
   const cwd = args.cwd;
   const apiOrigin = resolveIosApiOrigin(args.env.VITE_PUBLIC_URL);
+  const supabaseRuntime = resolveIosSupabaseRuntimeConfig(args.env);
+  const childEnv = createChildEnv(args.env, apiOrigin, supabaseRuntime);
   await removeStaleDistIos(cwd);
 
   const expectedClientOutDir = resolve(cwd, WEB_DIR_REL);
   const capture = createOriginAuthorityCaptureState();
   const createBuilderImpl = args.createBuilderImpl ?? createBuilder;
+  const processEnvPatch = {
+    VITE_PUBLIC_URL: childEnv.VITE_PUBLIC_URL,
+    VITE_SUPABASE_URL: childEnv.VITE_SUPABASE_URL,
+    VITE_SUPABASE_ANON_KEY: childEnv.VITE_SUPABASE_ANON_KEY,
+    VITE_SUPABASE_PUBLISHABLE_KEY: "",
+    VITE_SUPABASE_SERVICE_ROLE_KEY: "",
+  };
+  /** @type {Record<string, string | undefined>} */
+  const previousProcessEnv = {};
+  /** @type {Record<string, boolean>} */
+  const hadProcessEnv = {};
+  for (const key of Object.keys(processEnvPatch)) {
+    hadProcessEnv[key] = Object.hasOwn(process.env, key);
+    previousProcessEnv[key] = process.env[key];
+    process.env[key] = processEnvPatch[key];
+  }
 
   try {
-    const builder = await createBuilderImpl({
-      configFile: resolve(cwd, VITE_CONFIG),
-      root: cwd,
-      plugins: [capture.plugin],
-    });
-    if (!builder || typeof builder.buildApp !== "function") {
-      throw new Error("createBuilder did not return a builder with buildApp()");
+    try {
+      const builder = await createBuilderImpl({
+        configFile: resolve(cwd, VITE_CONFIG),
+        root: cwd,
+        plugins: [capture.plugin],
+      });
+      if (!builder || typeof builder.buildApp !== "function") {
+        throw new Error("createBuilder did not return a builder with buildApp()");
+      }
+      await builder.buildApp();
+    } catch (err) {
+      if (err instanceof IosProvenanceError) throw err;
+      const message = err instanceof Error ? err.message : String(err);
+      throw new IosProvenanceError(`Vite buildApp() rejected: ${message}`, {
+        code: "vite_ios_failed",
+      });
     }
-    await builder.buildApp();
-  } catch (err) {
-    if (err instanceof IosProvenanceError) throw err;
-    const message = err instanceof Error ? err.message : String(err);
-    throw new IosProvenanceError(`Vite buildApp() rejected: ${message}`, {
-      code: "vite_ios_failed",
-    });
+  } finally {
+    for (const key of Object.keys(processEnvPatch)) {
+      if (hadProcessEnv[key]) process.env[key] = previousProcessEnv[key];
+      else delete process.env[key];
+    }
   }
 
   const originAuthorityChunk = selectUniqueClientAuthorityChunk(
     capture.byEnvironment,
     expectedClientOutDir,
   );
+  const supabaseAuthorityChunk = selectUniqueClientSupabaseAuthorityChunk(
+    capture.byEnvironment,
+    expectedClientOutDir,
+  );
   assertAuthorityChunkContainsOrigin(expectedClientOutDir, originAuthorityChunk, apiOrigin);
+  assertAuthorityChunkContainsSupabaseConfig(
+    expectedClientOutDir,
+    supabaseAuthorityChunk,
+    supabaseRuntime.supabaseUrl,
+    supabaseRuntime.supabasePublicKey,
+  );
 
   const map = {
     schemaVersion: SIDECAR_SCHEMA_VERSION,
     originModule: ORIGIN_AUTHORITY_MODULE,
     originAuthorityChunk,
     originFoundInChunk: true,
+    supabaseModule: SUPABASE_AUTHORITY_MODULE,
+    supabaseAuthorityChunk,
+    supabaseUrlFoundInChunk: true,
+    supabasePublicKeyFoundInChunk: true,
   };
   const mapPath = resolve(cwd, ROLLUP_MAP_REL);
   await writeFile(mapPath, `${JSON.stringify(map, null, 2)}\n`, "utf8");
-  return { apiOrigin, originAuthorityChunk, mapPath };
+  return {
+    apiOrigin,
+    originAuthorityChunk,
+    supabaseUrl: supabaseRuntime.supabaseUrl,
+    supabaseAuthorityChunk,
+    mapPath,
+  };
 }
 
 function isMain() {

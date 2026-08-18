@@ -17,7 +17,10 @@ import {
   PROVENANCE_FILE_NAME,
   SCHEMA_VERSION,
   SIDECAR_SCHEMA_VERSION,
+  SUPABASE_AUTHORITY_MODULE,
   assertAuthorityChunkContainsOrigin,
+  assertAuthorityChunkContainsSupabaseConfig,
+  assertAuthorityChunkContainsSupabaseUrl,
   assertAuthorityChunkListedInFiles,
   assertCapacitorConfigHasNoServerUrl,
   assertValidProvenance,
@@ -35,9 +38,13 @@ import {
   createChildEnv,
   hashWebDirFiles,
   isOriginAuthorityModule,
+  isSupabaseAuthorityModule,
   normalizeHttpsOrigin,
   normalizeRollupModuleId,
   resolveIosApiOrigin,
+  resolveIosSupabasePublicKey,
+  resolveIosSupabaseRuntimeConfig,
+  resolveIosSupabaseUrl,
   serializeProvenance,
   sha256Bytes,
   verifyAppBundle,
@@ -48,6 +55,9 @@ import {
 const PRODUCTION = "https://www.refurbgenius.info";
 const PREVIEW = "https://refurb-genius-git-fix-example.vercel.app";
 const SOURCE_SHA = "487dd4d0c6298200060ef79b05fa1b0e7b5677ad";
+const SUPABASE_URL = "https://ios-provenance-test.supabase.co";
+const SUPABASE_ANON_KEY = "ios-anon-test-key";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_ios_test_key";
 
 function codeOf(fn) {
   try {
@@ -69,6 +79,48 @@ function writeTree(root, files) {
     mkdirSync(join(abs, ".."), { recursive: true });
     writeFileSync(abs, contents);
   }
+}
+
+function bakedJs(origin, supabaseUrl = SUPABASE_URL, key = SUPABASE_ANON_KEY) {
+  return `const origin=${JSON.stringify(origin)};const supabaseUrl=${JSON.stringify(supabaseUrl)};const supabaseKey=${JSON.stringify(key)};`;
+}
+
+function supabaseIdentity(chunkRel = "assets/app.js", key = SUPABASE_ANON_KEY) {
+  return {
+    supabaseUrl: SUPABASE_URL,
+    supabasePublicKeySha256: sha256Bytes(key),
+    supabaseAuthorityChunk: chunkRel,
+  };
+}
+
+function fingerprintOf(
+  files,
+  origin = PRODUCTION,
+  chunkRel = "assets/app.js",
+  key = SUPABASE_ANON_KEY,
+) {
+  return computeBundleFingerprint({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: origin,
+    files,
+    originAuthorityChunk: chunkRel,
+    ...supabaseIdentity(chunkRel, key),
+  });
+}
+
+function manifestOf(
+  files,
+  origin = PRODUCTION,
+  chunkRel = "assets/app.js",
+  key = SUPABASE_ANON_KEY,
+) {
+  return buildProvenanceManifest({
+    sourceSha: SOURCE_SHA,
+    apiOrigin: origin,
+    files,
+    originAuthorityChunk: chunkRel,
+    ...supabaseIdentity(chunkRel, key),
+  });
 }
 
 test("missing API origin fails origin_missing", () => {
@@ -122,6 +174,175 @@ test("explicit HTTPS Preview origin is accepted", () => {
   assert.equal(resolveIosApiOrigin(`${PREVIEW}/preview-path`), PREVIEW);
 });
 
+test("missing Supabase URL fails supabase_url_missing", () => {
+  assert.equal(
+    codeOf(() => resolveIosSupabaseUrl(undefined)),
+    "supabase_url_missing",
+  );
+  assert.equal(
+    codeOf(() => resolveIosSupabaseUrl("")),
+    "supabase_url_missing",
+  );
+  assert.equal(
+    codeOf(() => resolveIosSupabaseUrl("   ")),
+    "supabase_url_missing",
+  );
+});
+
+test("invalid and non-HTTPS Supabase URL fail closed", () => {
+  assert.equal(
+    codeOf(() => resolveIosSupabaseUrl("not-a-url")),
+    "supabase_url_invalid",
+  );
+  assert.equal(
+    codeOf(() => resolveIosSupabaseUrl("http://ios-provenance-test.supabase.co")),
+    "supabase_url_not_https",
+  );
+  assert.equal(
+    codeOf(() => resolveIosSupabaseUrl("https://user:pass@ios-provenance-test.supabase.co")),
+    "supabase_url_invalid",
+  );
+});
+
+test("HTTPS Supabase URL is accepted and normalized", () => {
+  assert.equal(resolveIosSupabaseUrl(SUPABASE_URL), SUPABASE_URL);
+  assert.equal(resolveIosSupabaseUrl(`${SUPABASE_URL}/`), SUPABASE_URL);
+});
+
+test("missing public key fails supabase_key_missing", () => {
+  assert.equal(
+    codeOf(() =>
+      resolveIosSupabasePublicKey({
+        VITE_SUPABASE_URL: SUPABASE_URL,
+      }),
+    ),
+    "supabase_key_missing",
+  );
+});
+
+test("blank public key fails supabase_key_missing", () => {
+  assert.equal(
+    codeOf(() =>
+      resolveIosSupabasePublicKey({
+        VITE_SUPABASE_ANON_KEY: "   ",
+      }),
+    ),
+    "supabase_key_missing",
+  );
+  assert.equal(
+    codeOf(() =>
+      resolveIosSupabasePublicKey({
+        VITE_SUPABASE_PUBLISHABLE_KEY: "",
+      }),
+    ),
+    "supabase_key_missing",
+  );
+});
+
+test("conflicting anon and publishable keys fail supabase_key_conflict", () => {
+  assert.equal(
+    codeOf(() =>
+      resolveIosSupabasePublicKey({
+        VITE_SUPABASE_ANON_KEY: SUPABASE_ANON_KEY,
+        VITE_SUPABASE_PUBLISHABLE_KEY: SUPABASE_PUBLISHABLE_KEY,
+      }),
+    ),
+    "supabase_key_conflict",
+  );
+});
+
+test("equal anon and publishable keys are valid", () => {
+  assert.equal(
+    resolveIosSupabasePublicKey({
+      VITE_SUPABASE_ANON_KEY: SUPABASE_ANON_KEY,
+      VITE_SUPABASE_PUBLISHABLE_KEY: `  ${SUPABASE_ANON_KEY}  `,
+    }),
+    SUPABASE_ANON_KEY,
+  );
+});
+
+test("valid anon-key path is selected", () => {
+  assert.equal(
+    resolveIosSupabasePublicKey({ VITE_SUPABASE_ANON_KEY: SUPABASE_ANON_KEY }),
+    SUPABASE_ANON_KEY,
+  );
+});
+
+test("valid publishable-key path is selected", () => {
+  assert.equal(
+    resolveIosSupabasePublicKey({ VITE_SUPABASE_PUBLISHABLE_KEY: SUPABASE_PUBLISHABLE_KEY }),
+    SUPABASE_PUBLISHABLE_KEY,
+  );
+});
+
+test("service_role selected key is rejected", () => {
+  assert.equal(
+    codeOf(() =>
+      resolveIosSupabasePublicKey({
+        VITE_SUPABASE_ANON_KEY: "planted-service_role-marker",
+      }),
+    ),
+    "supabase_key_forbidden",
+  );
+  assert.equal(
+    codeOf(() =>
+      resolveIosSupabasePublicKey({
+        VITE_SUPABASE_PUBLISHABLE_KEY: "sb_secret_ios_test_key",
+      }),
+    ),
+    "supabase_key_forbidden",
+  );
+});
+
+test("VITE_SUPABASE_SERVICE_ROLE_KEY is rejected and never a fallback", () => {
+  assert.equal(
+    codeOf(() =>
+      resolveIosSupabaseRuntimeConfig({
+        VITE_SUPABASE_URL: SUPABASE_URL,
+        VITE_SUPABASE_ANON_KEY: SUPABASE_ANON_KEY,
+        VITE_SUPABASE_SERVICE_ROLE_KEY: "planted-service-role",
+      }),
+    ),
+    "supabase_service_role_forbidden",
+  );
+  assert.equal(
+    codeOf(() =>
+      resolveIosSupabaseRuntimeConfig({
+        SUPABASE_SERVICE_ROLE_KEY: "must-not-be-used",
+        SUPABASE_URL: SUPABASE_URL,
+        SUPABASE_ANON_KEY: SUPABASE_ANON_KEY,
+      }),
+    ),
+    "supabase_url_missing",
+  );
+});
+
+test("NEXT_PUBLIC and unprefixed names are not certification authority", () => {
+  assert.equal(
+    codeOf(() =>
+      resolveIosSupabaseRuntimeConfig({
+        NEXT_PUBLIC_SUPABASE_URL: SUPABASE_URL,
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: SUPABASE_ANON_KEY,
+        SUPABASE_URL: SUPABASE_URL,
+        SUPABASE_ANON_KEY: SUPABASE_ANON_KEY,
+      }),
+    ),
+    "supabase_url_missing",
+  );
+});
+
+test("dotenv files cannot silently supply certification authority", () => {
+  const root = fixtureRoot();
+  writeFileSync(
+    join(root, ".env.local"),
+    `VITE_SUPABASE_URL=${SUPABASE_URL}\nVITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}\n`,
+  );
+  assert.equal(
+    codeOf(() => resolveIosSupabaseRuntimeConfig({ VITE_PUBLIC_URL: PRODUCTION })),
+    "supabase_url_missing",
+  );
+});
+
 test("source SHA must be a full 40-char hex", () => {
   assert.equal(assertSourceSha(SOURCE_SHA), SOURCE_SHA);
   assert.equal(
@@ -162,11 +383,28 @@ test("dirty-tree: ignored porcelain and empty status pass", () => {
   assert.deepEqual(classified.tracked, ["a.ts"]);
 });
 
-test("createChildEnv sets normalized origin without mutating parent", () => {
-  const parent = { PATH: "/bin", VITE_PUBLIC_URL: "https://stale.example/" };
-  const child = createChildEnv(parent, PRODUCTION);
+test("createChildEnv sets canonical Vite values without mutating parent", () => {
+  const parent = {
+    PATH: "/bin",
+    VITE_PUBLIC_URL: "https://stale.example/",
+    VITE_SUPABASE_URL: "https://stale.supabase.co/",
+    VITE_SUPABASE_ANON_KEY: "stale-anon",
+    VITE_SUPABASE_PUBLISHABLE_KEY: SUPABASE_PUBLISHABLE_KEY,
+    VITE_SUPABASE_SERVICE_ROLE_KEY: "",
+  };
+  const child = createChildEnv(parent, PRODUCTION, {
+    supabaseUrl: `${SUPABASE_URL}/`,
+    supabasePublicKey: SUPABASE_ANON_KEY,
+  });
   assert.equal(parent.VITE_PUBLIC_URL, "https://stale.example/");
+  assert.equal(parent.VITE_SUPABASE_PUBLISHABLE_KEY, SUPABASE_PUBLISHABLE_KEY);
   assert.equal(child.VITE_PUBLIC_URL, PRODUCTION);
+  assert.equal(child.VITE_SUPABASE_URL, SUPABASE_URL);
+  assert.equal(child.VITE_SUPABASE_ANON_KEY, SUPABASE_ANON_KEY);
+  assert.equal(child.VITE_SUPABASE_PUBLISHABLE_KEY, "");
+  assert.equal(child.VITE_SUPABASE_SERVICE_ROLE_KEY, "");
+  assert.equal(Object.hasOwn(child, "VITE_SUPABASE_PUBLISHABLE_KEY"), true);
+  assert.equal(Object.hasOwn(child, "VITE_SUPABASE_SERVICE_ROLE_KEY"), true);
   assert.equal(child.PATH, "/bin");
   assert.notEqual(child, parent);
 });
@@ -181,41 +419,43 @@ test("fingerprint is stable and excludes provenance self-hash", () => {
   const files = hashWebDirFiles(root);
   assert.ok(!Object.hasOwn(files, PROVENANCE_FILE_NAME));
   assert.equal(Object.keys(files).sort().join(","), "assets/app.js,index.html");
-  const a = computeBundleFingerprint({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PRODUCTION,
-    files,
-    originAuthorityChunk: "assets/app.js",
-  });
-  const b = computeBundleFingerprint({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PRODUCTION,
-    files,
-    originAuthorityChunk: "assets/app.js",
-  });
+  const a = fingerprintOf(files);
+  const b = fingerprintOf(files);
   assert.equal(a, b);
   assert.match(a, /^[0-9a-f]{64}$/);
 });
 
-test("fingerprint changes when a file byte changes", () => {
-  const filesA = { "index.html": sha256Bytes("one") };
-  const filesB = { "index.html": sha256Bytes("two") };
-  const a = computeBundleFingerprint({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PRODUCTION,
-    files: filesA,
-    originAuthorityChunk: "assets/app.js",
-  });
-  const b = computeBundleFingerprint({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PRODUCTION,
-    files: filesB,
-    originAuthorityChunk: "assets/app.js",
-  });
-  assert.notEqual(a, b);
+test("fingerprint changes when a file byte or Supabase identity changes", () => {
+  const filesA = { "index.html": sha256Bytes("one"), "assets/app.js": sha256Bytes("x") };
+  const filesB = { "index.html": sha256Bytes("two"), "assets/app.js": sha256Bytes("x") };
+  assert.notEqual(fingerprintOf(filesA), fingerprintOf(filesB));
+  assert.notEqual(
+    fingerprintOf(filesA),
+    computeBundleFingerprint({
+      sourceSha: SOURCE_SHA,
+      apiOrigin: PRODUCTION,
+      files: filesA,
+      originAuthorityChunk: "assets/app.js",
+      supabaseUrl: "https://other-ios-provenance-test.supabase.co",
+      supabasePublicKeySha256: sha256Bytes(SUPABASE_ANON_KEY),
+      supabaseAuthorityChunk: "assets/app.js",
+    }),
+  );
+  assert.notEqual(
+    fingerprintOf(filesA),
+    computeBundleFingerprint({
+      sourceSha: SOURCE_SHA,
+      apiOrigin: PRODUCTION,
+      files: filesA,
+      originAuthorityChunk: "assets/app.js",
+      supabaseUrl: SUPABASE_URL,
+      supabasePublicKeySha256: sha256Bytes(SUPABASE_PUBLISHABLE_KEY),
+      supabaseAuthorityChunk: "assets/app.js",
+    }),
+  );
 });
 
-test("golden manifest records SHA, origin, identity and has no secrets", () => {
+test("golden manifest records SHA, origin, Supabase identity and has no secrets", () => {
   const files = {
     "index.html": sha256Bytes("<html/>"),
     "assets/app.js": sha256Bytes("origin"),
@@ -225,25 +465,25 @@ test("golden manifest records SHA, origin, identity and has no secrets", () => {
     apiOrigin: `${PRODUCTION}/`,
     files,
     originAuthorityChunk: "assets/app.js",
+    supabaseUrl: `${SUPABASE_URL}/`,
+    supabasePublicKeySha256: sha256Bytes(SUPABASE_ANON_KEY),
+    supabaseAuthorityChunk: "assets/app.js",
   });
   assert.equal(manifest.sourceSha, SOURCE_SHA);
   assert.equal(manifest.apiOrigin, PRODUCTION);
+  assert.equal(manifest.supabaseUrl, SUPABASE_URL);
+  assert.equal(manifest.supabasePublicKeySha256, sha256Bytes(SUPABASE_ANON_KEY));
   assert.equal(manifest.buildIdentity, BUILD_IDENTITY);
   assert.equal(manifest.buildMode, BUILD_MODE);
   assert.equal(manifest.originAuthorityChunk, "assets/app.js");
-  assert.equal(manifest.schemaVersion, 2);
-  assert.equal(
-    manifest.bundleFingerprint,
-    computeBundleFingerprint({
-      sourceSha: SOURCE_SHA,
-      apiOrigin: PRODUCTION,
-      files,
-      originAuthorityChunk: "assets/app.js",
-    }),
-  );
+  assert.equal(manifest.supabaseAuthorityChunk, "assets/app.js");
+  assert.equal(manifest.schemaVersion, 3);
+  assert.equal(manifest.bundleFingerprint, fingerprintOf(files));
   assert.doesNotThrow(() => assertProvenanceHasNoSecrets(manifest));
   const json = serializeProvenance(manifest);
   assert.doesNotMatch(json, /process\.env|service_role|timestamp|createdAt/i);
+  assert.doesNotMatch(json, new RegExp(SUPABASE_ANON_KEY));
+  assert.doesNotMatch(json, /supabasePublicKeySource|anon|publishable/);
 });
 
 test("planted secrets in a manifest are rejected", () => {
@@ -251,12 +491,7 @@ test("planted secrets in a manifest are rejected", () => {
     "index.html": sha256Bytes("x"),
     "assets/app.js": sha256Bytes("y"),
   };
-  const manifest = buildProvenanceManifest({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PRODUCTION,
-    files,
-    originAuthorityChunk: "assets/app.js",
-  });
+  const manifest = manifestOf(files);
   assert.equal(
     codeOf(() => assertProvenanceHasNoSecrets({ ...manifest, OPENAI_API_KEY: "planted" })),
     "provenance_secrets",
@@ -276,27 +511,23 @@ test("planted secrets in a manifest are rejected", () => {
   );
 });
 
-test("copied-bundle exact equality plus Capacitor extras passes", () => {
+test("copied-bundle exact equality plus Capacitor extras passes without raw key env", () => {
   const root = fixtureRoot();
   const webDir = join(root, "web");
   const publicDir = join(root, "public");
   const expectedPath = join(root, "expected.json");
   const capPath = join(root, "capacitor.config.json");
+  const chunk = bakedJs(PRODUCTION);
   writeTree(webDir, {
     "index.html": `<html><script src="./assets/app.js"></script></html>`,
-    "assets/app.js": `const origin=${JSON.stringify(PRODUCTION)}`,
+    "assets/app.js": chunk,
   });
   const files = hashWebDirFiles(webDir);
-  const manifest = buildProvenanceManifest({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PRODUCTION,
-    files,
-    originAuthorityChunk: "assets/app.js",
-  });
+  const manifest = manifestOf(files);
   writeProvenanceArtifacts({ webDir, expectedPath, manifest });
   writeTree(publicDir, {
     "index.html": `<html><script src="./assets/app.js"></script></html>`,
-    "assets/app.js": `const origin=${JSON.stringify(PRODUCTION)}`,
+    "assets/app.js": chunk,
     "cordova.js": "/* capacitor */",
     "cordova_plugins.js": "[]",
   });
@@ -312,6 +543,7 @@ test("copied-bundle exact equality plus Capacitor extras passes", () => {
     capacitorConfigPath: capPath,
   });
   assert.equal(verified.bundleFingerprint, manifest.bundleFingerprint);
+  assert.equal(verified.supabasePublicKeySha256, sha256Bytes(SUPABASE_ANON_KEY));
 });
 
 test("stale copied native assets fail", () => {
@@ -320,21 +552,17 @@ test("stale copied native assets fail", () => {
   const publicDir = join(root, "public");
   const expectedPath = join(root, "expected.json");
   const capPath = join(root, "capacitor.config.json");
+  const chunk = bakedJs(PRODUCTION);
   writeTree(webDir, {
     "index.html": `<html><script src="./assets/new.js"></script></html>`,
-    "assets/new.js": `const origin=${JSON.stringify(PRODUCTION)}`,
+    "assets/new.js": chunk,
   });
   const files = hashWebDirFiles(webDir);
-  const manifest = buildProvenanceManifest({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PRODUCTION,
-    files,
-    originAuthorityChunk: "assets/new.js",
-  });
+  const manifest = manifestOf(files, PRODUCTION, "assets/new.js");
   writeProvenanceArtifacts({ webDir, expectedPath, manifest });
   writeTree(publicDir, {
     "index.html": `<html><script src="./assets/new.js"></script></html>`,
-    "assets/new.js": `const origin=${JSON.stringify(PRODUCTION)}`,
+    "assets/new.js": chunk,
     "assets/old-stale.js": "old",
   });
   writeFileSync(join(publicDir, PROVENANCE_FILE_NAME), serializeProvenance(manifest));
@@ -360,15 +588,10 @@ test("hash mismatch fails copied_bundle_mismatch", () => {
   const capPath = join(root, "capacitor.config.json");
   writeTree(webDir, {
     "index.html": `<html><script src="./assets/app.js"></script></html>`,
-    "assets/app.js": `const origin=${JSON.stringify(PRODUCTION)}`,
+    "assets/app.js": bakedJs(PRODUCTION),
   });
   const files = hashWebDirFiles(webDir);
-  const manifest = buildProvenanceManifest({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PRODUCTION,
-    files,
-    originAuthorityChunk: "assets/app.js",
-  });
+  const manifest = manifestOf(files);
   writeProvenanceArtifacts({ webDir, expectedPath, manifest });
   writeTree(publicDir, {
     "index.html": `<html><script src="./assets/app.js"></script></html>`,
@@ -433,23 +656,19 @@ test("verify-app-bundle accepts a local App.app and rejects server.url / missing
   const root = fixtureRoot();
   const webDir = join(root, "web");
   const expectedPath = join(root, "expected.json");
+  const chunk = bakedJs(PREVIEW);
   writeTree(webDir, {
     "index.html": `<html><script src="./assets/a.js"></script></html>`,
-    "assets/a.js": `const origin=${JSON.stringify(PREVIEW)}`,
+    "assets/a.js": chunk,
   });
   const files = hashWebDirFiles(webDir);
-  const manifest = buildProvenanceManifest({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PREVIEW,
-    files,
-    originAuthorityChunk: "assets/a.js",
-  });
+  const manifest = manifestOf(files, PREVIEW, "assets/a.js");
   writeProvenanceArtifacts({ webDir, expectedPath, manifest });
 
   const app = join(root, "App.app");
   writeTree(join(app, "public"), {
     "index.html": `<html><script src="./assets/a.js"></script></html>`,
-    "assets/a.js": `const origin=${JSON.stringify(PREVIEW)}`,
+    "assets/a.js": chunk,
     "cordova.js": "/* cap */",
   });
   writeFileSync(join(app, "public", PROVENANCE_FILE_NAME), serializeProvenance(manifest));
@@ -461,6 +680,7 @@ test("verify-app-bundle accepts a local App.app and rejects server.url / missing
   const verified = verifyAppBundle({ appPath: app, expectedProvenancePath: expectedPath });
   assert.equal(verified.apiOrigin, PREVIEW);
   assert.equal(verified.sourceSha, SOURCE_SHA);
+  assert.equal(verified.supabaseUrl, SUPABASE_URL);
 
   writeFileSync(
     join(app, "capacitor.config.json"),
@@ -535,6 +755,44 @@ test("origin only in an unrelated Production literal is not authority proof", ()
   );
 });
 
+test("prepare-time Supabase bake proof requires URL and exact selected key", () => {
+  const root = fixtureRoot();
+  writeTree(root, {
+    "assets/app.js": `const supabaseUrl=${JSON.stringify(SUPABASE_URL)};`,
+  });
+  assert.equal(
+    codeOf(() =>
+      assertAuthorityChunkContainsSupabaseConfig(
+        root,
+        "assets/app.js",
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY,
+      ),
+    ),
+    "supabase_key_not_baked",
+  );
+  writeFileSync(join(root, "assets/app.js"), bakedJs(PRODUCTION, SUPABASE_URL, SUPABASE_ANON_KEY));
+  assert.doesNotThrow(() =>
+    assertAuthorityChunkContainsSupabaseConfig(
+      root,
+      "assets/app.js",
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY,
+    ),
+  );
+  assert.equal(
+    codeOf(() =>
+      assertAuthorityChunkContainsSupabaseConfig(
+        root,
+        "assets/app.js",
+        SUPABASE_URL,
+        SUPABASE_PUBLISHABLE_KEY,
+      ),
+    ),
+    "supabase_key_not_baked",
+  );
+});
+
 test("copied authority chunk missing from public fails copied_bundle_mismatch", () => {
   const root = fixtureRoot();
   const webDir = join(root, "web");
@@ -543,15 +801,10 @@ test("copied authority chunk missing from public fails copied_bundle_mismatch", 
   const capPath = join(root, "capacitor.config.json");
   writeTree(webDir, {
     "index.html": `<html><script src="./assets/app.js"></script></html>`,
-    "assets/app.js": `const origin=${JSON.stringify(PRODUCTION)}`,
+    "assets/app.js": bakedJs(PRODUCTION),
   });
   const files = hashWebDirFiles(webDir);
-  const manifest = buildProvenanceManifest({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PRODUCTION,
-    files,
-    originAuthorityChunk: "assets/app.js",
-  });
+  const manifest = manifestOf(files);
   writeProvenanceArtifacts({ webDir, expectedPath, manifest });
   writeTree(publicDir, {
     "index.html": `<html><script src="./assets/app.js"></script></html>`,
@@ -577,18 +830,13 @@ test("copied hashed authority chunk without apiOrigin fails origin_not_baked", (
   const publicDir = join(root, "public");
   const expectedPath = join(root, "expected.json");
   const capPath = join(root, "capacitor.config.json");
-  const hashedChunk = "export const other = 1";
+  const hashedChunk = `export const other = 1;const supabaseUrl=${JSON.stringify(SUPABASE_URL)};`;
   writeTree(webDir, {
     "index.html": `<html><script src="./assets/app.js"></script></html>`,
     "assets/app.js": hashedChunk,
   });
   const files = hashWebDirFiles(webDir);
-  const manifest = buildProvenanceManifest({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PRODUCTION,
-    files,
-    originAuthorityChunk: "assets/app.js",
-  });
+  const manifest = manifestOf(files);
   writeProvenanceArtifacts({ webDir, expectedPath, manifest });
   writeTree(publicDir, {
     "index.html": `<html><script src="./assets/app.js"></script></html>`,
@@ -609,22 +857,50 @@ test("copied hashed authority chunk without apiOrigin fails origin_not_baked", (
   );
 });
 
+test("copied hashed authority chunk without supabaseUrl fails supabase_url_not_baked", () => {
+  const root = fixtureRoot();
+  const webDir = join(root, "web");
+  const publicDir = join(root, "public");
+  const expectedPath = join(root, "expected.json");
+  const capPath = join(root, "capacitor.config.json");
+  const hashedChunk = `const origin=${JSON.stringify(PRODUCTION)};`;
+  writeTree(webDir, {
+    "index.html": `<html><script src="./assets/app.js"></script></html>`,
+    "assets/app.js": hashedChunk,
+  });
+  const files = hashWebDirFiles(webDir);
+  const manifest = manifestOf(files);
+  writeProvenanceArtifacts({ webDir, expectedPath, manifest });
+  writeTree(publicDir, {
+    "index.html": `<html><script src="./assets/app.js"></script></html>`,
+    "assets/app.js": hashedChunk,
+  });
+  writeFileSync(join(publicDir, PROVENANCE_FILE_NAME), serializeProvenance(manifest));
+  writeFileSync(capPath, JSON.stringify({ appId: "com.refurbgenius.app" }));
+  assert.equal(
+    codeOf(() =>
+      verifyCopiedBundle({
+        webDir,
+        publicDir,
+        expectedProvenancePath: expectedPath,
+        capacitorConfigPath: capPath,
+      }),
+    ),
+    "supabase_url_not_baked",
+  );
+});
+
 test("App.app hashed authority chunk without apiOrigin fails origin_not_baked", () => {
   const root = fixtureRoot();
   const webDir = join(root, "web");
   const expectedPath = join(root, "expected.json");
-  const hashedChunk = "export const other = 1";
+  const hashedChunk = `export const other = 1;const supabaseUrl=${JSON.stringify(SUPABASE_URL)};`;
   writeTree(webDir, {
     "index.html": `<html><script src="./assets/a.js"></script></html>`,
     "assets/a.js": hashedChunk,
   });
   const files = hashWebDirFiles(webDir);
-  const manifest = buildProvenanceManifest({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PREVIEW,
-    files,
-    originAuthorityChunk: "assets/a.js",
-  });
+  const manifest = manifestOf(files, PREVIEW, "assets/a.js");
   writeProvenanceArtifacts({ webDir, expectedPath, manifest });
   const app = join(root, "App.app");
   writeTree(join(app, "public"), {
@@ -639,17 +915,70 @@ test("App.app hashed authority chunk without apiOrigin fails origin_not_baked", 
   );
 });
 
+test("App.app hashed authority chunk without supabaseUrl fails supabase_url_not_baked", () => {
+  const root = fixtureRoot();
+  const webDir = join(root, "web");
+  const expectedPath = join(root, "expected.json");
+  const hashedChunk = `const origin=${JSON.stringify(PREVIEW)};`;
+  writeTree(webDir, {
+    "index.html": `<html><script src="./assets/a.js"></script></html>`,
+    "assets/a.js": hashedChunk,
+  });
+  const files = hashWebDirFiles(webDir);
+  const manifest = manifestOf(files, PREVIEW, "assets/a.js");
+  writeProvenanceArtifacts({ webDir, expectedPath, manifest });
+  const app = join(root, "App.app");
+  writeTree(join(app, "public"), {
+    "index.html": `<html><script src="./assets/a.js"></script></html>`,
+    "assets/a.js": hashedChunk,
+  });
+  writeFileSync(join(app, "public", PROVENANCE_FILE_NAME), serializeProvenance(manifest));
+  writeFileSync(join(app, "capacitor.config.json"), JSON.stringify({}));
+  assert.equal(
+    codeOf(() => verifyAppBundle({ appPath: app, expectedProvenancePath: expectedPath })),
+    "supabase_url_not_baked",
+  );
+});
+
+test("copied supabase authority tamper fails copied_bundle_mismatch via certified bytes", () => {
+  const root = fixtureRoot();
+  const webDir = join(root, "web");
+  const publicDir = join(root, "public");
+  const expectedPath = join(root, "expected.json");
+  const capPath = join(root, "capacitor.config.json");
+  const chunk = bakedJs(PRODUCTION);
+  writeTree(webDir, {
+    "index.html": `<html><script src="./assets/app.js"></script></html>`,
+    "assets/app.js": chunk,
+  });
+  const files = hashWebDirFiles(webDir);
+  const manifest = manifestOf(files);
+  writeProvenanceArtifacts({ webDir, expectedPath, manifest });
+  writeTree(publicDir, {
+    "index.html": `<html><script src="./assets/app.js"></script></html>`,
+    "assets/app.js": bakedJs(PRODUCTION, SUPABASE_URL, "tampered-ios-anon-test-key"),
+  });
+  writeFileSync(join(publicDir, PROVENANCE_FILE_NAME), serializeProvenance(manifest));
+  writeFileSync(capPath, JSON.stringify({ appId: "com.refurbgenius.app" }));
+  assert.equal(
+    codeOf(() =>
+      verifyCopiedBundle({
+        webDir,
+        publicDir,
+        expectedProvenancePath: expectedPath,
+        capacitorConfigPath: capPath,
+      }),
+    ),
+    "copied_bundle_mismatch",
+  );
+});
+
 test("tampering originAuthorityChunk to another hashed file breaks fingerprint validation", () => {
   const files = {
     "assets/app.js": sha256Bytes("x"),
     "assets/other.js": sha256Bytes("y"),
   };
-  const manifest = buildProvenanceManifest({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PRODUCTION,
-    files,
-    originAuthorityChunk: "assets/app.js",
-  });
+  const manifest = manifestOf(files);
   const tampered = { ...manifest, originAuthorityChunk: "assets/other.js" };
   assert.equal(
     codeOf(() => assertValidProvenance(tampered)),
@@ -657,29 +986,59 @@ test("tampering originAuthorityChunk to another hashed file breaks fingerprint v
   );
 });
 
-test("schemaVersion other than 2 is provenance_invalid", () => {
+test("tampering supabase identity fields breaks fingerprint validation", () => {
+  const files = {
+    "assets/app.js": sha256Bytes("x"),
+    "assets/other.js": sha256Bytes("y"),
+  };
+  const manifest = manifestOf(files);
+  assert.equal(
+    codeOf(() =>
+      assertValidProvenance({
+        ...manifest,
+        supabaseAuthorityChunk: "assets/other.js",
+      }),
+    ),
+    "provenance_mismatch",
+  );
+  assert.equal(
+    codeOf(() =>
+      assertValidProvenance({
+        ...manifest,
+        supabaseUrl: "https://other-ios-provenance-test.supabase.co",
+      }),
+    ),
+    "provenance_mismatch",
+  );
+  assert.equal(
+    codeOf(() =>
+      assertValidProvenance({
+        ...manifest,
+        supabasePublicKeySha256: sha256Bytes("other-ios-anon-test-key"),
+      }),
+    ),
+    "provenance_mismatch",
+  );
+});
+
+test("schemaVersion other than 3 is provenance_invalid", () => {
   const files = {
     "index.html": sha256Bytes("<html/>"),
     "assets/app.js": sha256Bytes("origin"),
   };
-  const manifest = buildProvenanceManifest({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PRODUCTION,
-    files,
-    originAuthorityChunk: "assets/app.js",
-  });
+  const manifest = manifestOf(files);
   assert.equal(manifest.schemaVersion, SCHEMA_VERSION);
   assert.equal(
-    codeOf(() => assertValidProvenance({ ...manifest, schemaVersion: 1 })),
+    codeOf(() => assertValidProvenance({ ...manifest, schemaVersion: 2 })),
     "provenance_invalid",
   );
   assert.equal(
-    codeOf(() => assertValidProvenance({ ...manifest, schemaVersion: 3 })),
+    codeOf(() => assertValidProvenance({ ...manifest, schemaVersion: 4 })),
     "provenance_invalid",
   );
 });
 
-test("originAuthorityChunk must exist in the hashed files map", () => {
+test("originAuthorityChunk and supabaseAuthorityChunk must exist in the hashed files map", () => {
   const files = { "index.html": sha256Bytes("<html/>") };
   assert.equal(
     codeOf(() => assertAuthorityChunkListedInFiles("assets/app.js", files)),
@@ -692,6 +1051,7 @@ test("originAuthorityChunk must exist in the hashed files map", () => {
         apiOrigin: PRODUCTION,
         files,
         originAuthorityChunk: "assets/app.js",
+        ...supabaseIdentity("assets/app.js"),
       }),
     ),
     "provenance_invalid",
@@ -700,12 +1060,7 @@ test("originAuthorityChunk must exist in the hashed files map", () => {
     "index.html": sha256Bytes("<html/>"),
     "assets/app.js": sha256Bytes("origin"),
   };
-  const manifest = buildProvenanceManifest({
-    sourceSha: SOURCE_SHA,
-    apiOrigin: PRODUCTION,
-    files: listed,
-    originAuthorityChunk: "assets/app.js",
-  });
+  const manifest = manifestOf(listed);
   const unlisted = {
     ...manifest,
     files: { "index.html": listed["index.html"] },
@@ -716,57 +1071,141 @@ test("originAuthorityChunk must exist in the hashed files map", () => {
   );
 });
 
-test("sidecar handoff requires schema v1, origin module, baked flag, and safe chunk", () => {
+test("sidecar handoff requires schema v2, both modules, baked flags, and safe chunks", () => {
   const root = fixtureRoot();
   writeTree(root, {
-    "assets/app.js": `const origin=${JSON.stringify(PRODUCTION)}`,
+    "assets/app.js": bakedJs(PRODUCTION),
   });
   const valid = {
     schemaVersion: SIDECAR_SCHEMA_VERSION,
     originModule: ORIGIN_AUTHORITY_MODULE,
     originAuthorityChunk: "assets/app.js",
     originFoundInChunk: true,
+    supabaseModule: SUPABASE_AUTHORITY_MODULE,
+    supabaseAuthorityChunk: "assets/app.js",
+    supabaseUrlFoundInChunk: true,
+    supabasePublicKeyFoundInChunk: true,
   };
-  assert.equal(assertRollupMapHandoff(valid, root, PRODUCTION), "assets/app.js");
+  assert.deepEqual(assertRollupMapHandoff(valid, root, PRODUCTION, SUPABASE_URL), {
+    originAuthorityChunk: "assets/app.js",
+    supabaseAuthorityChunk: "assets/app.js",
+  });
 
   assert.equal(
-    codeOf(() => assertRollupMapHandoff({ ...valid, schemaVersion: 2 }, root, PRODUCTION)),
-    "origin_module_unmapped",
-  );
-  assert.equal(
-    codeOf(() => assertRollupMapHandoff({ ...valid, schemaVersion: undefined }, root, PRODUCTION)),
-    "origin_module_unmapped",
-  );
-  assert.equal(
     codeOf(() =>
-      assertRollupMapHandoff({ ...valid, originModule: "src/routes/__root.tsx" }, root, PRODUCTION),
+      assertRollupMapHandoff({ ...valid, schemaVersion: 1 }, root, PRODUCTION, SUPABASE_URL),
     ),
     "origin_module_unmapped",
   );
   assert.equal(
-    codeOf(() => assertRollupMapHandoff({ ...valid, originFoundInChunk: false }, root, PRODUCTION)),
-    "origin_not_baked",
+    codeOf(() =>
+      assertRollupMapHandoff(
+        { ...valid, schemaVersion: undefined },
+        root,
+        PRODUCTION,
+        SUPABASE_URL,
+      ),
+    ),
+    "origin_module_unmapped",
   );
   assert.equal(
     codeOf(() =>
-      assertRollupMapHandoff({ ...valid, originFoundInChunk: "true" }, root, PRODUCTION),
+      assertRollupMapHandoff(
+        { ...valid, originModule: "src/routes/__root.tsx" },
+        root,
+        PRODUCTION,
+        SUPABASE_URL,
+      ),
+    ),
+    "origin_module_unmapped",
+  );
+  assert.equal(
+    codeOf(() =>
+      assertRollupMapHandoff(
+        { ...valid, supabaseModule: "src/platform/supabase/native.ts" },
+        root,
+        PRODUCTION,
+        SUPABASE_URL,
+      ),
+    ),
+    "supabase_module_unmapped",
+  );
+  assert.equal(
+    codeOf(() =>
+      assertRollupMapHandoff(
+        { ...valid, originFoundInChunk: false },
+        root,
+        PRODUCTION,
+        SUPABASE_URL,
+      ),
     ),
     "origin_not_baked",
   );
   assert.equal(
     codeOf(() =>
-      assertRollupMapHandoff({ ...valid, originAuthorityChunk: "../secret.js" }, root, PRODUCTION),
+      assertRollupMapHandoff(
+        { ...valid, supabaseUrlFoundInChunk: false },
+        root,
+        PRODUCTION,
+        SUPABASE_URL,
+      ),
+    ),
+    "supabase_url_not_baked",
+  );
+  assert.equal(
+    codeOf(() =>
+      assertRollupMapHandoff(
+        { ...valid, supabasePublicKeyFoundInChunk: false },
+        root,
+        PRODUCTION,
+        SUPABASE_URL,
+      ),
+    ),
+    "supabase_key_not_baked",
+  );
+  assert.equal(
+    codeOf(() =>
+      assertRollupMapHandoff(
+        { ...valid, originAuthorityChunk: "../secret.js" },
+        root,
+        PRODUCTION,
+        SUPABASE_URL,
+      ),
     ),
     "origin_authority_chunk_invalid",
   );
+  assert.equal(
+    codeOf(() =>
+      assertRollupMapHandoff(
+        { ...valid, supabasePublicKey: SUPABASE_ANON_KEY },
+        root,
+        PRODUCTION,
+        SUPABASE_URL,
+      ),
+    ),
+    "origin_module_unmapped",
+  );
 });
 
-test("Rollup module IDs are normalized before origin.ts matching", () => {
+test("Rollup module IDs are normalized before origin.ts and env.ts matching", () => {
   assert.equal(isOriginAuthorityModule("/repo/src/platform/http/origin.ts"), true);
   assert.equal(isOriginAuthorityModule("file:///repo/src/platform/http/origin.ts?v=1"), true);
   assert.equal(isOriginAuthorityModule("/repo/src/routes/__root.tsx"), false);
+  assert.equal(isSupabaseAuthorityModule("/repo/packages/supabase/src/env.ts"), true);
+  assert.equal(isSupabaseAuthorityModule("file:///repo/packages/supabase/src/env.ts?v=1"), true);
+  assert.equal(isSupabaseAuthorityModule("/repo/src/platform/supabase/native.ts"), false);
   assert.match(
     normalizeRollupModuleId("file:///tmp/src/platform/http/origin.ts?query=1"),
     /origin\.ts$/,
   );
+});
+
+test("copied/App verification does not reverse the public-key SHA-256", () => {
+  const root = fixtureRoot();
+  writeTree(root, { "assets/app.js": bakedJs(PRODUCTION) });
+  assert.doesNotThrow(() =>
+    assertAuthorityChunkContainsSupabaseUrl(root, "assets/app.js", SUPABASE_URL),
+  );
+  assert.match(sha256Bytes(SUPABASE_ANON_KEY), /^[0-9a-f]{64}$/);
+  assert.equal(bakedJs(PRODUCTION).includes(sha256Bytes(SUPABASE_ANON_KEY)), false);
 });

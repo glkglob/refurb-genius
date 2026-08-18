@@ -22,6 +22,7 @@ import {
   ROLLUP_MAP_REL,
   WEB_DIR_REL,
   assertAuthorityChunkContainsOrigin,
+  assertAuthorityChunkContainsSupabaseConfig,
   assertRollupMapHandoff,
   assertSourceSha,
   assertSourceTreeClean,
@@ -34,6 +35,8 @@ import {
   readGitStatusPorcelain,
   readRollupMap,
   resolveIosApiOrigin,
+  resolveIosSupabaseRuntimeConfig,
+  sha256Bytes,
   verifyAppBundle,
   verifyCopiedBundle,
   writeProvenanceArtifacts,
@@ -56,6 +59,9 @@ export function parseCliArgs(argv) {
     }
     if (arg === "--verify-app-bundle") {
       out.mode = "verify-app-bundle";
+      continue;
+    }
+    if (arg === "--") {
       continue;
     }
     if (arg === "--verify-installed") {
@@ -229,12 +235,13 @@ export async function runPrepareIosNativeBundle(options) {
   }
 
   const apiOrigin = resolveIosApiOrigin(env.VITE_PUBLIC_URL);
+  const supabaseRuntime = resolveIosSupabaseRuntimeConfig(env);
   const readHead = hooks.readGitHead ?? readGitHead;
   const readStatus = hooks.readGitStatus ?? readGitStatusPorcelain;
   const sourceSha = assertSourceSha(readHead(cwd));
   assertSourceTreeClean(readStatus(cwd));
 
-  const childEnv = createChildEnv(env, apiOrigin);
+  const childEnv = createChildEnv(env, apiOrigin, supabaseRuntime);
   const spawnBuild = hooks.spawnBuild ?? defaultSpawnBuild;
   const buildResult = await Promise.resolve(spawnBuild({ cwd, env: childEnv }));
   if (buildResult.timedOut || buildResult.state === "failed_timeout") {
@@ -256,15 +263,27 @@ export async function runPrepareIosNativeBundle(options) {
 
   const webDir = join(cwd, WEB_DIR_REL);
   const rollupMap = readRollupMap(join(cwd, ROLLUP_MAP_REL));
-  const originAuthorityChunk = assertRollupMapHandoff(rollupMap, webDir, apiOrigin);
+  const handoff = assertRollupMapHandoff(rollupMap, webDir, apiOrigin, supabaseRuntime.supabaseUrl);
+  const originAuthorityChunk = handoff.originAuthorityChunk;
+  const supabaseAuthorityChunk = handoff.supabaseAuthorityChunk;
   assertSpaReady(webDir);
   assertAuthorityChunkContainsOrigin(webDir, originAuthorityChunk, apiOrigin);
+  assertAuthorityChunkContainsSupabaseConfig(
+    webDir,
+    supabaseAuthorityChunk,
+    supabaseRuntime.supabaseUrl,
+    supabaseRuntime.supabasePublicKey,
+  );
   const files = hashWebDirFiles(webDir);
+  const supabasePublicKeySha256 = sha256Bytes(supabaseRuntime.supabasePublicKey);
   const manifest = buildProvenanceManifest({
     sourceSha,
     apiOrigin,
     files,
     originAuthorityChunk,
+    supabaseUrl: supabaseRuntime.supabaseUrl,
+    supabasePublicKeySha256,
+    supabaseAuthorityChunk,
   });
   writeProvenanceArtifacts({
     webDir,
@@ -287,6 +306,17 @@ export async function runPrepareIosNativeBundle(options) {
 
   if (manifest.apiOrigin !== apiOrigin) {
     throw new IosProvenanceError("Provenance apiOrigin must equal the normalized child origin", {
+      code: "provenance_mismatch",
+    });
+  }
+  if (manifest.supabaseUrl !== supabaseRuntime.supabaseUrl) {
+    throw new IosProvenanceError(
+      "Provenance supabaseUrl must equal the normalized child Supabase URL",
+      { code: "provenance_mismatch" },
+    );
+  }
+  if (manifest.supabasePublicKeySha256 !== supabasePublicKeySha256) {
+    throw new IosProvenanceError("Provenance supabasePublicKeySha256 must match the selected key", {
       code: "provenance_mismatch",
     });
   }

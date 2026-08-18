@@ -96,19 +96,25 @@ The **authorised** packaging path is governed prepare (see [iOS build provenance
 |------|------|
 | `pnpm build` / `pnpm build:vercel` | Web SSR / Production Vercel — does **not** emit a Capacitor-ready `index.html` for the shell |
 | `pnpm build:ios` | Lower-level iOS SPA shell (`vite.ios.config.ts`) → `dist/ios/client/`. Not certifiable alone. |
-| `pnpm prepare:ios` | **Authorised:** validate origin + source SHA → Vite iOS (explicit child env) → provenance → `cap copy ios` → verify copied tree and no `server.url` |
+| `pnpm prepare:ios` | **Authorised:** validate origin + Supabase public runtime config + source SHA → Vite iOS (explicit child env) → provenance → `cap copy ios` → verify copied tree and no `server.url` |
 | `pnpm exec cap sync ios` | Plugin / native-dependency update only. Not the authorised packaging path. |
 
 ### Authorised native prepare
 
 ```bash
-VITE_PUBLIC_URL=https://www.refurbgenius.info pnpm prepare:ios
+VITE_PUBLIC_URL=https://www.refurbgenius.info \
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+VITE_SUPABASE_ANON_KEY=<public-client-key> \
+pnpm prepare:ios
 ```
 
 Preview (explicit HTTPS origin required):
 
 ```bash
-VITE_PUBLIC_URL=https://<preview-host>.vercel.app pnpm prepare:ios
+VITE_PUBLIC_URL=https://<preview-host>.vercel.app \
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+VITE_SUPABASE_ANON_KEY=<public-client-key> \
+pnpm prepare:ios
 ```
 
 Output: `dist/ios/client/` including `ios-build-provenance.json`, copied to `ios/App/App/public/`, with a matching operator copy at `dist/ios/ios-build-provenance.json`.
@@ -194,7 +200,10 @@ For local iteration with the **bundled** shell (Production-safe path — no `ser
 
 ```bash
 # Authorised prepare, then open Xcode
-VITE_PUBLIC_URL=https://www.refurbgenius.info pnpm prepare:ios && pnpm exec cap open ios
+VITE_PUBLIC_URL=https://www.refurbgenius.info \
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+VITE_SUPABASE_ANON_KEY=<public-client-key> \
+pnpm prepare:ios && pnpm exec cap open ios
 ```
 
 Rebuild with `pnpm prepare:ios` after web/UI changes intended for the native shell. Do **not** set `server.url` to Production (remote createServerFn shortcut is out of scope and rejected for App Store packaging).
@@ -533,7 +542,10 @@ npm run dev
 ### iOS-Focused Development
 
 ```bash
-VITE_PUBLIC_URL=https://www.refurbgenius.info pnpm prepare:ios && pnpm exec cap open ios
+VITE_PUBLIC_URL=https://www.refurbgenius.info \
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+VITE_SUPABASE_ANON_KEY=<public-client-key> \
+pnpm prepare:ios && pnpm exec cap open ios
 # Authorised iOS prepare → dist/ios/client/ + verified ios/App/App/public/
 # Open in Xcode for debugging
 ```
@@ -560,7 +572,10 @@ npx cap open ios
 **Fix:**
 
 ```bash
-VITE_PUBLIC_URL=https://www.refurbgenius.info pnpm prepare:ios
+VITE_PUBLIC_URL=https://www.refurbgenius.info \
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+VITE_SUPABASE_ANON_KEY=<public-client-key> \
+pnpm prepare:ios
 ls dist/ios/client/index.html  # Should exist
 ls ios/App/App/public/ios-build-provenance.json
 ```
@@ -584,7 +599,10 @@ ls ios/App/App/public/ios-build-provenance.json
 **Fix:**
 
 ```bash
-VITE_PUBLIC_URL=https://www.refurbgenius.info pnpm prepare:ios
+VITE_PUBLIC_URL=https://www.refurbgenius.info \
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+VITE_SUPABASE_ANON_KEY=<public-client-key> \
+pnpm prepare:ios
 # Check Xcode console for errors (Window → Devices and Simulators)
 ```
 

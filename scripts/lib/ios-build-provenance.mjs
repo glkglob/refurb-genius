@@ -1,8 +1,10 @@
 /**
  * IOS-BUILD-PROVENANCE-1 — deterministic iOS native-bundle provenance.
  *
- * Authority is source SHA + effective API origin + SHA-256 file map.
- * Timestamps are not provenance authority. No secrets.
+ * Authority is source SHA + effective API origin + Supabase runtime
+ * identity (normalized URL + SHA-256 of the selected public client key)
+ * + SHA-256 file map. Timestamps are not provenance authority. No secrets.
+ * The raw public client key is proven at prepare time and never stored.
  */
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
@@ -10,8 +12,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const SCHEMA_VERSION = 2;
-export const SIDECAR_SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 3;
+export const SIDECAR_SCHEMA_VERSION = 2;
 export const BUILD_IDENTITY = "ios-capacitor-spa";
 export const BUILD_MODE = "production";
 export const VITE_CONFIG = "vite.ios.config.ts";
@@ -20,6 +22,7 @@ export const WEB_DIR_REL = "dist/ios/client";
 export const EXPECTED_PROVENANCE_REL = "dist/ios/ios-build-provenance.json";
 export const ROLLUP_MAP_REL = "dist/ios/ios-vite-rollup-map.json";
 export const ORIGIN_AUTHORITY_MODULE = "src/platform/http/origin.ts";
+export const SUPABASE_AUTHORITY_MODULE = "packages/supabase/src/env.ts";
 export const NATIVE_PUBLIC_REL = "ios/App/App/public";
 export const NATIVE_CAPACITOR_CONFIG_REL = "ios/App/App/capacitor.config.json";
 export const APP_BUNDLE_PUBLIC_DIR = "public";
@@ -38,8 +41,22 @@ export const PROVENANCE_KEYS = Object.freeze([
   "webDir",
   "nativePublicDir",
   "originAuthorityChunk",
+  "supabaseUrl",
+  "supabasePublicKeySha256",
+  "supabaseAuthorityChunk",
   "files",
   "bundleFingerprint",
+]);
+
+export const SIDECAR_KEYS = Object.freeze([
+  "schemaVersion",
+  "originModule",
+  "originAuthorityChunk",
+  "originFoundInChunk",
+  "supabaseModule",
+  "supabaseAuthorityChunk",
+  "supabaseUrlFoundInChunk",
+  "supabasePublicKeyFoundInChunk",
 ]);
 
 const SECRET_KEY =
@@ -75,51 +92,201 @@ export function resolveIosApiOrigin(envValue) {
 
 /**
  * @param {string} raw
+ * @param {{ empty: string, invalid: string, notHttps: string }} codes
  * @returns {string}
  */
-export function normalizeHttpsOrigin(raw) {
+function normalizeHttpsOriginValue(raw, codes) {
   const trimmed = raw.trim().replace(/\/+$/, "");
   if (!trimmed) {
-    throw new IosProvenanceError("Production API origin is empty", { code: "origin_invalid" });
+    throw new IosProvenanceError("HTTPS origin is empty", { code: codes.empty });
   }
 
   let url;
   try {
     url = new URL(trimmed);
   } catch {
-    throw new IosProvenanceError("Production API origin is not a valid URL", {
-      code: "origin_invalid",
-    });
+    throw new IosProvenanceError("Value is not a valid URL", { code: codes.invalid });
   }
 
   if (url.protocol !== "https:") {
-    throw new IosProvenanceError("Production API origin must use HTTPS", {
-      code: "origin_not_https",
-    });
+    throw new IosProvenanceError("Value must use HTTPS", { code: codes.notHttps });
   }
 
   if (url.username || url.password) {
-    throw new IosProvenanceError("Production API origin must not include credentials", {
-      code: "origin_invalid",
-    });
+    throw new IosProvenanceError("Value must not include credentials", { code: codes.invalid });
   }
 
   return url.origin;
 }
 
 /**
- * Child env for `pnpm build:ios`. Does not mutate `parentEnv`.
- *
- * @param {NodeJS.ProcessEnv} parentEnv
- * @param {string} apiOrigin
- * @returns {NodeJS.ProcessEnv}
+ * @param {string} raw
+ * @returns {string}
  */
-export function createChildEnv(parentEnv, apiOrigin) {
-  return { ...parentEnv, VITE_PUBLIC_URL: apiOrigin };
+export function normalizeHttpsOrigin(raw) {
+  return normalizeHttpsOriginValue(raw, {
+    empty: "origin_invalid",
+    invalid: "origin_invalid",
+    notHttps: "origin_not_https",
+  });
 }
 
 /**
- * Normalize Rollup/Vite module IDs before matching origin.ts.
+ * @param {unknown} envValue
+ * @returns {string}
+ */
+export function resolveIosSupabaseUrl(envValue) {
+  if (typeof envValue !== "string" || envValue.trim() === "") {
+    throw new IosProvenanceError("VITE_SUPABASE_URL is not configured", {
+      code: "supabase_url_missing",
+    });
+  }
+  return normalizeHttpsOriginValue(envValue, {
+    empty: "supabase_url_missing",
+    invalid: "supabase_url_invalid",
+    notHttps: "supabase_url_not_https",
+  });
+}
+
+/**
+ * @param {unknown} env
+ */
+export function assertViteServiceRoleAbsent(env) {
+  const record = env && typeof env === "object" ? /** @type {Record<string, unknown>} */ (env) : {};
+  const planted = record.VITE_SUPABASE_SERVICE_ROLE_KEY;
+  if (typeof planted === "string" && planted.trim() !== "") {
+    throw new IosProvenanceError(
+      "VITE_SUPABASE_SERVICE_ROLE_KEY is forbidden for native/client certification",
+      { code: "supabase_service_role_forbidden" },
+    );
+  }
+}
+
+/**
+ * Inspect a JWT-shaped value for a privileged Supabase role. Does not verify
+ * signatures and never logs the token.
+ *
+ * @param {string} key
+ * @returns {string | null}
+ */
+export function readJwtRoleClaim(key) {
+  if (typeof key !== "string" || !key.startsWith("eyJ")) return null;
+  const parts = key.split(".");
+  if (parts.length < 2) return null;
+  try {
+    const padded = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padLen = (4 - (padded.length % 4)) % 4;
+    const json = Buffer.from(padded + "=".repeat(padLen), "base64").toString("utf8");
+    const payload = JSON.parse(json);
+    return typeof payload.role === "string" ? payload.role : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {string} key
+ */
+export function assertPublicSupabaseClientKey(key) {
+  if (typeof key !== "string" || key.trim() === "") {
+    throw new IosProvenanceError("Supabase public client key is missing", {
+      code: "supabase_key_missing",
+    });
+  }
+  const trimmed = key.trim();
+  if (
+    /service_role/i.test(trimmed) ||
+    /^sb_secret_/i.test(trimmed) ||
+    readJwtRoleClaim(trimmed) === "service_role"
+  ) {
+    throw new IosProvenanceError("Selected Supabase key is not a public client key", {
+      code: "supabase_key_forbidden",
+    });
+  }
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+function readPublicKeyCandidate(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
+}
+
+/**
+ * Process-env public client key only. Never reads dotenv or service_role.
+ *
+ * @param {unknown} env
+ * @returns {string}
+ */
+export function resolveIosSupabasePublicKey(env) {
+  const record = env && typeof env === "object" ? /** @type {Record<string, unknown>} */ (env) : {};
+  assertViteServiceRoleAbsent(record);
+  const anon = readPublicKeyCandidate(record.VITE_SUPABASE_ANON_KEY);
+  const publishable = readPublicKeyCandidate(record.VITE_SUPABASE_PUBLISHABLE_KEY);
+  if (!anon && !publishable) {
+    throw new IosProvenanceError(
+      "VITE_SUPABASE_ANON_KEY or VITE_SUPABASE_PUBLISHABLE_KEY is required",
+      { code: "supabase_key_missing" },
+    );
+  }
+  if (anon && publishable && anon !== publishable) {
+    throw new IosProvenanceError(
+      "VITE_SUPABASE_ANON_KEY and VITE_SUPABASE_PUBLISHABLE_KEY disagree",
+      { code: "supabase_key_conflict" },
+    );
+  }
+  const selected = anon ?? publishable;
+  assertPublicSupabaseClientKey(selected);
+  return selected;
+}
+
+/**
+ * @param {unknown} env
+ * @returns {{ supabaseUrl: string, supabasePublicKey: string }}
+ */
+export function resolveIosSupabaseRuntimeConfig(env) {
+  const record = env && typeof env === "object" ? /** @type {Record<string, unknown>} */ (env) : {};
+  assertViteServiceRoleAbsent(record);
+  return {
+    supabaseUrl: resolveIosSupabaseUrl(record.VITE_SUPABASE_URL),
+    supabasePublicKey: resolveIosSupabasePublicKey(record),
+  };
+}
+
+/**
+ * Child env for the governed Vite runner. Does not mutate `parentEnv`.
+ * Canonical public key is always VITE_SUPABASE_ANON_KEY. Publishable is
+ * an input alias only. The unused VITE_* names are empty-string
+ * tombstones so Vite process-env precedence suppresses ignored dotenv
+ * values of the same name. Do not delete those keys.
+ *
+ * @param {NodeJS.ProcessEnv} parentEnv
+ * @param {string} apiOrigin
+ * @param {{ supabaseUrl: string, supabasePublicKey: string }} supabaseRuntime
+ * @returns {NodeJS.ProcessEnv}
+ */
+export function createChildEnv(parentEnv, apiOrigin, supabaseRuntime) {
+  if (!supabaseRuntime || typeof supabaseRuntime !== "object") {
+    throw new IosProvenanceError("Supabase runtime config is required for the child env", {
+      code: "supabase_key_missing",
+    });
+  }
+  const supabaseUrl = resolveIosSupabaseUrl(supabaseRuntime.supabaseUrl);
+  const supabasePublicKey = supabaseRuntime.supabasePublicKey;
+  assertPublicSupabaseClientKey(typeof supabasePublicKey === "string" ? supabasePublicKey : "");
+  const child = { ...parentEnv, VITE_PUBLIC_URL: apiOrigin };
+  child.VITE_SUPABASE_URL = supabaseUrl;
+  child.VITE_SUPABASE_ANON_KEY = supabasePublicKey.trim();
+  child.VITE_SUPABASE_PUBLISHABLE_KEY = "";
+  child.VITE_SUPABASE_SERVICE_ROLE_KEY = "";
+  return child;
+}
+
+/**
+ * Normalize Rollup/Vite module IDs before matching authority modules.
  *
  * @param {unknown} id
  * @returns {string}
@@ -141,46 +308,69 @@ export function normalizeRollupModuleId(id) {
 
 /**
  * @param {unknown} id
+ * @param {string} moduleRel
+ * @returns {boolean}
+ */
+function isAuthorityModule(id, moduleRel) {
+  const normalized = normalizeRollupModuleId(id);
+  return normalized.endsWith(`/${moduleRel}`) || normalized.endsWith(moduleRel);
+}
+
+/**
+ * @param {unknown} id
  * @returns {boolean}
  */
 export function isOriginAuthorityModule(id) {
-  const normalized = normalizeRollupModuleId(id);
-  return (
-    normalized.endsWith(`/${ORIGIN_AUTHORITY_MODULE}`) ||
-    normalized.endsWith(ORIGIN_AUTHORITY_MODULE)
-  );
+  return isAuthorityModule(id, ORIGIN_AUTHORITY_MODULE);
+}
+
+/**
+ * @param {unknown} id
+ * @returns {boolean}
+ */
+export function isSupabaseAuthorityModule(id) {
+  return isAuthorityModule(id, SUPABASE_AUTHORITY_MODULE);
 }
 
 /**
  * Safe relative path under webDir. No absolute, scheme, or traversal paths.
  *
  * @param {unknown} raw
+ * @param {{ field?: string, code?: string }} [options]
  * @returns {string}
  */
-export function assertSafeWebDirRelativePath(raw) {
+export function assertSafeWebDirRelativePath(raw, options) {
+  const field = options?.field ?? "originAuthorityChunk";
+  const code = options?.code ?? "origin_authority_chunk_invalid";
   if (typeof raw !== "string" || raw.trim() === "") {
-    throw new IosProvenanceError("originAuthorityChunk must be a relative webDir path", {
-      code: "origin_authority_chunk_invalid",
-    });
+    throw new IosProvenanceError(`${field} must be a relative webDir path`, { code });
   }
   const trimmed = raw.trim().replace(/\\/g, "/");
   if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(trimmed) || trimmed.startsWith("//")) {
-    throw new IosProvenanceError("originAuthorityChunk must not include a URL scheme", {
-      code: "origin_authority_chunk_invalid",
-    });
+    throw new IosProvenanceError(`${field} must not include a URL scheme`, { code });
   }
   if (trimmed.startsWith("/") || /^[a-zA-Z]:\//.test(trimmed)) {
-    throw new IosProvenanceError("originAuthorityChunk must not be an absolute path", {
-      code: "origin_authority_chunk_invalid",
-    });
+    throw new IosProvenanceError(`${field} must not be an absolute path`, { code });
   }
   const parts = trimmed.split("/");
   if (parts.some((part) => part === ".." || part === "")) {
-    throw new IosProvenanceError("originAuthorityChunk must not contain path traversal", {
-      code: "origin_authority_chunk_invalid",
-    });
+    throw new IosProvenanceError(`${field} must not contain path traversal`, { code });
   }
   return parts.join("/");
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+export function assertSha256Hex(value) {
+  if (typeof value !== "string" || !FINGERPRINT_RE.test(value)) {
+    throw new IosProvenanceError(
+      "supabasePublicKeySha256 must be a 64-character lowercase hex SHA-256",
+      { code: "provenance_invalid" },
+    );
+  }
+  return value;
 }
 
 /**
@@ -277,6 +467,28 @@ export function assertSpaReady(webDir) {
 }
 
 /**
+ * @param {string} dir
+ * @param {unknown} chunkRel
+ * @param {{ field?: string, missingCode?: string }} [options]
+ */
+function readAuthorityChunkText(dir, chunkRel, options) {
+  const field = options?.field ?? "originAuthorityChunk";
+  const missingCode = options?.missingCode ?? "origin_authority_chunk_missing";
+  const rel = assertSafeWebDirRelativePath(chunkRel, {
+    field,
+    code:
+      field === "supabaseAuthorityChunk"
+        ? "supabase_authority_chunk_invalid"
+        : "origin_authority_chunk_invalid",
+  });
+  const abs = join(dir, rel);
+  if (!existsSync(abs) || !statSync(abs).isFile()) {
+    throw new IosProvenanceError(`Authority chunk missing: ${rel}`, { code: missingCode });
+  }
+  return { rel, text: decodeTextBuffer(readFileSync(abs)) };
+}
+
+/**
  * Module-linked origin proof: the authority chunk itself must contain apiOrigin.
  *
  * @param {string} dir
@@ -284,18 +496,59 @@ export function assertSpaReady(webDir) {
  * @param {string} apiOrigin
  */
 export function assertAuthorityChunkContainsOrigin(dir, chunkRel, apiOrigin) {
-  const rel = assertSafeWebDirRelativePath(chunkRel);
-  const abs = join(dir, rel);
-  if (!existsSync(abs) || !statSync(abs).isFile()) {
-    throw new IosProvenanceError(`Origin authority chunk missing: ${rel}`, {
-      code: "origin_authority_chunk_missing",
-    });
-  }
-  const text = decodeTextBuffer(readFileSync(abs));
+  const { rel, text } = readAuthorityChunkText(dir, chunkRel);
   if (!text.includes(apiOrigin)) {
     throw new IosProvenanceError(`Normalized API origin is not present in authority chunk ${rel}`, {
       code: "origin_not_baked",
     });
+  }
+}
+
+/**
+ * Prepare-time proof: URL and the exact selected public key are in the chunk.
+ *
+ * @param {string} dir
+ * @param {unknown} chunkRel
+ * @param {string} supabaseUrl
+ * @param {string} publicKey
+ */
+export function assertAuthorityChunkContainsSupabaseConfig(dir, chunkRel, supabaseUrl, publicKey) {
+  const { rel, text } = readAuthorityChunkText(dir, chunkRel, {
+    field: "supabaseAuthorityChunk",
+    missingCode: "supabase_authority_chunk_missing",
+  });
+  if (!text.includes(supabaseUrl)) {
+    throw new IosProvenanceError(
+      `Normalized Supabase URL is not present in authority chunk ${rel}`,
+      { code: "supabase_url_not_baked" },
+    );
+  }
+  if (typeof publicKey !== "string" || publicKey.length === 0 || !text.includes(publicKey)) {
+    throw new IosProvenanceError(
+      `Selected Supabase public key is not present in authority chunk ${rel}`,
+      { code: "supabase_key_not_baked" },
+    );
+  }
+}
+
+/**
+ * Copied/App verification: re-check the stored URL only. The selected key is
+ * bound by the prepare-time proof plus exact certified authority-chunk bytes.
+ *
+ * @param {string} dir
+ * @param {unknown} chunkRel
+ * @param {string} supabaseUrl
+ */
+export function assertAuthorityChunkContainsSupabaseUrl(dir, chunkRel, supabaseUrl) {
+  const { rel, text } = readAuthorityChunkText(dir, chunkRel, {
+    field: "supabaseAuthorityChunk",
+    missingCode: "supabase_authority_chunk_missing",
+  });
+  if (!text.includes(supabaseUrl)) {
+    throw new IosProvenanceError(
+      `Normalized Supabase URL is not present in authority chunk ${rel}`,
+      { code: "supabase_url_not_baked" },
+    );
   }
 }
 
@@ -325,17 +578,45 @@ export function readRollupMap(filePath) {
 }
 
 /**
- * Sidecar is handoff only. Re-check the mapped client chunk on disk.
+ * @param {unknown} map
+ */
+function assertSidecarHasNoSecrets(map) {
+  const record = /** @type {Record<string, unknown>} */ (map);
+  for (const key of Object.keys(record)) {
+    if (!SIDECAR_KEYS.includes(key)) {
+      throw new IosProvenanceError(`Rollup map contains unexpected key: ${key}`, {
+        code: "origin_module_unmapped",
+      });
+    }
+    if (SECRET_KEY.test(key) || TIMESTAMP_KEY.test(key)) {
+      throw new IosProvenanceError(`Rollup map contains forbidden key: ${key}`, {
+        code: "provenance_secrets",
+      });
+    }
+    const value = record[key];
+    if (typeof value === "string" && SECRET_VALUE.test(value)) {
+      throw new IosProvenanceError("Rollup map value looks like a secret", {
+        code: "provenance_secrets",
+      });
+    }
+  }
+}
+
+/**
+ * Sidecar is handoff only. Re-check mapped client chunks on disk.
+ * Does not re-require the raw public key.
  *
  * @param {unknown} map
  * @param {string} webDir
  * @param {string} apiOrigin
- * @returns {string}
+ * @param {string} supabaseUrl
+ * @returns {{ originAuthorityChunk: string, supabaseAuthorityChunk: string }}
  */
-export function assertRollupMapHandoff(map, webDir, apiOrigin) {
+export function assertRollupMapHandoff(map, webDir, apiOrigin, supabaseUrl) {
   const record = /** @type {Record<string, unknown>} */ (map);
+  assertSidecarHasNoSecrets(record);
   if (record.schemaVersion !== SIDECAR_SCHEMA_VERSION) {
-    throw new IosProvenanceError("Rollup map sidecar schemaVersion must be 1", {
+    throw new IosProvenanceError("Rollup map sidecar schemaVersion must be 2", {
       code: "origin_module_unmapped",
     });
   }
@@ -344,33 +625,55 @@ export function assertRollupMapHandoff(map, webDir, apiOrigin) {
       code: "origin_module_unmapped",
     });
   }
+  if (record.supabaseModule !== SUPABASE_AUTHORITY_MODULE) {
+    throw new IosProvenanceError("Rollup map does not name the Supabase authority module", {
+      code: "supabase_module_unmapped",
+    });
+  }
   if (record.originFoundInChunk !== true) {
     throw new IosProvenanceError("Rollup map did not confirm origin in the authority chunk", {
       code: "origin_not_baked",
     });
   }
-  const chunk = assertSafeWebDirRelativePath(record.originAuthorityChunk);
-  assertAuthorityChunkContainsOrigin(webDir, chunk, apiOrigin);
-  return chunk;
+  if (record.supabaseUrlFoundInChunk !== true) {
+    throw new IosProvenanceError("Rollup map did not confirm Supabase URL in the authority chunk", {
+      code: "supabase_url_not_baked",
+    });
+  }
+  if (record.supabasePublicKeyFoundInChunk !== true) {
+    throw new IosProvenanceError(
+      "Rollup map did not confirm the selected public key in the authority chunk",
+      { code: "supabase_key_not_baked" },
+    );
+  }
+  const originAuthorityChunk = assertSafeWebDirRelativePath(record.originAuthorityChunk);
+  const supabaseAuthorityChunk = assertSafeWebDirRelativePath(record.supabaseAuthorityChunk, {
+    field: "supabaseAuthorityChunk",
+    code: "supabase_authority_chunk_invalid",
+  });
+  assertAuthorityChunkContainsOrigin(webDir, originAuthorityChunk, apiOrigin);
+  assertAuthorityChunkContainsSupabaseUrl(webDir, supabaseAuthorityChunk, supabaseUrl);
+  return { originAuthorityChunk, supabaseAuthorityChunk };
 }
 
 /**
  * Certification requires the named authority chunk to be one of the hashed files.
  *
- * @param {unknown} originAuthorityChunk
+ * @param {unknown} chunkRel
  * @param {unknown} files
+ * @param {{ field?: string, code?: string }} [options]
  * @returns {string}
  */
-export function assertAuthorityChunkListedInFiles(originAuthorityChunk, files) {
-  const rel = assertSafeWebDirRelativePath(originAuthorityChunk);
+export function assertAuthorityChunkListedInFiles(chunkRel, files, options) {
+  const field = options?.field ?? "originAuthorityChunk";
+  const rel = assertSafeWebDirRelativePath(chunkRel, options);
   if (!files || typeof files !== "object" || Array.isArray(files)) {
     throw new IosProvenanceError("Provenance files map is missing", { code: "provenance_invalid" });
   }
   if (!Object.hasOwn(/** @type {object} */ (files), rel)) {
-    throw new IosProvenanceError(
-      `originAuthorityChunk is not present in the hashed file map: ${rel}`,
-      { code: "provenance_invalid" },
-    );
+    throw new IosProvenanceError(`${field} is not present in the hashed file map: ${rel}`, {
+      code: "provenance_invalid",
+    });
   }
   return rel;
 }
@@ -539,12 +842,22 @@ export function canonicalize(value) {
  *   apiOrigin: string,
  *   buildIdentity?: string,
  *   buildMode?: string,
+ *   originAuthorityChunk: string,
+ *   supabaseUrl: string,
+ *   supabasePublicKeySha256: string,
+ *   supabaseAuthorityChunk: string,
  *   files: Record<string, string>,
  * }} input
  * @returns {string}
  */
 export function computeBundleFingerprint(input) {
   const originAuthorityChunk = assertSafeWebDirRelativePath(input.originAuthorityChunk);
+  const supabaseAuthorityChunk = assertSafeWebDirRelativePath(input.supabaseAuthorityChunk, {
+    field: "supabaseAuthorityChunk",
+    code: "supabase_authority_chunk_invalid",
+  });
+  const supabaseUrl = resolveIosSupabaseUrl(input.supabaseUrl);
+  const supabasePublicKeySha256 = assertSha256Hex(input.supabasePublicKeySha256);
   const payload = {
     schemaVersion: input.schemaVersion ?? SCHEMA_VERSION,
     sourceSha: input.sourceSha,
@@ -552,6 +865,9 @@ export function computeBundleFingerprint(input) {
     buildIdentity: input.buildIdentity ?? BUILD_IDENTITY,
     buildMode: input.buildMode ?? BUILD_MODE,
     originAuthorityChunk,
+    supabaseUrl,
+    supabasePublicKeySha256,
+    supabaseAuthorityChunk,
     files: input.files,
   };
   return sha256Bytes(JSON.stringify(canonicalize(payload)));
@@ -563,6 +879,9 @@ export function computeBundleFingerprint(input) {
  *   apiOrigin: string,
  *   files: Record<string, string>,
  *   originAuthorityChunk: string,
+ *   supabaseUrl: string,
+ *   supabasePublicKeySha256: string,
+ *   supabaseAuthorityChunk: string,
  * }} input
  */
 export function buildProvenanceManifest(input) {
@@ -570,6 +889,13 @@ export function buildProvenanceManifest(input) {
   const apiOrigin = resolveIosApiOrigin(input.apiOrigin);
   const files = sortFileMap(input.files);
   const originAuthorityChunk = assertAuthorityChunkListedInFiles(input.originAuthorityChunk, files);
+  const supabaseUrl = resolveIosSupabaseUrl(input.supabaseUrl);
+  const supabasePublicKeySha256 = assertSha256Hex(input.supabasePublicKeySha256);
+  const supabaseAuthorityChunk = assertAuthorityChunkListedInFiles(
+    input.supabaseAuthorityChunk,
+    files,
+    { field: "supabaseAuthorityChunk", code: "supabase_authority_chunk_invalid" },
+  );
   const manifest = {
     schemaVersion: SCHEMA_VERSION,
     sourceSha,
@@ -580,12 +906,18 @@ export function buildProvenanceManifest(input) {
     webDir: WEB_DIR_REL,
     nativePublicDir: NATIVE_PUBLIC_REL,
     originAuthorityChunk,
+    supabaseUrl,
+    supabasePublicKeySha256,
+    supabaseAuthorityChunk,
     files,
     bundleFingerprint: computeBundleFingerprint({
       sourceSha,
       apiOrigin,
       files,
       originAuthorityChunk,
+      supabaseUrl,
+      supabasePublicKeySha256,
+      supabaseAuthorityChunk,
     }),
   };
   assertProvenanceHasNoSecrets(manifest);
@@ -641,6 +973,29 @@ export function assertProvenanceHasNoSecrets(manifest) {
 }
 
 /**
+ * @param {{
+ *   sourceSha: unknown,
+ *   apiOrigin: unknown,
+ *   files: unknown,
+ *   originAuthorityChunk: unknown,
+ *   supabaseUrl: unknown,
+ *   supabasePublicKeySha256: unknown,
+ *   supabaseAuthorityChunk: unknown,
+ * }} record
+ */
+function fingerprintFromRecord(record) {
+  return computeBundleFingerprint({
+    sourceSha: /** @type {string} */ (record.sourceSha),
+    apiOrigin: /** @type {string} */ (record.apiOrigin),
+    files: /** @type {Record<string, string>} */ (record.files),
+    originAuthorityChunk: /** @type {string} */ (record.originAuthorityChunk),
+    supabaseUrl: /** @type {string} */ (record.supabaseUrl),
+    supabasePublicKeySha256: /** @type {string} */ (record.supabasePublicKeySha256),
+    supabaseAuthorityChunk: /** @type {string} */ (record.supabaseAuthorityChunk),
+  });
+}
+
+/**
  * @param {unknown} manifest
  */
 export function assertValidProvenance(manifest) {
@@ -657,6 +1012,12 @@ export function assertValidProvenance(manifest) {
       code: "provenance_invalid",
     });
   }
+  if (record.supabaseUrl !== resolveIosSupabaseUrl(record.supabaseUrl)) {
+    throw new IosProvenanceError("Provenance supabaseUrl is not a normalized HTTPS origin", {
+      code: "provenance_invalid",
+    });
+  }
+  assertSha256Hex(record.supabasePublicKeySha256);
   if (record.buildIdentity !== BUILD_IDENTITY || record.buildMode !== BUILD_MODE) {
     throw new IosProvenanceError("Provenance build identity/mode mismatch", {
       code: "provenance_mismatch",
@@ -673,16 +1034,12 @@ export function assertValidProvenance(manifest) {
       code: "provenance_invalid",
     });
   }
-  const originAuthorityChunk = assertAuthorityChunkListedInFiles(
-    record.originAuthorityChunk,
-    record.files,
-  );
-  const expectedFp = computeBundleFingerprint({
-    sourceSha: /** @type {string} */ (record.sourceSha),
-    apiOrigin: /** @type {string} */ (record.apiOrigin),
-    files: /** @type {Record<string, string>} */ (record.files),
-    originAuthorityChunk,
+  assertAuthorityChunkListedInFiles(record.originAuthorityChunk, record.files);
+  assertAuthorityChunkListedInFiles(record.supabaseAuthorityChunk, record.files, {
+    field: "supabaseAuthorityChunk",
+    code: "supabase_authority_chunk_invalid",
   });
+  const expectedFp = fingerprintFromRecord(record);
   if (expectedFp !== record.bundleFingerprint) {
     throw new IosProvenanceError("Provenance bundleFingerprint does not match file map", {
       code: "provenance_mismatch",
@@ -784,6 +1141,9 @@ function buffersEqual(a, b) {
 }
 
 /**
+ * Copied-bundle verification does not re-require process env or the raw key.
+ * The key remains bound by prepare-time proof + exact certified chunk bytes.
+ *
  * @param {{
  *   webDir: string,
  *   publicDir: string,
@@ -813,11 +1173,9 @@ export function verifyCopiedBundle(args) {
 
   const manifest = readProvenanceFile(expectedPath);
   const liveFiles = hashWebDirFiles(args.webDir);
-  const liveFingerprint = computeBundleFingerprint({
-    sourceSha: manifest.sourceSha,
-    apiOrigin: manifest.apiOrigin,
+  const liveFingerprint = fingerprintFromRecord({
+    ...manifest,
     files: liveFiles,
-    originAuthorityChunk: manifest.originAuthorityChunk,
   });
   if (liveFingerprint !== manifest.bundleFingerprint) {
     throw new IosProvenanceError("Copied webDir no longer matches provenance fingerprint", {
@@ -834,6 +1192,11 @@ export function verifyCopiedBundle(args) {
     manifest.originAuthorityChunk,
     manifest.apiOrigin,
   );
+  assertAuthorityChunkContainsSupabaseUrl(
+    args.publicDir,
+    manifest.supabaseAuthorityChunk,
+    manifest.supabaseUrl,
+  );
   assertCapacitorConfigHasNoServerUrl(
     args.capacitorConfigPath,
     "Generated native capacitor.config.json",
@@ -843,6 +1206,7 @@ export function verifyCopiedBundle(args) {
 
 /**
  * Verify a local packaged App.app. Does not certify a physical device install.
+ * Does not re-require process env or the raw public key.
  *
  * @param {{ appPath: string, expectedProvenancePath: string }} args
  */
@@ -876,6 +1240,11 @@ export function verifyAppBundle(args) {
   assertNoStaleExtras(publicDir, manifest.files);
   assertSpaReady(publicDir);
   assertAuthorityChunkContainsOrigin(publicDir, manifest.originAuthorityChunk, manifest.apiOrigin);
+  assertAuthorityChunkContainsSupabaseUrl(
+    publicDir,
+    manifest.supabaseAuthorityChunk,
+    manifest.supabaseUrl,
+  );
   assertCapacitorConfigHasNoServerUrl(
     capacitorConfigPath,
     "Packaged App.app capacitor.config.json",
@@ -932,6 +1301,9 @@ export function formatPrepareReport(manifest) {
     `buildIdentity: ${manifest.buildIdentity}`,
     `buildMode: ${manifest.buildMode}`,
     `originAuthorityChunk: ${manifest.originAuthorityChunk}`,
+    `supabaseUrl: ${manifest.supabaseUrl}`,
+    `supabasePublicKeySha256: ${manifest.supabasePublicKeySha256}`,
+    `supabaseAuthorityChunk: ${manifest.supabaseAuthorityChunk}`,
     `bundleFingerprint: ${manifest.bundleFingerprint}`,
     "server.url: absent",
     "",
