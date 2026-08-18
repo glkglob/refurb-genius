@@ -1,0 +1,34 @@
+.env.example
+  h_7ea6129503670a 17-21
+.github/workflows/ci.yml
+  h_7ea6129503670a 24-25
+AGENTS.md
+  h_7ea6129503670a 426-430
+docs/capacitor-ios.md
+  h_7ea6129503670a 93-94,98-100,102,105,108,111,114-116,118-120,122,125,196-197,200,206,233,235,241,243,308,438,443,446,448-449,455,536-537,563,565,587
+docs/ios-build-provenance.md
+  h_7ea6129503670a 1-155
+package.json
+  h_7ea6129503670a 12-15
+scripts/lib/ios-build-provenance.mjs
+  h_7ea6129503670a 1-647
+scripts/lib/ios-build-provenance.test.mjs
+  h_7ea6129503670a 1-403
+scripts/prepare-ios-native-bundle.mjs
+  h_7ea6129503670a 1-220
+scripts/prepare-ios-native-bundle.test.mjs
+  h_7ea6129503670a 1-219
+src/platform/http/origin.test.ts
+  h_7ea6129503670a 37-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "abb0d693f316724a0325381c32ec38dfaec0d48b",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
