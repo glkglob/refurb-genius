@@ -11,7 +11,8 @@
  *   pnpm ios:verify-copied
  *   pnpm ios:verify-app-bundle -- --app /path/to/App.app
  */
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { existsSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -80,13 +81,107 @@ export function parseCliArgs(argv) {
 }
 
 /**
+ * Vite/Nitro SPA prerender can leave an idle event loop after writing
+ * dist/ios/client/index.html. Treat a successful emit as PASS even if the
+ * child is then terminated so prepare can continue to copy/verify.
+ *
+ * @param {{ code: number | null, signal: NodeJS.Signals | null, indexHtmlExists: boolean }} args
+ */
+export function resolveViteIosBuildStatus(args) {
+  if (args.code === 0) return 0;
+  if (args.indexHtmlExists && args.signal) return 0;
+  return args.code ?? 1;
+}
+
+const INDEX_STABLE_MS = 8000;
+const BUILD_HARD_TIMEOUT_MS = 10 * 60 * 1000;
+
+/**
+ * @param {number | undefined} pid
+ * @param {NodeJS.Signals} signal
+ */
+function stopProcessGroup(pid, signal) {
+  if (!pid) return;
+  try {
+    if (process.platform !== "win32") {
+      process.kill(-pid, signal);
+      return;
+    }
+  } catch {
+    /* fall through to direct kill */
+  }
+  try {
+    process.kill(pid, signal);
+  } catch {
+    /* already gone */
+  }
+}
+
+/**
  * @param {{ cwd: string, env: NodeJS.ProcessEnv }} args
+ * @returns {Promise<{ status: number | null }>}
  */
 export function defaultSpawnBuild(args) {
-  return spawnSync("pnpm", ["build:ios"], {
-    cwd: args.cwd,
-    env: args.env,
-    stdio: "inherit",
+  return new Promise((resolve) => {
+    const indexHtml = join(args.cwd, WEB_DIR_REL, "index.html");
+    const child = spawn("pnpm", ["build:ios"], {
+      cwd: args.cwd,
+      env: args.env,
+      stdio: "inherit",
+      detached: process.platform !== "win32",
+    });
+
+    const started = Date.now();
+    let sawMissing = !existsSync(indexHtml);
+    let lastSize = -1;
+    let lastMtimeMs = -1;
+    let stableSince = 0;
+    let finished = false;
+
+    const finish = (code, signal) => {
+      if (finished) return;
+      finished = true;
+      clearInterval(timer);
+      resolve({
+        status: resolveViteIosBuildStatus({
+          code,
+          signal,
+          indexHtmlExists: existsSync(indexHtml),
+        }),
+      });
+    };
+
+    const timer = setInterval(() => {
+      const now = Date.now();
+      if (!existsSync(indexHtml)) {
+        sawMissing = true;
+        lastSize = -1;
+        lastMtimeMs = -1;
+        stableSince = 0;
+      } else if (sawMissing) {
+        const st = statSync(indexHtml);
+        if (st.size === lastSize && st.mtimeMs === lastMtimeMs && st.size > 0) {
+          if (!stableSince) stableSince = now;
+          else if (now - stableSince >= INDEX_STABLE_MS) {
+            process.stderr.write(
+              "IOS-BUILD-PROVENANCE: Vite iOS emit is complete; terminating idle build process so prepare can continue.\n",
+            );
+            stopProcessGroup(child.pid, "SIGTERM");
+            setTimeout(() => stopProcessGroup(child.pid, "SIGKILL"), 4000);
+          }
+        } else {
+          lastSize = st.size;
+          lastMtimeMs = st.mtimeMs;
+          stableSince = now;
+        }
+      }
+      if (now - started > BUILD_HARD_TIMEOUT_MS) {
+        stopProcessGroup(child.pid, "SIGKILL");
+      }
+    }, 500);
+
+    child.on("error", () => finish(1, null));
+    child.on("exit", (code, signal) => finish(code, signal));
   });
 }
 
@@ -103,8 +198,8 @@ export function defaultSpawnCopy(args) {
 
 /**
  * @typedef {object} PrepareHooks
- * @property {(args: { cwd: string, env: NodeJS.ProcessEnv }) => { status: number | null }} [spawnBuild]
- * @property {(args: { cwd: string, env: NodeJS.ProcessEnv }) => { status: number | null }} [spawnCopy]
+ * @property {(args: { cwd: string, env: NodeJS.ProcessEnv }) => { status: number | null } | Promise<{ status: number | null }>} [spawnBuild]
+ * @property {(args: { cwd: string, env: NodeJS.ProcessEnv }) => { status: number | null } | Promise<{ status: number | null }>} [spawnCopy]
  * @property {(cwd: string) => string} [readGitHead]
  * @property {(cwd: string) => string} [readGitStatus]
  */
@@ -117,7 +212,7 @@ export function defaultSpawnCopy(args) {
  *   hooks?: PrepareHooks,
  * }} options
  */
-export function runPrepareIosNativeBundle(options) {
+export async function runPrepareIosNativeBundle(options) {
   const cwd = options.cwd;
   const env = options.env;
   const args = parseCliArgs(options.argv ?? []);
@@ -156,7 +251,7 @@ export function runPrepareIosNativeBundle(options) {
 
   const childEnv = createChildEnv(env, apiOrigin);
   const spawnBuild = hooks.spawnBuild ?? defaultSpawnBuild;
-  const buildResult = spawnBuild({ cwd, env: childEnv });
+  const buildResult = await Promise.resolve(spawnBuild({ cwd, env: childEnv }));
   if ((buildResult.status ?? 1) !== 0) {
     throw new IosProvenanceError("pnpm build:ios failed", { code: "vite_ios_failed" });
   }
@@ -171,7 +266,7 @@ export function runPrepareIosNativeBundle(options) {
   });
 
   const spawnCopy = hooks.spawnCopy ?? defaultSpawnCopy;
-  const copyResult = spawnCopy({ cwd, env: childEnv });
+  const copyResult = await Promise.resolve(spawnCopy({ cwd, env: childEnv }));
   if ((copyResult.status ?? 1) !== 0) {
     throw new IosProvenanceError("pnpm exec cap copy ios failed", { code: "cap_copy_failed" });
   }
@@ -198,9 +293,9 @@ function isMain() {
   return self === invoked;
 }
 
-function main() {
+async function main() {
   try {
-    const result = runPrepareIosNativeBundle({
+    const result = await runPrepareIosNativeBundle({
       cwd: process.cwd(),
       env: process.env,
       argv: process.argv.slice(2),
@@ -216,5 +311,5 @@ function main() {
 }
 
 if (isMain()) {
-  main();
+  void main();
 }

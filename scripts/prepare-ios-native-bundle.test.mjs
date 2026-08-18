@@ -11,7 +11,11 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 import { IosProvenanceError } from "./lib/ios-build-provenance.mjs";
-import { parseCliArgs, runPrepareIosNativeBundle } from "./prepare-ios-native-bundle.mjs";
+import {
+  parseCliArgs,
+  resolveViteIosBuildStatus,
+  runPrepareIosNativeBundle,
+} from "./prepare-ios-native-bundle.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SCRIPT = join(ROOT, "scripts/prepare-ios-native-bundle.mjs");
@@ -41,6 +45,19 @@ function codeOf(fn) {
   }
 }
 
+/**
+ * @param {() => Promise<unknown>} fn
+ */
+async function rejectedCode(fn) {
+  try {
+    await fn();
+    throw new Error("expected IosProvenanceError");
+  } catch (err) {
+    assert.ok(err instanceof IosProvenanceError, String(err));
+    return err.code;
+  }
+}
+
 test("CLI rejects --verify-installed", () => {
   assert.equal(
     codeOf(() => parseCliArgs(["--verify-installed"])),
@@ -48,9 +65,9 @@ test("CLI rejects --verify-installed", () => {
   );
 });
 
-test("CLI requires --app for --verify-app-bundle", () => {
+test("CLI requires --app for --verify-app-bundle", async () => {
   assert.equal(
-    codeOf(() =>
+    await rejectedCode(() =>
       runPrepareIosNativeBundle({
         cwd: ROOT,
         env: process.env,
@@ -95,7 +112,16 @@ test("CLI HTTP VITE_PUBLIC_URL fails origin_not_https", () => {
   assert.match(res.stderr, /origin_not_https/);
 });
 
-test("prepare spawns build with explicit normalized child env and does not mutate parent", () => {
+test("idle Vite after a successful index.html emit is treated as build PASS", () => {
+  assert.equal(resolveViteIosBuildStatus({ code: 0, signal: null, indexHtmlExists: true }), 0);
+  assert.equal(
+    resolveViteIosBuildStatus({ code: null, signal: "SIGTERM", indexHtmlExists: true }),
+    0,
+  );
+  assert.equal(resolveViteIosBuildStatus({ code: 1, signal: null, indexHtmlExists: false }), 1);
+});
+
+test("prepare spawns build with explicit normalized child env and does not mutate parent", async () => {
   const tmp = mkdtempSync(join(tmpdir(), "prepare-ios-"));
   mkdirSync(join(tmp, "dist/ios/client"), { recursive: true });
   writeFileSync(join(tmp, "dist/ios/client/index.html"), "<html>ok</html>");
@@ -108,7 +134,7 @@ test("prepare spawns build with explicit normalized child env and does not mutat
   let copyEnv = null;
   const parent = { VITE_PUBLIC_URL: `${PRODUCTION}/`, PATH: process.env.PATH };
 
-  const result = runPrepareIosNativeBundle({
+  const result = await runPrepareIosNativeBundle({
     cwd: tmp,
     env: parent,
     argv: [],
@@ -146,13 +172,13 @@ test("prepare spawns build with explicit normalized child env and does not mutat
   assert.match(result.output, /server\.url: absent/);
 });
 
-test("prepare records an explicit Preview origin on the manifest", () => {
+test("prepare records an explicit Preview origin on the manifest", async () => {
   const tmp = mkdtempSync(join(tmpdir(), "prepare-ios-preview-"));
   mkdirSync(join(tmp, "dist/ios/client"), { recursive: true });
   writeFileSync(join(tmp, "dist/ios/client/index.html"), "<html>preview</html>");
   mkdirSync(join(tmp, "ios/App/App/public"), { recursive: true });
 
-  const result = runPrepareIosNativeBundle({
+  const result = await runPrepareIosNativeBundle({
     cwd: tmp,
     env: { VITE_PUBLIC_URL: PREVIEW, PATH: process.env.PATH },
     argv: [],
@@ -175,9 +201,9 @@ test("prepare records an explicit Preview origin on the manifest", () => {
   assert.equal(result.manifest.apiOrigin, PREVIEW);
 });
 
-test("prepare fails dirty_untracked before Vite when source is uncommitted", () => {
+test("prepare fails dirty_untracked before Vite when source is uncommitted", async () => {
   assert.equal(
-    codeOf(() =>
+    await rejectedCode(() =>
       runPrepareIosNativeBundle({
         cwd: ROOT,
         env: { VITE_PUBLIC_URL: PRODUCTION },
@@ -198,9 +224,9 @@ test("prepare fails dirty_untracked before Vite when source is uncommitted", () 
   );
 });
 
-test("prepare fails dirty_tracked before Vite", () => {
+test("prepare fails dirty_tracked before Vite", async () => {
   assert.equal(
-    codeOf(() =>
+    await rejectedCode(() =>
       runPrepareIosNativeBundle({
         cwd: ROOT,
         env: { VITE_PUBLIC_URL: PRODUCTION },

@@ -44,7 +44,7 @@ VITE_PUBLIC_URL=https://<preview-host>.vercel.app pnpm prepare:ios
 1. Validates and **normalizes** process-env `VITE_PUBLIC_URL` (HTTPS origin only).
 2. Reads `git rev-parse HEAD` and fails if the SHA is not a full 40-character hex.
 3. Fails if there are tracked modifications or non-ignored untracked source files. Ignored generated outputs (`dist/`, `ios/App/App/public/`, generated `capacitor.config.json`) do not themselves block preparation.
-4. Spawns `pnpm build:ios` with an **explicit child environment** whose `VITE_PUBLIC_URL` is the normalized origin. It does not mutate the parent process/shell env.
+4. Spawns `pnpm build:ios` with an **explicit child environment** whose `VITE_PUBLIC_URL` is the normalized origin. It does not mutate the parent process/shell env. If Vite/Nitro leaves an idle process after `dist/ios/client/index.html` is stably written, prepare terminates that child so copy/verify can run. A missing `index.html` is still a failed build.
 5. Writes `ios-build-provenance.json` after Vite (`emptyOutDir` would wipe a pre-build file) to:
    - `dist/ios/client/ios-build-provenance.json` (packaged with the webDir)
    - `dist/ios/ios-build-provenance.json` (operator expected copy)
@@ -60,13 +60,13 @@ HEAD SHA + bundle fingerprint + effective API origin
 
 ## Commands
 
-| Script | Role |
-|--------|------|
-| `pnpm prepare:ios` | Authorised prepare (build + copy + verify) |
-| `pnpm ios:verify-copied` | Re-check `dist/ios/client` vs `ios/App/App/public` + no `server.url` |
-| `pnpm ios:verify-app-bundle -- --app /path/to/App.app` | Check a **local packaged `App.app`** + no `server.url` |
-| `pnpm test:ios-provenance` | Focused unit tests |
-| `pnpm build:ios` | Lower-level Vite only — **not** certifiable alone |
+| Script                                                 | Role                                                                 |
+| ------------------------------------------------------ | -------------------------------------------------------------------- |
+| `pnpm prepare:ios`                                     | Authorised prepare (build + copy + verify)                           |
+| `pnpm ios:verify-copied`                               | Re-check `dist/ios/client` vs `ios/App/App/public` + no `server.url` |
+| `pnpm ios:verify-app-bundle -- --app /path/to/App.app` | Check a **local packaged `App.app`** + no `server.url`               |
+| `pnpm test:ios-provenance`                             | Focused unit tests                                                   |
+| `pnpm build:ios`                                       | Lower-level Vite only — **not** certifiable alone                    |
 
 `ios:verify-app-bundle` does **not** certify what is installed or running on a physical iPhone. IPA support is out of this slice.
 
@@ -76,14 +76,14 @@ HEAD SHA + bundle fingerprint + effective API origin
 
 Governed input is **only** `process.env.VITE_PUBLIC_URL`. `.env*` files are not the governed source.
 
-| Input | Result |
-|-------|--------|
-| missing / blank / whitespace | fail `origin_missing` before Vite |
-| malformed URL | fail `origin_invalid` |
-| `http://…` | fail `origin_not_https` |
-| userinfo / credentials | fail `origin_invalid` |
-| `https://www.refurbgenius.info` | pass; store `url.origin` |
-| explicit HTTPS Preview host | pass; no Production-only hostname allowlist |
+| Input                           | Result                                      |
+| ------------------------------- | ------------------------------------------- |
+| missing / blank / whitespace    | fail `origin_missing` before Vite           |
+| malformed URL                   | fail `origin_invalid`                       |
+| `http://…`                      | fail `origin_not_https`                     |
+| userinfo / credentials          | fail `origin_invalid`                       |
+| `https://www.refurbgenius.info` | pass; store `url.origin`                    |
+| explicit HTTPS Preview host     | pass; no Production-only hostname allowlist |
 
 Manifest `apiOrigin` must equal exactly that normalized value.
 
