@@ -35,6 +35,7 @@ describe("signUpWithPasswordEmail", () => {
     const src = readFileSync(SRC, "utf8");
     expect(src).toMatch(/@\/platform\/supabase\/browser/);
     expect(src).toMatch(/supabase\.auth\.signUp/);
+    expect(src).not.toMatch(/getNativeSupabase|platform\/supabase\/native/);
   });
 
   it("calls signUp once with exact metadata keys and no emailRedirectTo", async () => {

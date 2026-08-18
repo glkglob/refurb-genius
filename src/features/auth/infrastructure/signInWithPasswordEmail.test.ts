@@ -32,6 +32,7 @@ describe("signInWithPasswordEmail", () => {
     const src = readFileSync(SRC, "utf8");
     expect(src).toMatch(/@\/platform\/supabase\/browser/);
     expect(src).toMatch(/supabase\.auth\.signInWithPassword/);
+    expect(src).not.toMatch(/getNativeSupabase|platform\/supabase\/native/);
   });
 
   it("calls signInWithPassword once with exact raw email and password", async () => {

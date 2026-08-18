@@ -19,11 +19,20 @@ import {
   completeNativeOAuthSignIn,
   type CompleteNativeOAuthSignInInput,
 } from "../application/completeNativeOAuthSignIn";
+import { mapNativeSupabaseUser } from "../application/mapNativeSupabaseUser";
 import {
   readNativeAuthSession,
   type NativeAuthSessionOutcome,
 } from "../infrastructure/readNativeAuthSession";
+import {
+  signInWithPasswordEmailNative,
+  type SignInWithPasswordEmailNativeInput,
+} from "../infrastructure/signInWithPasswordEmailNative";
 import { signOutNativeSession } from "../infrastructure/signOutNativeSession";
+import {
+  signUpWithPasswordEmailNative,
+  type SignUpWithPasswordEmailNativeInput,
+} from "../infrastructure/signUpWithPasswordEmailNative";
 
 export type { NativeAuthSessionOutcome };
 
@@ -151,5 +160,52 @@ export async function completeAndPublishNativeOAuth(
     }
     await applyTransition(completion.user);
     return { user: completion.user, destination: completion.destination };
+  });
+}
+
+export type NativePasswordSignUpPublishResult =
+  | { kind: "session"; user: AuthUser }
+  | { kind: "awaiting_verification"; user: AuthUser | null };
+
+/**
+ * Native password sign-in + AUTH publish inside the same serialized chain.
+ * Does not write AUTH on Auth error or unmappable user.
+ */
+export async function completeAndPublishNativePasswordSignIn(
+  queryClient: QueryClient,
+  input: SignInWithPasswordEmailNativeInput,
+): Promise<{ user: AuthUser }> {
+  const controller = getAuthIdentityTransitionController(queryClient);
+  return controller.runSerialized(async ({ applyTransition }) => {
+    const { user: rawUser, session } = await signInWithPasswordEmailNative(input);
+    const user = mapNativeSupabaseUser(rawUser);
+    if (!session || !user) {
+      throw new Error("Sign-in failed.");
+    }
+    await applyTransition(user);
+    return { user };
+  });
+}
+
+/**
+ * Native password signup + AUTH publish only when a session is present.
+ * A verification-required signup is not an authoritative signed-out transition.
+ */
+export async function completeAndPublishNativePasswordSignUp(
+  queryClient: QueryClient,
+  input: SignUpWithPasswordEmailNativeInput,
+): Promise<NativePasswordSignUpPublishResult> {
+  const controller = getAuthIdentityTransitionController(queryClient);
+  return controller.runSerialized(async ({ applyTransition }) => {
+    const { user: rawUser, session } = await signUpWithPasswordEmailNative(input);
+    if (!session) {
+      return { kind: "awaiting_verification", user: mapNativeSupabaseUser(rawUser) };
+    }
+    const user = mapNativeSupabaseUser(rawUser);
+    if (!user) {
+      throw new Error("Sign-up failed.");
+    }
+    await applyTransition(user);
+    return { kind: "session", user };
   });
 }

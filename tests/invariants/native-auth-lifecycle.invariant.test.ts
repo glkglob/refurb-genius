@@ -17,9 +17,12 @@ const useAuth = "src/hooks/useAuth.ts";
 const authed = "src/routes/_authed.tsx";
 const nativeLifecycle = "src/features/auth/presentation/nativeAuthIdentityLifecycle.ts";
 const useOAuth = "src/features/auth/presentation/hooks/useOAuthSignIn.ts";
+const usePassword = "src/features/auth/presentation/hooks/useAuthPasswordCredentials.ts";
 const useSignOut = "src/features/auth/presentation/hooks/useSignOut.ts";
 const readSession = "src/features/auth/infrastructure/readNativeAuthSession.ts";
 const signOutNative = "src/features/auth/infrastructure/signOutNativeSession.ts";
+const signInNative = "src/features/auth/infrastructure/signInWithPasswordEmailNative.ts";
+const signUpNative = "src/features/auth/infrastructure/signUpWithPasswordEmailNative.ts";
 const nativeClient = "src/platform/supabase/native.ts";
 
 test("per-QC controller API exists and reuses applyAuthQueryCacheTransition", () => {
@@ -56,11 +59,32 @@ test("controller is sole native AUTH publisher — no bare setQueryData in OAuth
   assert.match(lifecycleSrc, /ensureNativeAuthIdentitySettled/);
   assert.match(lifecycleSrc, /nativeSettlements|WeakMap/);
   assert.match(lifecycleSrc, /Native sign-out requires AuthProvider-bound QueryClient/);
+  assert.match(lifecycleSrc, /completeAndPublishNativePasswordSignIn/);
+  assert.match(lifecycleSrc, /completeAndPublishNativePasswordSignUp/);
   assert.doesNotMatch(lifecycleSrc, /setQueryData/);
   // Unbound path must not clear Keychain alone
   const unbound = lifecycleSrc.match(/signOutNativeAuthIdentityFromBoundClient[\s\S]*?^}/m);
   assert.ok(unbound);
   assert.doesNotMatch(unbound[0] ?? "", /signOutNativeSession\(\)/);
+});
+
+test("password native identity uses controller helpers, not raw setQueryData", () => {
+  const hook = read(usePassword);
+  assert.match(hook, /completeAndPublishNativePasswordSignIn/);
+  assert.match(hook, /completeAndPublishNativePasswordSignUp/);
+  assert.match(hook, /isNativePlatform/);
+  assert.doesNotMatch(hook, /@\/platform\/supabase/);
+  assert.doesNotMatch(hook, /getNativeSupabase/);
+
+  const strip = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  const nativeSignIn = strip(read(signInNative));
+  const nativeSignUp = strip(read(signUpNative));
+  assert.match(nativeSignIn, /getNativeSupabase/);
+  assert.match(nativeSignUp, /getNativeSupabase/);
+  assert.doesNotMatch(nativeSignIn, /@\/platform\/supabase\/browser|pip-auth|document\.cookie/);
+  assert.doesNotMatch(nativeSignUp, /@\/platform\/supabase\/browser|pip-auth|document\.cookie/);
+  assert.doesNotMatch(nativeSignIn, /setQueryData|QueryClient/);
+  assert.doesNotMatch(nativeSignUp, /setQueryData|QueryClient/);
 });
 
 test("native gate uses observeNativeAuthIdentity with route context queryClient", () => {
