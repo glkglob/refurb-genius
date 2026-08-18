@@ -90,33 +90,45 @@ export default config;
 
 Capacitor iOS packaging uses a **separate** TanStack Start SPA build. It is **not** the normal web SSR/Vercel build.
 
+The **authorised** packaging path is governed prepare (see [iOS build provenance](./ios-build-provenance.md)). A lone `pnpm build:ios` plus a later optional `cap sync` does **not** guarantee Xcode packages that bundle.
+
 | Path | Role |
 |------|------|
 | `pnpm build` / `pnpm build:vercel` | Web SSR / Production Vercel — does **not** emit a Capacitor-ready `index.html` for the shell |
-| `pnpm build:ios` | iOS-only SPA shell (`vite.ios.config.ts`) → `dist/ios/client/` including genuine `index.html` |
+| `pnpm build:ios` | Lower-level iOS SPA shell (`vite.ios.config.ts`) → `dist/ios/client/`. Not certifiable alone. |
+| `pnpm prepare:ios` | **Authorised:** validate origin + Supabase public runtime config + source SHA → Vite iOS (explicit child env) → provenance → `cap copy ios` → verify copied tree and no `server.url` |
+| `pnpm exec cap sync ios` | Plugin / native-dependency update only. Not the authorised packaging path. |
 
-### Build iOS SPA shell assets
+### Authorised native prepare
+
+```bash
+VITE_PUBLIC_URL=https://www.refurbgenius.info \
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+VITE_SUPABASE_ANON_KEY=<public-client-key> \
+pnpm prepare:ios
+```
+
+Preview (explicit HTTPS origin required):
+
+```bash
+VITE_PUBLIC_URL=https://<preview-host>.vercel.app \
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+VITE_SUPABASE_ANON_KEY=<public-client-key> \
+pnpm prepare:ios
+```
+
+Output: `dist/ios/client/` including `ios-build-provenance.json`, copied to `ios/App/App/public/`, with a matching operator copy at `dist/ios/ios-build-provenance.json`.
+
+### Lower-level Vite-only build (not authorised packaging)
 
 ```bash
 pnpm build:ios
 ```
 
-Output: `dist/ios/client/` (includes prerendered `index.html`, assets, manifest, icons).
-
-### Sync Assets to iOS Project
+### Plugin update (not packaging)
 
 ```bash
 pnpm exec cap sync ios
-```
-
-This copies web assets from `dist/ios/client/` to `ios/App/App/public/` and updates the Xcode project.
-
-### Full Rebuild Cycle
-
-Always rebuild the iOS SPA shell before syncing:
-
-```bash
-pnpm build:ios && pnpm exec cap sync ios
 ```
 
 ---
@@ -187,17 +199,20 @@ open ios/App/App.xcworkspace
 For local iteration with the **bundled** shell (Production-safe path — no `server.url`):
 
 ```bash
-# Rebuild iOS SPA shell, sync into the Xcode project, open Xcode
-pnpm build:ios && pnpm exec cap sync ios && pnpm exec cap open ios
+# Authorised prepare, then open Xcode
+VITE_PUBLIC_URL=https://www.refurbgenius.info \
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+VITE_SUPABASE_ANON_KEY=<public-client-key> \
+pnpm prepare:ios && pnpm exec cap open ios
 ```
 
-Rebuild and resync after web/UI changes intended for the native shell. Do **not** set `server.url` to Production (remote createServerFn shortcut is out of scope and rejected for App Store packaging).
+Rebuild with `pnpm prepare:ios` after web/UI changes intended for the native shell. Do **not** set `server.url` to Production (remote createServerFn shortcut is out of scope and rejected for App Store packaging).
 
 ---
 
 ## Phase C Execution Test Results (May 17, 2026)
 
-> **Historical log only.** The commands below record the original Phase C run. The **current** Capacitor packaging path is `pnpm build:ios` → `dist/ios/client/` → `pnpm exec cap sync ios` (see [Build & Sync Workflow](#build--sync-workflow)).
+> **Historical log only.** The commands below record the original Phase C run. The **current authorised** Capacitor packaging path is `pnpm prepare:ios` (see [Build & Sync Workflow](#build--sync-workflow) and [iOS build provenance](./ios-build-provenance.md)).
 
 ### Pre-Simulator Validation ✅
 
@@ -224,16 +239,17 @@ Verified generated iOS project:
 
 ### Web Assets Verification ✅
 
-> **Current contract (IOS-READINESS-2A):** Capacitor assets come from `pnpm build:ios` → `dist/ios/client/` (not the normal web `dist/client/` tree).
+> **Current contract (IOS-READINESS-2A + IOS-BUILD-PROVENANCE-1):** Capacitor assets come from `pnpm prepare:ios` → `dist/ios/client/` (not the normal web `dist/client/` tree), then `cap copy ios`.
 
-Confirmed shell assets present after `pnpm build:ios`:
+Confirmed shell assets present after `pnpm prepare:ios`:
 
 - `dist/ios/client/index.html` — SPA shell entry point (genuine prerendered HTML)
 - `dist/ios/client/manifest.json` — PWA metadata
 - `dist/ios/client/icon-192.svg` — App icon
 - `dist/ios/client/assets/` — Client JS/CSS bundles
+- `dist/ios/client/ios-build-provenance.json` — source SHA, API origin, file hashes
 
-Assets synced to: `ios/App/App/public/` via `pnpm exec cap sync ios`.
+Assets copied to: `ios/App/App/public/` via `cap copy ios` inside `pnpm prepare:ios`.
 
 ### Simulator Test Status
 
@@ -298,7 +314,7 @@ Defines Capacitor behavior for all platforms:
 
 ### ios/App/App/capacitor.config.json
 
-Auto-generated copy of root config. Updated by `pnpm exec cap sync ios`.
+Auto-generated copy of root config. Updated by `cap copy ios` (inside `pnpm prepare:ios`). Must not contain `server.url`.
 
 ### ios/App/App/Info.plist
 
@@ -428,24 +444,24 @@ Intended Production `apple-app-site-association` (owner ops; **do not** ship a f
 
 ### SSR Architecture
 
-Refurb Genius web Production remains Vite + TanStack Start SSR/Nitro (Vercel). Capacitor does **not** use that SSR client tree for packaging. The iOS shell is built with `pnpm build:ios` (TanStack Start SPA mode) into `dist/ios/client/`, then synced into the native project. Runtime data still depends on network APIs; there is no offline-first mobile API boundary yet.
+Refurb Genius web Production remains Vite + TanStack Start SSR/Nitro (Vercel). Capacitor does **not** use that SSR client tree for packaging. The iOS shell is built with `pnpm prepare:ios` (TanStack Start SPA mode via `build:ios`) into `dist/ios/client/`, then copied into the native project by `cap copy ios` and verified. Runtime data still depends on network APIs; there is no offline-first mobile API boundary yet.
 
 **Development Mode (bundled SPA shell — current):**
 
 ```text
-pnpm build:ios
+pnpm prepare:ios
         │
         ↓
- dist/ios/client/   (prerendered index.html + assets)
+ dist/ios/client/   (prerendered index.html + assets + provenance)
         │
-        ↓  pnpm exec cap sync ios
- ios/App/App/public/  (bundled Capacitor web assets)
+        ↓  cap copy ios  (inside prepare)
+ ios/App/App/public/  (verified copy of the same files)
         │
         ↓  Xcode / Simulator
  iOS Simulator loads the local bundle (no server.url)
 ```
 
-Do **not** point Capacitor at `http://localhost:3000` or Production via `server.url` for packaging. Rebuild and resync after web/UI changes intended for the native shell.
+Do **not** point Capacitor at `http://localhost:3000` or Production via `server.url` for packaging. Re-run `pnpm prepare:ios` after web/UI changes intended for the native shell.
 
 **Production Mode (Future):**
 
@@ -526,9 +542,11 @@ npm run dev
 ### iOS-Focused Development
 
 ```bash
-pnpm build:ios && pnpm exec cap sync ios && pnpm exec cap open ios
-# Build isolated iOS SPA shell → dist/ios/client/
-# Sync to iOS project
+VITE_PUBLIC_URL=https://www.refurbgenius.info \
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+VITE_SUPABASE_ANON_KEY=<public-client-key> \
+pnpm prepare:ios && pnpm exec cap open ios
+# Authorised iOS prepare → dist/ios/client/ + verified ios/App/App/public/
 # Open in Xcode for debugging
 ```
 
@@ -554,9 +572,12 @@ npx cap open ios
 **Fix:**
 
 ```bash
-pnpm build:ios
+VITE_PUBLIC_URL=https://www.refurbgenius.info \
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+VITE_SUPABASE_ANON_KEY=<public-client-key> \
+pnpm prepare:ios
 ls dist/ios/client/index.html  # Should exist
-pnpm exec cap sync ios
+ls ios/App/App/public/ios-build-provenance.json
 ```
 
 ### "Bundle identifier mismatch"
@@ -578,7 +599,10 @@ pnpm exec cap sync ios
 **Fix:**
 
 ```bash
-pnpm build:ios && pnpm exec cap sync ios
+VITE_PUBLIC_URL=https://www.refurbgenius.info \
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co \
+VITE_SUPABASE_ANON_KEY=<public-client-key> \
+pnpm prepare:ios
 # Check Xcode console for errors (Window → Devices and Simulators)
 ```
 

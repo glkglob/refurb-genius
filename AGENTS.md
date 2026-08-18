@@ -423,6 +423,11 @@ These authorities must never be bridged.
 
 - iOS is a Capacitor static SPA shell. App origin is `capacitor://localhost`.
 - `capacitor.config.ts` has no `server.url`; the app uses the local `webDir` bundle only.
+- Authorised native packaging is `pnpm prepare:ios` (IOS-BUILD-PROVENANCE-1). `pnpm build:ios` alone is not a certifiable artefact.
+- Prepare records source SHA + effective `VITE_PUBLIC_URL` origin + build identity, then `cap copy ios`, then verifies the copied webDir file map. `cap sync ios` is plugin-update only.
+- `VITE_PUBLIC_URL` must be supplied explicitly in the process environment (Production HTTPS or an explicit HTTPS Preview origin). Missing/blank/non-HTTPS values fail before Vite. There is no Production-only hostname allowlist.
+- Provenance is `ios-build-provenance.json` (SHA-256 file map; no secrets; timestamps are not authority). `pnpm ios:verify-copied` checks `ios/App/App/public`. `pnpm ios:verify-app-bundle -- --app <App.app>` checks a local packaged `App.app` only — it does not certify a physical device install.
+- Generated and packaged Capacitor config must not contain `server.url`.
 - Native auth is Keychain-backed Supabase (`getNativeSupabase`).
 - Native data plane uses PostgREST / Storage under the native user JWT and RLS.
 - Native privileged control plane uses HTTPS Production + Bearer user token.

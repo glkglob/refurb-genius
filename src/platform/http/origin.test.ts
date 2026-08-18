@@ -34,6 +34,12 @@ describe("resolveProductionApiOrigin", () => {
     );
   });
 
+  it("accepts an explicit HTTPS Preview origin", () => {
+    expect(resolveProductionApiOrigin("https://refurb-genius-git-fix-example.vercel.app")).toBe(
+      "https://refurb-genius-git-fix-example.vercel.app",
+    );
+  });
+
   it("fails closed when missing", () => {
     expect(() => resolveProductionApiOrigin(undefined)).toThrow(NativeHttpError);
     expect(() => resolveProductionApiOrigin("")).toThrow(NativeHttpError);
