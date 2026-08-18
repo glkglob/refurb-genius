@@ -17,6 +17,8 @@ const COMPONENT = "src/features/auth/presentation/AuthExperience.tsx";
 const HOOK = "src/features/auth/presentation/hooks/useAuthPasswordCredentials.ts";
 const SIGN_IN = "src/features/auth/infrastructure/signInWithPasswordEmail.ts";
 const SIGN_UP = "src/features/auth/infrastructure/signUpWithPasswordEmail.ts";
+const SIGN_IN_NATIVE = "src/features/auth/infrastructure/signInWithPasswordEmailNative.ts";
+const SIGN_UP_NATIVE = "src/features/auth/infrastructure/signUpWithPasswordEmailNative.ts";
 
 function stripLineComments(line: string): string {
   const idx = line.indexOf("//");
@@ -93,10 +95,14 @@ test("auth password presentation — hook orchestrates primitives, cache, analyt
   const text = stripAllComments(readFileSync(full, "utf8"));
   assert.match(text, /signInWithPasswordEmail/);
   assert.match(text, /signUpWithPasswordEmail/);
+  assert.match(text, /completeAndPublishNativePasswordSignIn/);
+  assert.match(text, /completeAndPublishNativePasswordSignUp/);
+  assert.match(text, /isNativePlatform/);
   assert.match(text, /setQueryData/);
   assert.match(text, /AUTH_USER_QUERY_KEY/);
   assert.match(text, /markNewUserOnboarding/);
   assert.doesNotMatch(text, /@\/platform\/supabase/);
+  assert.doesNotMatch(text, /getNativeSupabase/);
   assert.doesNotMatch(text, /\btoast\b|\blogger\b|useNavigate/);
 });
 
@@ -110,6 +116,26 @@ test("auth password presentation — infrastructure owns password Auth methods",
   assert.match(signUp, /full_name/);
   assert.match(signUp, /company_name/);
   assert.doesNotMatch(signUp, /emailRedirectTo/);
+  assert.doesNotMatch(signIn, /useQuery|useMutation|QueryClient|localStorage|toast|logger/);
+  assert.doesNotMatch(signUp, /useQuery|useMutation|QueryClient|localStorage|toast|logger/);
+  assert.doesNotMatch(signIn, /getNativeSupabase|platform\/supabase\/native/);
+  assert.doesNotMatch(signUp, /getNativeSupabase|platform\/supabase\/native/);
+});
+
+test("auth password presentation — native primitives use Keychain authority only", () => {
+  assert.ok(existsSync(join(ROOT, SIGN_IN_NATIVE)), `missing ${SIGN_IN_NATIVE}`);
+  assert.ok(existsSync(join(ROOT, SIGN_UP_NATIVE)), `missing ${SIGN_UP_NATIVE}`);
+  const signIn = stripAllComments(readFileSync(join(ROOT, SIGN_IN_NATIVE), "utf8"));
+  const signUp = stripAllComments(readFileSync(join(ROOT, SIGN_UP_NATIVE), "utf8"));
+  assert.match(signIn, /getNativeSupabase/);
+  assert.match(signIn, /signInWithPassword/);
+  assert.match(signUp, /getNativeSupabase/);
+  assert.match(signUp, /auth\.signUp/);
+  assert.match(signUp, /full_name/);
+  assert.match(signUp, /company_name/);
+  assert.doesNotMatch(signUp, /emailRedirectTo/);
+  assert.doesNotMatch(signIn, /@\/platform\/supabase\/browser|pip-auth|document\.cookie/);
+  assert.doesNotMatch(signUp, /@\/platform\/supabase\/browser|pip-auth|document\.cookie/);
   assert.doesNotMatch(signIn, /useQuery|useMutation|QueryClient|localStorage|toast|logger/);
   assert.doesNotMatch(signUp, /useQuery|useMutation|QueryClient|localStorage|toast|logger/);
 });

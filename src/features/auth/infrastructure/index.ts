@@ -13,6 +13,16 @@ export {
   type SignUpWithPasswordEmailResult,
 } from "./signUpWithPasswordEmail";
 export {
+  signInWithPasswordEmailNative,
+  type SignInWithPasswordEmailNativeInput,
+  type SignInWithPasswordEmailNativeResult,
+} from "./signInWithPasswordEmailNative";
+export {
+  signUpWithPasswordEmailNative,
+  type SignUpWithPasswordEmailNativeInput,
+  type SignUpWithPasswordEmailNativeResult,
+} from "./signUpWithPasswordEmailNative";
+export {
   startOAuthSignIn,
   type AuthOAuthProvider,
   type StartOAuthSignInInput,

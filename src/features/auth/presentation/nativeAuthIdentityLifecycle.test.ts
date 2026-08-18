@@ -10,6 +10,8 @@ import { getAuthIdentityTransitionController } from "@/lib/auth-query-lifecycle"
 const readNativeAuthSession = vi.fn();
 const signOutNativeSession = vi.fn();
 const completeNativeOAuthSignIn = vi.fn();
+const signInWithPasswordEmailNative = vi.fn();
+const signUpWithPasswordEmailNative = vi.fn();
 
 vi.mock("../infrastructure/readNativeAuthSession", () => ({
   readNativeAuthSession: (...args: unknown[]) => readNativeAuthSession(...args),
@@ -23,6 +25,14 @@ vi.mock("../application/completeNativeOAuthSignIn", () => ({
   completeNativeOAuthSignIn: (...args: unknown[]) => completeNativeOAuthSignIn(...args),
 }));
 
+vi.mock("../infrastructure/signInWithPasswordEmailNative", () => ({
+  signInWithPasswordEmailNative: (...args: unknown[]) => signInWithPasswordEmailNative(...args),
+}));
+
+vi.mock("../infrastructure/signUpWithPasswordEmailNative", () => ({
+  signUpWithPasswordEmailNative: (...args: unknown[]) => signUpWithPasswordEmailNative(...args),
+}));
+
 import {
   observeNativeAuthIdentity,
   ensureNativeAuthIdentitySettled,
@@ -31,10 +41,13 @@ import {
   signOutNativeAuthIdentityFromBoundClient,
   bindNativeAuthIdentityQueryClient,
   completeAndPublishNativeOAuth,
+  completeAndPublishNativePasswordSignIn,
+  completeAndPublishNativePasswordSignUp,
 } from "./nativeAuthIdentityLifecycle";
 
 const userA = { id: "user-a", email: "a@example.com" };
 const userB = { id: "user-b", email: "b@example.com" };
+const mappedUserB = { id: "user-b", email: "b@example.com", fullName: undefined };
 
 function seed(qc: QueryClient) {
   qc.setQueryData(AUTH_USER_QUERY_KEY, userA);
@@ -45,11 +58,21 @@ beforeEach(() => {
   readNativeAuthSession.mockReset();
   signOutNativeSession.mockReset();
   completeNativeOAuthSignIn.mockReset();
+  signInWithPasswordEmailNative.mockReset();
+  signUpWithPasswordEmailNative.mockReset();
   signOutNativeSession.mockResolvedValue(undefined);
   completeNativeOAuthSignIn.mockResolvedValue({
     kind: "authenticated",
     user: userB,
     destination: "/dashboard",
+  });
+  signInWithPasswordEmailNative.mockResolvedValue({
+    user: { id: "user-b", email: "b@example.com" },
+    session: { access_token: "at" },
+  });
+  signUpWithPasswordEmailNative.mockResolvedValue({
+    user: { id: "user-b", email: "b@example.com" },
+    session: { access_token: "at" },
   });
   // Clear module-level bound QC so unbound tests are deterministic.
   const unbind = bindNativeAuthIdentityQueryClient(new QueryClient());
@@ -296,5 +319,129 @@ describe("unbound shell sign-out", () => {
     expect(qc.getQueryData(AUTH_USER_QUERY_KEY)).toBeNull();
     expect(qc.getQueryData(["projects"] as QueryKey)).toBeUndefined();
     unbind();
+  });
+});
+
+describe("completeAndPublishNativePasswordSignIn", () => {
+  it("serializes native sign-in then AUTH publish with A→B purge", async () => {
+    const qc = new QueryClient();
+    seed(qc);
+    getAuthIdentityTransitionController(qc);
+
+    const order: string[] = [];
+    signInWithPasswordEmailNative.mockImplementation(async () => {
+      order.push("signIn");
+      return {
+        user: { id: "user-b", email: "b@example.com" },
+        session: { access_token: "at" },
+      };
+    });
+    const origSet = qc.setQueryData.bind(qc);
+    vi.spyOn(qc, "setQueryData").mockImplementation((key, value) => {
+      if (Array.isArray(key) && key[0] === "auth") {
+        order.push(`auth:${(value as { id?: string } | null)?.id ?? "null"}`);
+      }
+      return origSet(key, value);
+    });
+
+    const result = await completeAndPublishNativePasswordSignIn(qc, {
+      email: "b@example.com",
+      password: "pw",
+    });
+    expect(result).toEqual({ user: mappedUserB });
+    expect(signInWithPasswordEmailNative).toHaveBeenCalledWith({
+      email: "b@example.com",
+      password: "pw",
+    });
+    expect(order[0]).toBe("signIn");
+    expect(order).toContain("auth:user-b");
+    expect(qc.getQueryData(AUTH_USER_QUERY_KEY)).toEqual(mappedUserB);
+    expect(qc.getQueryData(["projects"] as QueryKey)).toBeUndefined();
+  });
+
+  it("throws Auth errors without publishing authenticated state", async () => {
+    const qc = new QueryClient();
+    seed(qc);
+    getAuthIdentityTransitionController(qc);
+    const authError = Object.assign(new Error("Invalid login credentials"), { status: 400 });
+    signInWithPasswordEmailNative.mockRejectedValue(authError);
+
+    await expect(
+      completeAndPublishNativePasswordSignIn(qc, { email: "a@b.com", password: "bad" }),
+    ).rejects.toBe(authError);
+    expect(qc.getQueryData(AUTH_USER_QUERY_KEY)).toEqual(userA);
+    expect(qc.getQueryData(["projects"] as QueryKey)).toEqual([{ id: "p-a" }]);
+  });
+
+  it("does not publish when native sign-in returns no session", async () => {
+    const qc = new QueryClient();
+    seed(qc);
+    getAuthIdentityTransitionController(qc);
+    signInWithPasswordEmailNative.mockResolvedValue({
+      user: { id: "user-b", email: "b@example.com" },
+      session: null,
+    });
+
+    await expect(
+      completeAndPublishNativePasswordSignIn(qc, { email: "b@example.com", password: "pw" }),
+    ).rejects.toThrow("Sign-in failed.");
+    expect(qc.getQueryData(AUTH_USER_QUERY_KEY)).toEqual(userA);
+  });
+});
+
+describe("completeAndPublishNativePasswordSignUp", () => {
+  it("session-present: applies transition after native signUp", async () => {
+    const qc = new QueryClient();
+    seed(qc);
+    getAuthIdentityTransitionController(qc);
+
+    const result = await completeAndPublishNativePasswordSignUp(qc, {
+      email: "b@example.com",
+      password: "secret12",
+      fullName: "Ada",
+      companyName: "Co",
+    });
+
+    expect(signUpWithPasswordEmailNative).toHaveBeenCalledWith({
+      email: "b@example.com",
+      password: "secret12",
+      fullName: "Ada",
+      companyName: "Co",
+    });
+    expect(result).toEqual({ kind: "session", user: mappedUserB });
+    expect(qc.getQueryData(AUTH_USER_QUERY_KEY)).toEqual(mappedUserB);
+    expect(qc.getQueryData(["projects"] as QueryKey)).toBeUndefined();
+  });
+
+  it("session-absent: does not applyTransition(user) or applyTransition(null)", async () => {
+    const qc = new QueryClient();
+    seed(qc);
+    getAuthIdentityTransitionController(qc);
+    signUpWithPasswordEmailNative.mockResolvedValue({
+      user: { id: "user-b", email: "b@example.com" },
+      session: null,
+    });
+
+    const result = await completeAndPublishNativePasswordSignUp(qc, {
+      email: "verify@ex.com",
+      password: "secret12",
+    });
+
+    expect(result).toEqual({ kind: "awaiting_verification", user: mappedUserB });
+    expect(qc.getQueryData(AUTH_USER_QUERY_KEY)).toEqual(userA);
+    expect(qc.getQueryData(["projects"] as QueryKey)).toEqual([{ id: "p-a" }]);
+  });
+
+  it("throws Auth errors without publishing", async () => {
+    const qc = new QueryClient();
+    seed(qc);
+    getAuthIdentityTransitionController(qc);
+    const authError = Object.assign(new Error("User already registered"), { status: 400 });
+    signUpWithPasswordEmailNative.mockRejectedValue(authError);
+
+    await expect(
+      completeAndPublishNativePasswordSignUp(qc, { email: "a@b.com", password: "pw1234" }),
+    ).rejects.toBe(authError);
+    expect(qc.getQueryData(AUTH_USER_QUERY_KEY)).toEqual(userA);
   });
 });
