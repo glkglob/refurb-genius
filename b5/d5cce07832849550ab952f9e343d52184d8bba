@@ -1,0 +1,18 @@
+docs/ios-build-provenance.md
+  h_7ea6129503670a 47,63-69,79-86
+scripts/prepare-ios-native-bundle.mjs
+  h_7ea6129503670a 14-15,83-119,122,125-184,201-202,215,254,269,296,298,314
+scripts/prepare-ios-native-bundle.test.mjs
+  h_7ea6129503670a 14-18,48-60,68,70,115-124,137,175,181,204,206,227,229
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b5d5cce07832849550ab952f9e343d52184d8bba",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
