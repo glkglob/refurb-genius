@@ -1,0 +1,30 @@
+src/features/ai-upload/application/aiUploadService.ts
+  h_7ea6129503670a 15,31
+src/features/ai-upload/application/ports.ts
+  h_7ea6129503670a 13
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.notify.test.ts
+  h_7ea6129503670a 1-214
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts
+  h_7ea6129503670a 50-64,196,218,230-242,252,267-268,274
+src/features/ai-upload/presentation/photo-analysis.provider.ts
+  h_7ea6129503670a 22,48-49,60-61,79-80
+src/features/projects/presentation/hooks/useProjectFiveStageWorkflow.notify.test.ts
+  h_7ea6129503670a 1-215
+src/features/projects/presentation/hooks/useProjectFiveStageWorkflow.ts
+  h_7ea6129503670a 149,152
+src/routes/_authed/-projects.$id.redesign.shell.test.ts
+  h_7ea6129503670a 133-137
+src/routes/_authed/projects.$id.redesign.tsx
+  h_7ea6129503670a 186,189
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "f296b5b74f973ad53e588c7cece3e5a10eee460b",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
