@@ -21,6 +21,8 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+      - name: iOS build provenance tests
+        run: pnpm test:ios-provenance
       - name: Server Sentry safety tests
         run: |
           pnpm exec vitest run \
