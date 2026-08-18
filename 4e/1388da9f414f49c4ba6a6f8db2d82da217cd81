@@ -1,0 +1,38 @@
+src/features/auth/infrastructure/index.ts
+  h_7ea6129503670a 15-24
+src/features/auth/infrastructure/signInWithPasswordEmail.test.ts
+  h_7ea6129503670a 35
+src/features/auth/infrastructure/signInWithPasswordEmailNative.test.ts
+  h_7ea6129503670a 1-103
+src/features/auth/infrastructure/signInWithPasswordEmailNative.ts
+  h_7ea6129503670a 1-34
+src/features/auth/infrastructure/signUpWithPasswordEmail.test.ts
+  h_7ea6129503670a 38
+src/features/auth/infrastructure/signUpWithPasswordEmailNative.test.ts
+  h_7ea6129503670a 1-130
+src/features/auth/infrastructure/signUpWithPasswordEmailNative.ts
+  h_7ea6129503670a 1-42
+src/features/auth/presentation/hooks/useAuthPasswordCredentials.test.ts
+  h_7ea6129503670a 2,10,13-14,18,27-32,34,62-68,77-78,83-91,94,109,130-170,174,198,225,248-305,312,318-320
+src/features/auth/presentation/hooks/useAuthPasswordCredentials.ts
+  h_7ea6129503670a 2,4-6,10,18-21,44-49,61-78
+src/features/auth/presentation/nativeAuthIdentityLifecycle.test.ts
+  h_7ea6129503670a 13-14,28-35,44-45,50,61-62,69-76,324-447
+src/features/auth/presentation/nativeAuthIdentityLifecycle.ts
+  h_7ea6129503670a 22,27-30,32-35,165-211
+tests/invariants/auth-experience-password-presentation.invariant.test.ts
+  h_7ea6129503670a 20-21,98-100,105,120-139
+tests/invariants/native-auth-lifecycle.invariant.test.ts
+  h_7ea6129503670a 20,24-25,62-63,71-89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "4e1388da9f414f49c4ba6a6f8db2d82da217cd81",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
