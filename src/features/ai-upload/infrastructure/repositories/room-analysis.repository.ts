@@ -47,8 +47,21 @@ export function jsonToStringArray(value: Json | string[] | null | undefined): st
 }
 
 const cache = new Map<string, RoomAnalysis[]>();
-const listeners = new Set<() => void>();
-const notify = () => listeners.forEach((l) => l());
+const listenersByProject = new Map<string, Set<() => void>>();
+
+function notify(projectId: string): void {
+  const set = listenersByProject.get(projectId);
+  if (!set || set.size === 0) return;
+  for (const listener of [...set]) listener();
+}
+
+function notifyAll(): void {
+  const pending: Array<() => void> = [];
+  for (const set of listenersByProject.values()) {
+    for (const listener of set) pending.push(listener);
+  }
+  for (const listener of pending) listener();
+}
 
 export function rowToAnalysis(r: Tables<"room_analyses">): RoomAnalysis {
   return {
@@ -180,7 +193,7 @@ export class SupabaseRoomAnalysisRepository implements RoomAnalysisRepositoryPor
     const persisted = await loadFromSupabase(projectId);
     if (persisted) {
       cache.set(projectId, persisted);
-      notify();
+      notify(projectId);
       return persisted;
     }
     return undefined;
@@ -202,7 +215,7 @@ export class SupabaseRoomAnalysisRepository implements RoomAnalysisRepositoryPor
     try {
       const persisted = await replaceViaRpc(projectId, analyses);
       cache.set(projectId, persisted);
-      notify();
+      notify(projectId);
     } catch (err) {
       // Ensure failed save does not leave a false-success cache entry.
       if (previous === undefined) {
@@ -214,9 +227,19 @@ export class SupabaseRoomAnalysisRepository implements RoomAnalysisRepositoryPor
     }
   }
 
-  subscribe(fn: () => void): () => void {
-    listeners.add(fn);
-    return () => listeners.delete(fn);
+  subscribe(projectId: string, fn: () => void): () => void {
+    let set = listenersByProject.get(projectId);
+    if (!set) {
+      set = new Set();
+      listenersByProject.set(projectId, set);
+    }
+    set.add(fn);
+    return () => {
+      const current = listenersByProject.get(projectId);
+      if (!current) return;
+      current.delete(fn);
+      if (current.size === 0) listenersByProject.delete(projectId);
+    };
   }
 
   /**
@@ -226,7 +249,7 @@ export class SupabaseRoomAnalysisRepository implements RoomAnalysisRepositoryPor
     await delay();
     const result = await buildFromProjectPhotos(projectId);
     cache.set(projectId, result);
-    notify();
+    notify(projectId);
     return result;
   }
 }
@@ -241,12 +264,13 @@ export const analysisStore = {
   },
   load: (projectId: string) => supabaseRoomAnalysisRepository.load(projectId),
   run: (projectId: string) => supabaseRoomAnalysisRepository.runMock(projectId),
-  subscribe: (fn: () => void) => supabaseRoomAnalysisRepository.subscribe(fn),
+  subscribe: (projectId: string, fn: () => void) =>
+    supabaseRoomAnalysisRepository.subscribe(projectId, fn),
 };
 
 if (typeof window !== "undefined") {
   auth.onChange(() => {
     cache.clear();
-    notify();
+    notifyAll();
   });
 }

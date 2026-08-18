@@ -130,6 +130,11 @@ describe("IA-5-R4A Redesign product generation and selection contract", () => {
     expect(SRC).not.toMatch(/analyses\.length === 0 && catalogue\.length > 0/);
   });
 
+  it("P1: Redesign Analysis subscription is project-scoped", () => {
+    expect(SRC).toMatch(/subscribePhotoAnalysis\(\s*id\s*,/);
+    expect(SRC).not.toMatch(/subscribePhotoAnalysis\(\s*\(\)\s*=>/);
+  });
+
   it("server generation resolves Analysis authority then persists via replace RPC", () => {
     expect(SERVER).toMatch(/runAuthenticatedRedesignGeneration/);
     expect(SERVER).toMatch(/void data\.analyses/);

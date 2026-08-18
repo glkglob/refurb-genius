@@ -146,10 +146,10 @@ export function useProjectFiveStageWorkflow(projectId: string): ProjectFiveStage
 
   useEffect(
     () =>
-      subscribePhotoAnalysis(() => {
+      subscribePhotoAnalysis(projectId, () => {
         void reload();
       }),
-    [reload],
+    [projectId, reload],
   );
 
   const photos = useMemo(() => (projectPhotos ?? []).map((p) => ({ id: p.id })), [projectPhotos]);

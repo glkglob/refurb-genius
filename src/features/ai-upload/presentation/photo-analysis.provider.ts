@@ -19,7 +19,7 @@ export type PhotoAnalysisInput = {
 export type PhotoAnalysisProvider = {
   get(projectId: string): RoomAnalysis[] | undefined;
   run(input: PhotoAnalysisInput): Promise<RoomAnalysis[]>;
-  subscribe(fn: () => void): () => void;
+  subscribe(projectId: string, fn: () => void): () => void;
 };
 
 const serverVisionAdapter = {
@@ -45,8 +45,8 @@ export const mockPhotoAnalysisProvider: PhotoAnalysisProvider = {
   async run({ projectId }) {
     return supabaseRoomAnalysisRepository.runMock(projectId);
   },
-  subscribe(fn) {
-    return supabaseRoomAnalysisRepository.subscribe(fn);
+  subscribe(projectId, fn) {
+    return supabaseRoomAnalysisRepository.subscribe(projectId, fn);
   },
 };
 
@@ -57,8 +57,8 @@ export const serverPhotoAnalysisProvider: PhotoAnalysisProvider = {
   async run(input) {
     return aiUploadService.analyzePhotos({ projectId: input.projectId });
   },
-  subscribe(fn) {
-    return aiUploadService.subscribe(fn);
+  subscribe(projectId, fn) {
+    return aiUploadService.subscribe(projectId, fn);
   },
 };
 
@@ -76,6 +76,6 @@ export function runPhotoAnalysis(input: PhotoAnalysisInput): Promise<RoomAnalysi
   return photoAnalysisProvider.run(input);
 }
 
-export function subscribePhotoAnalysis(fn: () => void): () => void {
-  return photoAnalysisProvider.subscribe(fn);
+export function subscribePhotoAnalysis(projectId: string, fn: () => void): () => void {
+  return photoAnalysisProvider.subscribe(projectId, fn);
 }

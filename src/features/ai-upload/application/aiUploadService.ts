@@ -12,7 +12,7 @@ export interface AiUploadService {
   analyzePhotos(command: AnalyzePhotosCommand): Promise<RoomAnalysis[]>;
   getCachedAnalyses(projectId: string): RoomAnalysis[] | undefined;
   loadAnalyses(projectId: string): Promise<RoomAnalysis[] | undefined>;
-  subscribe(fn: () => void): () => void;
+  subscribe(projectId: string, fn: () => void): () => void;
 }
 
 export type AiUploadServiceDeps = {
@@ -28,6 +28,6 @@ export function makeAiUploadService(deps: AiUploadServiceDeps): AiUploadService 
     analyzePhotos,
     getCachedAnalyses: (projectId) => deps.analyses.get(projectId),
     loadAnalyses: (projectId) => deps.analyses.load(projectId),
-    subscribe: (fn) => deps.analyses.subscribe(fn),
+    subscribe: (projectId, fn) => deps.analyses.subscribe(projectId, fn),
   };
 }

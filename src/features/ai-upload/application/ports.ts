@@ -10,7 +10,7 @@ export interface RoomAnalysisRepository {
   get(projectId: string): RoomAnalysis[] | undefined;
   load(projectId: string): Promise<RoomAnalysis[] | undefined>;
   save(projectId: string, analyses: RoomAnalysis[]): Promise<void>;
-  subscribe(fn: () => void): () => void;
+  subscribe(projectId: string, fn: () => void): () => void;
 }
 
 export interface PhotoCatalogPort {

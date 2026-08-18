@@ -183,10 +183,10 @@ function RedesignPage() {
 
   useEffect(
     () =>
-      subscribePhotoAnalysis(() => {
+      subscribePhotoAnalysis(id, () => {
         void reload();
       }),
-    [reload],
+    [id, reload],
   );
 
   const handleGenerate = async () => {
