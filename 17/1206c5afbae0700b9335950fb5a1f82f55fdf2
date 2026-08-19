@@ -1,0 +1,46 @@
+src/features/account-deletion/application/deleteOwnedStorage.server.test.ts
+  h_7ea6129503670a 1-189
+src/features/account-deletion/application/deleteOwnedStorage.server.ts
+  h_7ea6129503670a 1-184
+src/features/account-deletion/application/executeAccountDeletion.server.test.ts
+  h_7ea6129503670a 1-140
+src/features/account-deletion/application/executeAccountDeletion.server.ts
+  h_7ea6129503670a 1-203
+src/features/account-deletion/domain/accountDeletionContract.ts
+  h_7ea6129503670a 1-48
+src/features/account-deletion/presentation/deleteAccountForClient.test.ts
+  h_7ea6129503670a 1-97
+src/features/account-deletion/presentation/deleteAccountForClient.ts
+  h_7ea6129503670a 1-24
+src/features/account-deletion/presentation/mobileAccountDelete.server.test.ts
+  h_7ea6129503670a 1-92
+src/features/account-deletion/presentation/mobileAccountDelete.server.ts
+  h_7ea6129503670a 1-83
+src/platform/http/mobile-account-delete.test.ts
+  h_7ea6129503670a 1-48
+src/platform/http/mobile-account-delete.ts
+  h_7ea6129503670a 1-18
+src/platform/http/mobile-api.server.test.ts
+  h_7ea6129503670a 6,24-27,35,161-184
+src/platform/http/mobile-api.server.ts
+  h_7ea6129503670a 14,58-63
+src/routes/_authed/settings.tsx
+  h_7ea6129503670a 74-76,178,190,217
+src/routes/support.tsx
+  h_7ea6129503670a 315-316
+src/serverFns/auth.ts
+  h_7ea6129503670a 46-47,53-55,57-68
+tests/invariants/native-account-delete.invariant.test.ts
+  h_7ea6129503670a 1-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "171206c5afbae0700b9335950fb5a1f82f55fdf2",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
