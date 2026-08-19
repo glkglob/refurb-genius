@@ -5,16 +5,26 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { PhotoRemoveButton } from "./PhotoRemoveButton";
 
 describe("PhotoRemoveButton", () => {
-  it("is labelled for the photo and visible without hover on small viewports", () => {
+  it("is labelled, 44px visible by default, and gated by pointer capability not viewport", () => {
     render(<PhotoRemoveButton photoName="IMG_0164.png" onRemove={() => undefined} />);
 
     const button = screen.getByRole("button", { name: "Remove IMG_0164.png" });
     expect(button).toBeVisible();
     expect(button.className).toMatch(/opacity-100/);
     expect(button.className).not.toMatch(/(?:^|\s)opacity-0(?:\s|$)/);
-    expect(button.className).toMatch(/h-11/);
-    expect(button.className).toMatch(/w-11/);
-    expect(button.className).toMatch(/md:opacity-0/);
+    expect(button.className).toMatch(/(?:^|\s)h-11(?:\s|$)/);
+    expect(button.className).toMatch(/(?:^|\s)w-11(?:\s|$)/);
+    expect(button.className).not.toMatch(/md:opacity-0/);
+    expect(button.className).not.toMatch(/md:h-7/);
+    expect(button.className).not.toMatch(/md:w-7/);
+    expect(button.className).toMatch(/pointer-fine:h-7/);
+    expect(button.className).toMatch(/pointer-fine:w-7/);
+    expect(button.className).toMatch(/pointer-fine:opacity-0/);
+    expect(button.className).toMatch(/pointer-fine:group-hover:opacity-100/);
+    expect(button.className).toMatch(/pointer-fine:focus-visible:opacity-100/);
+    expect(button.className).toMatch(/any-pointer-coarse:h-11/);
+    expect(button.className).toMatch(/any-pointer-coarse:w-11/);
+    expect(button.className).toMatch(/any-pointer-coarse:opacity-100/);
   });
 
   it("invokes onRemove when pressed", () => {
