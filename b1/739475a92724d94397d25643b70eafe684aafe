@@ -1,0 +1,58 @@
+src/features/ai-upload/domain/index.ts
+  h_7ea6129503670a 46-49,57-61,72-74,76
+src/features/ai-upload/domain/rules.ts
+  h_7ea6129503670a 12,36-79
+src/features/ai-upload/domain/validation.ts
+  h_7ea6129503670a 9-14,22-24,41-138
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.test.ts
+  h_7ea6129503670a 4-13,18-21,33-36,238-314
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts
+  h_7ea6129503670a 108-113,139-143
+src/features/ai-upload/infrastructure/resolveAuthorizedPhotos.server.test.ts
+  h_7ea6129503670a 22-24,26-32,35,38,42-90,98-265,270,272-275,277-279,286,297,311,319
+src/features/ai-upload/infrastructure/resolveAuthorizedPhotos.server.ts
+  h_7ea6129503670a 5-7,16-18,24-38,44-50,53,55-57,61-69,71,76,78,80-102,116,120-123,129-145,149-150,156-159,161-171,173,175-176,179-181,184-209
+src/features/ai-upload/infrastructure/runAuthenticatedPhotoAnalysis.server.test.ts
+  h_7ea6129503670a 1-367
+src/features/ai-upload/infrastructure/runAuthenticatedPhotoAnalysis.server.ts
+  h_7ea6129503670a 1-171
+src/features/ai-upload/presentation/analyzePhotosForClient.test.ts
+  h_7ea6129503670a 1-172
+src/features/ai-upload/presentation/analyzePhotosForClient.ts
+  h_7ea6129503670a 1-37
+src/features/ai-upload/presentation/mobileAnalysisRun.server.test.ts
+  h_7ea6129503670a 1-206
+src/features/ai-upload/presentation/mobileAnalysisRun.server.ts
+  h_7ea6129503670a 1-148
+src/features/ai-upload/presentation/photo-analysis.provider.ts
+  h_7ea6129503670a 5-6,12,31-34
+src/features/ai-upload/presentation/retryWeakAnalyses.test.ts
+  h_7ea6129503670a 1-137
+src/features/ai-upload/presentation/retryWeakAnalyses.ts
+  h_7ea6129503670a 3-5,7-8,13,20-23,33-39,43-45
+src/features/ai-upload/presentation/serverFns.ts
+  h_7ea6129503670a 6-11,71,76-83,86-87,94,96,124,126
+src/platform/http/mobile-analysis-run.test.ts
+  h_7ea6129503670a 1-51
+src/platform/http/mobile-analysis-run.ts
+  h_7ea6129503670a 1-26
+src/platform/http/mobile-api.server.test.ts
+  h_7ea6129503670a 5,19-22,29,128-154
+src/platform/http/mobile-api.server.ts
+  h_7ea6129503670a 13,51-56
+tests/invariants/native-ai-analysis.invariant.test.ts
+  h_7ea6129503670a 1-138
+tests/invariants/project-photos-analysis-continuity.invariant.test.ts
+  h_7ea6129503670a 108-109
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b1739475a92724d94397d25643b70eafe684aafe",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
