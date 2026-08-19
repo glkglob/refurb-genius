@@ -105,6 +105,8 @@ test("IOS-2C3-I-P1 native Redesign prerequisite reads use Keychain authority", (
     /import\s+[^;]*from\s+["']@\/platform\/supabase\/native-room-analyses["']/,
   );
   assert.match(repo, /replace_project_room_analyses/);
+  assert.match(repo, /getNativeSupabase/);
+  assert.match(repo, /import\(["']@\/platform\/supabase\/native["']\)/);
 });
 
 test("IA-3 replace_project_room_analyses remains the analysis publish authority", () => {

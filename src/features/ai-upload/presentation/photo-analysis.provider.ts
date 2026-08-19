@@ -2,13 +2,14 @@
  * AI-upload slice — Client-side photo analysis provider (presentation wiring).
  *
  * Moved from `src/core/ai/photoAnalysis.ts` (now a shim).
- * Browser talks only to serverFns; OpenAI stays behind the server boundary.
+ * Web talks to the cookie serverFn via analyzePhotosForClient.
+ * Native uses Bearer /api/mobile/v1/analysis/run. OpenAI stays server-side.
  */
 import { makeAiUploadService } from "../application";
 import type { RoomAnalysis } from "../domain";
 import { supabaseRoomAnalysisRepository } from "../infrastructure/repositories/room-analysis.repository";
 import { browserPhotoCatalogRepository } from "../infrastructure/repositories/photo-catalog.repository";
-import { runPhotoAnalysisServerFn } from "./serverFns";
+import { analyzePhotosForClient } from "./analyzePhotosForClient";
 
 export type PhotoAnalysisInput = {
   projectId: string;
@@ -27,7 +28,10 @@ const serverVisionAdapter = {
     projectId: string;
     photos: import("../domain").AnalysisPhotoSource[];
   }): Promise<RoomAnalysis[]> {
-    return runPhotoAnalysisServerFn({ data: input });
+    return analyzePhotosForClient({
+      projectId: input.projectId,
+      photoIds: input.photos.map((photo) => photo.id),
+    });
   },
 };
 

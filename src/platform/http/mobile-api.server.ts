@@ -10,6 +10,7 @@ import { mobileCorsPreflightResponse, withMobileCors } from "./mobile-cors.serve
 export const MOBILE_API_PATH_PREFIX = "/api/mobile/" as const;
 export const MOBILE_SESSION_PING_PATHNAME = "/api/mobile/v1/session/ping" as const;
 export const MOBILE_REDESIGN_GENERATE_PATHNAME = "/api/mobile/v1/redesign/generate" as const;
+export const MOBILE_ANALYSIS_RUN_PATHNAME = "/api/mobile/v1/analysis/run" as const;
 
 export function isMobileApiPath(pathname: string): boolean {
   return pathname === "/api/mobile" || pathname.startsWith(MOBILE_API_PATH_PREFIX);
@@ -45,6 +46,12 @@ export async function handleMobileApiRequest(request: Request): Promise<Response
     const { handleMobileRedesignGenerate } =
       await import("@/features/ai-design/presentation/mobileRedesignGenerate.server");
     return withMobileCors(request, await handleMobileRedesignGenerate(request));
+  }
+
+  if (url.pathname === MOBILE_ANALYSIS_RUN_PATHNAME) {
+    const { handleMobileAnalysisRun } =
+      await import("@/features/ai-upload/presentation/mobileAnalysisRun.server");
+    return withMobileCors(request, await handleMobileAnalysisRun(request));
   }
 
   return withMobileCors(request, jsonResponse({ error: "Not found" }, 404));

@@ -3,11 +3,16 @@
  *
  * Client may supply photo IDs (and optional metadata). Server re-resolves
  * canonical photo rows under project ownership before any vision call.
+ *
+ * Web cookie-auth only. Native Analysis uses POST /api/mobile/v1/analysis/run.
+ * Both delegate to the shared authenticated runner (one rate-limit check).
+ *
+ * Vision execution: ai-vision.adapter.server / hf-vision.adapter.server
+ * via runAuthenticatedPhotoAnalysis.server.
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { CONDITION_LEVELS, REFURB_LEVELS, ROOM_TYPES } from "../domain";
-import { checkRateLimit, rateLimitKeyForUser } from "@/lib/rate-limit";
 
 async function requireServerAuth(): Promise<{ id: string }> {
   const { requireUser } = await import("@/serverFns/auth.server");
@@ -58,68 +63,37 @@ export const roomAnalysisOutputSchema = z.object({
   source: z.enum(["ai", "mock", "fallback", "persisted"]),
 });
 
-/** Determine which vision provider to use */
-async function getVisionProvider(): Promise<"openai" | "huggingface"> {
-  const explicit = process.env.AI_VISION_PROVIDER;
-  if (explicit === "openai" || explicit === "huggingface") return explicit;
-
-  const hasOpenAI = Boolean(process.env.OPENAI_API_KEY);
-  const { isHuggingFaceConfigured } = await import("@/platform/huggingface/server");
-  const hasHF = isHuggingFaceConfigured();
-
-  if (hasOpenAI) return "openai";
-  if (hasHF) return "huggingface";
-  return "openai";
-}
-
 function extractPhotoIds(data: { photoIds?: string[]; photos?: Array<{ id: string }> }): string[] {
   if (data.photoIds?.length) return data.photoIds;
   return (data.photos ?? []).map((p) => p.id);
 }
 
-async function authorizeAndRunVision(input: {
-  userId: string;
+async function runWebPhotoAnalysis(input: {
   projectId: string;
   photoIds: string[];
   provider?: "openai" | "huggingface";
 }) {
-  const { resolveAuthorizedProjectPhotos } =
-    await import("../infrastructure/resolveAuthorizedPhotos.server");
-  const photos = await resolveAuthorizedProjectPhotos({
-    userId: input.userId,
+  const user = await requireServerAuth();
+  const { createSupabaseServerClient } = await import("@/serverFns/auth.server");
+  const supabase = await createSupabaseServerClient();
+  const { runAuthenticatedPhotoAnalysis } =
+    await import("../infrastructure/runAuthenticatedPhotoAnalysis.server");
+  return runAuthenticatedPhotoAnalysis({
+    userId: user.id,
+    supabase,
     projectId: input.projectId,
     photoIds: input.photoIds,
+    catalogueMode: "requested",
+    provider: input.provider,
   });
-
-  const provider = input.provider ?? (await getVisionProvider());
-  const payload = { projectId: input.projectId, photos };
-
-  if (provider === "huggingface") {
-    const { runSecurePhotoAnalysisHuggingFace } =
-      await import("../infrastructure/adapters/hf-vision.adapter.server");
-    return runSecurePhotoAnalysisHuggingFace(payload);
-  }
-
-  const { runSecurePhotoAnalysis } =
-    await import("../infrastructure/adapters/ai-vision.adapter.server");
-  return runSecurePhotoAnalysis(payload);
 }
 
 export const runPhotoAnalysisServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => runPhotoAnalysisInputSchema.parse(input))
   .handler(async ({ data }) => {
-    const user = await requireServerAuth();
-    const key = rateLimitKeyForUser(user.id, "ai-vision");
-    const rl = checkRateLimit(key);
-    if (!rl.allowed) {
-      throw new Error(`Rate limit exceeded. Try again in ${rl.retryAfter || 60}s.`);
-    }
-
-    const photoIds = extractPhotoIds(data);
-    return authorizeAndRunVision({
-      userId: user.id,
+    return runWebPhotoAnalysis({
       projectId: data.projectId,
-      photoIds,
+      photoIds: extractPhotoIds(data),
     });
   });
 
@@ -147,18 +121,9 @@ const runPhotoAnalysisWithProviderInputSchema = z
 export const runPhotoAnalysisWithProviderServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => runPhotoAnalysisWithProviderInputSchema.parse(input))
   .handler(async ({ data }) => {
-    const user = await requireServerAuth();
-    const key = rateLimitKeyForUser(user.id, "ai-vision");
-    const rl = checkRateLimit(key);
-    if (!rl.allowed) {
-      throw new Error(`Rate limit exceeded. Try again in ${rl.retryAfter || 60}s.`);
-    }
-
-    const photoIds = extractPhotoIds(data);
-    return authorizeAndRunVision({
-      userId: user.id,
+    return runWebPhotoAnalysis({
       projectId: data.projectId,
-      photoIds,
+      photoIds: extractPhotoIds(data),
       provider: data.provider,
     });
   });

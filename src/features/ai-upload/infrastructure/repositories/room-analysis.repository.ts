@@ -105,9 +105,12 @@ type RpcAnalysisPayload = {
 };
 
 async function replaceViaRpc(projectId: string, analyses: RoomAnalysis[]): Promise<RoomAnalysis[]> {
-  const user = auth.getUser();
-  if (!user) {
-    throw persistenceFailedError("not authenticated");
+  const native = Capacitor.isNativePlatform();
+  if (!native) {
+    const user = auth.getUser();
+    if (!user) {
+      throw persistenceFailedError("not authenticated");
+    }
   }
 
   if (hasMockAnalysis(analyses) || analyses.some((a) => a.source === "mock")) {
@@ -133,7 +136,11 @@ async function replaceViaRpc(projectId: string, analyses: RoomAnalysis[]): Promi
     source: a.source,
   }));
 
-  const { data, error } = await supabase.rpc("replace_project_room_analyses", {
+  const client = native
+    ? (await import("@/platform/supabase/native")).getNativeSupabase()
+    : supabase;
+
+  const { data, error } = await client.rpc("replace_project_room_analyses", {
     p_project_id: projectId,
     p_analyses: payload,
   });
