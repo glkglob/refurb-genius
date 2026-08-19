@@ -71,8 +71,9 @@ function SettingsPage() {
 
     setIsDeleting(true);
     try {
-      const { deleteAccountServerFn } = await import("@/serverFns/auth");
-      await deleteAccountServerFn({});
+      const { deleteAccountForClient } =
+        await import("@/features/account-deletion/presentation/deleteAccountForClient");
+      await deleteAccountForClient();
 
       toast.success("Your account has been deleted.");
 
@@ -174,7 +175,7 @@ function SettingsPage() {
                 <h3 className="font-medium text-sm text-red-900">Delete Account</h3>
                 <p className="text-sm text-red-800 mt-1">
                   Permanently delete your account, all projects, properties, and analysis history.
-                  This action cannot be undone.
+                  Deletion completes before this app reports success. This action cannot be undone.
                 </p>
               </div>
               <button
@@ -186,8 +187,7 @@ function SettingsPage() {
                 {isDeleting ? "Processing…" : "Delete Account"}
               </button>
               <p className="text-xs text-red-800">
-                Deletion will be processed within 7 business days. Your data will be permanently
-                removed from our servers.
+                Your data will be permanently removed from our servers when deletion completes.
               </p>
             </div>
           </CardContent>
@@ -214,8 +214,7 @@ function SettingsPage() {
                 </ul>
               </div>
               <p className="text-sm">
-                We'll process your deletion request within 7 business days. You'll be signed out
-                immediately.
+                You will be signed out after deletion completes. This cannot be undone.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>

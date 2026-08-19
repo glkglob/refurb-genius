@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const requireMobileBearer = vi.fn();
 const handleMobileRedesignGenerate = vi.fn();
 const handleMobileAnalysisRun = vi.fn();
+const handleMobileAccountDelete = vi.fn();
 
 vi.mock("./mobile-bearer.server", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./mobile-bearer.server")>();
@@ -20,6 +21,10 @@ vi.mock("@/features/ai-upload/presentation/mobileAnalysisRun.server", () => ({
   handleMobileAnalysisRun: (...args: unknown[]) => handleMobileAnalysisRun(...args),
 }));
 
+vi.mock("@/features/account-deletion/presentation/mobileAccountDelete.server", () => ({
+  handleMobileAccountDelete: (...args: unknown[]) => handleMobileAccountDelete(...args),
+}));
+
 import { handleMobileApiRequest, MOBILE_SESSION_PING_PATHNAME } from "./mobile-api.server";
 
 describe("handleMobileApiRequest session ping canary", () => {
@@ -27,6 +32,7 @@ describe("handleMobileApiRequest session ping canary", () => {
     requireMobileBearer.mockReset();
     handleMobileRedesignGenerate.mockReset();
     handleMobileAnalysisRun.mockReset();
+    handleMobileAccountDelete.mockReset();
   });
 
   it("OPTIONS is unauthenticated preflight", async () => {
@@ -148,6 +154,30 @@ describe("handleMobileApiRequest session ping canary", () => {
     );
     expect(handleMobileAnalysisRun).toHaveBeenCalledTimes(1);
     expect(handleMobileRedesignGenerate).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("capacitor://localhost");
+  });
+
+  it("POST account/delete is dispatched to the Bearer delete handler", async () => {
+    handleMobileAccountDelete.mockResolvedValue(
+      new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const res = await handleMobileApiRequest(
+      new Request("https://www.refurbgenius.info/api/mobile/v1/account/delete", {
+        method: "POST",
+        headers: {
+          Origin: "capacitor://localhost",
+          Authorization: "Bearer synthetic",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ userId: "attacker" }),
+      }),
+    );
+    expect(handleMobileAccountDelete).toHaveBeenCalledTimes(1);
+    expect(handleMobileAnalysisRun).not.toHaveBeenCalled();
     expect(res.status).toBe(200);
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe("capacitor://localhost");
   });
