@@ -1,0 +1,18 @@
+src/features/ai-upload/presentation/mobileAnalysisRun.server.test.ts
+  h_7ea6129503670a 23,144-158
+src/features/ai-upload/presentation/mobileAnalysisRun.server.ts
+  h_7ea6129503670a 69
+tests/invariants/native-ai-analysis.invariant.test.ts
+  h_7ea6129503670a 104-137
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "58c2957b2023d4709a141ef58c9583f82f4d033c",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
