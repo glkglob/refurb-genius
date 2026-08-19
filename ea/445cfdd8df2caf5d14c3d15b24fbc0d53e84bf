@@ -1,0 +1,16 @@
+src/features/ai-upload/presentation/components/PhotoRemoveButton.test.tsx
+  h_7ea6129503670a 8,15-27
+src/features/ai-upload/presentation/components/PhotoRemoveButton.tsx
+  h_7ea6129503670a 12-14,24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "ea445cfdd8df2caf5d14c3d15b24fbc0d53e84bf",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
