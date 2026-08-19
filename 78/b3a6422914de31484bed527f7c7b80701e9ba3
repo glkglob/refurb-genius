@@ -1,0 +1,20 @@
+docs/compliance/apple/00-compliance-register.md
+  h_7ea6129503670a 1-197
+docs/compliance/apple/03-technical-baseline.md
+  h_7ea6129503670a 1-200
+docs/compliance/apple/04-sdk-and-permissions-inventory.md
+  h_7ea6129503670a 1-185
+docs/compliance/apple/05-data-inventory.md
+  h_7ea6129503670a 1-239
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "78b3a6422914de31484bed527f7c7b80701e9ba3",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
