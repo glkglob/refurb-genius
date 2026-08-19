@@ -5,7 +5,7 @@
  * Writes: canonical photos-write primitives (uploadProjectPhotos / removeProjectPhoto).
  * Hook-path writes no longer use the legacy in-memory store; BulkPhotoUpload remains deferred to C5-3B3.
  */
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import type { ProjectPhoto } from "@/lib/photos-types";
 import {
@@ -20,6 +20,12 @@ import { logger } from "@/lib/logger";
 import { trackEvent } from "@/lib/analytics";
 import { classifyPhotoUploadAnalyticsError } from "../classifyPhotoUploadAnalyticsError";
 import { invalidateProjectPhotoQueries } from "./useInvalidateProjectPhotos";
+
+function invalidateAfterPhotoRemoval(queryClient: QueryClient, projectId: string): void {
+  invalidateProjectPhotoQueries(queryClient, projectId);
+  void queryClient.invalidateQueries({ queryKey: projectKeys.byId(projectId) });
+  void queryClient.invalidateQueries({ queryKey: projectKeys.photoAnalysisByProject(projectId) });
+}
 
 export function usePhotos(projectId: string) {
   const { user } = useAuth();
@@ -159,7 +165,7 @@ export function useRemovePhoto(projectId: string) {
       if (context?.previous) queryClient.setQueryData(photosKey, context.previous);
     },
     onSettled: () => {
-      invalidateProjectPhotoQueries(queryClient, projectId);
+      invalidateAfterPhotoRemoval(queryClient, projectId);
     },
   });
 }

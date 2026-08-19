@@ -472,6 +472,38 @@ describe("useRemovePhoto", () => {
     expect(arg).not.toHaveProperty("projectId");
   });
 
+  it("exposes the pending photoId so callers can disable only that control", async () => {
+    let resolveRemove!: (value: PhotoRemovalResult) => void;
+    removeProjectPhoto.mockImplementation(
+      () =>
+        new Promise<PhotoRemovalResult>((resolve) => {
+          resolveRemove = resolve;
+        }),
+    );
+    const qc = createTestQueryClient();
+    const { result } = renderHook(() => useRemovePhoto(PROJECT_ID), {
+      wrapper: createWrapper(qc),
+    });
+
+    act(() => {
+      result.current.mutate("p2");
+    });
+
+    await waitFor(() => {
+      expect(result.current.isPending).toBe(true);
+      expect(result.current.variables).toBe("p2");
+    });
+    expect(result.current.variables).not.toBe("p1");
+
+    await act(async () => {
+      resolveRemove({
+        photoId: "p2",
+        storagePath: "user-1/proj-1/p2.jpg",
+        storageCleanup: "removed",
+      });
+    });
+  });
+
   it("source remove path uses removeProjectPhoto only", async () => {
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
@@ -481,6 +513,9 @@ describe("useRemovePhoto", () => {
     );
     expect(src).toMatch(/removeProjectPhoto\s*\(/);
     expect(src).not.toMatch(/photoStore\s*\.\s*remove/);
+    expect(src).not.toMatch(/photoAnalysisKeys/);
+    expect(src).not.toMatch(/usePhotoAnalysis/);
+    expect(src).toMatch(/removeProjectPhoto\(\{\s*photoId\s*\}/);
   });
 
   it("optimistically removes the target photo from the project list", async () => {
@@ -595,6 +630,25 @@ describe("useRemovePhoto", () => {
         (call) =>
           Array.isArray(call[0]?.queryKey) && (call[0]?.queryKey as unknown[])[2] === "photos",
       ),
+    ).toBe(true);
+    expect(
+      invalidateSpy.mock.calls.some((call) => {
+        const key = call[0]?.queryKey as unknown[] | undefined;
+        return (
+          Array.isArray(key) && key[0] === "projects" && key[1] === PROJECT_ID && key.length === 2
+        );
+      }),
+    ).toBe(true);
+    expect(
+      invalidateSpy.mock.calls.some((call) => {
+        const key = call[0]?.queryKey as unknown[] | undefined;
+        return (
+          Array.isArray(key) &&
+          key[0] === "projects" &&
+          key[1] === PROJECT_ID &&
+          key[2] === "photoAnalysis"
+        );
+      }),
     ).toBe(true);
   });
 
