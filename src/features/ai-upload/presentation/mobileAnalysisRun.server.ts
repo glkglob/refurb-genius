@@ -66,7 +66,7 @@ function mapAnalysisError(err: unknown): {
       case PHOTO_ANALYSIS_PROJECT_NOT_AUTHORISED:
         return { status: 403, message: err.message };
       case PHOTO_ANALYSIS_SOURCE_NOT_AUTHORISED:
-        return { status: 403, message: err.message };
+        return { status: 500, message: safeUnexpectedMessage() };
       case PHOTO_ANALYSIS_SOURCE_SET_MISMATCH:
         return { status: 409, message: err.message };
       case PHOTO_ANALYSIS_RETRIEVAL_UNAVAILABLE:

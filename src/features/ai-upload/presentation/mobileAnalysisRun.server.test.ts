@@ -20,6 +20,7 @@ import {
   PHOTO_ANALYSIS_SOURCE_SET_MISMATCH,
   providerUnavailableError,
   retrievalUnavailableError,
+  sourceNotAuthorisedError,
 } from "../domain";
 
 const { handleMobileAnalysisRun } = await import("./mobileAnalysisRun.server");
@@ -138,6 +139,21 @@ describe("handleMobileAnalysisRun", () => {
     expect(await res.json()).toEqual({
       error: "Photo analysis is not available for this project.",
     });
+  });
+
+  it("maps SOURCE_NOT_AUTHORISED to sanitized 500 and never 403", async () => {
+    const sourceErr = sourceNotAuthorisedError();
+    runAuthenticatedPhotoAnalysis.mockRejectedValue(sourceErr);
+    const res = await handleMobileAnalysisRun(request({ projectId: PROJECT, photoIds: [PHOTO] }));
+    expect(res.status).toBe(500);
+    expect(res.status).not.toBe(403);
+    const json = await res.json();
+    expect(json).toEqual({ error: "Photo analysis failed." });
+    const serialized = JSON.stringify(json);
+    expect(serialized).not.toContain(sourceErr.message);
+    expect(serialized).not.toMatch(
+      /SOURCE_NOT_AUTHORISED|retrievalUrl|token=|Bearer |OPENAI_API_KEY/i,
+    );
   });
 
   it("maps exact catalogue mismatch to 409", async () => {

@@ -101,6 +101,40 @@ test("mobile Analysis API is Bearer-only and strict-bodied", () => {
   assert.doesNotMatch(handler, /checkRateLimit/);
 });
 
+test("mobile Analysis 403 is reserved for PROJECT_NOT_AUTHORISED only", () => {
+  const handler = read("src/features/ai-upload/presentation/mobileAnalysisRun.server.ts");
+
+  assert.match(handler, /case PHOTO_ANALYSIS_PROJECT_NOT_AUTHORISED:\s*return \{\s*status:\s*403,/);
+  assert.match(
+    handler,
+    /case PHOTO_ANALYSIS_SOURCE_NOT_AUTHORISED:\s*return \{\s*status:\s*500,\s*message:\s*safeUnexpectedMessage\(\)/,
+  );
+  assert.doesNotMatch(
+    handler,
+    /case PHOTO_ANALYSIS_SOURCE_NOT_AUTHORISED:[\s\S]{0,200}status:\s*403/,
+  );
+
+  const not403 = [
+    "PHOTO_ANALYSIS_SOURCE_NOT_AUTHORISED",
+    "PHOTO_ANALYSIS_SOURCE_SET_MISMATCH",
+    "PHOTO_ANALYSIS_RETRIEVAL_UNAVAILABLE",
+    "PHOTO_ANALYSIS_PROVIDER_UNAVAILABLE",
+    "PHOTO_ANALYSIS_NO_SOURCE_PHOTOS",
+    "PHOTO_ANALYSIS_DUPLICATE_PHOTO_IDS",
+    "PHOTO_ANALYSIS_CATALOGUE_TOO_LARGE",
+  ];
+  for (const code of not403) {
+    assert.doesNotMatch(
+      handler,
+      new RegExp(`case ${code}:[\\s\\S]{0,160}status:\\s*403`),
+      `${code} must not map to 403`,
+    );
+  }
+
+  const status403 = handler.match(/status:\s*403/g) ?? [];
+  assert.equal(status403.length, 1, "exactly one HTTP 403 mapping");
+});
+
 test("native persistence stays out of SELECT-only native-room-analyses", () => {
   const selectOnly = read("src/platform/supabase/native-room-analyses.ts");
   assert.doesNotMatch(selectOnly, /\.rpc\(/);
