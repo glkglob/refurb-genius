@@ -1,14 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { ProjectPhoto } from "@/lib/photos-types";
 
-const { fetchProjectPhotosList, getUser, isNativePlatform, listRoomAnalysesNative } = vi.hoisted(
-  () => ({
+const {
+  fetchProjectPhotosList,
+  getUser,
+  isNativePlatform,
+  listRoomAnalysesNative,
+  getNativeSupabase,
+  nativeRpc,
+} = vi.hoisted(() => {
+  const nativeRpc = vi.fn();
+  return {
     fetchProjectPhotosList: vi.fn(),
     getUser: vi.fn(() => null as { id: string } | null),
     isNativePlatform: vi.fn(() => false),
     listRoomAnalysesNative: vi.fn(),
-  }),
-);
+    nativeRpc,
+    getNativeSupabase: vi.fn(() => ({ rpc: nativeRpc })),
+  };
+});
 
 vi.mock("@capacitor/core", () => ({
   Capacitor: {
@@ -18,6 +28,10 @@ vi.mock("@capacitor/core", () => ({
 
 vi.mock("@/platform/supabase/native-room-analyses", () => ({
   listRoomAnalysesNative: (...args: unknown[]) => listRoomAnalysesNative(...args),
+}));
+
+vi.mock("@/platform/supabase/native", () => ({
+  getNativeSupabase: () => getNativeSupabase(),
 }));
 
 vi.mock("@/lib/queries/projects", () => ({
@@ -218,6 +232,83 @@ describe("row mapping keeps Json behind repository boundary", () => {
     listRoomAnalysesNative.mockRejectedValue(new Error("not authenticated"));
     const repo = new SupabaseRoomAnalysisRepository();
     await expect(repo.load("proj-err")).rejects.toThrow(/not authenticated/);
+  });
+});
+
+describe("native durable save uses getNativeSupabase RPC only", () => {
+  function aiRow(photoId: string): RoomAnalysis {
+    return {
+      id: `tmp-${photoId}`,
+      photo_id: photoId,
+      photo_url: `https://cdn/${photoId}.jpg`,
+      photo_name: `${photoId}.jpg`,
+      room_type: "Other",
+      condition_level: "Average",
+      refurbishment_level: "Medium",
+      visible_issues: [],
+      recommended_works: [],
+      ai_summary: "ok",
+      confidence_score: 0.8,
+      source: "ai",
+    };
+  }
+
+  function persistedRow(photoId: string) {
+    return {
+      id: `row-${photoId}`,
+      project_id: "proj-n",
+      user_id: "u1",
+      photo_id: photoId,
+      photo_url: `https://cdn/${photoId}.jpg`,
+      photo_name: `${photoId}.jpg`,
+      room_type: "Other",
+      condition_level: "Average",
+      refurbishment_level: "Medium",
+      visible_issues: [],
+      recommended_works: [],
+      ai_summary: "ok",
+      confidence_score: 0.8,
+      source: "ai",
+      created_at: "2026-01-01T00:00:00Z",
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    isNativePlatform.mockReturnValue(true);
+    getUser.mockReturnValue(null);
+  });
+
+  it("calls replace_project_room_analyses on the native client and does not use browser rpc or auth.getUser", async () => {
+    nativeRpc.mockResolvedValue({ data: [persistedRow("p1")], error: null });
+    const { supabase } = await import("@/platform/supabase/browser");
+    const browserRpc = vi.mocked(supabase.rpc);
+    browserRpc.mockClear();
+
+    const repo = new SupabaseRoomAnalysisRepository();
+    await repo.save("proj-n", [aiRow("p1")]);
+
+    expect(getNativeSupabase).toHaveBeenCalled();
+    expect(nativeRpc).toHaveBeenCalledWith("replace_project_room_analyses", {
+      p_project_id: "proj-n",
+      p_analyses: expect.any(Array),
+    });
+    expect(browserRpc).not.toHaveBeenCalled();
+    expect(getUser).not.toHaveBeenCalled();
+    expect(repo.get("proj-n")?.[0]?.photo_id).toBe("p1");
+  });
+
+  it("RPC failure restores the previous cache and does not claim success", async () => {
+    nativeRpc.mockResolvedValueOnce({ data: [persistedRow("p1")], error: null });
+    const repo = new SupabaseRoomAnalysisRepository();
+    await repo.save("proj-n", [aiRow("p1")]);
+    expect(repo.get("proj-n")?.[0]?.photo_id).toBe("p1");
+
+    nativeRpc.mockResolvedValueOnce({ data: null, error: { message: "insert failed" } });
+    await expect(repo.save("proj-n", [aiRow("p2")])).rejects.toThrow(
+      /insert failed|Failed to save/,
+    );
+    expect(repo.get("proj-n")?.[0]?.photo_id).toBe("p1");
   });
 });
 

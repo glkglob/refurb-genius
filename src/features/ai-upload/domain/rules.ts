@@ -9,6 +9,7 @@ import {
   PHOTO_ANALYSIS_CARDINALITY_MISMATCH,
   PHOTO_ANALYSIS_MOCK_FORBIDDEN,
   PHOTO_ANALYSIS_PROVENANCE_MISMATCH,
+  PHOTO_ANALYSIS_SOURCE_SET_MISMATCH,
   PhotoAnalysisError,
   noSourcePhotosError,
 } from "./errors";
@@ -31,6 +32,50 @@ export {
   sourceSetMismatchError,
   persistenceFailedError,
 } from "./errors";
+
+/** Duplicate client photo IDs — 400 before catalogue/provider work. */
+export const PHOTO_ANALYSIS_DUPLICATE_PHOTO_IDS = "PHOTO_ANALYSIS_DUPLICATE_PHOTO_IDS" as const;
+
+/** Authoritative catalogue exceeds the synchronous Analysis work ceiling. */
+export const PHOTO_ANALYSIS_CATALOGUE_TOO_LARGE = "PHOTO_ANALYSIS_CATALOGUE_TOO_LARGE" as const;
+
+/** Private Storage signing / retrieval infrastructure is unavailable. */
+export const PHOTO_ANALYSIS_RETRIEVAL_UNAVAILABLE = "PHOTO_ANALYSIS_RETRIEVAL_UNAVAILABLE" as const;
+
+/** Vision provider is not configured or temporarily unavailable. */
+export const PHOTO_ANALYSIS_PROVIDER_UNAVAILABLE = "PHOTO_ANALYSIS_PROVIDER_UNAVAILABLE" as const;
+
+export function duplicatePhotoIdsError(): PhotoAnalysisError {
+  return new PhotoAnalysisError(PHOTO_ANALYSIS_DUPLICATE_PHOTO_IDS, "Invalid request");
+}
+
+export function catalogueTooLargeError(): PhotoAnalysisError {
+  return new PhotoAnalysisError(
+    PHOTO_ANALYSIS_CATALOGUE_TOO_LARGE,
+    "This project has too many photos for one analysis operation.",
+  );
+}
+
+export function retrievalUnavailableError(): PhotoAnalysisError {
+  return new PhotoAnalysisError(
+    PHOTO_ANALYSIS_RETRIEVAL_UNAVAILABLE,
+    "Photo analysis is temporarily unavailable.",
+  );
+}
+
+export function providerUnavailableError(): PhotoAnalysisError {
+  return new PhotoAnalysisError(
+    PHOTO_ANALYSIS_PROVIDER_UNAVAILABLE,
+    "Photo analysis is temporarily unavailable.",
+  );
+}
+
+export function staleCatalogueError(): PhotoAnalysisError {
+  return new PhotoAnalysisError(
+    PHOTO_ANALYSIS_SOURCE_SET_MISMATCH,
+    "The current project photos have changed. Refresh and run analysis again.",
+  );
+}
 
 /** Confidence below this is treated as needing human review. */
 export const CONFIDENCE_REVIEW_THRESHOLD = 0.55;
