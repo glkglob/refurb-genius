@@ -1,0 +1,16 @@
+src/features/account-deletion/application/executeAccountDeletion.server.test.ts
+  h_7ea6129503670a 22-34,37,40-41,43-47,136,138,156-206
+src/features/account-deletion/application/executeAccountDeletion.server.ts
+  h_7ea6129503670a 157-175,199-200,205-207,210-213
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "b82f7584edcab1c4e1d9e82746556a92bf2bd664",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
