@@ -8,7 +8,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { REDESIGN_STYLES } from "@/lib/redesign";
-import { checkRateLimit, rateLimitKeyForUser } from "@/lib/rate-limit";
 
 async function requireServerAuth(): Promise<{ id: string }> {
   // cookieName must match browser client ("pip-auth") or getUser() is always null.
@@ -100,22 +99,23 @@ export const runScopeAnalysisServerFn = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => scopeAnalysisInputSchema.parse(input))
   .handler(async ({ data }) => {
     const user = await requireServerAuth();
-    const key = rateLimitKeyForUser(user.id, "ai-scope");
-    const rl = checkRateLimit(key);
-    if (!rl.allowed) {
-      throw new Error(`Rate limit exceeded. Try again in ${rl.retryAfter || 60}s.`);
-    }
-    const { runSecureScopeAnalysis } =
-      await import("../infrastructure/adapters/ai-scope.adapter.server");
+    const { createSupabaseServerClient } = await import("@/serverFns/auth.server");
+    const supabase = await createSupabaseServerClient();
+    const { runAuthenticatedScopeAnalysis } =
+      await import("../infrastructure/runAuthenticatedScopeAnalysis.server");
     // Client photo.url is identity/compat only — adapter re-resolves by id
     // and signs storage_path. Client URL is never retrieval authority.
-    return runSecureScopeAnalysis({
-      ...data,
-      photos: data.photos.map((photo) => ({
-        id: photo.id,
-        url: photo.url,
-        name: photo.name,
-        size: photo.size,
-      })),
+    return runAuthenticatedScopeAnalysis({
+      userId: user.id,
+      supabase: supabase as never,
+      analysis: {
+        ...data,
+        photos: data.photos.map((photo) => ({
+          id: photo.id,
+          url: photo.url,
+          name: photo.name,
+          size: photo.size,
+        })),
+      },
     });
   });

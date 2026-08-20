@@ -135,5 +135,86 @@ describe("runSecureScopeAnalysis retrieval authority", () => {
     expect(JSON.stringify(create.mock.calls)).toContain(SIGNED);
     expect(JSON.stringify(create.mock.calls)).not.toContain(CLIENT_URL);
     expect(JSON.stringify(create.mock.calls)).not.toContain(DURABLE);
+    expect(requireUser).toHaveBeenCalled();
+  }, 15_000);
+
+  it("uses injected auth and does not call cookie requireUser", async () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("OPENAI_API_KEY", "sk-test");
+
+    const projectChain = chain({ data: { id: PROJECT }, error: null });
+    const photoChain = chain({
+      data: [
+        {
+          id: PHOTO,
+          url: DURABLE,
+          name: "room.jpg",
+          storage_path: "user-1/proj/p.jpg",
+          project_id: PROJECT,
+          user_id: "user-1",
+        },
+      ],
+      error: null,
+    });
+    fromMock.mockImplementation((table: string) =>
+      table === "projects" ? projectChain : photoChain,
+    );
+    createSignedUrl.mockResolvedValue({ data: { signedUrl: SIGNED }, error: null });
+    create.mockResolvedValue({
+      choices: [
+        {
+          message: {
+            content: JSON.stringify({
+              overall_score: 6,
+              summary: "Average condition terrace needing a medium refresh.",
+              rooms: [
+                {
+                  room: "Kitchen",
+                  condition_summary: "Dated but serviceable",
+                  issues: [
+                    {
+                      category: "Cosmetic",
+                      description: "Worn units",
+                      severity: "medium",
+                      recommended_action: "Replace units",
+                    },
+                  ],
+                  recommended_items: [
+                    {
+                      name: "Replace mid-range kitchen units",
+                      category: "both",
+                      quantity: 1,
+                      unit: "room",
+                      base_unit_cost: 8000,
+                    },
+                  ],
+                },
+              ],
+            }),
+          },
+        },
+      ],
+    });
+
+    const supabase = {
+      from: fromMock,
+      storage: { from: () => ({ createSignedUrl }) },
+    };
+    const { runSecureScopeAnalysis } = await import("./ai-scope.adapter.server");
+    await runSecureScopeAnalysis(
+      {
+        projectId: PROJECT,
+        photos: [{ id: PHOTO, url: CLIENT_URL, name: "room.jpg" }],
+        roomTags: ["Kitchen"],
+        propertyType: "Terraced",
+        bedrooms: 3,
+        region: "London",
+      },
+      { userId: "user-1", supabase },
+    );
+
+    expect(requireUser).not.toHaveBeenCalled();
+    expect(createSupabaseServerClient).not.toHaveBeenCalled();
+    expect(createSignedUrl).toHaveBeenCalledWith("user-1/proj/p.jpg", 300);
   }, 15_000);
 });
