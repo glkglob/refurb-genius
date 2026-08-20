@@ -1,0 +1,52 @@
+src/features/ai-design/domain/index.ts
+  h_7ea6129503670a 34
+src/features/ai-design/domain/validation.test.ts
+  h_7ea6129503670a 1-51
+src/features/ai-design/domain/validation.ts
+  h_7ea6129503670a 63-88
+src/features/ai-design/infrastructure/adapters/ai-scope.adapter.server.test.ts
+  h_7ea6129503670a 138-218
+src/features/ai-design/infrastructure/adapters/ai-scope.adapter.server.ts
+  h_7ea6129503670a 16,25-83,86,93,99,110,121,132-133,324,348-350
+src/features/ai-design/infrastructure/runAuthenticatedScopeAnalysis.server.test.ts
+  h_7ea6129503670a 1-115
+src/features/ai-design/infrastructure/runAuthenticatedScopeAnalysis.server.ts
+  h_7ea6129503670a 1-46
+src/features/ai-design/presentation/hooks/useScopeAnalysis.ts
+  h_7ea6129503670a 7,11
+src/features/ai-design/presentation/index.ts
+  h_7ea6129503670a 11
+src/features/ai-design/presentation/mobileScopeAnalyze.server.test.ts
+  h_7ea6129503670a 1-125
+src/features/ai-design/presentation/mobileScopeAnalyze.server.ts
+  h_7ea6129503670a 1-152
+src/features/ai-design/presentation/runScopeAnalysisForClient.test.ts
+  h_7ea6129503670a 1-144
+src/features/ai-design/presentation/runScopeAnalysisForClient.ts
+  h_7ea6129503670a 1-24
+src/features/ai-design/presentation/serverFns.ts
+  h_7ea6129503670a 102-105,108-119
+src/platform/http/mobile-api.server.test.ts
+  h_7ea6129503670a 7,29-32,41,191-223
+src/platform/http/mobile-api.server.ts
+  h_7ea6129503670a 15,65-70
+src/platform/http/mobile-scope-analyze.test.ts
+  h_7ea6129503670a 1-69
+src/platform/http/mobile-scope-analyze.ts
+  h_7ea6129503670a 1-50
+tests/invariants/feature-slice.invariant.test.ts
+  h_7ea6129503670a 172,181-184
+tests/invariants/native-scope-analysis.invariant.test.ts
+  h_7ea6129503670a 1-103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "01501181dd94834135723b61eb27579cd5c70972",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
