@@ -1,0 +1,26 @@
+docs/compliance/apple/00-compliance-register.md
+  h_7ea6129503670a 1-244
+docs/compliance/apple/03-technical-baseline.md
+  h_7ea6129503670a 1-179
+docs/compliance/apple/04-sdk-and-permissions-inventory.md
+  h_7ea6129503670a 1-186
+docs/compliance/apple/05-data-inventory.md
+  h_7ea6129503670a 1-209
+docs/compliance/apple/06-account-deletion-evidence.md
+  h_7ea6129503670a 1-140
+docs/compliance/apple/07-sign-in-with-apple-revocation-worksheet.md
+  h_7ea6129503670a 1-95
+docs/compliance/apple/08-app-privacy-declarations-worksheet.md
+  h_7ea6129503670a 1-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.22",
+  "base_commit_sha": "152aa70c17f039a113aa57cc0d2ffb879bd0c553",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
