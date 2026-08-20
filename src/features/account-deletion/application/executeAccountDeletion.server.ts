@@ -50,33 +50,37 @@ function galleryObjectPathFromValue(value: string, userId: string): string | nul
   return isOwnedObjectPath(userId, decoded) ? decoded : null;
 }
 
-function pitchDeckObjectPathFromValue(value: string, userId: string): string | null {
-  if (isOwnedObjectPath(userId, value)) return value;
-  for (const marker of [
-    "/storage/v1/object/public/pitch-decks/",
-    "/storage/v1/object/sign/pitch-decks/",
-    "/storage/v1/object/authenticated/pitch-decks/",
-  ]) {
-    const idx = value.indexOf(marker);
-    if (idx < 0) continue;
-    let decoded: string;
-    try {
-      decoded = decodeURIComponent(value.slice(idx + marker.length).split(/[?#]/)[0] ?? "");
-    } catch {
-      return null;
-    }
-    if (isOwnedObjectPath(userId, decoded)) return decoded;
-  }
-  return null;
+/**
+ * Live Preview/Production ownership/path columns differ from generated
+ * Database types for some tables. Metadata reads use a structural client so
+ * live column names are not forced through stale `user_id` typings.
+ */
+type MetadataSelectClient = {
+  from(table: string): {
+    select(column: string): {
+      eq(
+        column: string,
+        value: string,
+      ): Promise<{ data: MetadataRow[] | null; error: { message?: string } | null }>;
+    };
+  };
+};
+
+function metadataSelectClient(admin: ServiceRoleClient): MetadataSelectClient {
+  return admin as unknown as MetadataSelectClient;
 }
 
-async function selectUserColumn(
+async function selectOwnedColumn(
   admin: ServiceRoleClient,
   table: "photos" | "opportunity_photos" | "floorplan_models" | "pitch_deck_exports",
-  column: string,
+  pathColumn: string,
+  ownerColumn: string,
   userId: string,
 ): Promise<MetadataRow[]> {
-  const { data, error } = await admin.from(table).select(column).eq("user_id", userId);
+  const { data, error } = await metadataSelectClient(admin)
+    .from(table)
+    .select(pathColumn)
+    .eq(ownerColumn, userId);
   if (error) {
     logger.error("[account-deletion] metadata select failed", { table, code: "metadata_select" });
     throw new AccountDeletionError("storage_cleanup_failed", "Required storage cleanup failed.");
@@ -125,15 +129,28 @@ async function collectMetadataPaths(
   admin: ServiceRoleClient,
   userId: string,
 ): Promise<Partial<Record<AccountOwnedStorageBucket, string[]>>> {
-  const photos = await selectUserColumn(admin, "photos", "storage_path", userId);
-  const opportunityPhotos = await selectUserColumn(
+  const photos = await selectOwnedColumn(admin, "photos", "storage_path", "user_id", userId);
+  const opportunityPhotos = await selectOwnedColumn(
     admin,
     "opportunity_photos",
     "storage_path",
+    "user_id",
     userId,
   );
-  const floorplans = await selectUserColumn(admin, "floorplan_models", "model_url", userId);
-  const pitchDecks = await selectUserColumn(admin, "pitch_deck_exports", "export_url", userId);
+  const floorplans = await selectOwnedColumn(
+    admin,
+    "floorplan_models",
+    "storage_path",
+    "uploaded_by",
+    userId,
+  );
+  const pitchDecks = await selectOwnedColumn(
+    admin,
+    "pitch_deck_exports",
+    "storage_path",
+    "created_by",
+    userId,
+  );
   const galleryPaths = await collectGalleryCoverPaths(admin, userId);
 
   return {
@@ -142,13 +159,10 @@ async function collectMetadataPaths(
       ...opportunityPhotos.map((row) => asString(row.storage_path)),
     ].filter((path): path is string => Boolean(path)),
     floorplans: floorplans
-      .map((row) => asString(row.model_url))
+      .map((row) => asString(row.storage_path))
       .filter((path): path is string => Boolean(path)),
     "pitch-decks": pitchDecks
-      .map((row) => {
-        const raw = asString(row.export_url);
-        return raw ? pitchDeckObjectPathFromValue(raw, userId) : null;
-      })
+      .map((row) => asString(row.storage_path))
       .filter((path): path is string => Boolean(path)),
     gallery: galleryPaths,
   };
