@@ -19,16 +19,32 @@ vi.mock("./deleteOwnedStorage.server", async (importOriginal) => {
 
 type TableData = Record<string, Record<string, unknown>[]>;
 
+type AdminUserLookup = {
+  data: { user: { id: string } | null };
+  error: { message?: string; status?: number } | null;
+};
+
+function presentUser(): AdminUserLookup {
+  return { data: { user: { id: USER } }, error: null };
+}
+
+function absentUser(): AdminUserLookup {
+  return { data: { user: null }, error: null };
+}
+
 function makeAdmin(options: {
   tables?: TableData;
-  userExists?: boolean;
+  getUserByIdResults?: AdminUserLookup[];
   deleteError?: { message: string; status?: number } | null;
 }) {
+  const lookups = options.getUserByIdResults ?? [presentUser()];
+  let lookupIndex = 0;
   const deleteUser = vi.fn(async () => ({ error: options.deleteError ?? null }));
-  const getUserById = vi.fn(async () => ({
-    data: { user: options.userExists === false ? null : { id: USER } },
-    error: options.userExists === false ? { message: "User not found", status: 404 } : null,
-  }));
+  const getUserById = vi.fn(async () => {
+    const next = lookups[Math.min(lookupIndex, lookups.length - 1)] ?? presentUser();
+    lookupIndex += 1;
+    return next;
+  });
 
   const admin = {
     from(table: string) {
@@ -117,9 +133,9 @@ describe("executeAccountDeletion", () => {
     expect(tables).not.toContain("analysis_jobs");
   });
 
-  it("returns success without deleteUser when the auth user is already gone", async () => {
+  it("returns success without deleteUser when a successful lookup proves the user is absent", async () => {
     const { admin, deleteUser } = makeAdmin({
-      userExists: false,
+      getUserByIdResults: [absentUser()],
       tables: { photos: [], projects: [] },
     });
     await expect(executeAccountDeletion(USER, admin)).resolves.toEqual({ success: true });
@@ -136,5 +152,56 @@ describe("executeAccountDeletion", () => {
     await executeAccountDeletion(USER, admin);
     const metadata = deleteOwnedStorageForUser.mock.calls[0]?.[2] as Record<string, string[]>;
     expect(metadata["project-photos"]).toEqual([`${OTHER}/stolen.jpg`]);
+  });
+
+  it("throws when pre-delete lookup returns a 404-shaped error instead of proving absence", async () => {
+    const { admin, deleteUser } = makeAdmin({
+      getUserByIdResults: [
+        { data: { user: null }, error: { status: 404, message: "User not found" } },
+      ],
+      tables: { photos: [], projects: [] },
+    });
+    await expect(executeAccountDeletion(USER, admin)).rejects.toMatchObject({
+      code: "auth_delete_failed",
+    });
+    expect(deleteUser).not.toHaveBeenCalled();
+  });
+
+  it("treats deleteUser not-found-shaped errors as success only after a successful absence lookup", async () => {
+    const { admin, deleteUser, getUserById } = makeAdmin({
+      getUserByIdResults: [presentUser(), absentUser()],
+      deleteError: { status: 500, message: "User not found in auth provider" },
+      tables: { photos: [], projects: [] },
+    });
+    await expect(executeAccountDeletion(USER, admin)).resolves.toEqual({ success: true });
+    expect(deleteUser).toHaveBeenCalledTimes(1);
+    expect(getUserById).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws when deleteUser errors and the follow-up lookup still finds the user", async () => {
+    const { admin, deleteUser } = makeAdmin({
+      getUserByIdResults: [presentUser(), presentUser()],
+      deleteError: { status: 500, message: "User not found in auth provider" },
+      tables: { photos: [], projects: [] },
+    });
+    await expect(executeAccountDeletion(USER, admin)).rejects.toMatchObject({
+      code: "auth_delete_failed",
+    });
+    expect(deleteUser).toHaveBeenCalledTimes(1);
+  });
+
+  it("throws when deleteUser errors and the follow-up lookup itself errors", async () => {
+    const { admin, deleteUser } = makeAdmin({
+      getUserByIdResults: [
+        presentUser(),
+        { data: { user: null }, error: { status: 500, message: "gateway not found" } },
+      ],
+      deleteError: { status: 500, message: "User not found in auth provider" },
+      tables: { photos: [], projects: [] },
+    });
+    await expect(executeAccountDeletion(USER, admin)).rejects.toMatchObject({
+      code: "auth_delete_failed",
+    });
+    expect(deleteUser).toHaveBeenCalledTimes(1);
   });
 });

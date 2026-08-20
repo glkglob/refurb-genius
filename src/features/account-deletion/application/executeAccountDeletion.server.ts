@@ -154,11 +154,25 @@ async function collectMetadataPaths(
   };
 }
 
-function isAuthUserMissing(error: { message?: string; status?: number } | null): boolean {
-  if (!error) return false;
-  const status = error.status;
-  const msg = (error.message ?? "").toLowerCase();
-  return status === 404 || msg.includes("not found") || msg.includes("user not found");
+function throwAuthDeleteFailed(): never {
+  logger.error("[account-deletion] auth delete failed", { code: "auth_delete_failed" });
+  throw new AccountDeletionError("auth_delete_failed", "Account deletion failed.");
+}
+
+/**
+ * Absence is proven only by a successful admin round-trip with no user.
+ * Any non-null error (including 404-shaped gateway errors) is failure, not absence.
+ */
+function userFromSuccessfulLookup(result: {
+  data?: { user?: { id: string } | null } | null;
+  error?: { message?: string; status?: number } | null;
+}): { id: string } | null {
+  if (result.error) {
+    throwAuthDeleteFailed();
+  }
+  const user = result.data?.user;
+  if (!user?.id) return null;
+  return user;
 }
 
 export async function executeAccountDeletion(
@@ -182,22 +196,20 @@ export async function executeAccountDeletion(
     throw new AccountDeletionError("storage_cleanup_failed", "Required storage cleanup failed.");
   }
 
-  const existing = await admin.auth.admin.getUserById(userId);
-  if (existing.error && !isAuthUserMissing(existing.error)) {
-    logger.error("[account-deletion] auth lookup failed", { code: "auth_delete_failed" });
-    throw new AccountDeletionError("auth_delete_failed", "Account deletion failed.");
-  }
-  if (!existing.data?.user || isAuthUserMissing(existing.error)) {
-    // Auth user already gone after Storage cleanup (lost prior success / retry).
+  const existingUser = userFromSuccessfulLookup(await admin.auth.admin.getUserById(userId));
+  if (!existingUser) {
     return ACCOUNT_DELETION_SUCCESS;
   }
 
   const { error } = await admin.auth.admin.deleteUser(userId);
-  if (error && !isAuthUserMissing(error)) {
-    logger.error("[account-deletion] auth delete failed", { code: "auth_delete_failed" });
-    throw new AccountDeletionError("auth_delete_failed", "Account deletion failed.");
+  if (!error) {
+    void ACCOUNT_OWNED_STORAGE_BUCKETS;
+    return ACCOUNT_DELETION_SUCCESS;
   }
 
-  void ACCOUNT_OWNED_STORAGE_BUCKETS;
+  const verifiedUser = userFromSuccessfulLookup(await admin.auth.admin.getUserById(userId));
+  if (verifiedUser) {
+    throwAuthDeleteFailed();
+  }
   return ACCOUNT_DELETION_SUCCESS;
 }
