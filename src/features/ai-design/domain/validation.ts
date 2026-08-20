@@ -60,6 +60,32 @@ export function safeParseScopeResult(raw: unknown): ValidatedScopeAnalysisResult
   return res.success ? res.data : null;
 }
 
+function isResponseLike(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  if (typeof Response !== "undefined" && value instanceof Response) return true;
+  return (
+    "ok" in value &&
+    "status" in value &&
+    "headers" in value &&
+    typeof (value as { text?: unknown }).text === "function"
+  );
+}
+
+/** Fail closed when a scope-analysis payload is not a valid result with rooms. */
+export function assertScopeAnalysisResult(value: unknown): ValidatedScopeAnalysisResult {
+  if (isResponseLike(value)) {
+    throw new Error("Scope analysis response was not a result");
+  }
+  if (value && typeof value === "object" && !Array.isArray(value) && "data" in value) {
+    throw new Error("Scope analysis response was not a result");
+  }
+  const parsed = scopeAnalysisResultSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error("Scope analysis response was not a result");
+  }
+  return parsed.data;
+}
+
 export function safeParseRedesignText(raw: unknown): ValidatedRedesignConceptText | null {
   const res = redesignConceptTextSchema.safeParse(raw);
   return res.success ? res.data : null;

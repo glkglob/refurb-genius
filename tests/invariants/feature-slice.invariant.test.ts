@@ -169,7 +169,7 @@ test("ai-design presentation serverFns validates input and uses dynamic adapter 
   assert.match(serverFns, /\.inputValidator\(/);
   assert.match(serverFns, /requireServerAuth/);
   assert.match(serverFns, /runAuthenticatedRedesignGeneration\.server/);
-  assert.match(serverFns, /ai-scope\.adapter\.server/);
+  assert.match(serverFns, /runAuthenticatedScopeAnalysis\.server/);
   assert.match(serverFns, /await import\(/);
   const generate = readTrimmed(
     join(
@@ -178,6 +178,10 @@ test("ai-design presentation serverFns validates input and uses dynamic adapter 
     ),
   );
   assert.match(generate, /ai-redesign\.adapter\.server/);
+  const scopeRunner = readTrimmed(
+    join(ROOT, "src/features/ai-design/infrastructure/runAuthenticatedScopeAnalysis.server.ts"),
+  );
+  assert.match(scopeRunner, /ai-scope\.adapter\.server/);
 });
 
 test("estimate presentation serverFns validates input and uses dynamic adapter import", () => {

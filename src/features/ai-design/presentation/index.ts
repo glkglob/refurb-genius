@@ -8,6 +8,7 @@ export {
   runScopeAnalysisServerFn,
 } from "./serverFns";
 export { listRedesignConceptsForClient } from "./listRedesignConceptsForClient";
+export { runScopeAnalysisForClient } from "./runScopeAnalysisForClient";
 export { generateRedesignConceptsForClient } from "./generateRedesignConceptsForClient";
 export { selectRedesignConceptForClient } from "./selectRedesignConceptForClient";
 export {
