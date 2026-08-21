@@ -9,6 +9,7 @@ import { join } from "node:path";
 
 const signOut = vi.fn();
 const navigate = vi.fn();
+const toggleTheme = vi.fn();
 let pathname = "/dashboard";
 
 vi.mock("@/features/auth", () => ({
@@ -17,19 +18,41 @@ vi.mock("@/features/auth", () => ({
   }),
 }));
 
-vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children, to, ...rest }: { children?: ReactNode; to: string; [key: string]: unknown }) =>
-    createElement("a", { href: typeof to === "string" ? to : "#", ...rest }, children),
-  useNavigate: () => navigate,
-  useRouterState: ({ select }: { select: (s: { location: { pathname: string } }) => string }) =>
-    select({ location: { pathname } }),
+vi.mock("@/hooks/useTheme", () => ({
+  useTheme: () => ({
+    theme: "dark",
+    resolvedTheme: "dark",
+    setTheme: vi.fn(),
+    toggleTheme: (...args: unknown[]) => toggleTheme(...args),
+  }),
 }));
+
+vi.mock("@tanstack/react-router", async () => {
+  const React = await import("react");
+  const MockLink = React.forwardRef<
+    HTMLAnchorElement,
+    { children?: React.ReactNode; to: string } & React.AnchorHTMLAttributes<HTMLAnchorElement>
+  >(function MockLink({ children, to, ...rest }, ref) {
+    return React.createElement(
+      "a",
+      { href: typeof to === "string" ? to : "#", ...rest, ref },
+      children,
+    );
+  });
+  return {
+    Link: MockLink,
+    useNavigate: () => navigate,
+    useRouterState: ({ select }: { select: (s: { location: { pathname: string } }) => string }) =>
+      select({ location: { pathname } }),
+  };
+});
 
 import { MobileTopBar } from "./MobileTopBar";
 
 beforeEach(() => {
   signOut.mockReset();
   navigate.mockReset();
+  toggleTheme.mockReset();
   signOut.mockResolvedValue(undefined);
   pathname = "/dashboard";
 });
@@ -44,6 +67,185 @@ async function openMoreMenu() {
   });
   await screen.findByRole("menu");
 }
+
+function focusedMenuItem(): HTMLElement {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement) || active.getAttribute("role") !== "menuitem") {
+    throw new Error(
+      `Expected a focused menuitem, received ${active instanceof HTMLElement ? `${active.tagName} role=${active.getAttribute("role")}` : String(active)}`,
+    );
+  }
+  return active;
+}
+
+async function openMoreMenuFromKeyboard() {
+  const trigger = screen.getByTestId("mobile-nav-more");
+  trigger.focus();
+  expect(trigger).toHaveFocus();
+  await act(async () => {
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+  });
+  const menu = await screen.findByRole("menu");
+  await waitFor(() => {
+    const active = document.activeElement;
+    expect(active === menu || active?.getAttribute("role") === "menuitem").toBe(true);
+  });
+  return menu;
+}
+
+async function moveMenuFocus(key: "ArrowDown" | "ArrowUp") {
+  const from = document.activeElement;
+  expect(from).toBeInstanceOf(HTMLElement);
+  await act(async () => {
+    fireEvent.keyDown(from as HTMLElement, { key });
+  });
+  await waitFor(() => {
+    expect(document.activeElement).not.toBe(from);
+    expect(document.activeElement).toHaveAttribute("role", "menuitem");
+  });
+  return focusedMenuItem();
+}
+
+async function navigateArrowDownToToggleTheme() {
+  const menu = await screen.findByRole("menu");
+  if (document.activeElement === menu) {
+    await moveMenuFocus("ArrowDown");
+  }
+
+  expect(focusedMenuItem()).toHaveAttribute("data-testid", "mobile-nav-trades_marketplace");
+  expect(await moveMenuFocus("ArrowDown")).toHaveAttribute("data-testid", "mobile-nav-settings");
+  const themeItem = await moveMenuFocus("ArrowDown");
+  expect(themeItem).toHaveAttribute("data-testid", "mobile-nav-theme");
+  expect(themeItem).toHaveAttribute("role", "menuitem");
+  expect(themeItem).toHaveAccessibleName("Toggle theme");
+  expect(themeItem).toHaveFocus();
+  expect(themeItem).toHaveAttribute("data-highlighted");
+  return themeItem;
+}
+
+const SAFE_AREA_TOP_CLASS = "supports-[padding:max(0px)]:pt-[env(safe-area-inset-top)]";
+
+describe("MobileTopBar safe-area (IOS-DESIGN-COMPLETION)", () => {
+  it("applies top inset on the header, not the h-14 row", () => {
+    const src = readFileSync(join(__dirname, "MobileTopBar.tsx"), "utf8");
+    expect(src).toContain(SAFE_AREA_TOP_CLASS);
+    expect(src).toMatch(
+      /<header[\s\S]*supports-\[padding:max\(0px\)\]:pt-\[env\(safe-area-inset-top\)\][\s\S]*mobile-top-bar-row/,
+    );
+    expect(src).not.toMatch(
+      /h-14[^"]*supports-\[padding:max\(0px\)\]:pt-\[env\(safe-area-inset-top\)\]/,
+    );
+  });
+
+  it("renders header with safe-area class and preserved row height", () => {
+    render(createElement(MobileTopBar));
+    const header = screen.getByTestId("mobile-top-bar");
+    expect(header.className).toContain(SAFE_AREA_TOP_CLASS);
+    expect(header.className).not.toMatch(/(?:^|\s)h-14(?:\s|$)/);
+    expect(screen.getByTestId("mobile-top-bar-row").className).toMatch(/(?:^|\s)h-14(?:\s|$)/);
+  });
+
+  it("exposes a Theme menuitem in More, not a sixth primary tab", async () => {
+    render(createElement(MobileTopBar));
+    const primary = screen.getByTestId("mobile-primary-nav").textContent ?? "";
+    expect(primary).not.toMatch(/Theme/i);
+    await openMoreMenu();
+    const themeItem = screen.getByRole("menuitem", { name: "Toggle theme" });
+    expect(themeItem.getAttribute("data-testid")).toBe("mobile-nav-theme");
+    expect(themeItem.getAttribute("role")).toBe("menuitem");
+    expect(screen.queryByRole("button", { name: "Toggle theme" })).toBeNull();
+  });
+
+  it("reaches the Theme menuitem with arrow keys and activates it from the keyboard", async () => {
+    render(createElement(MobileTopBar));
+    await openMoreMenuFromKeyboard();
+    const items = screen.getAllByRole("menuitem");
+    expect(items.map((item) => item.getAttribute("data-testid"))).toEqual([
+      "mobile-nav-trades_marketplace",
+      "mobile-nav-settings",
+      "mobile-nav-theme",
+      "mobile-nav-sign-out",
+    ]);
+    const themeItem = screen.getByRole("menuitem", { name: "Toggle theme" });
+    expect(themeItem).toHaveAttribute("role", "menuitem");
+    expect(themeItem.tabIndex).toBeGreaterThanOrEqual(-1);
+
+    expect(toggleTheme).not.toHaveBeenCalled();
+    await navigateArrowDownToToggleTheme();
+    expect(document.activeElement).toBe(themeItem);
+    expect(themeItem).toHaveFocus();
+
+    await act(async () => {
+      fireEvent.keyDown(document.activeElement as HTMLElement, { key: "Enter" });
+    });
+    expect(toggleTheme).toHaveBeenCalledTimes(1);
+
+    toggleTheme.mockClear();
+    await openMoreMenuFromKeyboard();
+    await navigateArrowDownToToggleTheme();
+    await act(async () => {
+      fireEvent.keyDown(document.activeElement as HTMLElement, { key: " " });
+    });
+    expect(toggleTheme).toHaveBeenCalledTimes(1);
+  });
+
+  it("moves actual Radix menu focus to Toggle theme with ArrowDown", async () => {
+    render(createElement(MobileTopBar));
+    const menu = await openMoreMenuFromKeyboard();
+    const initiallyFocused = document.activeElement;
+    expect(initiallyFocused === menu || initiallyFocused?.getAttribute("role") === "menuitem").toBe(
+      true,
+    );
+
+    const themeItem = await navigateArrowDownToToggleTheme();
+    expect(themeItem).not.toBe(initiallyFocused);
+    expect(document.activeElement).toBe(themeItem);
+    expect(themeItem).toHaveFocus();
+    expect(themeItem).toHaveAttribute("data-highlighted");
+  });
+
+  it("returns actual Radix menu focus to Toggle theme with ArrowUp", async () => {
+    render(createElement(MobileTopBar));
+    await openMoreMenuFromKeyboard();
+    const themeItem = await navigateArrowDownToToggleTheme();
+    expect(themeItem).toHaveFocus();
+
+    const signOutItem = await moveMenuFocus("ArrowDown");
+    expect(signOutItem).toHaveAttribute("data-testid", "mobile-nav-sign-out");
+    expect(signOutItem).toHaveFocus();
+    expect(themeItem).not.toHaveFocus();
+
+    const returned = await moveMenuFocus("ArrowUp");
+    expect(returned).toBe(themeItem);
+    expect(returned).toHaveAccessibleName("Toggle theme");
+    expect(themeItem).toHaveFocus();
+    expect(themeItem).toHaveAttribute("data-highlighted");
+  });
+
+  it("activates Toggle theme with Enter after genuine ArrowDown traversal", async () => {
+    render(createElement(MobileTopBar));
+    await openMoreMenuFromKeyboard();
+    toggleTheme.mockClear();
+    const themeItem = await navigateArrowDownToToggleTheme();
+    expect(toggleTheme).not.toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.keyDown(themeItem, { key: "Enter" });
+    });
+    expect(toggleTheme).toHaveBeenCalledTimes(1);
+  });
+
+  it("activates Toggle theme with Space after genuine ArrowDown traversal", async () => {
+    render(createElement(MobileTopBar));
+    await openMoreMenuFromKeyboard();
+    toggleTheme.mockClear();
+    const themeItem = await navigateArrowDownToToggleTheme();
+    expect(toggleTheme).not.toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.keyDown(themeItem, { key: " " });
+    });
+    expect(toggleTheme).toHaveBeenCalledTimes(1);
+  });
+});
 
 describe("MobileTopBar IA-8 final mobile destinations", () => {
   it("exposes Home | Projects | + New | Copilot primary row from canonical authority", () => {

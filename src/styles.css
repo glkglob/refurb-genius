@@ -234,6 +234,12 @@
     background-attachment: fixed;
   }
 
+  @media (pointer: coarse) {
+    body {
+      background-attachment: scroll;
+    }
+  }
+
   @media (prefers-reduced-motion: no-preference) {
     *,
     *::before,

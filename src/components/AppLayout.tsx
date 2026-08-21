@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cn } from "@repo/ui";
 import { Sidebar } from "./Sidebar";
 import { RequireAuth } from "./RequireAuth";
 import { MobileTopBar } from "./MobileTopBar";
@@ -9,22 +10,37 @@ export function AppLayout({
   title,
   subtitle,
   actions,
+  mobileBottomReserve = false,
 }: {
   children: ReactNode;
   title?: string;
   subtitle?: string;
   actions?: ReactNode;
+  /** Extra main padding so a mobile sticky CTA cannot cover Footer/legal links. */
+  mobileBottomReserve?: boolean;
 }) {
   return (
     <RequireAuth>
-      <div className="flex min-h-screen w-full bg-background">
+      <div className="flex min-h-dvh w-full bg-background">
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-[100] focus:rounded-xl focus:bg-background focus:px-4 focus:py-3 focus:text-sm focus:font-medium focus:text-foreground focus:shadow-md focus:outline-none focus:ring-2 focus:ring-ring"
+          data-testid="skip-to-main-content"
+        >
+          Skip to main content
+        </a>
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <MobileTopBar />
           <main
             id="main-content"
             tabIndex={-1}
-            className="relative min-w-0 flex-1 overflow-x-hidden px-3 py-4 outline-none sm:px-8 sm:py-10"
+            className={cn(
+              "relative min-w-0 flex-1 overflow-x-hidden px-3 py-4 outline-none sm:px-8 sm:py-10",
+              mobileBottomReserve
+                ? "pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-10"
+                : "pb-[max(1.5rem,env(safe-area-inset-bottom,0px))]",
+            )}
           >
             <div
               aria-hidden

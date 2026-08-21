@@ -128,7 +128,7 @@ export function ProjectStageNav({ projectId, stages, className }: ProjectStageNa
         data-testid="project-stage-nav-scroller"
         className={cn(
           // Local horizontal scroll only — must not cause whole-page overflow.
-          "overflow-x-auto overscroll-x-contain scroll-smooth [scrollbar-width:thin]",
+          "overflow-x-auto overscroll-x-contain scroll-smooth touch-pan-x [scrollbar-width:thin]",
           "snap-x snap-mandatory sm:snap-none",
           // Room so edge items can sit fully in view when snapped.
           "scroll-pl-1 scroll-pr-1",

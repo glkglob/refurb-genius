@@ -43,24 +43,24 @@ function decorativeIconProps(className?: string) {
 }
 
 const fieldClassName = cn(
-  "h-14 min-h-[52px] rounded-2xl border-[#d8d1c7] bg-white px-4 text-[#111827]",
-  "placeholder:text-[#5f5a54]/70",
-  "focus-visible:border-[#0f766e] focus-visible:ring-2 focus-visible:ring-[#0f766e]/30",
+  "field-surface h-14 min-h-11 rounded-2xl px-4",
+  "placeholder:text-muted-foreground/70",
+  "focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30",
 );
 
 const primaryButtonClassName = cn(
-  "h-14 min-h-11 w-full rounded-2xl bg-[#0f766e] text-base font-semibold text-white",
-  "hover:bg-[#115e59] focus-visible:ring-2 focus-visible:ring-[#0f766e]/40 focus-visible:ring-offset-2",
+  "h-14 min-h-11 w-full rounded-2xl bg-primary text-base font-semibold text-primary-foreground",
+  "hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
   "disabled:opacity-60",
 );
 
 const outlineButtonClassName = cn(
-  "h-12 min-h-11 w-full rounded-2xl border-[#d8d1c7] bg-white text-[#111827]",
-  "hover:bg-[#f7f5f2] focus-visible:ring-2 focus-visible:ring-[#0f766e]/25",
+  "h-12 min-h-11 w-full rounded-2xl border-border bg-card text-foreground",
+  "hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary/25",
 );
 
 const legalLinkClassName =
-  "font-medium text-[#0f766e] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40 rounded-sm";
+  "font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 rounded-sm";
 
 const AUTH_VALUE_CARDS = [
   {
@@ -455,7 +455,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
         >
           <div
             className={cn(
-              "w-full rounded-[32px] border border-[#d8d1c7] bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.10),0_10px_30px_rgba(17,24,39,0.08)]",
+              "w-full rounded-[32px] border border-border bg-card p-6 shadow-[0_20px_60px_rgba(15,23,42,0.10),0_10px_30px_rgba(17,24,39,0.08)]",
               "sm:p-8 lg:p-10",
             )}
           >
@@ -464,19 +464,19 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
             ) : (
               <>
                 <div className="mb-6 space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#0f766e]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                     {pageEyebrow}
                   </p>
-                  <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight text-[#111827] sm:text-[2rem]">
+                  <h1 className="text-[1.75rem] font-semibold leading-tight tracking-tight text-foreground sm:text-[2rem]">
                     {pageHeading}
                   </h1>
-                  <p className="text-sm leading-relaxed text-[#5f5a54] sm:text-[0.95rem]">
+                  <p className="text-sm leading-relaxed text-muted-foreground sm:text-[0.95rem]">
                     {pageSubheading}
                   </p>
 
                   {!isReset && (
                     <div
-                      className="mt-4 rounded-2xl border border-[#d8d1c7] bg-[#f7f5f2] p-1"
+                      className="mt-4 rounded-2xl border border-border bg-muted p-1"
                       role="group"
                       aria-label="Authentication mode"
                     >
@@ -487,8 +487,8 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                           className={cn(
                             "h-11 w-full rounded-xl text-sm font-medium",
                             isSignIn
-                              ? "bg-white text-[#111827] shadow-sm hover:bg-white"
-                              : "text-[#5f5a54] hover:bg-white/60 hover:text-[#111827]",
+                              ? "bg-card text-foreground shadow-sm hover:bg-card"
+                              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                           )}
                           onClick={() => switchMode("signin")}
                           aria-pressed={isSignIn}
@@ -501,8 +501,8 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                           className={cn(
                             "h-11 w-full rounded-xl text-sm font-medium",
                             isSignUp
-                              ? "bg-white text-[#111827] shadow-sm hover:bg-white"
-                              : "text-[#5f5a54] hover:bg-white/60 hover:text-[#111827]",
+                              ? "bg-card text-foreground shadow-sm hover:bg-card"
+                              : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                           )}
                           onClick={() => switchMode("signup")}
                           aria-pressed={isSignUp}
@@ -542,7 +542,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                 <form className="space-y-5" onSubmit={handleSubmit} noValidate>
                   {!isReset && (
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-[#111827]">
+                      <Label htmlFor="email" className="text-foreground">
                         Email address
                       </Label>
                       <Input
@@ -559,7 +559,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                         className={fieldClassName}
                       />
                       {isSignUp && (
-                        <p id="email-hint" className="text-xs text-[#5f5a54]">
+                        <p id="email-hint" className="text-xs text-muted-foreground">
                           We&apos;ll use this for sign-in and account recovery.
                         </p>
                       )}
@@ -568,14 +568,14 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-3">
-                      <Label htmlFor="password" className="text-[#111827]">
+                      <Label htmlFor="password" className="text-foreground">
                         {isReset ? "New password" : "Password"}
                       </Label>
                       {isSignIn && (
                         <Button
                           type="button"
                           variant="link"
-                          className="h-auto p-0 text-sm font-medium text-[#0f766e] hover:text-[#115e59]"
+                          className="h-auto p-0 text-sm font-medium text-primary hover:text-primary"
                           onClick={handleForgotPassword}
                           disabled={formDisabled}
                         >
@@ -600,7 +600,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                         type="button"
                         size="icon"
                         variant="ghost"
-                        className="absolute right-1.5 top-1.5 h-11 w-11 rounded-xl text-[#5f5a54] hover:bg-[#f7f5f2] hover:text-[#111827]"
+                        className="absolute right-1.5 top-1.5 h-11 w-11 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
                         onClick={() => setShowPassword((current) => !current)}
                         aria-label={showPassword ? "Hide password" : "Show password"}
                         disabled={formDisabled}
@@ -613,7 +613,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                       </Button>
                     </div>
                     {isSignUp && (
-                      <p id="password-hint" className="text-xs text-[#5f5a54]">
+                      <p id="password-hint" className="text-xs text-muted-foreground">
                         Minimum 6 characters. You can change this later from your account.
                       </p>
                     )}
@@ -621,7 +621,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 
                   {(isSignUp || isReset) && (
                     <div className="space-y-2">
-                      <Label htmlFor="confirm-password" className="text-[#111827]">
+                      <Label htmlFor="confirm-password" className="text-foreground">
                         Confirm password
                       </Label>
                       <div className="relative">
@@ -640,7 +640,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                           type="button"
                           size="icon"
                           variant="ghost"
-                          className="absolute right-1.5 top-1.5 h-11 w-11 rounded-xl text-[#5f5a54] hover:bg-[#f7f5f2] hover:text-[#111827]"
+                          className="absolute right-1.5 top-1.5 h-11 w-11 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"
                           onClick={() => setShowConfirmPassword((current) => !current)}
                           aria-label={
                             showConfirmPassword
@@ -660,19 +660,19 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                   )}
 
                   {isSignUp && (
-                    <fieldset className="space-y-3 rounded-2xl border border-[#d8d1c7] bg-[#f7f5f2] p-4 sm:p-5">
-                      <legend className="flex items-center gap-2 px-1 text-sm font-medium text-[#111827]">
+                    <fieldset className="space-y-3 rounded-2xl border border-border bg-muted p-4 sm:p-5">
+                      <legend className="flex items-center gap-2 px-1 text-sm font-medium text-foreground">
                         Optional profile details
-                        <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-[#5f5a54] ring-1 ring-[#d8d1c7]">
+                        <span className="rounded-full bg-card px-2 py-0.5 text-[11px] font-medium text-muted-foreground ring-1 ring-border">
                           Optional
                         </span>
                       </legend>
-                      <p className="text-xs text-[#5f5a54]">
+                      <p className="text-xs text-muted-foreground">
                         Helps personalise your workspace. You can skip and add later.
                       </p>
                       <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
-                          <Label htmlFor="name" className="text-[#111827]">
+                          <Label htmlFor="name" className="text-foreground">
                             Full name
                           </Label>
                           <Input
@@ -686,7 +686,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="company" className="text-[#111827]">
+                          <Label htmlFor="company" className="text-foreground">
                             Company
                           </Label>
                           <Input
@@ -704,7 +704,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                   )}
 
                   {isSignUp && (
-                    <div className="flex items-start gap-3 rounded-2xl border border-[#d8d1c7] bg-white p-4">
+                    <div className="flex items-start gap-3 rounded-2xl border border-border bg-card p-4">
                       {/*
                         Native checkbox (not Radix): Radix injects a bubble <input aria-hidden
                         tabIndex={-1}> which fails axe "aria-hidden-focus".
@@ -716,16 +716,16 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                         onChange={(event) => setAgreeTerms(event.target.checked)}
                         disabled={formDisabled}
                         className={cn(
-                          "mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-md border border-[#d8d1c7]",
-                          "accent-[#0f766e]",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0f766e]/40 focus-visible:ring-offset-2",
+                          "mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-md border border-border",
+                          "accent-primary",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2",
                           "disabled:cursor-not-allowed disabled:opacity-50",
                         )}
                       />
-                      <div className="text-sm leading-relaxed text-[#5f5a54]">
+                      <div className="text-sm leading-relaxed text-muted-foreground">
                         <Label
                           htmlFor="terms-consent"
-                          className="cursor-pointer text-sm leading-relaxed text-[#5f5a54]"
+                          className="cursor-pointer text-sm leading-relaxed text-muted-foreground"
                         >
                           I agree to the
                         </Label>{" "}
@@ -777,8 +777,8 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                 </form>
 
                 {!isReset && (
-                  <p className="mt-4 flex items-center justify-center gap-2 text-xs text-[#5f5a54]">
-                    <Check {...decorativeIconProps("h-3.5 w-3.5 text-[#0f766e]")} />
+                  <p className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <Check {...decorativeIconProps("h-3.5 w-3.5 text-primary")} />
                     <span>Secure • Protected by Supabase</span>
                   </p>
                 )}
@@ -790,11 +790,11 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                       role="separator"
                       aria-label="Or continue with social account"
                     >
-                      <Separator className="flex-1 bg-[#d8d1c7]" />
-                      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[#5f5a54]">
+                      <Separator className="flex-1 bg-border" />
+                      <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
                         Or continue with
                       </span>
-                      <Separator className="flex-1 bg-[#d8d1c7]" />
+                      <Separator className="flex-1 bg-border" />
                     </div>
 
                     <div className="grid gap-2">
@@ -818,7 +818,7 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                           </>
                         )}
                       </Button>
-                      <p id="magic-link-hint" className="text-xs text-[#5f5a54]">
+                      <p id="magic-link-hint" className="text-xs text-muted-foreground">
                         Uses the email address above. Check your inbox for a secure sign-in link.
                       </p>
 
@@ -890,12 +890,12 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
                 )}
 
                 {!isReset && (
-                  <div className="mt-6 text-center text-sm text-[#5f5a54]">
+                  <div className="mt-6 text-center text-sm text-muted-foreground">
                     {isSignIn ? "New to Refurb Genius? " : "Already have an account? "}
                     <Button
                       type="button"
                       variant="link"
-                      className="h-auto p-0 text-sm font-semibold text-[#0f766e] hover:text-[#115e59]"
+                      className="h-auto p-0 text-sm font-semibold text-primary hover:text-primary"
                       onClick={() => switchMode(isSignIn ? "signup" : "signin")}
                     >
                       {isSignIn ? "Create an account" : "Sign in"}
@@ -914,14 +914,14 @@ export function AuthExperience({ initialMode, redirect }: AuthExperienceProps) {
 function VerificationPanel({ email, onBack }: { email: string; onBack: () => void }) {
   return (
     <div className="space-y-6 text-center">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#ece7df]">
-        <Mail {...decorativeIconProps("h-6 w-6 text-[#0f766e]")} />
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
+        <Mail {...decorativeIconProps("h-6 w-6 text-primary")} />
       </div>
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight text-[#111827]">Check your email</h1>
-        <p className="text-sm leading-relaxed text-[#5f5a54]">
-          We sent a verification link to <span className="font-medium text-[#111827]">{email}</span>
-          . Open it, then sign in.
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground">Check your email</h1>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          We sent a verification link to{" "}
+          <span className="font-medium text-foreground">{email}</span>. Open it, then sign in.
         </p>
       </div>
       <Button type="button" className={primaryButtonClassName} onClick={onBack}>
@@ -941,7 +941,7 @@ function AuthPageShell({
   onHeaderAction: () => void;
 }) {
   return (
-    <div className="min-h-screen bg-[#f7f5f2] text-[#111827]">
+    <div className="min-h-dvh bg-background text-foreground supports-[padding:max(0px)]:pt-[env(safe-area-inset-top)]">
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-5 lg:px-10">
         <div className="flex min-w-0 items-center gap-3">
           <div
@@ -951,14 +951,16 @@ function AuthPageShell({
             RG
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-[#111827]">Refurb Genius</p>
-            <p className="truncate text-xs text-[#5f5a54]">Property refurbishment analysis</p>
+            <p className="truncate text-sm font-semibold text-foreground">Refurb Genius</p>
+            <p className="truncate text-xs text-muted-foreground">
+              Property refurbishment analysis
+            </p>
           </div>
         </div>
         <Button
           type="button"
           variant="outline"
-          className="h-11 shrink-0 rounded-2xl border-[#d8d1c7] bg-white px-4 text-sm font-medium text-[#111827] hover:bg-white"
+          className="h-11 shrink-0 rounded-2xl border-border bg-card px-4 text-sm font-medium text-foreground hover:bg-card"
           onClick={onHeaderAction}
         >
           {headerActionLabel}
@@ -984,20 +986,20 @@ function AuthProductPanel({
       role="region"
       className={cn(
         "flex flex-col justify-center",
-        compactOnMobile && "max-lg:border-t max-lg:border-[#d8d1c7] max-lg:pt-8",
+        compactOnMobile && "max-lg:border-t max-lg:border-border max-lg:pt-8",
         className,
       )}
       aria-label="Product overview"
     >
-      <div className="rounded-[32px] border border-[#d8d1c7] bg-[#ece7df] p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-8 lg:p-10">
-        <span className="inline-flex rounded-full bg-[#0f766e]/10 px-3 py-1 text-xs font-semibold text-[#0f766e] ring-1 ring-[#0f766e]/20">
+      <div className="rounded-[32px] border border-border bg-muted p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:p-8 lg:p-10">
+        <span className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary ring-1 ring-primary/20">
           AI-powered UK property analysis
         </span>
 
-        <h2 className="mt-5 text-[2rem] font-semibold leading-[1.1] tracking-tight text-[#111827] sm:text-[2.25rem] lg:text-[3.5rem] lg:leading-[1.05]">
+        <h2 className="mt-5 text-[2rem] font-semibold leading-[1.1] tracking-tight text-foreground sm:text-[2.25rem] lg:text-[3.5rem] lg:leading-[1.05]">
           Build investor-grade refurbishment feasibility faster.
         </h2>
-        <p className="mt-4 max-w-xl text-sm leading-relaxed text-[#5f5a54] sm:text-base">
+        <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           Estimate refurb costs, compare scenarios, and structure UK deal decisions with a calmer,
           more reliable workflow.
         </p>
@@ -1012,77 +1014,79 @@ function AuthProductPanel({
           {AUTH_VALUE_CARDS.map((card) => (
             <div
               key={card.title}
-              className="rounded-2xl border border-[#d8d1c7] bg-white/80 p-4 shadow-sm"
+              className="rounded-2xl border border-border bg-card/80 p-4 shadow-sm"
             >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#0f766e]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary">
                 {card.label}
               </p>
-              <p className="mt-2 text-sm font-semibold text-[#111827]">{card.title}</p>
-              <p className="mt-1 text-xs leading-relaxed text-[#5f5a54]">{card.body}</p>
+              <p className="mt-2 text-sm font-semibold text-foreground">{card.title}</p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{card.body}</p>
             </div>
           ))}
         </div>
 
         <div
           className={cn(
-            "mt-5 rounded-2xl border border-stone-800 bg-[#0c0a09] p-5 text-stone-100",
+            "mt-5 rounded-2xl border border-border bg-foreground p-5 text-background",
             compactOnMobile && "max-lg:hidden",
           )}
         >
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-400">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-background/70">
               Sample output
             </p>
-            <span className="rounded-full bg-stone-800 px-2 py-0.5 text-[10px] font-medium text-stone-300 ring-1 ring-stone-700">
+            <span className="rounded-full bg-background/15 px-2 py-0.5 text-[10px] font-medium text-background/80 ring-1 ring-background/25">
               Illustrative
             </span>
           </div>
-          <p className="mt-2 text-base font-semibold text-white">Refurb appraisal snapshot</p>
-          <p className="mt-1 text-xs text-stone-400">
+          <p className="mt-2 text-base font-semibold text-primary-foreground">
+            Refurb appraisal snapshot
+          </p>
+          <p className="mt-1 text-xs text-background/70">
             Example figures for layout only — not a live estimate.
           </p>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
             <div>
-              <dt className="text-stone-400">Budget range</dt>
-              <dd className="mt-0.5 font-medium text-white">£28k–£41k</dd>
+              <dt className="text-background/70">Budget range</dt>
+              <dd className="mt-0.5 font-medium text-primary-foreground">£28k–£41k</dd>
             </div>
             <div>
-              <dt className="text-stone-400">Risk flags</dt>
-              <dd className="mt-0.5 font-medium text-white">3</dd>
+              <dt className="text-background/70">Risk flags</dt>
+              <dd className="mt-0.5 font-medium text-primary-foreground">3</dd>
             </div>
             <div>
-              <dt className="text-stone-400">Decision view</dt>
-              <dd className="mt-0.5 font-medium text-white">Clearer</dd>
+              <dt className="text-background/70">Decision view</dt>
+              <dd className="mt-0.5 font-medium text-primary-foreground">Clearer</dd>
             </div>
           </dl>
         </div>
 
         <div
           className={cn(
-            "mt-5 rounded-2xl border border-[#d8d1c7] bg-white/90 p-5",
+            "mt-5 rounded-2xl border border-border bg-card/90 p-5",
             compactOnMobile && "max-lg:mt-5",
           )}
         >
-          <p className="text-sm font-semibold text-[#111827]">A more structured workspace</p>
-          <ul className="mt-3 space-y-2 text-sm text-[#5f5a54]">
+          <p className="text-sm font-semibold text-foreground">A more structured workspace</p>
+          <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
             <li className="flex gap-2">
-              <Check {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]")} />
+              <Check {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-primary")} />
               Organise refurbishment assumptions in one place
             </li>
             <li className="flex gap-2">
-              <Check {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]")} />
+              <Check {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-primary")} />
               Compare cost scenarios without losing context
             </li>
             <li className="flex gap-2">
-              <Check {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]")} />
+              <Check {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-primary")} />
               Keep feasibility information together for decisions
             </li>
           </ul>
-          <div className="mt-4 flex items-start gap-2 rounded-xl bg-[#f7f5f2] p-3">
-            <ShieldCheck {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]")} />
+          <div className="mt-4 flex items-start gap-2 rounded-xl bg-muted p-3">
+            <ShieldCheck {...decorativeIconProps("mt-0.5 h-4 w-4 shrink-0 text-primary")} />
             <div>
-              <p className="text-sm font-medium text-[#111827]">Secure sign-in</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-[#5f5a54]">
+              <p className="text-sm font-medium text-foreground">Secure sign-in</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                 Protected authentication with Supabase.
               </p>
             </div>

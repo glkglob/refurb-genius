@@ -217,7 +217,7 @@ export function PhotoUploadZone({
                 <div
                   key={photo.key}
                   data-preview-key={photo.key}
-                  className="relative aspect-square overflow-hidden rounded-xl border border-slate-700"
+                  className="relative aspect-square overflow-hidden rounded-xl border border-border"
                 >
                   <img
                     src={photo.url}
@@ -228,10 +228,11 @@ export function PhotoUploadZone({
                     type="button"
                     onClick={() => removePhoto(index)}
                     disabled={isLoading}
-                    className="absolute -right-1 -top-1 rounded-full bg-red-600 p-1 text-white shadow hover:bg-red-700 disabled:opacity-50"
+                    className="absolute right-2 top-2 flex h-11 w-11 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm backdrop-blur hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                     aria-label={`Remove ${photo.file.name}`}
+                    data-testid="local-preview-remove"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-4 w-4" aria-hidden />
                   </button>
                 </div>
               ))}

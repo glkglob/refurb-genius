@@ -39,7 +39,7 @@ export function EstimateTable({
   const totalsColspan = showWeeks ? 4 : 3;
 
   return (
-    <div className="w-full overflow-x-auto -mx-1 px-1">
+    <div className="w-full overflow-x-auto overscroll-x-contain -mx-1 px-1 touch-pan-x">
       <Table>
         <TableHeader>
           <TableRow>

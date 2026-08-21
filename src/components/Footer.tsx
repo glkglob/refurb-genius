@@ -14,7 +14,7 @@ export function Footer({ className }: FooterProps) {
         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <Link
             to="/privacy"
-            className="underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="inline-flex min-h-11 items-center underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             aria-label="Read our Data Privacy policy"
           >
             Data Privacy
@@ -22,7 +22,7 @@ export function Footer({ className }: FooterProps) {
           <span aria-hidden>•</span>
           <Link
             to="/terms"
-            className="underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="inline-flex min-h-11 items-center underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/80 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           >
             Terms
           </Link>
