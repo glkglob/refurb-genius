@@ -1,0 +1,74 @@
+packages/ui/src/components/button.tsx
+  h_7ea6129503670a 26
+src/components/AppLayout.test.tsx
+  h_7ea6129503670a 1-43
+src/components/AppLayout.tsx
+  h_7ea6129503670a 2,13,19-20,24-31,38-43
+src/components/EmptyState.tsx
+  h_7ea6129503670a 22,36
+src/components/EstimateTable.tsx
+  h_7ea6129503670a 42
+src/components/Footer.tsx
+  h_7ea6129503670a 17,25
+src/components/LoadingState.tsx
+  h_7ea6129503670a 5-10,12
+src/components/MobileTopBar.test.tsx
+  h_7ea6129503670a 12,21-27,30-49,55,71-249
+src/components/MobileTopBar.tsx
+  h_7ea6129503670a 9,13,25,72,84,87-97,99-116,118-124,126-145,147-172,174-230
+src/components/deal-copilot/DealChat.tsx
+  h_7ea6129503670a 237-238,240,247,249,251,254,257,259,263,267,269-273
+src/components/ui/sonner.tsx
+  h_7ea6129503670a 9-20
+src/docs/COMPONENT_STANDARDS.md
+  h_7ea6129503670a 3-4,7,109-112,114,147
+src/docs/design-system.md
+  h_7ea6129503670a 3-5,72-73,77,108,110-113,141-142
+src/docs/ios-product-design.md
+  h_7ea6129503670a 1-150
+src/features/ai-upload/presentation/components/PhotoUploadZone.test.tsx
+  h_7ea6129503670a 91-103
+src/features/ai-upload/presentation/components/PhotoUploadZone.tsx
+  h_7ea6129503670a 220,231,233,235
+src/features/auth/presentation/AuthExperience.test.tsx
+  h_7ea6129503670a 732-739
+src/features/auth/presentation/AuthExperience.tsx
+  h_7ea6129503670a 46-48,52-53,58-59,63,458,467,470,473,479,490-491,504-505,545,562,571,578,603,616,624,643,663-664,666,670,675,689,707,719-721,725,728,780-781,793-794,797,821,893,898,917-918,921-924,944,954-957,963,989,994-995,999,1002,1017,1019,1022-1023,1030,1035,1038,1042-1045,1050-1051,1054-1055,1058-1059,1066,1070-1071,1073,1077,1081,1085-1086,1088-1089
+src/features/projects/presentation/components/MobileStickyNextAction.test.tsx
+  h_7ea6129503670a 33-44
+src/features/projects/presentation/components/ProjectStageNav.tsx
+  h_7ea6129503670a 131
+src/features/projects/presentation/components/ProjectWorkflowShell.test.tsx
+  h_7ea6129503670a 78-82
+src/features/projects/presentation/components/ProjectWorkflowShell.tsx
+  h_7ea6129503670a 103-108,135-136
+src/routes/_authed/-dashboard.test.tsx
+  h_7ea6129503670a 219-220
+src/routes/_authed/-projects.$id.estimate.cta.test.ts
+  h_7ea6129503670a 30-34
+src/routes/_authed/dashboard.tsx
+  h_7ea6129503670a 205-207,212-218
+src/routes/_authed/projects.$id.estimate.tsx
+  h_7ea6129503670a 687
+src/routes/_authed/projects.$id.report.tsx
+  h_7ea6129503670a 12,266,268,274,280,290-296,298,304-310,316,345-350
+src/routes/_authed/settings.tsx
+  h_7ea6129503670a 148,154,160,170,172,175-176,181,183,188-189,201,207-209,226
+src/routes/index.native-entry.test.tsx
+  h_7ea6129503670a 1-97
+src/routes/index.tsx
+  h_7ea6129503670a 1-2,26-42
+src/styles.css
+  h_7ea6129503670a 235-240
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.23",
+  "base_commit_sha": "790609a30fd685822681a07eb720bb5f4cf282cc",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
