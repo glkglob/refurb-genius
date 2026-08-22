@@ -1,9 +1,10 @@
 # Refurb Genius — Component Standards
 
-**Version:** 1.1  
-**Last Updated:** June 2026  
+**Version:** 1.2
+**Last Updated:** August 2026
 **Purpose:** Component usage rules for this codebase. Import shared primitives from
 `@repo/ui` (migrating from `src/components/ui/` shims). Index: `docs/README.md`.
+iOS interaction/layout: `src/docs/ios-product-design.md`.
 
 ---
 
@@ -105,8 +106,12 @@
 
 ## 7. Responsive & Mobile
 
-- All interactive elements should have minimum 44px touch target on mobile.
+- All interactive elements should have minimum 44px (`h-11` / `min-h-11`) touch target on mobile.
+- Button `size="icon"` is `h-11 w-11`. Do not use `size="sm"` for primary journey actions.
+- Safe-area: pad the sticky header, not a fixed-height inner row. Bottom chrome uses `env(safe-area-inset-bottom)`.
+- Prefer `min-h-dvh` on full-height iOS shells.
 - Use `md:` breakpoints for desktop-only elements (e.g., Sidebar).
+- Details: `src/docs/ios-product-design.md`.
 
 ---
 
@@ -139,12 +144,4 @@ Otherwise, compose existing components + Tailwind.
 
 ---
 
-**Next Step Recommendation:**
-Start a systematic audit + migration of the most visible pages:
-
-1. Dashboard
-2. Deal Copilot pages
-3. Projects list + detail pages
-4. Trades pages
-
-Would you like me to begin the migration on one of these pages using the standards above?
+iOS product chrome follows `src/docs/ios-product-design.md`. Branding, plugins, and IA-0 authority are out of scope for that file.

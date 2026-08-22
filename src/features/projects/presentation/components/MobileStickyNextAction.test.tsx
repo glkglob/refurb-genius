@@ -30,6 +30,18 @@ describe("MobileStickyNextAction", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it("applies bottom safe-area padding on the fixed bar", () => {
+    render(
+      <MobileStickyNextAction
+        label="Add Photos"
+        href="/projects/abc/upload"
+        actionKind="add_photos"
+      />,
+    );
+    const bar = screen.getByTestId("mobile-sticky-next-action-bar");
+    expect(bar.className).toMatch(/env\(safe-area-inset-bottom\)/);
+  });
+
   it("renders nothing when neither href nor onClick is provided", () => {
     const { container } = render(<MobileStickyNextAction label="Missing" />);
     expect(container.querySelector("[data-testid='mobile-sticky-next-action-bar']")).toBeNull();

@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { Capacitor } from "@capacitor/core";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +23,23 @@ import beforeImg from "@/assets/before.jpg";
 import afterImg from "@/assets/after.jpg";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: async ({ context }) => {
+    // Web SSR and web clients keep the public landing. Native SPA only.
+    if (typeof window === "undefined" || !Capacitor.isNativePlatform()) {
+      return;
+    }
+    let destination: "/dashboard" | "/auth" = "/auth";
+    try {
+      const { observeNativeAuthIdentity } = await import("@/features/auth");
+      const outcome = await observeNativeAuthIdentity(context.queryClient);
+      if (outcome.kind === "authenticated") {
+        destination = "/dashboard";
+      }
+    } catch {
+      destination = "/auth";
+    }
+    throw redirect({ to: destination });
+  },
   head: () => ({
     meta: [
       { title: "Refurb Genius — Upload a property and instantly see its future potential" },

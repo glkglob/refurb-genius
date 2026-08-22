@@ -19,6 +19,7 @@ export function EmptyState({
   const isSubtle = variant === "subtle";
   return (
     <div
+      role="status"
       className={`flex flex-col items-center justify-center rounded-2xl text-center ${
         isSubtle
           ? "border border-border/60 bg-muted/30 p-8"
@@ -32,7 +33,7 @@ export function EmptyState({
             : "h-12 w-12 border border-border/60 bg-secondary/70 text-muted-foreground"
         }`}
       >
-        <Icon className={isSubtle ? "h-5 w-5" : "h-6 w-6"} />
+        <Icon className={isSubtle ? "h-5 w-5" : "h-6 w-6"} aria-hidden />
       </div>
       <h3 className="mt-4 text-base font-semibold tracking-tight text-foreground">{title}</h3>
       {description && <p className="mt-1 max-w-sm text-sm text-muted-foreground">{description}</p>}

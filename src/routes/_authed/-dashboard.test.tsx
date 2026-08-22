@@ -216,6 +216,8 @@ describe("dashboard onboarding Auth extraction", () => {
     expect(src).not.toMatch(/onboarding_goal\s*:/);
     expect(src).not.toMatch(/useMutation|useQueryClient/);
     expect(src).not.toMatch(/AuthExperience/);
+    expect(src).toMatch(/min-h-11/);
+    expect(src).toMatch(/to="\/analyze"/);
   });
 
   it("route path and head title remain dashboard", () => {

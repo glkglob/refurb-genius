@@ -1,8 +1,8 @@
 # Refurb Genius — Design System
 
-**Status:** Work in progress (June 2026)  
-**Goal:** Consistent design language for property investment & refurbishment SaaS.  
-**Related:** `src/docs/COMPONENT_STANDARDS.md`, `packages/ui/`, `docs/README.md`.
+**Status:** In force for product chrome (August 2026)
+**Goal:** Consistent design language for property investment & refurbishment SaaS.
+**Related:** `src/docs/COMPONENT_STANDARDS.md`, `src/docs/ios-product-design.md`, `packages/ui/`, `docs/README.md`.
 
 ---
 
@@ -69,10 +69,12 @@ We use **CSS Variables** (defined in `src/styles.css`) with OKLCH.
 
 ### Button
 
-- Default: `rounded-xl`, `h-10`
+- Default: `rounded-xl`, `h-11` (44px mobile baseline)
+- `size="icon"`: `h-11 w-11`
 - Primary actions should use `variant="default"` (uses `--primary`)
 - Destructive actions use `variant="destructive"`
 - Avoid raw `<button>` with custom classes when possible.
+- Do not use `size="sm"` for a primary iOS journey CTA. See `src/docs/ios-product-design.md`.
 
 ### Card
 
@@ -103,12 +105,12 @@ We use **CSS Variables** (defined in `src/styles.css`) with OKLCH.
 
 ---
 
-## 7. Current Gaps (May 2026)
+## 7. Current Gaps
 
-- Many legacy pages still use hardcoded colors (`teal-*`, `gray-*`, `bg-white`).
-- Mobile navigation currently has no theme toggle.
-- ThemeProvider has a minor hydration flash on first load.
-- Not all shadcn components have been updated to new rounding standards.
+- Some legacy pages still use hardcoded colors (`teal-*`, `gray-*`, `bg-white`).
+- ThemeProvider may still flash on first load (not an iOS interaction-slice repair unless the provider file is authorised).
+- Branding (app icon, splash, LaunchScreen, PWA marks) is **not** owned here — see `IOS-BRAND-ASSETS-1`.
+- iOS interaction/layout/safe-area rules live in `src/docs/ios-product-design.md`.
 
 ---
 
@@ -136,5 +138,5 @@ Use this when cleaning up legacy code:
 
 ---
 
-**Last Updated:** May 2026
-**Owner:** Grok (technical build assistant)
+**Last Updated:** August 2026
+**Owner:** Product design documentation (interaction/layout). Branding is a separate phase.

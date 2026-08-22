@@ -202,14 +202,20 @@ function DashboardContent() {
       title="My projects"
       icon={<FolderPlus className="h-5 w-5" />}
       action={
-        <Link to="/analyze" className="text-sm font-medium text-accent hover:underline">
-          + New Analysis
-        </Link>
+        <Button asChild size="sm" className="min-h-11 md:min-h-9">
+          <Link to="/analyze">+ New Analysis</Link>
+        </Button>
       }
       className="mb-0"
     >
       {projectsLoading ? (
-        <div className="py-4 text-center text-sm text-muted-foreground">Loading your projects…</div>
+        <div
+          className="py-4 text-center text-sm text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
+          Loading your projects…
+        </div>
       ) : projects.length === 0 ? (
         <EmptyState
           icon={FolderPlus}

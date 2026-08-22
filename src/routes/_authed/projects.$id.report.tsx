@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { AnalysisSourceBadge } from "@/components/AnalysisSourceBadge";
 // RequireAuth wrappers removed — route is now protected by the _authed layout + beforeLoad (server-side auth gate).
 // The component is only rendered for authenticated users.
+import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import {
@@ -262,21 +263,21 @@ function ReportPage() {
 
   if (projectLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+      <AppLayout title="Export" subtitle="Loading project…">
         <LoadingState label="Loading project…" />
-      </div>
+      </AppLayout>
     );
   }
 
   if (projectError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+      <AppLayout title="Export">
         <EmptyState
           icon={AlertCircle}
           title="Failed to load project"
           description="We couldn't load this project. Please try again or contact support if the problem persists."
         />
-      </div>
+      </AppLayout>
     );
   }
 
@@ -286,21 +287,33 @@ function ReportPage() {
 
   if (estimateLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+      <ProjectWorkflowShell
+        project={project}
+        route={{ surface: "report" }}
+        progress={progressFromProjectFlags(project)}
+        pageTitle={project.name?.trim() || "Export"}
+        pageSubtitle="Investor-ready export from the current estimate."
+      >
         <LoadingState label="Loading saved estimate…" />
-      </div>
+      </ProjectWorkflowShell>
     );
   }
 
   if (estimateLoadError) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+      <ProjectWorkflowShell
+        project={project}
+        route={{ surface: "report" }}
+        progress={progressFromProjectFlags(project)}
+        pageTitle={project.name?.trim() || "Export"}
+        pageSubtitle="Investor-ready export from the current estimate."
+      >
         <EmptyState
           icon={AlertCircle}
           title="Could not load saved estimate"
           description="Could not load the saved estimate. Please try again."
         />
-      </div>
+      </ProjectWorkflowShell>
     );
   }
 
@@ -329,7 +342,12 @@ function ReportPage() {
       }}
       actions={
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="hidden md:inline-flex"
+            onClick={() => window.print()}
+          >
             <Printer className="h-4 w-4" /> Print
           </Button>
           <Button size="sm" onClick={handleExportPdf} disabled={pdfExporting}>
