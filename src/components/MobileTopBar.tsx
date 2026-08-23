@@ -1,7 +1,8 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import compactDarkUrl from "@/assets/brand/refurb-genius-mark.svg?url";
+import compactLightUrl from "@/assets/brand/refurb-genius-mark-light.svg?url";
 import {
   Briefcase,
-  Building2,
   FolderKanban,
   Home,
   LineChart,
@@ -91,9 +92,8 @@ export function MobileTopBar() {
           aria-label="Refurb Genius home"
           data-testid="mobile-nav-brand"
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Building2 className="h-4 w-4" aria-hidden />
-          </div>
+          <img src={compactDarkUrl} alt="" className="hidden h-8 w-8 object-contain dark:block" />
+          <img src={compactLightUrl} alt="" className="block h-8 w-8 object-contain dark:hidden" />
         </Link>
 
         <nav

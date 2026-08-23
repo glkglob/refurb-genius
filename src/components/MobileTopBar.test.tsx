@@ -27,6 +27,13 @@ vi.mock("@/hooks/useTheme", () => ({
   }),
 }));
 
+vi.mock("@/assets/brand/refurb-genius-mark.svg?url", () => ({
+  default: "/src/assets/brand/refurb-genius-mark.svg",
+}));
+vi.mock("@/assets/brand/refurb-genius-mark-light.svg?url", () => ({
+  default: "/src/assets/brand/refurb-genius-mark-light.svg",
+}));
+
 vi.mock("@tanstack/react-router", async () => {
   const React = await import("react");
   const MockLink = React.forwardRef<
@@ -244,6 +251,28 @@ describe("MobileTopBar safe-area (IOS-DESIGN-COMPLETION)", () => {
       fireEvent.keyDown(themeItem, { key: " " });
     });
     expect(toggleTheme).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("MobileTopBar brand identity (IOS-BRAND-ASSETS-1)", () => {
+  it("names the home control Refurb Genius home and keeps the mark decorative", () => {
+    render(createElement(MobileTopBar));
+    const home = screen.getByTestId("mobile-nav-brand");
+    expect(home.getAttribute("aria-label")).toBe("Refurb Genius home");
+    expect(home.getAttribute("href")).toBe("/dashboard");
+    const imgs = home.querySelectorAll("img");
+    expect(imgs.length).toBe(2);
+    imgs.forEach((img) => {
+      expect(img.getAttribute("alt")).toBe("");
+    });
+    expect(screen.getByRole("link", { name: "Refurb Genius home" })).toBe(home);
+  });
+
+  it("uses the approved compact family and does not use Building2 for identity", () => {
+    const src = readFileSync(join(__dirname, "MobileTopBar.tsx"), "utf8");
+    expect(src).toMatch(/refurb-genius-mark\.svg/);
+    expect(src).toMatch(/refurb-genius-mark-light\.svg/);
+    expect(src).not.toMatch(/Building2/);
   });
 });
 

@@ -22,6 +22,7 @@ import { logger } from "@/lib/logger";
 import { useAuthPasswordCredentials } from "./hooks/useAuthPasswordCredentials";
 import { useOAuthSignIn } from "./hooks/useOAuthSignIn";
 import { useAuthEmailAccess } from "./hooks/useAuthEmailAccess";
+import compactDarkUrl from "@/assets/brand/refurb-genius-mark.svg?url";
 
 export type AuthMode = "signin" | "signup" | "reset";
 
@@ -945,10 +946,10 @@ function AuthPageShell({
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-5 lg:px-10">
         <div className="flex min-w-0 items-center gap-3">
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-sm font-semibold text-white"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#111827]"
             aria-hidden="true"
           >
-            RG
+            <img src={compactDarkUrl} alt="" className="h-7 w-7 object-contain" />
           </div>
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">Refurb Genius</p>

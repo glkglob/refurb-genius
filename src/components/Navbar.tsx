@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { Building2, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import wordmarkDarkUrl from "@/assets/brand/refurb-genius-wordmark-dark.svg?url";
+import wordmarkLightUrl from "@/assets/brand/refurb-genius-wordmark-light.svg?url";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -24,14 +26,17 @@ export function Navbar() {
       data-testid="marketing-navbar"
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Building2 className="h-5 w-5" />
-          </div>
-          <span className="text-lg font-semibold tracking-tight text-foreground">
-            Refurb<span className="text-accent">Genius</span>
-          </span>
+        <Link to="/" className="flex min-w-0 items-center" aria-label="Refurb Genius home">
+          <img
+            src={wordmarkDarkUrl}
+            alt=""
+            className="hidden h-8 w-auto max-w-[11.5rem] object-contain object-left dark:block"
+          />
+          <img
+            src={wordmarkLightUrl}
+            alt=""
+            className="block h-8 w-auto max-w-[11.5rem] object-contain object-left dark:hidden"
+          />
         </Link>
 
         {/* Desktop nav */}

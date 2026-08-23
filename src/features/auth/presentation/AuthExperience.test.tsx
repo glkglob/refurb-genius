@@ -70,6 +70,10 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
+vi.mock("@/assets/brand/refurb-genius-mark.svg?url", () => ({
+  default: "/src/assets/brand/refurb-genius-mark.svg",
+}));
+
 import { AuthExperience } from "./AuthExperience";
 
 const SRC = join(__dirname, "AuthExperience.tsx");
@@ -730,11 +734,13 @@ describe("AuthExperience — source boundary (AO-1E1.1 / AO-1E1.2 / AO-1E1.3 pro
     );
   });
 
-  it("tokenises product chrome; keeps Google SVG fills and the RG mark", () => {
+  it("tokenises product chrome; keeps Google SVG fills and the compact brand mark", () => {
     const src = readFileSync(SRC, "utf8");
     expect(src).not.toMatch(/#0f766e|#f7f5f2|#d8d1c7|#5f5a54|#115e59|#ece7df/);
     expect(src).toMatch(/fill="#EA4335"/);
-    expect(src).toMatch(/bg-\[#111827\] text-sm font-semibold text-white/);
+    expect(src).toMatch(/bg-\[#111827\]/);
+    expect(src).toMatch(/refurb-genius-mark\.svg/);
+    expect(src).not.toMatch(/>\s*RG\s*</);
     expect(src).toMatch(/supports-\[padding:max\(0px\)\]:pt-\[env\(safe-area-inset-top\)\]/);
   });
 });

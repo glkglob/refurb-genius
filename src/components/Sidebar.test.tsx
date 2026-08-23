@@ -33,6 +33,13 @@ vi.mock("@/components/ThemeToggle", () => ({
   ThemeToggle: () => createElement("div", { "data-testid": "theme-toggle" }),
 }));
 
+vi.mock("@/assets/brand/refurb-genius-wordmark-dark.svg?url", () => ({
+  default: "/src/assets/brand/refurb-genius-wordmark-dark.svg",
+}));
+vi.mock("@/assets/brand/refurb-genius-wordmark-light.svg?url", () => ({
+  default: "/src/assets/brand/refurb-genius-wordmark-light.svg",
+}));
+
 import { Sidebar } from "./Sidebar";
 
 beforeEach(() => {
@@ -43,6 +50,18 @@ beforeEach(() => {
     user: { id: "u1", email: "user@example.com", fullName: "Test User" },
   });
   signOut.mockResolvedValue(undefined);
+});
+
+describe("Sidebar brand identity (IOS-BRAND-ASSETS-1)", () => {
+  it("uses the approved wordmark and does not live-typeset the logo", () => {
+    render(createElement(Sidebar));
+    expect(screen.getByRole("img", { name: "Refurb Genius" })).toBeTruthy();
+    const src = readFileSync(join(__dirname, "Sidebar.tsx"), "utf8");
+    expect(src).toMatch(/refurb-genius-wordmark-dark\.svg/);
+    expect(src).toMatch(/refurb-genius-wordmark-light\.svg/);
+    expect(src).not.toMatch(/Building2/);
+    expect(src).not.toMatch(/Refurb<span/);
+  });
 });
 
 describe("Sidebar IA-7 global navigation", () => {

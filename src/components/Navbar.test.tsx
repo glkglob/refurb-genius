@@ -22,6 +22,13 @@ vi.mock("@/components/ThemeToggle", () => ({
   ThemeToggle: () => createElement("div", { "data-testid": "theme-toggle" }),
 }));
 
+vi.mock("@/assets/brand/refurb-genius-wordmark-dark.svg?url", () => ({
+  default: "/src/assets/brand/refurb-genius-wordmark-dark.svg",
+}));
+vi.mock("@/assets/brand/refurb-genius-wordmark-light.svg?url", () => ({
+  default: "/src/assets/brand/refurb-genius-wordmark-light.svg",
+}));
+
 import { Navbar } from "./Navbar";
 
 const SAFE_AREA_TOP_CLASS = "supports-[padding:max(0px)]:pt-[env(safe-area-inset-top)]";
@@ -58,10 +65,18 @@ describe("Navbar marketing safe-area", () => {
     render(createElement(Navbar));
     expect(screen.getByTestId("marketing-nav-dashboard").getAttribute("href")).toBe("/dashboard");
     expect(screen.getByTestId("marketing-nav-menu").getAttribute("aria-label")).toBe("Toggle menu");
-    expect(screen.getByRole("link", { name: /refurb/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Refurb Genius home" })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: "Deal Copilot" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Trades" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Post Job" })).toBeTruthy();
+  });
+
+  it("uses the approved wordmark and does not use Building2 for identity", () => {
+    const src = readFileSync(join(__dirname, "Navbar.tsx"), "utf8");
+    expect(src).toMatch(/refurb-genius-wordmark-dark\.svg/);
+    expect(src).toMatch(/refurb-genius-wordmark-light\.svg/);
+    expect(src).not.toMatch(/Building2/);
+    expect(src).not.toMatch(/Refurb<span/);
   });
 
   it("opens the mobile menu from the hamburger without dropping desktop destinations", () => {

@@ -1,10 +1,11 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import wordmarkDarkUrl from "@/assets/brand/refurb-genius-wordmark-dark.svg?url";
+import wordmarkLightUrl from "@/assets/brand/refurb-genius-wordmark-light.svg?url";
 import {
   LayoutDashboard,
   FolderKanban,
   FolderPlus,
   Settings,
-  Building2,
   LogOut,
   LineChart,
   Briefcase,
@@ -55,13 +56,21 @@ export function Sidebar() {
     <aside className="hidden w-60 shrink-0 border-r border-border bg-card md:flex md:flex-col">
       {/* Brand colour strip */}
       <div className="h-1 bg-gradient-to-r from-teal-500 via-cyan-500 to-emerald-500" />
-      <div className="flex h-16 items-center gap-2 border-b border-border px-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Building2 className="h-5 w-5" />
-        </div>
-        <span className="text-base font-semibold text-foreground">
-          Refurb<span className="text-accent">Genius</span>
-        </span>
+      <div
+        className="flex h-16 items-center border-b border-border px-5"
+        role="img"
+        aria-label="Refurb Genius"
+      >
+        <img
+          src={wordmarkDarkUrl}
+          alt=""
+          className="hidden h-8 w-auto max-w-full object-contain object-left dark:block"
+        />
+        <img
+          src={wordmarkLightUrl}
+          alt=""
+          className="block h-8 w-auto max-w-full object-contain object-left dark:hidden"
+        />
       </div>
       <nav className="flex-1 space-y-1 p-3" aria-label="Primary">
         {GLOBAL_NAV_ITEMS.map((item) => {
