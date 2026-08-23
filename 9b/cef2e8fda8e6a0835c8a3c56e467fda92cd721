@@ -1,0 +1,42 @@
+ios/App/App/Base.lproj/LaunchScreen.storyboard
+  h_7ea6129503670a 3,17
+public/icon-192.svg
+  h_7ea6129503670a 1,3-12
+src/assets/brand/refurb-genius-mark-light.svg
+  h_7ea6129503670a 1-11
+src/assets/brand/refurb-genius-mark.svg
+  h_7ea6129503670a 1-11
+src/assets/brand/refurb-genius-wordmark-dark.svg
+  h_7ea6129503670a 1-29
+src/assets/brand/refurb-genius-wordmark-light.svg
+  h_7ea6129503670a 1-29
+src/components/MobileTopBar.test.tsx
+  h_7ea6129503670a 30-36,257-278
+src/components/MobileTopBar.tsx
+  h_7ea6129503670a 2-3,95-96
+src/components/Navbar.test.tsx
+  h_7ea6129503670a 25-31,68,74-81
+src/components/Navbar.tsx
+  h_7ea6129503670a 2-4,29-39
+src/components/Sidebar.test.tsx
+  h_7ea6129503670a 36-42,55-66
+src/components/Sidebar.tsx
+  h_7ea6129503670a 2-3,59-73
+src/docs/brand-assets.md
+  h_7ea6129503670a 1-199
+src/features/auth/presentation/AuthExperience.test.tsx
+  h_7ea6129503670a 73-76,737,741-743
+src/features/auth/presentation/AuthExperience.tsx
+  h_7ea6129503670a 25,949,952
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.23",
+  "base_commit_sha": "9bcef2e8fda8e6a0835c8a3c56e467fda92cd721",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
