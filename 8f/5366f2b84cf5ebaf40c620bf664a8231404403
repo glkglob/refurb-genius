@@ -1,0 +1,38 @@
+public/icon-192.svg
+  h_7ea6129503670a 4,6,8-11
+src/assets/brand/refurb-genius-mark-light.svg
+  h_7ea6129503670a 2,4,6-9
+src/assets/brand/refurb-genius-mark.svg
+  h_7ea6129503670a 2,4,6-9
+src/assets/brand/refurb-genius-wordmark-dark.svg
+  h_7ea6129503670a 2,4-9,12-18,21-23
+src/assets/brand/refurb-genius-wordmark-light.svg
+  h_7ea6129503670a 2,4-9,12-18,21-23
+src/components/MobileTopBar.test.tsx
+  h_7ea6129503670a 13-24,34,64,73-76,276-277,287-313
+src/components/MobileTopBar.tsx
+  h_7ea6129503670a 26,70-79,85-86,108
+src/components/Navbar.test.tsx
+  h_7ea6129503670a 25-41,49,57-60,104-131
+src/components/Navbar.tsx
+  h_7ea6129503670a 8,10,19-28,32-33,45,47
+src/components/Sidebar.test.tsx
+  h_7ea6129503670a 36-52,60,71-74,87-113
+src/components/Sidebar.tsx
+  h_7ea6129503670a 4-5,26-35,61-62,79,81
+src/docs/brand-assets.md
+  h_7ea6129503670a 3-5,7,52-54,61,65-68,126,129-130,133-137,139-149,155-157,178-181,183,185,187,193,195,197
+src/features/auth/presentation/AuthExperience.test.tsx
+  h_7ea6129503670a 743
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.23",
+  "base_commit_sha": "8f5366f2b84cf5ebaf40c620bf664a8231404403",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
