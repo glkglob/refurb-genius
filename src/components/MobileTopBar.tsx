@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSignOut } from "@/features/auth";
+import { initialThemeState } from "@/components/ThemeProviderContext";
 import { useTheme } from "@/hooks/useTheme";
 import {
   getMobileMoreNavItems,
@@ -66,11 +67,23 @@ const itemButtonClass = (active: boolean, emphasizeNew = false) =>
     emphasizeNew && "text-primary",
   );
 
+/** App theme surface, not prefers-color-scheme. Pre-provider: html class / dark-first SSR. */
+function useAppBrandSurface(): "light" | "dark" {
+  const { resolvedTheme, setTheme } = useTheme();
+  if (setTheme === initialThemeState.setTheme) {
+    if (typeof document === "undefined") return "dark";
+    return document.documentElement.classList.contains("dark") ? "dark" : "light";
+  }
+  return resolvedTheme;
+}
+
 export function MobileTopBar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const { signOut } = useSignOut();
   const { resolvedTheme, toggleTheme } = useTheme();
+  const brandSurface = useAppBrandSurface();
+  const compactSrc = brandSurface === "dark" ? compactDarkUrl : compactLightUrl;
   const primaryItems = getMobilePrimaryNavItems();
   const moreItems = getMobileMoreNavItems();
   const moreActive = moreItems.some((item) => isGlobalNavItemActive(pathname, item.id));
@@ -92,8 +105,7 @@ export function MobileTopBar() {
           aria-label="Refurb Genius home"
           data-testid="mobile-nav-brand"
         >
-          <img src={compactDarkUrl} alt="" className="hidden h-8 w-8 object-contain dark:block" />
-          <img src={compactLightUrl} alt="" className="block h-8 w-8 object-contain dark:hidden" />
+          <img src={compactSrc} alt="" className="h-8 w-8 object-contain" />
         </Link>
 
         <nav

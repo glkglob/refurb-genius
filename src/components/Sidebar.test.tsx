@@ -33,6 +33,23 @@ vi.mock("@/components/ThemeToggle", () => ({
   ThemeToggle: () => createElement("div", { "data-testid": "theme-toggle" }),
 }));
 
+const setTheme = vi.fn();
+const themeState: {
+  theme: "light" | "dark" | "system";
+  resolvedTheme: "light" | "dark";
+  setTheme: (theme: "light" | "dark" | "system") => void;
+  toggleTheme: () => void;
+} = {
+  theme: "dark",
+  resolvedTheme: "dark",
+  setTheme,
+  toggleTheme: vi.fn(),
+};
+
+vi.mock("@/hooks/useTheme", () => ({
+  useTheme: () => themeState,
+}));
+
 vi.mock("@/assets/brand/refurb-genius-wordmark-dark.svg?url", () => ({
   default: "/src/assets/brand/refurb-genius-wordmark-dark.svg",
 }));
@@ -40,6 +57,7 @@ vi.mock("@/assets/brand/refurb-genius-wordmark-light.svg?url", () => ({
   default: "/src/assets/brand/refurb-genius-wordmark-light.svg",
 }));
 
+import { initialThemeState } from "@/components/ThemeProviderContext";
 import { Sidebar } from "./Sidebar";
 
 beforeEach(() => {
@@ -50,6 +68,10 @@ beforeEach(() => {
     user: { id: "u1", email: "user@example.com", fullName: "Test User" },
   });
   signOut.mockResolvedValue(undefined);
+  themeState.theme = "dark";
+  themeState.resolvedTheme = "dark";
+  themeState.setTheme = setTheme;
+  document.documentElement.classList.remove("light", "dark");
 });
 
 describe("Sidebar brand identity (IOS-BRAND-ASSETS-1)", () => {
@@ -61,6 +83,33 @@ describe("Sidebar brand identity (IOS-BRAND-ASSETS-1)", () => {
     expect(src).toMatch(/refurb-genius-wordmark-light\.svg/);
     expect(src).not.toMatch(/Building2/);
     expect(src).not.toMatch(/Refurb<span/);
+  });
+
+  it("shows the dark-surface wordmark when resolvedTheme is dark", () => {
+    themeState.resolvedTheme = "dark";
+    render(createElement(Sidebar));
+    const img = screen.getByRole("img", { name: "Refurb Genius" }).querySelector("img");
+    expect(img?.getAttribute("src")).toMatch(/refurb-genius-wordmark-dark\.svg/);
+    expect(img?.getAttribute("alt")).toBe("");
+  });
+
+  it("shows the light-surface wordmark when resolvedTheme is light", () => {
+    themeState.theme = "light";
+    themeState.resolvedTheme = "light";
+    render(createElement(Sidebar));
+    const img = screen.getByRole("img", { name: "Refurb Genius" }).querySelector("img");
+    expect(img?.getAttribute("src")).toMatch(/refurb-genius-wordmark-light\.svg/);
+    expect(img?.getAttribute("alt")).toBe("");
+  });
+
+  it("does not flash the light wordmark on html.dark before ThemeProvider mounts", () => {
+    themeState.theme = "system";
+    themeState.resolvedTheme = "light";
+    themeState.setTheme = initialThemeState.setTheme;
+    document.documentElement.classList.add("dark");
+    render(createElement(Sidebar));
+    const img = screen.getByRole("img", { name: "Refurb Genius" }).querySelector("img");
+    expect(img?.getAttribute("src")).toMatch(/refurb-genius-wordmark-dark\.svg/);
   });
 });
 

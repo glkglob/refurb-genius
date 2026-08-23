@@ -1,6 +1,8 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import wordmarkDarkUrl from "@/assets/brand/refurb-genius-wordmark-dark.svg?url";
 import wordmarkLightUrl from "@/assets/brand/refurb-genius-wordmark-light.svg?url";
+import { initialThemeState } from "@/components/ThemeProviderContext";
+import { useTheme } from "@/hooks/useTheme";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -20,6 +22,16 @@ import {
   isGlobalNavItemActive,
   type GlobalNavItemId,
 } from "@/features/navigation";
+
+/** App theme surface, not prefers-color-scheme. Pre-provider: html class / dark-first SSR. */
+function useAppBrandSurface(): "light" | "dark" {
+  const { resolvedTheme, setTheme } = useTheme();
+  if (setTheme === initialThemeState.setTheme) {
+    if (typeof document === "undefined") return "dark";
+    return document.documentElement.classList.contains("dark") ? "dark" : "light";
+  }
+  return resolvedTheme;
+}
 
 const NAV_ICONS: Record<GlobalNavItemId, LucideIcon> = {
   dashboard: LayoutDashboard,
@@ -46,6 +58,8 @@ export function Sidebar() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { signOut } = useSignOut();
+  const brandSurface = useAppBrandSurface();
+  const wordmarkSrc = brandSurface === "dark" ? wordmarkDarkUrl : wordmarkLightUrl;
 
   const handleLogout = async () => {
     await signOut();
@@ -62,14 +76,9 @@ export function Sidebar() {
         aria-label="Refurb Genius"
       >
         <img
-          src={wordmarkDarkUrl}
+          src={wordmarkSrc}
           alt=""
-          className="hidden h-8 w-auto max-w-full object-contain object-left dark:block"
-        />
-        <img
-          src={wordmarkLightUrl}
-          alt=""
-          className="block h-8 w-auto max-w-full object-contain object-left dark:hidden"
+          className="h-8 w-auto max-w-full object-contain object-left"
         />
       </div>
       <nav className="flex-1 space-y-1 p-3" aria-label="Primary">

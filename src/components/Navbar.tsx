@@ -5,7 +5,9 @@ import wordmarkLightUrl from "@/assets/brand/refurb-genius-wordmark-light.svg?ur
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { initialThemeState } from "@/components/ThemeProviderContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 
 const NAV_LINKS = [
   { to: "/dashboard", label: "Dashboard" },
@@ -14,9 +16,21 @@ const NAV_LINKS = [
   { to: "/trades/new", label: "Post Job" },
 ] as const;
 
+/** App theme surface, not prefers-color-scheme. Pre-provider: html class / dark-first SSR. */
+function useAppBrandSurface(): "light" | "dark" {
+  const { resolvedTheme, setTheme } = useTheme();
+  if (setTheme === initialThemeState.setTheme) {
+    if (typeof document === "undefined") return "dark";
+    return document.documentElement.classList.contains("dark") ? "dark" : "light";
+  }
+  return resolvedTheme;
+}
+
 export function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { isAuthenticated } = useAuth();
+  const brandSurface = useAppBrandSurface();
+  const wordmarkSrc = brandSurface === "dark" ? wordmarkDarkUrl : wordmarkLightUrl;
 
   return (
     <header
@@ -28,14 +42,9 @@ export function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex min-w-0 items-center" aria-label="Refurb Genius home">
           <img
-            src={wordmarkDarkUrl}
+            src={wordmarkSrc}
             alt=""
-            className="hidden h-8 w-auto max-w-[11.5rem] object-contain object-left dark:block"
-          />
-          <img
-            src={wordmarkLightUrl}
-            alt=""
-            className="block h-8 w-auto max-w-[11.5rem] object-contain object-left dark:hidden"
+            className="h-8 w-auto max-w-[11.5rem] object-contain object-left"
           />
         </Link>
 

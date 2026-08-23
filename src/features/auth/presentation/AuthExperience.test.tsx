@@ -740,6 +740,7 @@ describe("AuthExperience — source boundary (AO-1E1.1 / AO-1E1.2 / AO-1E1.3 pro
     expect(src).toMatch(/fill="#EA4335"/);
     expect(src).toMatch(/bg-\[#111827\]/);
     expect(src).toMatch(/refurb-genius-mark\.svg/);
+    expect(src).not.toMatch(/refurb-genius-mark-light/);
     expect(src).not.toMatch(/>\s*RG\s*</);
     expect(src).toMatch(/supports-\[padding:max\(0px\)\]:pt-\[env\(safe-area-inset-top\)\]/);
   });

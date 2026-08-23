@@ -10,6 +10,18 @@ import { join } from "node:path";
 const signOut = vi.fn();
 const navigate = vi.fn();
 const toggleTheme = vi.fn();
+const setTheme = vi.fn();
+const themeState: {
+  theme: "light" | "dark" | "system";
+  resolvedTheme: "light" | "dark";
+  setTheme: (theme: "light" | "dark" | "system") => void;
+  toggleTheme: (...args: unknown[]) => void;
+} = {
+  theme: "dark",
+  resolvedTheme: "dark",
+  setTheme,
+  toggleTheme: (...args: unknown[]) => toggleTheme(...args),
+};
 let pathname = "/dashboard";
 
 vi.mock("@/features/auth", () => ({
@@ -19,12 +31,7 @@ vi.mock("@/features/auth", () => ({
 }));
 
 vi.mock("@/hooks/useTheme", () => ({
-  useTheme: () => ({
-    theme: "dark",
-    resolvedTheme: "dark",
-    setTheme: vi.fn(),
-    toggleTheme: (...args: unknown[]) => toggleTheme(...args),
-  }),
+  useTheme: () => themeState,
 }));
 
 vi.mock("@/assets/brand/refurb-genius-mark.svg?url", () => ({
@@ -54,6 +61,7 @@ vi.mock("@tanstack/react-router", async () => {
   };
 });
 
+import { initialThemeState } from "@/components/ThemeProviderContext";
 import { MobileTopBar } from "./MobileTopBar";
 
 beforeEach(() => {
@@ -62,6 +70,10 @@ beforeEach(() => {
   toggleTheme.mockReset();
   signOut.mockResolvedValue(undefined);
   pathname = "/dashboard";
+  themeState.theme = "dark";
+  themeState.resolvedTheme = "dark";
+  themeState.setTheme = setTheme;
+  document.documentElement.classList.remove("light", "dark");
 });
 
 async function openMoreMenu() {
@@ -261,10 +273,8 @@ describe("MobileTopBar brand identity (IOS-BRAND-ASSETS-1)", () => {
     expect(home.getAttribute("aria-label")).toBe("Refurb Genius home");
     expect(home.getAttribute("href")).toBe("/dashboard");
     const imgs = home.querySelectorAll("img");
-    expect(imgs.length).toBe(2);
-    imgs.forEach((img) => {
-      expect(img.getAttribute("alt")).toBe("");
-    });
+    expect(imgs.length).toBe(1);
+    expect(imgs[0]?.getAttribute("alt")).toBe("");
     expect(screen.getByRole("link", { name: "Refurb Genius home" })).toBe(home);
   });
 
@@ -273,6 +283,33 @@ describe("MobileTopBar brand identity (IOS-BRAND-ASSETS-1)", () => {
     expect(src).toMatch(/refurb-genius-mark\.svg/);
     expect(src).toMatch(/refurb-genius-mark-light\.svg/);
     expect(src).not.toMatch(/Building2/);
+  });
+
+  it("shows the dark-surface compact when resolvedTheme is dark", () => {
+    themeState.resolvedTheme = "dark";
+    render(createElement(MobileTopBar));
+    const img = screen.getByTestId("mobile-nav-brand").querySelector("img");
+    expect(img?.getAttribute("src")).toMatch(/refurb-genius-mark\.svg/);
+    expect(img?.getAttribute("src")).not.toMatch(/mark-light/);
+  });
+
+  it("shows the light-surface compact when resolvedTheme is light", () => {
+    themeState.theme = "light";
+    themeState.resolvedTheme = "light";
+    render(createElement(MobileTopBar));
+    const img = screen.getByTestId("mobile-nav-brand").querySelector("img");
+    expect(img?.getAttribute("src")).toMatch(/refurb-genius-mark-light\.svg/);
+  });
+
+  it("does not flash the light compact on html.dark before ThemeProvider mounts", () => {
+    themeState.theme = "system";
+    themeState.resolvedTheme = "light";
+    themeState.setTheme = initialThemeState.setTheme;
+    document.documentElement.classList.add("dark");
+    render(createElement(MobileTopBar));
+    const img = screen.getByTestId("mobile-nav-brand").querySelector("img");
+    expect(img?.getAttribute("src")).toMatch(/refurb-genius-mark\.svg/);
+    expect(img?.getAttribute("src")).not.toMatch(/mark-light/);
   });
 });
 

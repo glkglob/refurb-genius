@@ -1,13 +1,10 @@
 # Refurb Genius brand assets
 
-**Slice:** IOS-BRAND-ASSETS-1 IMPL-B (continuation)  
-**Status:** Uncommitted working diff  
-**BASE:** `44e522b4bfddcfd9fe4233f64c69856c87730266`  
-**CANDIDATE SHA:** NONE
+**Slice:** IOS-BRAND-ASSETS-1 — R1 master repair + R2 derivatives/integration
+**Implementation base:** `9bcef2e8fda8e6a0835c8a3c56e467fda92cd721`
+**Production asset state:** R1 Human-optically-approved masters with R2 derivatives and integration.
 
-Human optical decision on IMPL-A masters: **PASS**. Optical corrections are accepted and are not a material redesign.
-
-Human light-surface compact decision: colour translation only (emerald G + navy rays) on the approved compact geometry.
+Human optical decision on R1 cubic Bézier masters: **PASS**. Light-surface compact remains a colour translation only (emerald G + navy rays) of the approved compact geometry.
 
 This file records usage, inventory and provenance. It does not authorise report/export branding, OG/social images, custom AppIcon appearance variants, physical-device verification, or a shared `BrandMark` component file.
 
@@ -52,22 +49,23 @@ Emerald on ivory is for large identity use only — not small body text.
 
 | File | Contents |
 | --- | --- |
-| `src/assets/brand/refurb-genius-wordmark-dark.svg` | Transparent. Ivory Refurb + emerald Genius + three ivory rays. No baked navy rectangle. **IMPL-A geometry — Human optical PASS. Byte-bound.** |
-| `src/assets/brand/refurb-genius-wordmark-light.svg` | **Same path geometry** as the dark wordmark. Navy Refurb + emerald Genius + three navy rays. No RG-BRAND-03 loop. **IMPL-A geometry — Human optical PASS. Byte-bound.** |
-| `src/assets/brand/refurb-genius-mark.svg` | Dark-surface compact. Emerald G + **three ivory** rays. Transparent. **IMPL-A geometry — Human optical PASS. Byte-bound.** Use on navy / dark fields. |
+| `src/assets/brand/refurb-genius-wordmark-dark.svg` | Transparent. Ivory Refurb + emerald Genius + three ivory rays. No baked navy rectangle. **R1 cubic geometry — Human optical PASS. Frozen.** |
+| `src/assets/brand/refurb-genius-wordmark-light.svg` | **Same path geometry** as the dark wordmark. Navy Refurb + emerald Genius + three navy rays. No RG-BRAND-03 loop. **R1 cubic geometry — Human optical PASS. Frozen.** |
+| `src/assets/brand/refurb-genius-mark.svg` | Dark-surface compact. Emerald G + **three ivory** rays. Transparent. **R1 cubic geometry — Human optical PASS. Frozen.** Use on navy / dark fields. |
 | `src/assets/brand/refurb-genius-mark-light.svg` | Light-surface compact **colour translation only**. Same G path, same three rays, same angles/positions/stroke widths. Emerald G + **three navy** rays. Use on ivory / white / light product surfaces. Do not use this file in place of the full light wordmark on wide chrome. |
 
 Compact ray geometry is identical between `refurb-genius-mark.svg` and `refurb-genius-mark-light.svg`. Only `stroke` colour differs (`#F5EFE5` vs `#0B1F35`). There is no generated light-compact geometry difference.
 
 Do not replace the full light wordmark with the compact light derivative where a full wordmark is appropriate (wide sidebar / header).
 
-### Byte-bound IMPL-A masters (must not change)
+### Frozen R1 masters (must not change in R2)
 
 | File | SHA-256 |
 | --- | --- |
-| `refurb-genius-mark.svg` | `e32ca2b2cf4e99ae1e867691c44ba7de70ae6b5f0d7e6fc2880b0fff0e5e17c6` |
-| `refurb-genius-wordmark-dark.svg` | `beb952fe0194679d68ee35b1767e297d0e0d728bcd5619dd90ae13a5334abab4` |
-| `refurb-genius-wordmark-light.svg` | `9d00ced1a116f4e7d2908bb53da64c6c251907f11e56286d90bfcb22decf04a5` |
+| `refurb-genius-wordmark-dark.svg` | `4e942cfbc26499198382e6b9ab8cd80a1912ed9c23c1541cf4f063e93f713d71` |
+| `refurb-genius-wordmark-light.svg` | `0a1d7db90438fb6b704744b3a60adf097d4cfe1adb0c6543abfe24dcd5f21115` |
+| `refurb-genius-mark.svg` | `9a12fc93dbb43022f395f4ff1acdcf325c04adcbb9c02666ed6b0ef76ac3e4e7` |
+| `refurb-genius-mark-light.svg` | `5cf121dfd715aef221deec0c6cdc61568304afa813f5ae01d883575415487d44` |
 
 ## Compact colourways
 
@@ -125,24 +123,38 @@ Existing filenames remain authoritative. `public/manifest.json` and `src/routes/
 
 | File | Role | Treatment |
 | --- | --- | --- |
-| `public/icon-192.svg` | Public shell SVG | Navy field + dark compact. No house. No baked round-rect. Preserved from the earlier IMPL-B working diff after revalidation. |
+| `public/icon-192.svg` | Public shell SVG | Navy field + **R1** dark compact (cubic, not the rejected 89-L polygon). No house. No baked round-rect. |
 | `public/icon-192.png` | 192 PWA | Same composition, 192 × 192 RGBA |
 | `public/icon-512.png` | 512 PWA | Same composition, 512 × 512 RGBA |
-| `public/favicon.png` | Favicon PNG | 512 × 512 RGBA |
-| `public/favicon.ico` | Favicon ICO | 16 / 32 / 48 / 64, 32-bpp |
+| `public/favicon.png` | Favicon PNG | 512 × 512 RGBA (byte-identical to `icon-512.png`) |
+| `public/favicon.ico` | Favicon ICO | 16 / 32 / 48 / 64, 32-bpp PNG entries |
 | `public/apple-touch-icon.png` | Apple touch | 180 × 180 RGBA, square field, no baked OS corner |
 | `public/apple-touch-icon-precomposed.png` | Apple touch precomposed | Same 180 × 180 treatment |
-| `public/maskable-icon.png` | Maskable | 192 × 192. Navy may fill the canvas. Compact mark kept inside the mask-safe area. No baked circular/squircle mask in the artwork. |
+| `public/maskable-icon.png` | Maskable | 192 × 192. Navy may fill the canvas. Compact mark kept inside the mask-safe circle (diameter 80%). No baked circular/squircle mask in the artwork. |
 
-Self-contained field icons: navy `#0B1F35`, G `#169C70`, three ivory rays `#F5EFE5`.
+Self-contained field icons: navy `#0B1F35`, G `#169C70`, three ivory rays `#F5EFE5`. Combined G+rays occupy the central ~70% of the canvas (≥15% proofing inset).
+
+### R2 derivative SHA-256
+
+| File | SHA-256 |
+| --- | --- |
+| `public/icon-192.svg` | `ef2deac5aeee18156bcbae1aeaf3c5b5fb2d4bcd4c098b83de370c285e09af34` |
+| `public/icon-192.png` | `21e98e89149f4687764d557b9a3d37953c7e56e0f9569fff1a199922f2207ad2` |
+| `public/icon-512.png` | `89a4142288f7e3bfe0d207462689fc6f3e2835d7d35bb1bdbed6c4fecd32ef47` |
+| `public/favicon.png` | `89a4142288f7e3bfe0d207462689fc6f3e2835d7d35bb1bdbed6c4fecd32ef47` |
+| `public/favicon.ico` | `59ea4ce8e87548ecdbd1c52ed81defc233a2c13e0974caaae23b2f1b342d93ca` |
+| `public/maskable-icon.png` | `21e98e89149f4687764d557b9a3d37953c7e56e0f9569fff1a199922f2207ad2` |
+| `public/apple-touch-icon.png` | `0a6620cb2f9f66199cf2a2bc12663a434f60a0451387a7525257fa7e332d1118` |
+| `public/apple-touch-icon-precomposed.png` | `0a6620cb2f9f66199cf2a2bc12663a434f60a0451387a7525257fa7e332d1118` |
+| `ios/.../AppIcon-512@2x.png` | `fbad0dd71d419cc6a0dec176b10d374cd8ee0ece77b623ee6497846dbd8ce919` |
 
 ## Authorised presentation surfaces
 
 | Owner | Identity treatment |
 | --- | --- |
-| `src/components/MobileTopBar.tsx` | Compact family on `bg-background`. Dark compact in `.dark`, light compact otherwise. Home control remains `/dashboard` named `Refurb Genius home`. Destinations unchanged. Copilot chrome copy unchanged. |
-| `src/components/Sidebar.tsx` | Full wordmark (dark/light by `.dark`). IA destinations unchanged: Dashboard, Projects, New Analysis, Deal Copilot, Trades, Settings. |
-| `src/components/Navbar.tsx` | Full wordmark (preferred where width allows). Home control `/` named `Refurb Genius home`. Marketing destinations unchanged. |
+| `src/components/MobileTopBar.tsx` | Compact family on `bg-background`. Variant follows `useTheme().resolvedTheme` (not `prefers-color-scheme`). Home control remains `/dashboard` named `Refurb Genius home`. Destinations unchanged. Copilot chrome copy unchanged. |
+| `src/components/Sidebar.tsx` | Full wordmark on `bg-card`. Variant follows `resolvedTheme`. Pre-provider/SSR uses `html.dark` so the light wordmark cannot flash on the dark-first shell. IA destinations unchanged: Dashboard, Projects, New Analysis, Deal Copilot, Trades, Settings. |
+| `src/components/Navbar.tsx` | Full wordmark (preferred where width allows). Variant follows `resolvedTheme`. Home control `/` named `Refurb Genius home`. Marketing destinations unchanged. |
 | `src/features/auth/presentation/AuthExperience.tsx` | Dark compact on existing `#111827` tile (sufficiently dark surface). Auth logic/session/OAuth unchanged. No `src/styles.css` retoken. Literal `RG` tile text removed. |
 
 Functional `Building2` icons (project placeholders, Estimate “New build”, report chrome) are **not** brand identity and were not changed.
@@ -163,27 +175,26 @@ Functional `Building2` icons (project placeholders, Estimate “New build”, re
 
 ## Font / provenance
 
-**TYPEFACE IDENTIFIED:** NO  
-**TYPEFACE:** NOT EVIDENCED  
-**LICENCE EVIDENCE:** NONE in-repo  
-**AUTHORITATIVE VECTOR SOURCE before IMPL-A:** NO  
+**TYPEFACE IDENTIFIED:** NO
+**TYPEFACE:** NOT EVIDENCED
+**LICENCE EVIDENCE:** NONE in-repo
+**AUTHORITATIVE VECTOR SOURCE before R1:** NO
 
-**Production method:** original vector-outline reconstruction of RG-BRAND-01 / RG-BRAND-02 silhouettes. Light compact is a Human-authorised colour translation of the approved IMPL-A compact geometry. Platform rasters are derived from that compact master on a navy field (or a solid launch field with no mark).
+**Production method:** JPEG-first cubic Bézier reconstruction of RG-BRAND-01 / RG-BRAND-02 silhouettes (R1). Light compact is a Human-authorised colour translation of the approved R1 compact geometry. Platform rasters are derived from that compact master on a navy field (or a solid launch field with no mark).
 
-**HUMAN OPTICAL CHECKPOINT (masters):** PASS (IMPL-A bytes).
+**HUMAN OPTICAL CHECKPOINT (masters):** PASS (R1 bytes).
 
-## Canvas (IMPL-A optical correction — unchanged)
+## Canvas (R1)
 
 Dark and light wordmarks share **identical** viewBoxes:
 
 | | Value |
 | --- | --- |
-| viewBox | `108.50 533.00 1227.00 283.50` |
-| artwork occupancy | 1147 × 227.5 in 1227.00 × 283.50 (93.5% × 80.2%) |
+| viewBox | `137.53 550.00 1176.03 255.76` |
 
-Compact viewBox (both colourways): `440.86 237.89 556.67 777.25`. Compact ray `stroke-width` 17.28 / 24.00 / 17.28; endpoints unchanged from IMPL-A.
+Compact viewBox (both colourways): `448.41 301.06 495.45 689.75`. Compact ray `stroke-width` 12.45 / 17.28 / 12.45.
 
-## Deferred (not this working diff)
+## Deferred (not this slice)
 
 - Monochrome wordmarks
 - Report / export / PDF branding
