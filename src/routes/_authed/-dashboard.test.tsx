@@ -227,4 +227,16 @@ describe("dashboard onboarding Auth extraction", () => {
     const meta = head!();
     expect(meta.meta[0].title).toBe("Dashboard — Refurb Genius");
   });
+
+  it("leads with a featured project and keeps secondary trades below", () => {
+    const src = readFileSync(ROUTE_SRC, "utf8");
+    expect(src).toMatch(/dashboard-featured-project/);
+    expect(src).toMatch(/layout="featured"/);
+    expect(src).toMatch(/layout="row"/);
+    expect(src).toMatch(/showDealCopilotRail/);
+    expect(src).toMatch(/dashboard-secondary/);
+    expect(src.indexOf("dashboard-featured-project")).toBeLessThan(
+      src.indexOf("dashboard-secondary"),
+    );
+  });
 });

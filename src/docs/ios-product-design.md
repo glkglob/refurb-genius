@@ -25,9 +25,13 @@ IA-0 remains LOCKED:
 
 Project Overview is the project home, not a sixth stage. Global mobile chrome stays:
 
-> Home | Projects | + New | Copilot | More
+> Home | Projects | New | Deal Copilot | More
+
+The destination row is a **bottom** bar (`MobileBottomNav`). The top bar is identity/profile chrome only. Visible product name is **Deal Copilot**, not “Copilot”.
 
 Stage progress and the single dominant next action take priority inside a project. Users must not open More merely to continue the journey.
+
+Authenticated desktop **light** mode uses a dark left Sidebar and a light workspace. Dark mode keeps the working dark product experience. Persistent Sidebar starts at `lg`; below `lg` the bottom destination bar is used.
 
 ---
 
@@ -35,6 +39,7 @@ Stage progress and the single dominant next action take priority inside a projec
 
 - Use semantic tokens from `src/styles.css` (`bg-background`, `text-foreground`, `bg-card`, `bg-primary`, `border-border`, `ring-ring`, `bg-field`, …).
 - Do not introduce a parallel palette (hardcoded cream/teal/gray/white) on authorised product chrome.
+- Authenticated Web A light mode applies the approved dark-left-navigation / light-workspace hierarchy (RG-UI-01). The Sidebar renders the canonical Refurb Genius production palette where applicable — navy `#0B1F35`, ivory `#F5EFE5` (RG-BRAND-00) — as component-local classes, and `dark:` variants keep the existing dark architecture in dark mode. This is application of existing RG-UI-01 / RG-BRAND-00 authority, not an implementation-agent exception to the rule above. `src/styles.css` is not globally retokened for this presentation treatment.
 - Dark mode is first-class. Light mode must remain readable.
 - Colour is never the sole status signal (wording + icon + semantic treatment).
 
@@ -64,9 +69,10 @@ Do not use `size="sm"` (`h-9`) for a primary journey CTA.
 
 Contract (IOS-UX-1B):
 
-- Apply `env(safe-area-inset-top)` as **padding on the sticky header**, not on a fixed-height inner row.
-- Keep the inner row at its designed height (`h-14` authenticated mobile; `h-16` marketing).
-- Bottom chrome (sticky next action, composers, footers) uses `max(0.75rem, env(safe-area-inset-bottom))`.
+- Apply `env(safe-area-inset-top)` as **padding on the sticky header**, not on a compressed inner row.
+- Authenticated mobile identity header uses `min-h-14` so large text can wrap.
+- Bottom destination bar owns `env(safe-area-inset-bottom)`.
+- Sticky journey CTAs sit **above** the bottom destination bar and must not share its layer.
 - Sticky journey CTAs must not cover primary content or legal Footer links.
 
 Prefer `min-h-dvh` over `min-h-screen` on full-height iOS shells.

@@ -230,10 +230,21 @@ function DashboardContent() {
           }
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {projects.slice(0, 6).map((p) => (
-            <ProjectContinuationCard key={p.id} project={p} />
+        <div className="flex flex-col gap-4">
+          {projects.slice(0, 1).map((project) => (
+            <div key={project.id} data-testid="dashboard-featured-project">
+              <ProjectContinuationCard project={project} layout="featured" />
+            </div>
           ))}
+          {projects.slice(1, 6).length > 0 ? (
+            <ul className="flex flex-col gap-3" data-testid="dashboard-project-rows">
+              {projects.slice(1, 6).map((p) => (
+                <li key={p.id}>
+                  <ProjectContinuationCard project={p} layout="row" />
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       )}
     </DashboardSection>
@@ -278,6 +289,7 @@ function DashboardContent() {
     <AppLayout
       title="Dashboard"
       subtitle="Continue your refurbishment projects — Photos, Analysis, Redesign, Estimate, Export."
+      showDealCopilotRail
     >
       {showOnboardingCard && (
         <Card className="mb-6 border-accent/40 bg-accent/10">
@@ -368,7 +380,7 @@ function DashboardContent() {
         {projectsSection}
       </div>
 
-      <div className="mb-8">
+      <div className="mb-8" data-testid="dashboard-secondary">
         <h2 className="mb-4 text-sm font-medium uppercase tracking-wide text-muted-foreground">
           Quick actions
         </h2>
@@ -378,10 +390,8 @@ function DashboardContent() {
           <QuickActionCard icon={Briefcase} label="Post a Trades Job" to="/trades/new" />
           <QuickActionCard icon={HardHat} label="Browse Trades Jobs" to="/trades" />
         </div>
-      </div>
 
-      <div className="mb-8">
-        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-muted-foreground">
+        <h2 className="mb-3 mt-8 text-sm font-medium uppercase tracking-wide text-muted-foreground">
           Trades activity
         </h2>
         {commercialStats}
@@ -410,7 +420,7 @@ function DashboardContent() {
             <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Optional · Feasibility snapshots
             </h2>
-            <span className="rounded-full border border-border/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            <span className="rounded-full border border-border/60 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Secondary
             </span>
           </div>
@@ -790,7 +800,7 @@ function StatCard({
         <p
           className={cn(
             "font-medium uppercase tracking-[0.5px] text-muted-foreground",
-            compact ? "text-[10px] leading-tight" : "text-xs",
+            compact ? "text-xs leading-tight" : "text-xs",
           )}
         >
           {label}

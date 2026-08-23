@@ -55,4 +55,9 @@ describe("IA-7 Projects index + nav contracts", () => {
   it("Projects index New Analysis CTAs target /analyze", () => {
     expect(SRC).toMatch(/to=["']\/analyze["']/);
   });
+
+  it("reuses ProjectContinuationCard featured/row presentation", () => {
+    expect(SRC).toMatch(/layout=\{index === 0 \? "featured" : "row"\}/);
+    expect(SRC).toMatch(/showDealCopilotRail/);
+  });
 });

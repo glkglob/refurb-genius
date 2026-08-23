@@ -85,8 +85,10 @@ describe("ProjectStageNav", () => {
       expect(screen.getByText(name)).toBeTruthy();
     }
     const source = container.innerHTML;
-    // Label spans use whitespace-nowrap; stage names must not sit on .truncate.
-    expect(source).toMatch(/whitespace-nowrap/);
+    // Large-text: wrap instead of 10px/ellipsis. Names stay in the tree.
+    expect(source).toMatch(/whitespace-normal/);
+    expect(source).toMatch(/break-words/);
+    expect(source).not.toMatch(/whitespace-nowrap/);
     const truncating = [...container.querySelectorAll(".truncate")];
     for (const el of truncating) {
       expect(el.textContent).not.toMatch(/Photos|Analysis|Redesign|Estimate|Export/);

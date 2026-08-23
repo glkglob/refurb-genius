@@ -19,6 +19,14 @@ vi.mock("./MobileTopBar", () => ({
   MobileTopBar: () => createElement("div", { "data-testid": "mobile-top-bar" }),
 }));
 
+vi.mock("./MobileBottomNav", () => ({
+  MobileBottomNav: () => createElement("nav", { "data-testid": "mobile-bottom-nav" }),
+}));
+
+vi.mock("./DealCopilotRail", () => ({
+  DealCopilotRail: () => createElement("aside", { "data-testid": "deal-copilot-rail" }),
+}));
+
 vi.mock("./Footer", () => ({
   Footer: () => createElement("footer", { "data-testid": "app-footer" }, "footer"),
 }));
@@ -39,5 +47,20 @@ describe("AppLayout iOS interaction chrome", () => {
     expect(SRC).toMatch(/min-h-dvh/);
     expect(SRC).toMatch(/env\(safe-area-inset-bottom/);
     expect(SRC).toMatch(/mobileBottomReserve/);
+  });
+
+  it("always mounts bottom nav and reserves space above it", () => {
+    render(createElement(AppLayout, { title: "Dashboard", children: "body" }));
+    expect(screen.getByTestId("mobile-bottom-nav")).toBeTruthy();
+    expect(SRC).toMatch(/5\.75rem/);
+    expect(SRC).toMatch(/lg:pb-10/);
+    expect(SRC).not.toMatch(/md:flex/);
+  });
+
+  it("renders Deal Copilot rail only when requested", () => {
+    const { rerender } = render(createElement(AppLayout, { children: "body" }));
+    expect(screen.queryByTestId("deal-copilot-rail")).toBeNull();
+    rerender(createElement(AppLayout, { showDealCopilotRail: true, children: "body" }));
+    expect(screen.getByTestId("deal-copilot-rail")).toBeTruthy();
   });
 });

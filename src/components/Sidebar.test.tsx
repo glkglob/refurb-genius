@@ -70,6 +70,16 @@ describe("Sidebar IA-7 global navigation", () => {
     expect(screen.getByTestId("global-nav-dashboard").getAttribute("data-active")).toBe("true");
     expect(screen.getByTestId("global-nav-projects").getAttribute("data-active")).toBe("false");
   });
+
+  it("uses lg persistent chrome and light-mode dark sidebar surface", () => {
+    render(createElement(Sidebar));
+    const src = readFileSync(join(__dirname, "Sidebar.tsx"), "utf8");
+    expect(src).toMatch(/lg:flex/);
+    expect(src).not.toMatch(/md:flex/);
+    expect(src).toMatch(/bg-\[#0B1F35\]/);
+    expect(src).toMatch(/dark:bg-card/);
+    expect(screen.getByTestId("app-sidebar")).toBeTruthy();
+  });
 });
 
 describe("Sidebar sign-out (AO-1S1)", () => {

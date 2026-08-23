@@ -216,6 +216,50 @@ describe("ProjectContinuationCard", () => {
     expect(screen.getByText("Victorian Terrace")).toBeTruthy();
   });
 
+  it("featured layout exposes named five-stage status without truncating the title", () => {
+    mockWorkflow({
+      nextAction: {
+        stage: "estimate",
+        status: "Ready",
+        actionKind: "build_estimate",
+        route: "/projects/proj-1/estimate",
+        label: "Build Estimate",
+        reason: "estimate_missing",
+      },
+      shellProgress: {
+        ...idleProgress,
+        photosDone: true,
+        analysisDone: true,
+      },
+    });
+    render(createElement(ProjectContinuationCard, { project: baseProject, layout: "featured" }));
+    expect(screen.getByTestId("project-continuation-card").getAttribute("data-layout")).toBe(
+      "featured",
+    );
+    expect(screen.getByTestId("workflow-stage-list")).toBeTruthy();
+    expect(screen.getByText("Photos")).toBeTruthy();
+    expect(screen.getByText("Export")).toBeTruthy();
+    expect(screen.getByText("Victorian Terrace")).toBeTruthy();
+  });
+
+  it("row layout uses named stages and a placeholder media strip", () => {
+    mockWorkflow({
+      nextAction: {
+        stage: "photos",
+        status: "Not started",
+        actionKind: "add_photos",
+        route: "/projects/proj-1/upload",
+        label: "Add Photos",
+        reason: "photos_missing",
+      },
+      shellProgress: idleProgress,
+    });
+    render(createElement(ProjectContinuationCard, { project: baseProject, layout: "row" }));
+    expect(screen.getByTestId("project-continuation-card").getAttribute("data-layout")).toBe("row");
+    expect(screen.getByTestId("workflow-stage-list")).toBeTruthy();
+    expect(screen.getByTestId("project-card-media").getAttribute("data-media")).toBe("placeholder");
+  });
+
   describe("PUBLIC-BETA-R1-R2 refurb truthfulness (no unsupported line)", () => {
     it("A: no Estimate / zero GDV — no £0, no invented total, no false absence label", () => {
       mockWorkflow({

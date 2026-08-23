@@ -87,10 +87,20 @@ test("shared overlay primitives paint with bg-popover (not a one-off light-only 
   }
 });
 
-test("MobileTopBar More menu uses DropdownMenuContent (inherits opaque popover surface)", () => {
-  const src = read("src/components/MobileTopBar.tsx");
-  assert.match(src, /DropdownMenuContent/);
-  assert.match(src, /mobile-nav-more/);
+test("MobileBottomNav More menu uses DropdownMenuContent (inherits opaque popover surface)", () => {
+  const src = read("src/components/MobileBottomNav.tsx");
+  assert.match(
+    src,
+    /from\s+["']@\/components\/ui\/dropdown-menu["']/,
+    "More menu must use the shared dropdown primitive",
+  );
+  assert.match(src, /<DropdownMenuContent\b/, "More menu must render DropdownMenuContent");
+  assert.match(
+    src,
+    /data-testid=["']mobile-nav-more["']/,
+    "More trigger must keep mobile-nav-more test identity",
+  );
   // Content surface comes from the shared primitive — do not reintroduce a transparent override.
-  assert.doesNotMatch(src, /DropdownMenuContent[^>]*className=\{[^}]*bg-transparent/);
+  assert.doesNotMatch(src, /<DropdownMenuContent[^>]*\bbg-transparent\b/);
+  assert.doesNotMatch(src, /<DropdownMenuContent[^>]*className=\{[^}]*bg-transparent/);
 });

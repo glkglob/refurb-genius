@@ -24,6 +24,7 @@ function ProjectsIndexPage() {
     <AppLayout
       title="Projects"
       subtitle="Open a refurbishment project to continue Photos, Analysis, Redesign, Estimate, and Export."
+      showDealCopilotRail
       actions={
         <Button asChild size="sm">
           <Link to="/analyze">
@@ -59,9 +60,13 @@ function ProjectsIndexPage() {
           }
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="projects-index-grid">
-          {projects.map((project) => (
-            <ProjectContinuationCard key={project.id} project={project} />
+        <div className="flex flex-col gap-4" data-testid="projects-index-grid">
+          {projects.map((project, index) => (
+            <ProjectContinuationCard
+              key={project.id}
+              project={project}
+              layout={index === 0 ? "featured" : "row"}
+            />
           ))}
         </div>
       )}
