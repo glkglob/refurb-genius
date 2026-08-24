@@ -106,16 +106,160 @@ We use **CSS Variables** (defined in `src/styles.css`) with OKLCH.
 
 ---
 
-## 7. Current Gaps
+## 7. Authenticated product surfaces (approved design)
+
+This section is **approved forward-looking design authority**. It supersedes older wording that treated Dashboard/Home as a “My projects” list, that featured the first Projects row, or that omitted Marketplace from desktop navigation.
+
+It does **not** prove current implementation. Project Brief, Workflow Board, hide/restore persistence, Home/Dashboard page headings, removal of “My projects”, and uniform Projects rows remain **approved targets pending separately authorised implementation**. Interaction, layout, and iOS chrome rules remain in `src/docs/ios-product-design.md`.
+
+### 7.1 Canonical naming
+
+The authenticated route may remain `/dashboard`. This does not rename the public marketing Home surface. Stable implementation IDs and routes are not changed by this documentation.
+
+**Mobile authenticated navigation (fixed bottom row):**
+
+| Position | Visible label |
+| -------- | ------------- |
+| 1 | Home |
+| 2 | Projects |
+| 3 | New |
+| 4 | Deal Copilot |
+| 5 | More |
+
+Mobile authenticated Dashboard-route page heading: **Home**.
+
+**Desktop authenticated navigation:**
+
+| Position | Visible label |
+| -------- | ------------- |
+| 1 | Dashboard |
+| 2 | Projects |
+| 3 | New Analysis |
+| 4 | Deal Copilot |
+| 5 | Marketplace |
+| 6 | Settings |
+
+Desktop authenticated Dashboard-route page heading: **Dashboard**.
+
+**Projects** is the canonical portfolio heading. **“My projects”** is not a current canonical authenticated page name, Dashboard/Home heading, or governing surface name.
+
+### 7.2 Dashboard / Home composition
+
+Approved default order on authenticated Home/Dashboard:
+
+1. **Project Brief**
+2. **Workflow Board**
+
+Project Brief is visible by default. The user must be able to hide it, restore it, and retain that preference between sessions. When it is hidden, Workflow Board remains visible, occupies the primary Dashboard position, and no empty Project Brief container or unexplained gap remains.
+
+Persistence mechanism (device-local, browser-local, native-local, or account-synchronised) is **PENDING DATA-CONTRACT VALIDATION**. Do not treat any storage choice as approved.
+
+Project Brief and Workflow Board must use consistent project and workflow evidence. They must not contradict current stage, status, attention, readiness, or next action. The shared summary authority required for that consistency is **PENDING DATA-CONTRACT VALIDATION**.
+
+### 7.3 Project Brief
+
+Project Brief is a concise cross-project summary of the most important decisions, attention items, readiness items, and next actions.
+
+It is not another copy of Projects and not a second workflow board. Because Workflow Board follows immediately, do not duplicate a separate “Workflow snapshot” inside Project Brief.
+
+Each displayed item may contain:
+
+- project name;
+- location;
+- concise reason for attention, readiness, or waiting;
+- the existing authoritative contextual action.
+
+Project Brief must not invent a second next-action resolver. It must consume existing authoritative workflow and continuation evidence.
+
+Exact item-selection rule, priority ordering, maximum item count, summary contract, loading behaviour, and empty state remain **PENDING DATA-CONTRACT VALIDATION**. Do not invent those details here.
+
+### 7.4 Workflow Board
+
+Workflow Board is the approved Option 2 cross-project workflow presentation. It shows workflow position across active projects at a glance.
+
+Canonical five-stage order:
+
+1. Photos
+2. Analysis
+3. Redesign
+4. Estimate
+5. Export
+
+**Desktop:** five ordered columns (Photos, Analysis, Redesign, Estimate, Export). Each column shows the canonical stage name, the count of active projects assigned to that stage, and compact project cards.
+
+**Mobile:** the same five stages, same order, same authoritative placement, and same stage counts, presented as vertically stacked sections — not compressed desktop columns. Do not introduce page-level horizontal overflow.
+
+Each card or row may display project name, location, current status, connected five-stage progress, and Open. Each active project appears **once** under its current authoritative workflow stage.
+
+Workflow Board is an evidence-based overview. It is **not** a manually editable Kanban board. Do not drag-and-drop, move stages manually, mutate status from this surface, invent a second workflow resolver, or calculate workflow in the route in conflict with existing authority.
+
+Stage placement must derive from shared authoritative workflow evidence. The exact summary/data contract that classifies all active projects is **PENDING DATA-CONTRACT VALIDATION**.
+
+### 7.5 Projects
+
+Projects is the separate uniform portfolio workspace. It must not reproduce Home/Dashboard composition (no Project Brief, no Workflow Board columns, no “Continue where you left off”, no featured first project).
+
+Projects answers: what projects exist; what stage each has reached; which need attention; which the user wants to open.
+
+Approved presentation for **every** project:
+
+- compact uniform rows or cards;
+- project media area or authorised placeholder;
+- project name;
+- address, postcode, or available location fallback;
+- status or attention indication;
+- connected five-stage progress in canonical order Photos → Analysis → Redesign → Estimate → Export;
+- Open project.
+
+Desktop should show multiple consistent rows in a normal viewport. Mobile should use compact stacked cards or rows without page-level horizontal overflow.
+
+Do not use “My projects” as the heading.
+
+Known current implementation mismatch (not repaired by this documentation): `/projects` still features its first project (`index === 0 ? "featured" : "row"`). That remains a pending separately authorised repair.
+
+### 7.6 Surface responsibility
+
+| Surface | Responsibility |
+| ------- | -------------- |
+| Dashboard / Home | Concise cross-project brief; priority decisions and next actions; active projects grouped by authoritative workflow stage; resume or open the relevant project. |
+| Projects | Complete uniform portfolio; browse and compare; consistent progress; open the selected project. |
+| Project overview | Interior five-stage working experience. Separate from both Dashboard/Home and the Projects list. |
+
+Dashboard/Home and Projects are not duplicate surfaces.
+
+### 7.7 Marketplace
+
+Marketplace remains the authenticated parent presentation area.
+
+Desktop position: after Deal Copilot, before Settings.
+
+Marketplace contains or provides access to My Jobs, My Interests, Post a Job, Trades board, directory, quotes, messages/inbox, and favourites.
+
+On mobile, Marketplace is reached through **More**. It must not replace one of the five fixed bottom destinations.
+
+### 7.8 Shell and brand direction (unchanged)
+
+Desktop: persistent dark navy left sidebar, light central workspace, separate right-side Deal Copilot rail, visible boundaries, restrained emerald accents.
+
+Mobile: fixed safe-area-aware bottom navigation (Home, Projects, New, Deal Copilot, More), compact responsive content, no page-level horizontal overflow.
+
+Dark treatment uses layered navy surfaces and visible boundaries — not an indistinguishable near-black field.
+
+Brand direction: deep navy `#0D2139`, emerald `#188E67`, white and light/ivory workspace surfaces, readable text, visible layered boundaries, restrained accent use.
+
+---
+
+## 8. Current Gaps
 
 - Some legacy pages still use hardcoded colors (`teal-*`, `gray-*`, `bg-white`).
 - ThemeProvider may still flash on first load (not an iOS interaction-slice repair unless the provider file is authorised).
 - Branding (app icon, splash, LaunchScreen, PWA marks) is **not** owned here — see `IOS-BRAND-ASSETS-1`.
 - iOS interaction/layout/safe-area rules live in `src/docs/ios-product-design.md`.
+- Home/Dashboard Project Brief + Workflow Board, Home/Dashboard headings, removal of “My projects”, and uniform Projects rows are approved design targets, not current implementation.
 
 ---
 
-## 8. Enforcement
+## 9. Enforcement
 
 - New features **must** follow this document.
 - Use the `grok-refurb-platform-builder` skill when working inside this codebase.
@@ -123,7 +267,7 @@ We use **CSS Variables** (defined in `src/styles.css`) with OKLCH.
 
 ---
 
-## 9. Component Migration Checklist (Current Priority)
+## 10. Component Migration Checklist (Current Priority)
 
 See the more detailed and enforceable rules in:
 **`src/docs/COMPONENT_STANDARDS.md`**
@@ -139,5 +283,5 @@ Use this when cleaning up legacy code:
 
 ---
 
-**Last Updated:** August 2026
+**Last Updated:** 24 August 2026
 **Owner:** Product design documentation (interaction/layout). Branding is a separate phase.
