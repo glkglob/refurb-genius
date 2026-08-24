@@ -1,0 +1,16 @@
+src/docs/design-system.md
+  h_7ea6129503670a 109-252,258,262,270,286
+src/docs/ios-product-design.md
+  h_7ea6129503670a 8-9,28,32,38-145,150-151
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "7a649d601e63c4146062d0bcfcb9f301ce3a728b",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
