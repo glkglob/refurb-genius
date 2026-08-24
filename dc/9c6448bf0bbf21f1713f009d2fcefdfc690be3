@@ -1,0 +1,54 @@
+src/components/AppLayout.test.tsx
+  h_7ea6129503670a 66-70
+src/components/AppLayout.tsx
+  h_7ea6129503670a 53,72
+src/components/DealCopilotRail.test.tsx
+  h_7ea6129503670a 21
+src/components/DealCopilotRail.tsx
+  h_7ea6129503670a 24-25,27-30,33
+src/components/MobileBottomNav.test.tsx
+  h_7ea6129503670a 143-144,147,150,152,154-155,230,240-242
+src/components/Sidebar.test.tsx
+  h_7ea6129503670a 49,59-81,103-109,111-118
+src/docs/design-system.md
+  h_7ea6129503670a 31-41
+src/docs/ios-product-design.md
+  h_7ea6129503670a 42-44,47
+src/features/navigation/globalNav.test.ts
+  h_7ea6129503670a 28,31-33,88-90,126-129
+src/features/navigation/globalNav.ts
+  h_7ea6129503670a 12,69-71
+src/features/projects/presentation/components/ProjectContinuationCard.test.tsx
+  h_7ea6129503670a 243-244,263-265,459
+src/features/projects/presentation/components/ProjectContinuationCard.tsx
+  h_7ea6129503670a 160-164,224-235
+src/routes/_authed/-dashboard.hierarchy.test.ts
+  h_7ea6129503670a 2,9-16,18-25,28-34,37-44,47-53,56-62,65-72
+src/routes/_authed/-dashboard.test.tsx
+  h_7ea6129503670a 2,17-19,22-25,27-28,32-33,62-84,87,90-91,93-94,97,99-103,106-107,109-119,122,124-130,133-134,136-150,153,156,158-161
+src/routes/_authed/dashboard.tsx
+  h_7ea6129503670a 2,6,11,15-30,39,41-43,45-50,53-64,67-74,76-83,88-148,152
+src/routes/_authed/marketplace.tsx
+  h_7ea6129503670a 12-23,32-107,110,120-121,188-203,210,214-216,234,238-243,309-316,357-672
+src/routes/_authed/projects.index.tsx
+  h_7ea6129503670a 8,13-14,21-30,33-37,44,46,52-71,91,97-102,105
+src/routes/trades.tsx
+  h_7ea6129503670a 4,74-75,108-116
+src/styles.css
+  h_7ea6129503670a 136-151,156-158,164-174,178-192,195-199,205-215
+tests/invariants/dashboard-onboarding-auth-presentation.invariant.test.ts
+  h_7ea6129503670a 8-9,22,40,44,47,49-51,109-117
+tests/invariants/trades-availability-truth.invariant.test.ts
+  h_7ea6129503670a 86,88,90-93,96-121,123-127,129-179
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "dc9c6448bf0bbf21f1713f009d2fcefdfc690be3",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
