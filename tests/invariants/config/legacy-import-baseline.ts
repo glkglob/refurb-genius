@@ -92,9 +92,6 @@ export const LEGACY_IMPORT_BASELINE = [
   "src/routes/__root.tsx|@/lib/sentry",
   "src/routes/_authed.tsx|@/lib/auth",
 
-  "src/routes/_authed/dashboard.tsx|@/core/trades",
-  "src/routes/_authed/dashboard.tsx|@/core/trades/tradesJob.selectors",
-  "src/routes/_authed/dashboard.tsx|@/lib/utils",
   "src/routes/_authed/deal-copilot/$opportunityId.edit.tsx|@/core/dealCopilot",
   "src/routes/_authed/deal-copilot/$opportunityId.tsx|@/lib/utils",
   "src/routes/_authed/deal-copilot/index.tsx|@/core/platform",

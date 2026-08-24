@@ -28,16 +28,17 @@ We use **CSS Variables** (defined in `src/styles.css`) with OKLCH.
 
 ### Semantic Tokens (Recommended Usage)
 
-| Token           | Light Mode     | Dark Mode              | Usage Example                    |
-| --------------- | -------------- | ---------------------- | -------------------------------- |
-| `--background`  | Cool off-white | Deep navy slate        | Page backgrounds                 |
-| `--card`        | White          | Elevated slate         | Cards, panels                    |
-| `--primary`     | Emerald        | Bright emerald         | **Primary CTAs** (filled buttons)|
-| `--accent`      | Emerald        | Bright emerald         | Highlights, active nav, links    |
-| `--field`       | White          | Solid elevated fill    | Input / select / textarea fill   |
-| `--muted`       | Light gray     | Mid slate              | Secondary backgrounds            |
-| `--placeholder` | Mid gray       | Soft gray              | Placeholder text                 |
-| `--border`      | Light gray     | White ~28%             | Borders                          |
+| Token           | Light Mode                         | Dark Mode                         | Usage Example                    |
+| --------------- | ---------------------------------- | --------------------------------- | -------------------------------- |
+| `--background`  | Ivory (`#F5EFE5` direction)        | Layered navy (`#0B1F35` direction)| Page / main workspace            |
+| `--card`        | Near-white                         | Raised navy above the page        | Cards, panels                    |
+| `--primary`     | Emerald (`#169C70` direction)      | Brighter emerald                  | **Primary CTAs** (filled buttons)|
+| `--accent`      | Emerald                            | Brighter emerald                  | Highlights, active nav, links    |
+| `--field`       | Near-white                         | Mid navy, distinct from page      | Input / select / textarea fill   |
+| `--muted`       | Soft ivory-gray                    | Mid navy                          | Secondary backgrounds            |
+| `--placeholder` | Mid gray                           | Soft ivory-gray                   | Placeholder text                 |
+| `--border`      | Visible warm gray                  | Visible navy edge (opaque)        | Borders and hierarchy            |
+| `--popover`     | Opaque near-white                  | Opaque raised navy                | Menus / overlays                 |
 
 **Never hardcode:**
 

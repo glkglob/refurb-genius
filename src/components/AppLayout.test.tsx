@@ -63,4 +63,9 @@ describe("AppLayout iOS interaction chrome", () => {
     rerender(createElement(AppLayout, { showDealCopilotRail: true, children: "body" }));
     expect(screen.getByTestId("deal-copilot-rail")).toBeTruthy();
   });
+
+  it("does not wrap the page header in glass-panel or a radial wash", () => {
+    expect(SRC).not.toMatch(/glass-panel/);
+    expect(SRC).not.toMatch(/radial-gradient/);
+  });
 });

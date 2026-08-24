@@ -56,8 +56,6 @@ export function Sidebar() {
       className="hidden w-60 shrink-0 flex-col border-r border-white/10 bg-[#0B1F35] text-[#F5EFE5] lg:flex dark:border-border dark:bg-card dark:text-card-foreground"
       data-testid="app-sidebar"
     >
-      {/* Brand colour strip */}
-      <div className="h-1 bg-gradient-to-r from-teal-500 via-cyan-500 to-emerald-500" />
       <div className="flex min-h-16 items-center gap-2 border-b border-white/10 px-5 py-2 dark:border-border">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Building2 className="h-5 w-5" />

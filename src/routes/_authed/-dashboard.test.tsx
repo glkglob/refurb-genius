@@ -1,5 +1,5 @@
 /**
- * AO-1D2 — Dashboard uses canonical onboarding goal hook; no direct Supabase Auth.
+ * RG-20260824-DESIGN-CONFORMANCE-R1 — dashboard is project-first My projects.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -8,84 +8,35 @@ import { createElement, type ReactNode } from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const hydrateOnboardingGoal = vi.fn();
-const applyOnboardingGoal = vi.fn();
-const useOnboardingGoalSelection = vi.fn();
-const consumeNewUserOnboarding = vi.fn();
-const hasCompletedFirstStudy = vi.fn();
-const useAuth = vi.fn();
 const useProjects = vi.fn();
-const listCurrentUserTradesJobs = vi.fn();
-const listCurrentUserInterestsWithJobs = vi.fn();
-
-vi.mock("@/features/auth", () => ({
-  useOnboardingGoalSelection: (...args: unknown[]) => useOnboardingGoalSelection(...args),
-  consumeNewUserOnboarding: (...args: unknown[]) => consumeNewUserOnboarding(...args),
-  hasCompletedFirstStudy: (...args: unknown[]) => hasCompletedFirstStudy(...args),
-  ONBOARDING_GOAL_OPTIONS: [
-    "Run my first feasibility study",
-    "Estimate refurb costs on a project",
-    "Model ROI for an investment deal",
-    "Prepare an investor report export",
-  ],
-}));
-
-vi.mock("@/hooks/useAuth", () => ({
-  useAuth: (...args: unknown[]) => useAuth(...args),
-}));
 
 vi.mock("@/hooks/useProjects", () => ({
   useProjects: (...args: unknown[]) => useProjects(...args),
 }));
 
-vi.mock("@/features/trades", () => ({
-  listCurrentUserTradesJobs: (...args: unknown[]) => listCurrentUserTradesJobs(...args),
-  listCurrentUserInterestsWithJobs: (...args: unknown[]) =>
-    listCurrentUserInterestsWithJobs(...args),
-  updateTradesJob: vi.fn(),
-}));
-
 vi.mock("@/components/AppLayout", () => ({
-  AppLayout: ({
-    children,
-    title,
-    subtitle,
-  }: {
-    children: ReactNode;
-    title: string;
-    subtitle: string;
-  }) =>
-    createElement(
-      "div",
-      { "data-testid": "app-layout", "data-title": title, "data-subtitle": subtitle },
-      children,
-    ),
-}));
-
-vi.mock("@/components/DashboardSection", () => ({
-  DashboardSection: ({
-    children,
-    title,
-  }: {
-    children: ReactNode;
-    title: string;
-    icon?: ReactNode;
-    action?: ReactNode;
-  }) => createElement("section", { "data-testid": `section-${title}` }, children),
+  AppLayout: ({ children }: { children: ReactNode; showDealCopilotRail?: boolean }) =>
+    createElement("div", { "data-testid": "app-layout" }, children),
 }));
 
 vi.mock("@/features/projects", () => ({
-  ProjectContinuationCard: () => createElement("div", { "data-testid": "project-card" }),
+  ProjectContinuationCard: ({
+    layout,
+    project,
+  }: {
+    layout?: string;
+    project: { id: string; name: string };
+  }) =>
+    createElement(
+      "div",
+      { "data-testid": "project-card", "data-layout": layout, "data-project-id": project.id },
+      project.name,
+    ),
 }));
 
 vi.mock("@/components/EmptyState", () => ({
   EmptyState: ({ title }: { title: string }) =>
     createElement("div", { "data-testid": "empty" }, title),
-}));
-
-vi.mock("@/components/StatusBadge", () => ({
-  StatusBadge: ({ children }: { children: ReactNode }) =>
-    createElement("span", { "data-testid": "status-badge" }, children),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -108,135 +59,105 @@ function renderDashboard(qc = new QueryClient({ defaultOptions: { queries: { ret
   );
 }
 
+const terrace = {
+  id: "p1",
+  name: "22 Kensington Road",
+  address: "22 Kensington Road",
+  postcode: "W8 5AB",
+  region: "London",
+  photos_done: true,
+  analysis_done: true,
+  estimate_done: false,
+  report_done: false,
+};
+const other = {
+  id: "p2",
+  name: "45 Oakwood Avenue",
+  address: "45 Oakwood Avenue",
+  postcode: "HA5 3AA",
+  region: "London",
+  photos_done: true,
+  analysis_done: true,
+  estimate_done: true,
+  report_done: true,
+};
+
 beforeEach(() => {
-  hydrateOnboardingGoal.mockReset();
-  applyOnboardingGoal.mockReset();
-  applyOnboardingGoal.mockResolvedValue(undefined);
-  useOnboardingGoalSelection.mockReset();
-  useOnboardingGoalSelection.mockReturnValue({
-    onboardingGoal: "Run my first feasibility study",
-    isSaving: false,
-    hydrateOnboardingGoal,
-    applyOnboardingGoal,
-  });
-  consumeNewUserOnboarding.mockReset();
-  consumeNewUserOnboarding.mockReturnValue(true);
-  hasCompletedFirstStudy.mockReset();
-  hasCompletedFirstStudy.mockReturnValue(false);
-  useAuth.mockReset();
-  useAuth.mockReturnValue({
-    user: { fullName: "Ada Lovelace", id: "u1" },
-    isLoading: false,
-  });
   useProjects.mockReset();
-  useProjects.mockReturnValue({ data: [], isLoading: false });
-  listCurrentUserTradesJobs.mockReset();
-  listCurrentUserTradesJobs.mockResolvedValue([]);
-  listCurrentUserInterestsWithJobs.mockReset();
-  listCurrentUserInterestsWithJobs.mockResolvedValue([]);
+  useProjects.mockReturnValue({ data: [terrace, other], isLoading: false });
 });
 
-describe("dashboard onboarding Auth extraction", () => {
-  it("uses useOnboardingGoalSelection and hydrates on mount", () => {
+describe("dashboard My projects composition", () => {
+  it("renders My projects heading and one New Analysis action", () => {
     renderDashboard();
-    expect(useOnboardingGoalSelection).toHaveBeenCalled();
-    expect(hydrateOnboardingGoal).toHaveBeenCalled();
-    expect(consumeNewUserOnboarding).toHaveBeenCalled();
-    expect(hasCompletedFirstStudy).toHaveBeenCalled();
+    expect(screen.getByRole("heading", { name: "My projects" })).toBeTruthy();
+    expect(screen.getByTestId("dashboard-new-analysis").getAttribute("href")).toBe("/analyze");
   });
 
-  it("renders onboarding select from hook value and goal options", () => {
+  it("features the first filtered project and lists others as rows", () => {
     renderDashboard();
-    const select = screen.getByLabelText(/What do you want to do first/i) as HTMLSelectElement;
-    expect(select).toBeTruthy();
-    expect(select.value).toBe("Run my first feasibility study");
-    expect(screen.getByRole("option", { name: "Run my first feasibility study" })).toBeTruthy();
-  });
-
-  it("calls applyOnboardingGoal when select changes", () => {
-    renderDashboard();
-    const select = screen.getByLabelText(/What do you want to do first/i);
-    fireEvent.change(select, { target: { value: "Model ROI for an investment deal" } });
-    expect(applyOnboardingGoal).toHaveBeenCalledWith("Model ROI for an investment deal");
-  });
-
-  it("disables select while goal is saving", () => {
-    useOnboardingGoalSelection.mockReturnValue({
-      onboardingGoal: "Run my first feasibility study",
-      isSaving: true,
-      hydrateOnboardingGoal,
-      applyOnboardingGoal,
-    });
-    renderDashboard();
-    const select = screen.getByLabelText(/What do you want to do first/i) as HTMLSelectElement;
-    expect(select.disabled).toBe(true);
-  });
-
-  it("shows new-user welcome card when consume flag is true", () => {
-    renderDashboard();
-    expect(screen.getByText(/Welcome, Ada/)).toBeTruthy();
-  });
-
-  it("PH-TRUTH-R1: Study completion checks optional snapshot, not Estimate/Export label", () => {
-    hasCompletedFirstStudy.mockReturnValue(true);
-    renderDashboard();
-    expect(screen.getByText(/Optional: create a feasibility snapshot/i)).toBeTruthy();
-    expect(screen.queryByText(/Complete an estimate or export on a project/i)).toBeNull();
-    // Checked snapshot item present; no Estimate/Export completion claim
-    const items = screen.getAllByText(/Optional: create a feasibility snapshot/i);
-    expect(items.length).toBeGreaterThan(0);
-  });
-
-  it("PH-TRUTH-R1: when Study not celebrated, optional snapshot remains unchecked wording only", () => {
-    hasCompletedFirstStudy.mockReturnValue(false);
-    renderDashboard();
-    expect(screen.getByText(/Optional: create a feasibility snapshot/i)).toBeTruthy();
-    expect(screen.queryByText(/Complete an estimate or export on a project/i)).toBeNull();
-  });
-
-  it("hides new-user welcome card when consume flag is false", () => {
-    consumeNewUserOnboarding.mockReturnValue(false);
-    renderDashboard();
-    expect(screen.queryByText(/Welcome, Ada/)).toBeNull();
-  });
-
-  it("uses useAuth for welcome display and AppLayout head metadata", () => {
-    renderDashboard();
-    expect(useAuth).toHaveBeenCalled();
-    const layout = screen.getByTestId("app-layout");
-    expect(layout.getAttribute("data-title")).toBe("Dashboard");
-  });
-
-  it("route source has no platform Supabase or auth.updateUser", () => {
-    const src = readFileSync(ROUTE_SRC, "utf8");
-    expect(src).toMatch(/useOnboardingGoalSelection\s*\(/);
-    expect(src).not.toMatch(/@\/platform\/supabase/);
-    expect(src).not.toMatch(/supabase\.auth/);
-    expect(src).not.toMatch(/updateUser\s*\(/);
-    expect(src).not.toMatch(/onboarding_goal\s*:/);
-    expect(src).not.toMatch(/useMutation|useQueryClient/);
-    expect(src).not.toMatch(/AuthExperience/);
-    expect(src).toMatch(/min-h-11/);
-    expect(src).toMatch(/to="\/analyze"/);
-  });
-
-  it("route path and head title remain dashboard", () => {
-    expect(Route.path ?? "/_authed/dashboard").toMatch(/dashboard/);
-    const head = (Route.options as { head?: () => { meta: { title: string }[] } }).head;
-    expect(head).toBeTruthy();
-    const meta = head!();
-    expect(meta.meta[0].title).toBe("Dashboard — Refurb Genius");
-  });
-
-  it("leads with a featured project and keeps secondary trades below", () => {
-    const src = readFileSync(ROUTE_SRC, "utf8");
-    expect(src).toMatch(/dashboard-featured-project/);
-    expect(src).toMatch(/layout="featured"/);
-    expect(src).toMatch(/layout="row"/);
-    expect(src).toMatch(/showDealCopilotRail/);
-    expect(src).toMatch(/dashboard-secondary/);
-    expect(src.indexOf("dashboard-featured-project")).toBeLessThan(
-      src.indexOf("dashboard-secondary"),
+    expect(screen.getByText("Continue where you left off")).toBeTruthy();
+    expect(screen.getByTestId("dashboard-featured-project").textContent).toMatch(
+      /22 Kensington Road/,
     );
+    expect(screen.getByTestId("dashboard-project-rows").textContent).toMatch(/45 Oakwood Avenue/);
+  });
+
+  it("does not use legacy progress flags to choose the featured project", () => {
+    useProjects.mockReturnValue({ data: [other, terrace], isLoading: false });
+    renderDashboard();
+    expect(screen.getByTestId("dashboard-featured-project").textContent).toMatch(
+      /45 Oakwood Avenue/,
+    );
+    expect(screen.getByTestId("dashboard-project-rows").textContent).toMatch(/22 Kensington Road/);
+    const src = readFileSync(ROUTE_SRC, "utf8");
+    expect(src).not.toMatch(/isProjectInProgress/);
+    expect(src).not.toMatch(/photos_done/);
+    expect(src).not.toMatch(/analysis_done/);
+    expect(src).not.toMatch(/estimate_done/);
+    expect(src).not.toMatch(/report_done/);
+    expect(src).toMatch(/filtered\[0\]/);
+  });
+
+  it("filters projects from existing list fields only", () => {
+    renderDashboard();
+    fireEvent.change(screen.getByTestId("dashboard-project-search"), {
+      target: { value: "Oakwood" },
+    });
+    expect(screen.getByTestId("dashboard-featured-project").textContent).toMatch(
+      /45 Oakwood Avenue/,
+    );
+    expect(screen.queryByText("22 Kensington Road")).toBeNull();
+  });
+
+  it("does not first-paint trades, studies, onboarding, or a quick-action grid", () => {
+    const src = readFileSync(ROUTE_SRC, "utf8");
+    renderDashboard();
+    expect(screen.queryByText(/Welcome/)).toBeNull();
+    expect(screen.queryByText(/Quick actions/)).toBeNull();
+    expect(screen.queryByText(/My trades jobs/)).toBeNull();
+    expect(screen.queryByText(/My Jobs/)).toBeNull();
+    expect(screen.queryByText(/My Interests/)).toBeNull();
+    expect(screen.queryByText(/Feasibility snapshots/)).toBeNull();
+    expect(src).not.toMatch(/listCurrentUserTradesJobs/);
+    expect(src).not.toMatch(/listCurrentUserInterestsWithJobs/);
+    expect(src).not.toMatch(/updateTradesJob/);
+    expect(src).not.toMatch(/useOnboardingGoalSelection/);
+    expect(src).not.toMatch(/QuickActionCard/);
+    expect(src).not.toMatch(/dashboard-studies-secondary/);
+    expect(src).not.toMatch(/dashboard-commercial-metrics/);
+    expect(src).not.toMatch(/commercialStats/);
+    expect(src).toMatch(/showDealCopilotRail/);
+  });
+
+  it("keeps ProjectContinuationCard as the next-action authority with one featured CTA", () => {
+    renderDashboard();
+    const src = readFileSync(ROUTE_SRC, "utf8");
+    expect(src).toMatch(/ProjectContinuationCard/);
+    expect(src).toMatch(/layout="featured"/);
+    expect(src).not.toMatch(/resolveProjectNextAction/);
+    expect(src).not.toMatch(/useProjectFiveStageWorkflow/);
+    expect(src).not.toMatch(/Open overview/);
+    expect(screen.getAllByTestId("dashboard-new-analysis")).toHaveLength(1);
   });
 });

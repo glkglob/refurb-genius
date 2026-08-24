@@ -140,16 +140,19 @@ describe("MobileBottomNav destinations", () => {
     expect(screen.getByLabelText("Deal Copilot")).toBeTruthy();
     expect(screen.getByText("Deal Copilot")).toBeTruthy();
     expect(screen.queryByText(/^Copilot$/)).toBeNull();
+    expect(screen.queryByTestId("mobile-nav-trades_marketplace")).toBeNull();
+    expect(screen.queryByText("Marketplace")).toBeNull();
   });
 
-  it("exposes Trades and Settings through More menu", async () => {
+  it("exposes Marketplace and Settings through More menu", async () => {
     render(createElement(MobileBottomNav));
     await openMoreMenu();
-    const trades = await screen.findByTestId("mobile-nav-trades_marketplace");
+    const marketplace = await screen.findByTestId("mobile-nav-trades_marketplace");
     const settings = await screen.findByTestId("mobile-nav-settings");
-    expect(trades.getAttribute("href")).toBe("/trades");
+    expect(marketplace.getAttribute("href")).toBe("/marketplace");
     expect(settings.getAttribute("href")).toBe("/settings");
-    expect(within(trades).getByText("Trades")).toBeTruthy();
+    expect(within(marketplace).getByText("Marketplace")).toBeTruthy();
+    expect(within(marketplace).queryByText("Trades")).toBeNull();
     expect(within(settings).getByText("Settings")).toBeTruthy();
   });
 
@@ -224,7 +227,7 @@ describe("MobileBottomNav destinations", () => {
 });
 
 describe("MobileBottomNav More menu keyboard", () => {
-  it("lists More menu items in canonical order: Trades, Settings, Theme, Sign out", async () => {
+  it("lists More menu items in canonical order: Marketplace, Settings, Theme, Sign out", async () => {
     render(createElement(MobileBottomNav));
     await openMoreMenuFromKeyboard();
     const items = screen.getAllByRole("menuitem");
@@ -234,7 +237,9 @@ describe("MobileBottomNav More menu keyboard", () => {
       "mobile-nav-theme",
       "mobile-nav-sign-out",
     ]);
-    expect(within(items[0]!).getByText("Trades")).toBeTruthy();
+    expect(items[0]!.getAttribute("href")).toBe("/marketplace");
+    expect(within(items[0]!).getByText("Marketplace")).toBeTruthy();
+    expect(within(items[0]!).queryByText("Trades")).toBeNull();
     expect(within(items[1]!).getByText("Settings")).toBeTruthy();
     expect(within(items[2]!).getByText("Theme")).toBeTruthy();
     expect(within(items[3]!).getByText("Sign out")).toBeTruthy();

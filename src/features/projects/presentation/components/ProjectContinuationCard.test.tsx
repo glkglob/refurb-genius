@@ -240,6 +240,8 @@ describe("ProjectContinuationCard", () => {
     expect(screen.getByText("Photos")).toBeTruthy();
     expect(screen.getByText("Export")).toBeTruthy();
     expect(screen.getByText("Victorian Terrace")).toBeTruthy();
+    expect(screen.getByTestId("workflow-continue-cta")).toBeTruthy();
+    expect(screen.queryByTestId("open-overview")).toBeNull();
   });
 
   it("row layout uses named stages and a placeholder media strip", () => {
@@ -258,6 +260,9 @@ describe("ProjectContinuationCard", () => {
     expect(screen.getByTestId("project-continuation-card").getAttribute("data-layout")).toBe("row");
     expect(screen.getByTestId("workflow-stage-list")).toBeTruthy();
     expect(screen.getByTestId("project-card-media").getAttribute("data-media")).toBe("placeholder");
+    expect(screen.getByTestId("open-overview").textContent).toMatch(/Open project/i);
+    expect(screen.queryByTestId("workflow-continue-cta")).toBeNull();
+    expect(screen.getByText(/1 High St, E1 1AA/)).toBeTruthy();
   });
 
   describe("PUBLIC-BETA-R1-R2 refurb truthfulness (no unsupported line)", () => {
@@ -451,7 +456,7 @@ describe("ProjectContinuationCard", () => {
       expect(screen.getByTestId("workflow-continue-cta").getAttribute("data-action-kind")).toBe(
         "add_photos",
       );
-      expect(screen.getByTestId("open-overview")).toBeTruthy();
+      expect(screen.queryByTestId("open-overview")).toBeNull();
       expect(screen.getByTestId("workflow-stage-bars")).toBeTruthy();
     });
   });

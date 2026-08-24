@@ -48,13 +48,9 @@ export function AppLayout({
                   : "pb-[calc(5.75rem+env(safe-area-inset-bottom,0px))] lg:pb-10",
               )}
             >
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_5%,oklch(0.76_0.16_171/0.08),transparent_30%),radial-gradient(circle_at_80%_0%,oklch(0.76_0.09_245/0.07),transparent_26%)]"
-              />
               <div className="relative mx-auto max-w-7xl">
                 {(title || actions) && (
-                  <div className="glass-panel mb-6 rounded-2xl p-3 sm:mb-8 sm:p-5">
+                  <div className="mb-6 sm:mb-8">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0">
                         {title && (
@@ -73,11 +69,7 @@ export function AppLayout({
                   </div>
                 )}
                 {!title && subtitle && (
-                  <div className="mb-8 rounded-2xl border border-border/60 bg-card/70 p-4 sm:p-5">
-                    <div>
-                      <p className="text-sm text-muted-foreground">{subtitle}</p>
-                    </div>
-                  </div>
+                  <p className="mb-6 text-sm text-muted-foreground sm:mb-8">{subtitle}</p>
                 )}
                 {children}
               </div>

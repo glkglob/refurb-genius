@@ -21,12 +21,16 @@ export function DealCopilotRail() {
         <h2 className="text-base font-semibold text-foreground">Deal Copilot</h2>
       </div>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-        Which project needs attention? Open Deal Copilot for acquisition analysis without leaving
-        the project workspace.
+        Use Deal Copilot for acquisition questions. It does not replace project Photos, Analysis,
+        Redesign, Estimate, or Export.
       </p>
+      <ul className="mt-4 list-disc space-y-2 pl-4 text-sm text-muted-foreground">
+        <li>Review the current project stage before asking for deal guidance.</li>
+        <li>Compare options on the Copilot surface, then return here to continue the workflow.</li>
+      </ul>
       <Button asChild className="mt-4 min-h-11 w-full">
         <Link to="/deal-copilot" data-testid="deal-copilot-rail-open">
-          Ask Deal Copilot
+          Open Deal Copilot
         </Link>
       </Button>
     </aside>

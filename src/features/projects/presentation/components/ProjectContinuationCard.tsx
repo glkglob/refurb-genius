@@ -157,7 +157,11 @@ function ProjectContinuationCardComponent({
             </h3>
             <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
               <MapPin className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span className="truncate">{project.region || "Region not set"}</span>
+              <span className="truncate">
+                {[project.address, project.postcode].filter(Boolean).join(", ") ||
+                  project.region ||
+                  "Address not set"}
+              </span>
             </p>
           </div>
           <StatusBadge tone={toneForHealth(fiveStage.loading, needsAttention, complete)}>
@@ -217,22 +221,18 @@ function ProjectContinuationCardComponent({
         */}
         <div className="flex flex-col gap-3 border-t border-border/50 pt-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="min-h-11 w-full sm:min-h-9 sm:w-auto"
-            >
-              <Link
-                to="/projects/$id"
-                params={{ id: project.id }}
-                search={{ tab: "overview" }}
-                data-testid="open-overview"
-              >
-                Overview
-              </Link>
-            </Button>
-            {fiveStage.loading || !next ? (
+            {isRow ? (
+              <Button asChild size="sm" className="min-h-11 w-full sm:min-h-9 sm:w-auto">
+                <Link
+                  to="/projects/$id"
+                  params={{ id: project.id }}
+                  search={{ tab: "overview" }}
+                  data-testid="open-overview"
+                >
+                  Open project
+                </Link>
+              </Button>
+            ) : fiveStage.loading || !next ? (
               <Button
                 size="sm"
                 disabled

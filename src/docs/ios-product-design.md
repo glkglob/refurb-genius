@@ -39,9 +39,12 @@ Authenticated desktop **light** mode uses a dark left Sidebar and a light worksp
 
 - Use semantic tokens from `src/styles.css` (`bg-background`, `text-foreground`, `bg-card`, `bg-primary`, `border-border`, `ring-ring`, `bg-field`, …).
 - Do not introduce a parallel palette (hardcoded cream/teal/gray/white) on authorised product chrome.
-- Authenticated Web A light mode applies the approved dark-left-navigation / light-workspace hierarchy (RG-UI-01). The Sidebar renders the canonical Refurb Genius production palette where applicable — navy `#0B1F35`, ivory `#F5EFE5` (RG-BRAND-00) — as component-local classes, and `dark:` variants keep the existing dark architecture in dark mode. This is application of existing RG-UI-01 / RG-BRAND-00 authority, not an implementation-agent exception to the rule above. `src/styles.css` is not globally retokened for this presentation treatment.
+- Authenticated Web A light mode applies the approved dark-left-navigation / light-workspace hierarchy (RG-UI-01). The Sidebar uses navy `#0B1F35` / ivory `#F5EFE5` as component-local classes. `src/styles.css` semantic OKLCH tokens carry the same direction: ivory page, near-white cards, navy text, emerald actions in light; layered navy surfaces (not near-black) in dark. Popovers stay opaque.
+- Desktop sidebar presentation order is Dashboard, Projects, New Analysis, Deal Copilot, Marketplace, Settings, then profile. `globalNav.ts` is the single authenticated navigation authority. The stable item ID remains `trades_marketplace`; its canonical visible label is `Marketplace` and its canonical authenticated destination is `/marketplace`. Web Sidebar and mobile More derive that label and destination from the canonical item; there is no Sidebar-only label map or destination override. The fixed mobile bottom row remains Home | Projects | New | Deal Copilot | More. `/trades` remains the public Trades board beneath Marketplace.
+- Authenticated `/dashboard` is the project-first **My projects** surface. Trades, Post a Job, studies and onboarding do not occupy dashboard first paint.
 - Dark mode is first-class. Light mode must remain readable.
 - Colour is never the sole status signal (wording + icon + semantic treatment).
+- Product UI typography remains sans-serif (Inter). Serif treatment belongs to brand artwork only.
 
 ---
 

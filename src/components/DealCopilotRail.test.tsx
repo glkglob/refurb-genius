@@ -18,7 +18,7 @@ describe("DealCopilotRail", () => {
     render(createElement(DealCopilotRail));
     expect(screen.getByRole("heading", { name: "Deal Copilot" })).toBeTruthy();
     expect(screen.getByTestId("deal-copilot-rail-open").getAttribute("href")).toBe("/deal-copilot");
-    expect(screen.getByText(/Ask Deal Copilot/)).toBeTruthy();
+    expect(screen.getByText(/Open Deal Copilot/)).toBeTruthy();
   });
 
   it("does not embed chat or invent Copilot APIs", () => {
