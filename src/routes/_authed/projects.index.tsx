@@ -102,12 +102,8 @@ function ProjectsIndexPage() {
         />
       ) : (
         <div className="flex flex-col gap-4" data-testid="projects-index-grid">
-          {filtered.map((project, index) => (
-            <ProjectContinuationCard
-              key={project.id}
-              project={project}
-              layout={index === 0 ? "featured" : "row"}
-            />
+          {filtered.map((project) => (
+            <ProjectContinuationCard key={project.id} project={project} layout="row" />
           ))}
         </div>
       )}

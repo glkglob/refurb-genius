@@ -56,8 +56,16 @@ describe("IA-7 Projects index + nav contracts", () => {
     expect(SRC).toMatch(/to=["']\/analyze["']/);
   });
 
-  it("reuses ProjectContinuationCard featured/row presentation", () => {
-    expect(SRC).toMatch(/layout=\{index === 0 \? "featured" : "row"\}/);
+  it("Projects index uses uniform ProjectContinuationCard row layout", () => {
+    expect(SRC).toMatch(/ProjectContinuationCard/);
+    expect(SRC).toMatch(/layout="row"/);
     expect(SRC).toMatch(/showDealCopilotRail/);
+    expect(SRC).toMatch(/title="Projects"/);
+    expect(SRC).toMatch(/to=["']\/analyze["']/);
+    expect(SRC).not.toMatch(/index === 0/);
+    expect(SRC).not.toMatch(/layout="featured"/);
+    expect(SRC).not.toMatch(/"featured" : "row"/);
+    expect(SRC).not.toMatch(/Continue where you left off/);
+    expect(SRC).not.toMatch(/Other projects/);
   });
 });
