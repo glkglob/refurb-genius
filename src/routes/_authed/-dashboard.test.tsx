@@ -1,5 +1,5 @@
 /**
- * RG-20260824-DESIGN-CONFORMANCE-R1 — dashboard is project-first My projects.
+ * Dashboard Home — Brief + Board composition, not My projects.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -9,34 +9,40 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const useProjects = vi.fn();
+const useDashboardProjectSummaries = vi.fn();
+const useProjectBriefVisibility = vi.fn();
 
 vi.mock("@/hooks/useProjects", () => ({
   useProjects: (...args: unknown[]) => useProjects(...args),
 }));
 
-vi.mock("@/components/AppLayout", () => ({
-  AppLayout: ({ children }: { children: ReactNode; showDealCopilotRail?: boolean }) =>
-    createElement("div", { "data-testid": "app-layout" }, children),
+vi.mock("@/features/projects/presentation", () => ({
+  useDashboardProjectSummaries: (...args: unknown[]) => useDashboardProjectSummaries(...args),
+  useProjectBriefVisibility: (...args: unknown[]) => useProjectBriefVisibility(...args),
+  ProjectBrief: ({ summaries }: { summaries: Array<{ name: string }> }) =>
+    createElement("div", { "data-testid": "project-brief" }, summaries[0]?.name ?? "brief"),
+  WorkflowBoard: ({ summaries }: { summaries: Array<{ name: string }> }) =>
+    createElement("div", { "data-testid": "workflow-board" }, `${summaries.length} columns`),
 }));
 
-vi.mock("@/features/projects", () => ({
-  ProjectContinuationCard: ({
-    layout,
-    project,
+vi.mock("@/components/AppLayout", () => ({
+  AppLayout: ({
+    children,
+    showDealCopilotRail,
   }: {
-    layout?: string;
-    project: { id: string; name: string };
+    children: ReactNode;
+    showDealCopilotRail?: boolean;
   }) =>
     createElement(
       "div",
-      { "data-testid": "project-card", "data-layout": layout, "data-project-id": project.id },
-      project.name,
+      { "data-testid": "app-layout", "data-rail": showDealCopilotRail ? "true" : "false" },
+      children,
     ),
 }));
 
 vi.mock("@/components/EmptyState", () => ({
-  EmptyState: ({ title }: { title: string }) =>
-    createElement("div", { "data-testid": "empty" }, title),
+  EmptyState: ({ title, action }: { title: string; action?: ReactNode }) =>
+    createElement("div", { "data-testid": "empty" }, title, action),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -53,111 +59,152 @@ import { Route } from "./dashboard";
 const DashboardPage = Route.options.component as () => ReactNode;
 const ROUTE_SRC = join(__dirname, "dashboard.tsx");
 
-function renderDashboard(qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
+function renderDashboard() {
   return render(
-    createElement(QueryClientProvider, { client: qc }, createElement(DashboardPage as never)),
+    createElement(
+      QueryClientProvider,
+      { client: new QueryClient({ defaultOptions: { queries: { retry: false } } }) },
+      createElement(DashboardPage as never),
+    ),
   );
 }
 
-const terrace = {
-  id: "p1",
-  name: "22 Kensington Road",
-  address: "22 Kensington Road",
-  postcode: "W8 5AB",
-  region: "London",
-  photos_done: true,
-  analysis_done: true,
-  estimate_done: false,
-  report_done: false,
-};
-const other = {
-  id: "p2",
-  name: "45 Oakwood Avenue",
-  address: "45 Oakwood Avenue",
-  postcode: "HA5 3AA",
-  region: "London",
-  photos_done: true,
-  analysis_done: true,
-  estimate_done: true,
-  report_done: true,
-};
+const terrace = { id: "p1", name: "22 Kensington Road" };
 
 beforeEach(() => {
   useProjects.mockReset();
-  useProjects.mockReturnValue({ data: [terrace, other], isLoading: false });
+  useDashboardProjectSummaries.mockReset();
+  useProjectBriefVisibility.mockReset();
+  useProjects.mockReturnValue({
+    data: [terrace],
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    refetch: vi.fn(),
+  });
+  useDashboardProjectSummaries.mockReturnValue({
+    status: "ready",
+    summaries: [
+      {
+        projectId: "p1",
+        name: "22 Kensington Road",
+        stage: "photos",
+        workflowRoute: "/projects/p1/upload",
+      },
+    ],
+    error: null,
+    retry: vi.fn(),
+  });
+  useProjectBriefVisibility.mockReturnValue({
+    visible: true,
+    hide: vi.fn(),
+    restore: vi.fn(),
+    resolvedUserId: "u1",
+  });
 });
 
-describe("dashboard My projects composition", () => {
-  it("renders My projects heading and one New Analysis action", () => {
+describe("dashboard Home/Dashboard composition", () => {
+  it("renders Home/Dashboard heading, document title, and New Analysis", () => {
     renderDashboard();
-    expect(screen.getByRole("heading", { name: "My projects" })).toBeTruthy();
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading.textContent).toMatch(/Home/);
+    expect(heading.textContent).toMatch(/Dashboard/);
+    expect(heading.querySelectorAll("span")).toHaveLength(2);
     expect(screen.getByTestId("dashboard-new-analysis").getAttribute("href")).toBe("/analyze");
+    const head = (Route.options as { head?: () => { meta?: Array<{ title?: string }> } }).head;
+    expect(head?.().meta?.[0]?.title).toBe("Dashboard — Refurb Genius");
   });
 
-  it("features the first filtered project and lists others as rows", () => {
+  it("renders Project Brief before Workflow Board", () => {
     renderDashboard();
-    expect(screen.getByText("Continue where you left off")).toBeTruthy();
-    expect(screen.getByTestId("dashboard-featured-project").textContent).toMatch(
-      /22 Kensington Road/,
-    );
-    expect(screen.getByTestId("dashboard-project-rows").textContent).toMatch(/45 Oakwood Avenue/);
+    const brief = screen.getByTestId("project-brief");
+    const board = screen.getByTestId("workflow-board");
+    expect(brief.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByTestId("app-layout").getAttribute("data-rail")).toBe("true");
   });
 
-  it("does not use legacy progress flags to choose the featured project", () => {
-    useProjects.mockReturnValue({ data: [other, terrace], isLoading: false });
+  it("does not render My projects, featured hierarchy, search, or continuation cards", () => {
     renderDashboard();
-    expect(screen.getByTestId("dashboard-featured-project").textContent).toMatch(
-      /45 Oakwood Avenue/,
-    );
-    expect(screen.getByTestId("dashboard-project-rows").textContent).toMatch(/22 Kensington Road/);
+    expect(screen.queryByRole("heading", { name: "My projects" })).toBeNull();
+    expect(screen.queryByText("Continue where you left off")).toBeNull();
+    expect(screen.queryByText("Other projects")).toBeNull();
+    expect(screen.queryByTestId("dashboard-project-search")).toBeNull();
     const src = readFileSync(ROUTE_SRC, "utf8");
-    expect(src).not.toMatch(/isProjectInProgress/);
+    expect(src).not.toMatch(/My projects/);
+    expect(src).not.toMatch(/ProjectContinuationCard/);
+    expect(src).not.toMatch(/layout="featured"/);
     expect(src).not.toMatch(/photos_done/);
-    expect(src).not.toMatch(/analysis_done/);
-    expect(src).not.toMatch(/estimate_done/);
-    expect(src).not.toMatch(/report_done/);
-    expect(src).toMatch(/filtered\[0\]/);
   });
 
-  it("filters projects from existing list fields only", () => {
-    renderDashboard();
-    fireEvent.change(screen.getByTestId("dashboard-project-search"), {
-      target: { value: "Oakwood" },
+  it("shows list loading, list error, and empty states", () => {
+    useProjects.mockReturnValue({
+      data: [],
+      isLoading: true,
+      isPending: true,
+      isError: false,
     });
-    expect(screen.getByTestId("dashboard-featured-project").textContent).toMatch(
-      /45 Oakwood Avenue/,
-    );
-    expect(screen.queryByText("22 Kensington Road")).toBeNull();
+    const { unmount } = renderDashboard();
+    expect(screen.getByText("Loading your projects…")).toBeTruthy();
+    unmount();
+
+    useProjects.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isPending: false,
+      isError: true,
+      error: new Error("list failed"),
+      refetch: vi.fn(),
+    });
+    const errorRender = renderDashboard();
+    expect(screen.getByTestId("empty").textContent).toMatch(/Could not load projects/);
+    errorRender.unmount();
+
+    useProjects.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isPending: false,
+      isError: false,
+    });
+    renderDashboard();
+    expect(screen.getByTestId("empty").textContent).toMatch(/No projects yet/);
   });
 
-  it("does not first-paint trades, studies, onboarding, or a quick-action grid", () => {
-    const src = readFileSync(ROUTE_SRC, "utf8");
+  it("shows workflow loading and retryable workflow error", () => {
+    const retry = vi.fn();
+    useDashboardProjectSummaries.mockReturnValue({
+      status: "loading",
+      summaries: [],
+      error: null,
+      retry,
+    });
+    const { unmount } = renderDashboard();
+    expect(screen.getByTestId("dashboard-workflow-loading")).toBeTruthy();
+    unmount();
+
+    useDashboardProjectSummaries.mockReturnValue({
+      status: "error",
+      summaries: [],
+      error: new Error("workflow failed"),
+      retry,
+    });
     renderDashboard();
-    expect(screen.queryByText(/Welcome/)).toBeNull();
-    expect(screen.queryByText(/Quick actions/)).toBeNull();
-    expect(screen.queryByText(/My trades jobs/)).toBeNull();
-    expect(screen.queryByText(/My Jobs/)).toBeNull();
-    expect(screen.queryByText(/My Interests/)).toBeNull();
-    expect(screen.queryByText(/Feasibility snapshots/)).toBeNull();
-    expect(src).not.toMatch(/listCurrentUserTradesJobs/);
-    expect(src).not.toMatch(/listCurrentUserInterestsWithJobs/);
-    expect(src).not.toMatch(/updateTradesJob/);
-    expect(src).not.toMatch(/useOnboardingGoalSelection/);
-    expect(src).not.toMatch(/QuickActionCard/);
-    expect(src).not.toMatch(/dashboard-studies-secondary/);
-    expect(src).not.toMatch(/dashboard-commercial-metrics/);
-    expect(src).not.toMatch(/commercialStats/);
-    expect(src).toMatch(/showDealCopilotRail/);
+    expect(screen.getByTestId("empty").textContent).toMatch(/Could not load workflow/);
+    fireEvent.click(screen.getByTestId("dashboard-workflow-retry"));
+    expect(retry).toHaveBeenCalled();
   });
 
-  it("keeps ProjectContinuationCard as the next-action authority with one featured CTA", () => {
+  it("shows restore control and board when the brief is hidden", () => {
+    const restore = vi.fn();
+    useProjectBriefVisibility.mockReturnValue({
+      visible: false,
+      hide: vi.fn(),
+      restore,
+      resolvedUserId: "u1",
+    });
     renderDashboard();
-    const src = readFileSync(ROUTE_SRC, "utf8");
-    expect(src).toMatch(/ProjectContinuationCard/);
-    expect(src).toMatch(/layout="featured"/);
-    expect(src).not.toMatch(/resolveProjectNextAction/);
-    expect(src).not.toMatch(/useProjectFiveStageWorkflow/);
-    expect(src).not.toMatch(/Open overview/);
-    expect(screen.getAllByTestId("dashboard-new-analysis")).toHaveLength(1);
+    expect(screen.queryByTestId("project-brief")).toBeNull();
+    fireEvent.click(screen.getByTestId("project-brief-restore"));
+    expect(restore).toHaveBeenCalled();
+    expect(screen.getByTestId("workflow-board")).toBeTruthy();
   });
 });
