@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
+import { useAuth } from "@/hooks/useAuth";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -70,6 +71,8 @@ function TradesPage() {
 }
 
 function TradesHero() {
+  const { user } = useAuth();
+
   return (
     <section className="relative overflow-hidden">
       <div
@@ -102,6 +105,15 @@ function TradesHero() {
           >
             Create a trade profile
           </a>
+          {user ? (
+            <Link
+              to="/marketplace"
+              data-testid="trades-marketplace-home"
+              className="inline-flex items-center justify-center rounded-lg border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-secondary"
+            >
+              Marketplace — My Jobs and My Interests
+            </Link>
+          ) : null}
         </div>
       </div>
     </section>

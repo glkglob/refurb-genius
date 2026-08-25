@@ -139,13 +139,11 @@ export async function saveProjectEstimate(
  * Falls back to latest authoritative row (may be non_current vs Scope), then
  * latest any row for draft-only projects.
  */
-export async function getLatestProjectEstimate(
+async function loadLatestProjectEstimate(
+  ctx: { client: EstimateReadClient; userId: string },
   projectId: string,
   currentScopeId?: string | null,
 ): Promise<PersistedProjectEstimate | null> {
-  const ctx = await resolveEstimateReadContext();
-  if (!ctx) return null;
-
   const { data: rows, error: estimateError } = await ctx.client
     .from("estimates")
     .select("*")
@@ -174,6 +172,30 @@ export async function getLatestProjectEstimate(
   if (itemsError) throw new Error(itemsError.message);
 
   return { estimate, items: items ?? [] };
+}
+
+export async function getLatestProjectEstimate(
+  projectId: string,
+  currentScopeId?: string | null,
+): Promise<PersistedProjectEstimate | null> {
+  const ctx = await resolveEstimateReadContext();
+  if (!ctx) return null;
+  return loadLatestProjectEstimate(ctx, projectId, currentScopeId);
+}
+
+/**
+ * Strict project-estimate read for Dashboard workflow evidence.
+ * Successful absence is `null`. Missing read/auth context throws.
+ */
+export async function getLatestProjectEstimateStrict(
+  projectId: string,
+  currentScopeId?: string | null,
+): Promise<PersistedProjectEstimate | null> {
+  const ctx = await resolveEstimateReadContext();
+  if (!ctx) {
+    throw new Error("You must be signed in.");
+  }
+  return loadLatestProjectEstimate(ctx, projectId, currentScopeId);
 }
 
 /**

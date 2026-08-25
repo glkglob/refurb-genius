@@ -1,5 +1,5 @@
 /**
- * AO-1D2 — Dashboard uses canonical onboarding goal hook; no direct Supabase Auth.
+ * Dashboard Home — Brief + Board composition, not My projects.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -8,84 +8,41 @@ import { createElement, type ReactNode } from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const hydrateOnboardingGoal = vi.fn();
-const applyOnboardingGoal = vi.fn();
-const useOnboardingGoalSelection = vi.fn();
-const consumeNewUserOnboarding = vi.fn();
-const hasCompletedFirstStudy = vi.fn();
-const useAuth = vi.fn();
 const useProjects = vi.fn();
-const listCurrentUserTradesJobs = vi.fn();
-const listCurrentUserInterestsWithJobs = vi.fn();
-
-vi.mock("@/features/auth", () => ({
-  useOnboardingGoalSelection: (...args: unknown[]) => useOnboardingGoalSelection(...args),
-  consumeNewUserOnboarding: (...args: unknown[]) => consumeNewUserOnboarding(...args),
-  hasCompletedFirstStudy: (...args: unknown[]) => hasCompletedFirstStudy(...args),
-  ONBOARDING_GOAL_OPTIONS: [
-    "Run my first feasibility study",
-    "Estimate refurb costs on a project",
-    "Model ROI for an investment deal",
-    "Prepare an investor report export",
-  ],
-}));
-
-vi.mock("@/hooks/useAuth", () => ({
-  useAuth: (...args: unknown[]) => useAuth(...args),
-}));
+const useDashboardProjectSummaries = vi.fn();
+const useProjectBriefVisibility = vi.fn();
 
 vi.mock("@/hooks/useProjects", () => ({
   useProjects: (...args: unknown[]) => useProjects(...args),
 }));
 
-vi.mock("@/features/trades", () => ({
-  listCurrentUserTradesJobs: (...args: unknown[]) => listCurrentUserTradesJobs(...args),
-  listCurrentUserInterestsWithJobs: (...args: unknown[]) =>
-    listCurrentUserInterestsWithJobs(...args),
-  updateTradesJob: vi.fn(),
+vi.mock("@/features/projects/presentation", () => ({
+  useDashboardProjectSummaries: (...args: unknown[]) => useDashboardProjectSummaries(...args),
+  useProjectBriefVisibility: (...args: unknown[]) => useProjectBriefVisibility(...args),
+  ProjectBrief: ({ summaries }: { summaries: Array<{ name: string }> }) =>
+    createElement("div", { "data-testid": "project-brief" }, summaries[0]?.name ?? "brief"),
+  WorkflowBoard: ({ summaries }: { summaries: Array<{ name: string }> }) =>
+    createElement("div", { "data-testid": "workflow-board" }, `${summaries.length} columns`),
 }));
 
 vi.mock("@/components/AppLayout", () => ({
   AppLayout: ({
     children,
-    title,
-    subtitle,
+    showDealCopilotRail,
   }: {
     children: ReactNode;
-    title: string;
-    subtitle: string;
+    showDealCopilotRail?: boolean;
   }) =>
     createElement(
       "div",
-      { "data-testid": "app-layout", "data-title": title, "data-subtitle": subtitle },
+      { "data-testid": "app-layout", "data-rail": showDealCopilotRail ? "true" : "false" },
       children,
     ),
 }));
 
-vi.mock("@/components/DashboardSection", () => ({
-  DashboardSection: ({
-    children,
-    title,
-  }: {
-    children: ReactNode;
-    title: string;
-    icon?: ReactNode;
-    action?: ReactNode;
-  }) => createElement("section", { "data-testid": `section-${title}` }, children),
-}));
-
-vi.mock("@/features/projects", () => ({
-  ProjectContinuationCard: () => createElement("div", { "data-testid": "project-card" }),
-}));
-
 vi.mock("@/components/EmptyState", () => ({
-  EmptyState: ({ title }: { title: string }) =>
-    createElement("div", { "data-testid": "empty" }, title),
-}));
-
-vi.mock("@/components/StatusBadge", () => ({
-  StatusBadge: ({ children }: { children: ReactNode }) =>
-    createElement("span", { "data-testid": "status-badge" }, children),
+  EmptyState: ({ title, action }: { title: string; action?: ReactNode }) =>
+    createElement("div", { "data-testid": "empty" }, title, action),
 }));
 
 vi.mock("@tanstack/react-router", () => ({
@@ -102,129 +59,152 @@ import { Route } from "./dashboard";
 const DashboardPage = Route.options.component as () => ReactNode;
 const ROUTE_SRC = join(__dirname, "dashboard.tsx");
 
-function renderDashboard(qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
+function renderDashboard() {
   return render(
-    createElement(QueryClientProvider, { client: qc }, createElement(DashboardPage as never)),
+    createElement(
+      QueryClientProvider,
+      { client: new QueryClient({ defaultOptions: { queries: { retry: false } } }) },
+      createElement(DashboardPage as never),
+    ),
   );
 }
 
+const terrace = { id: "p1", name: "22 Kensington Road" };
+
 beforeEach(() => {
-  hydrateOnboardingGoal.mockReset();
-  applyOnboardingGoal.mockReset();
-  applyOnboardingGoal.mockResolvedValue(undefined);
-  useOnboardingGoalSelection.mockReset();
-  useOnboardingGoalSelection.mockReturnValue({
-    onboardingGoal: "Run my first feasibility study",
-    isSaving: false,
-    hydrateOnboardingGoal,
-    applyOnboardingGoal,
-  });
-  consumeNewUserOnboarding.mockReset();
-  consumeNewUserOnboarding.mockReturnValue(true);
-  hasCompletedFirstStudy.mockReset();
-  hasCompletedFirstStudy.mockReturnValue(false);
-  useAuth.mockReset();
-  useAuth.mockReturnValue({
-    user: { fullName: "Ada Lovelace", id: "u1" },
-    isLoading: false,
-  });
   useProjects.mockReset();
-  useProjects.mockReturnValue({ data: [], isLoading: false });
-  listCurrentUserTradesJobs.mockReset();
-  listCurrentUserTradesJobs.mockResolvedValue([]);
-  listCurrentUserInterestsWithJobs.mockReset();
-  listCurrentUserInterestsWithJobs.mockResolvedValue([]);
+  useDashboardProjectSummaries.mockReset();
+  useProjectBriefVisibility.mockReset();
+  useProjects.mockReturnValue({
+    data: [terrace],
+    isLoading: false,
+    isPending: false,
+    isError: false,
+    refetch: vi.fn(),
+  });
+  useDashboardProjectSummaries.mockReturnValue({
+    status: "ready",
+    summaries: [
+      {
+        projectId: "p1",
+        name: "22 Kensington Road",
+        stage: "photos",
+        workflowRoute: "/projects/p1/upload",
+      },
+    ],
+    error: null,
+    retry: vi.fn(),
+  });
+  useProjectBriefVisibility.mockReturnValue({
+    visible: true,
+    hide: vi.fn(),
+    restore: vi.fn(),
+    resolvedUserId: "u1",
+  });
 });
 
-describe("dashboard onboarding Auth extraction", () => {
-  it("uses useOnboardingGoalSelection and hydrates on mount", () => {
+describe("dashboard Home/Dashboard composition", () => {
+  it("renders Home/Dashboard heading, document title, and New Analysis", () => {
     renderDashboard();
-    expect(useOnboardingGoalSelection).toHaveBeenCalled();
-    expect(hydrateOnboardingGoal).toHaveBeenCalled();
-    expect(consumeNewUserOnboarding).toHaveBeenCalled();
-    expect(hasCompletedFirstStudy).toHaveBeenCalled();
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading.textContent).toMatch(/Home/);
+    expect(heading.textContent).toMatch(/Dashboard/);
+    expect(heading.querySelectorAll("span")).toHaveLength(2);
+    expect(screen.getByTestId("dashboard-new-analysis").getAttribute("href")).toBe("/analyze");
+    const head = (Route.options as { head?: () => { meta?: Array<{ title?: string }> } }).head;
+    expect(head?.().meta?.[0]?.title).toBe("Dashboard — Refurb Genius");
   });
 
-  it("renders onboarding select from hook value and goal options", () => {
+  it("renders Project Brief before Workflow Board", () => {
     renderDashboard();
-    const select = screen.getByLabelText(/What do you want to do first/i) as HTMLSelectElement;
-    expect(select).toBeTruthy();
-    expect(select.value).toBe("Run my first feasibility study");
-    expect(screen.getByRole("option", { name: "Run my first feasibility study" })).toBeTruthy();
+    const brief = screen.getByTestId("project-brief");
+    const board = screen.getByTestId("workflow-board");
+    expect(brief.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByTestId("app-layout").getAttribute("data-rail")).toBe("true");
   });
 
-  it("calls applyOnboardingGoal when select changes", () => {
+  it("does not render My projects, featured hierarchy, search, or continuation cards", () => {
     renderDashboard();
-    const select = screen.getByLabelText(/What do you want to do first/i);
-    fireEvent.change(select, { target: { value: "Model ROI for an investment deal" } });
-    expect(applyOnboardingGoal).toHaveBeenCalledWith("Model ROI for an investment deal");
+    expect(screen.queryByRole("heading", { name: "My projects" })).toBeNull();
+    expect(screen.queryByText("Continue where you left off")).toBeNull();
+    expect(screen.queryByText("Other projects")).toBeNull();
+    expect(screen.queryByTestId("dashboard-project-search")).toBeNull();
+    const src = readFileSync(ROUTE_SRC, "utf8");
+    expect(src).not.toMatch(/My projects/);
+    expect(src).not.toMatch(/ProjectContinuationCard/);
+    expect(src).not.toMatch(/layout="featured"/);
+    expect(src).not.toMatch(/photos_done/);
   });
 
-  it("disables select while goal is saving", () => {
-    useOnboardingGoalSelection.mockReturnValue({
-      onboardingGoal: "Run my first feasibility study",
-      isSaving: true,
-      hydrateOnboardingGoal,
-      applyOnboardingGoal,
+  it("shows list loading, list error, and empty states", () => {
+    useProjects.mockReturnValue({
+      data: [],
+      isLoading: true,
+      isPending: true,
+      isError: false,
+    });
+    const { unmount } = renderDashboard();
+    expect(screen.getByText("Loading your projects…")).toBeTruthy();
+    unmount();
+
+    useProjects.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isPending: false,
+      isError: true,
+      error: new Error("list failed"),
+      refetch: vi.fn(),
+    });
+    const errorRender = renderDashboard();
+    expect(screen.getByTestId("empty").textContent).toMatch(/Could not load projects/);
+    errorRender.unmount();
+
+    useProjects.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isPending: false,
+      isError: false,
     });
     renderDashboard();
-    const select = screen.getByLabelText(/What do you want to do first/i) as HTMLSelectElement;
-    expect(select.disabled).toBe(true);
+    expect(screen.getByTestId("empty").textContent).toMatch(/No projects yet/);
   });
 
-  it("shows new-user welcome card when consume flag is true", () => {
+  it("shows workflow loading and retryable workflow error", () => {
+    const retry = vi.fn();
+    useDashboardProjectSummaries.mockReturnValue({
+      status: "loading",
+      summaries: [],
+      error: null,
+      retry,
+    });
+    const { unmount } = renderDashboard();
+    expect(screen.getByTestId("dashboard-workflow-loading")).toBeTruthy();
+    unmount();
+
+    useDashboardProjectSummaries.mockReturnValue({
+      status: "error",
+      summaries: [],
+      error: new Error("workflow failed"),
+      retry,
+    });
     renderDashboard();
-    expect(screen.getByText(/Welcome, Ada/)).toBeTruthy();
+    expect(screen.getByTestId("empty").textContent).toMatch(/Could not load workflow/);
+    fireEvent.click(screen.getByTestId("dashboard-workflow-retry"));
+    expect(retry).toHaveBeenCalled();
   });
 
-  it("PH-TRUTH-R1: Study completion checks optional snapshot, not Estimate/Export label", () => {
-    hasCompletedFirstStudy.mockReturnValue(true);
+  it("shows restore control and board when the brief is hidden", () => {
+    const restore = vi.fn();
+    useProjectBriefVisibility.mockReturnValue({
+      visible: false,
+      hide: vi.fn(),
+      restore,
+      resolvedUserId: "u1",
+    });
     renderDashboard();
-    expect(screen.getByText(/Optional: create a feasibility snapshot/i)).toBeTruthy();
-    expect(screen.queryByText(/Complete an estimate or export on a project/i)).toBeNull();
-    // Checked snapshot item present; no Estimate/Export completion claim
-    const items = screen.getAllByText(/Optional: create a feasibility snapshot/i);
-    expect(items.length).toBeGreaterThan(0);
-  });
-
-  it("PH-TRUTH-R1: when Study not celebrated, optional snapshot remains unchecked wording only", () => {
-    hasCompletedFirstStudy.mockReturnValue(false);
-    renderDashboard();
-    expect(screen.getByText(/Optional: create a feasibility snapshot/i)).toBeTruthy();
-    expect(screen.queryByText(/Complete an estimate or export on a project/i)).toBeNull();
-  });
-
-  it("hides new-user welcome card when consume flag is false", () => {
-    consumeNewUserOnboarding.mockReturnValue(false);
-    renderDashboard();
-    expect(screen.queryByText(/Welcome, Ada/)).toBeNull();
-  });
-
-  it("uses useAuth for welcome display and AppLayout head metadata", () => {
-    renderDashboard();
-    expect(useAuth).toHaveBeenCalled();
-    const layout = screen.getByTestId("app-layout");
-    expect(layout.getAttribute("data-title")).toBe("Dashboard");
-  });
-
-  it("route source has no platform Supabase or auth.updateUser", () => {
-    const src = readFileSync(ROUTE_SRC, "utf8");
-    expect(src).toMatch(/useOnboardingGoalSelection\s*\(/);
-    expect(src).not.toMatch(/@\/platform\/supabase/);
-    expect(src).not.toMatch(/supabase\.auth/);
-    expect(src).not.toMatch(/updateUser\s*\(/);
-    expect(src).not.toMatch(/onboarding_goal\s*:/);
-    expect(src).not.toMatch(/useMutation|useQueryClient/);
-    expect(src).not.toMatch(/AuthExperience/);
-    expect(src).toMatch(/min-h-11/);
-    expect(src).toMatch(/to="\/analyze"/);
-  });
-
-  it("route path and head title remain dashboard", () => {
-    expect(Route.path ?? "/_authed/dashboard").toMatch(/dashboard/);
-    const head = (Route.options as { head?: () => { meta: { title: string }[] } }).head;
-    expect(head).toBeTruthy();
-    const meta = head!();
-    expect(meta.meta[0].title).toBe("Dashboard — Refurb Genius");
+    expect(screen.queryByTestId("project-brief")).toBeNull();
+    fireEvent.click(screen.getByTestId("project-brief-restore"));
+    expect(restore).toHaveBeenCalled();
+    expect(screen.getByTestId("workflow-board")).toBeTruthy();
   });
 });

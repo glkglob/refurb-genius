@@ -9,6 +9,7 @@ export {
   SupabaseRoomAnalysisRepository,
   supabaseRoomAnalysisRepository,
   analysisStore,
+  listRoomAnalysesStrict,
 } from "./repositories/room-analysis.repository";
 export {
   BrowserPhotoCatalogRepository,

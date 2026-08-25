@@ -34,8 +34,8 @@ describe("IA-6 Overview continuation contract", () => {
 });
 
 describe("IA-6 Dashboard continuation contract", () => {
-  it("uses ProjectContinuationCard for project list", () => {
-    expect(DASHBOARD).toMatch(/ProjectContinuationCard/);
+  it("does not use ProjectContinuationCard on Home/Dashboard", () => {
+    expect(DASHBOARD).not.toMatch(/ProjectContinuationCard/);
     expect(DASHBOARD).not.toMatch(/from "@\/components\/ProjectCard"/);
   });
 });

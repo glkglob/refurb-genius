@@ -117,7 +117,7 @@ export function ProjectStageNav({ projectId, stages, className }: ProjectStageNa
     >
       {/* Heading is fixed — never inside the horizontal scroller (IA-8-VR-R2). */}
       <p
-        className="mb-2 px-1 text-[10px] font-medium uppercase tracking-wide text-muted-foreground sm:hidden"
+        className="mb-2 px-1 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:hidden"
         data-testid="project-stage-nav-heading"
       >
         Stages · swipe to see all five
@@ -144,7 +144,7 @@ export function ProjectStageNav({ projectId, stages, className }: ProjectStageNa
                 className={cn(
                   "relative flex shrink-0 sm:min-w-0 sm:flex-1",
                   // Fixed mobile width: full "3. Redesign" + status readable; snap centres active.
-                  "w-[9rem] snap-center sm:w-auto sm:max-w-none",
+                  "min-w-[9rem] snap-center sm:w-auto sm:min-w-0 sm:max-w-none",
                   index < stages.length - 1 &&
                     "after:absolute after:right-0 after:top-3.5 after:hidden after:h-px after:w-2 after:bg-border sm:after:block",
                 )}
@@ -167,8 +167,7 @@ export function ProjectStageNav({ projectId, stages, className }: ProjectStageNa
                     {statusIcon(stage.status, stage.isActive)}
                     <span
                       className={cn(
-                        // Never truncate canonical stage names on mobile.
-                        "whitespace-nowrap text-sm font-medium",
+                        "whitespace-normal break-words text-sm font-medium",
                         stage.isActive && "text-foreground",
                         !stage.isActive && stage.status === "Complete" && "text-foreground",
                         !stage.isActive &&

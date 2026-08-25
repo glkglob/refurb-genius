@@ -1,9 +1,17 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect, vi } from "vitest";
 import {
   createProjectWithClient,
   getProjectWithClient,
   listProjectsWithClient,
 } from "./native-projects";
+
+const NATIVE_PROJECTS_SRC = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), "native-projects.ts"),
+  "utf8",
+);
 
 type SessionState = {
   access_token?: string;
@@ -19,6 +27,7 @@ function mockClient(opts: {
   session?: SessionState;
   refreshSession?: SessionState;
   getSessionError?: { message: string } | null;
+  getUserError?: { message: string } | null;
   refreshError?: { message: string } | null;
   getSessionThrows?: boolean;
   refreshThrows?: boolean;
@@ -37,7 +46,7 @@ function mockClient(opts: {
     data: opts.detailRow ?? null,
     error: opts.detailError ?? null,
   }));
-  const eq = vi.fn(() => ({ maybeSingle }));
+  const eq = vi.fn(() => ({ maybeSingle, order }));
   const selectList = vi.fn(() => ({ order, eq }));
   const single = vi.fn(async () => ({
     data: opts.insertRow ?? null,
@@ -80,7 +89,7 @@ function mockClient(opts: {
   });
   const getUser = vi.fn(async () => ({
     data: { user: session?.user ?? null },
-    error: null,
+    error: opts.getUserError ?? null,
   }));
 
   return {
@@ -94,6 +103,8 @@ function mockClient(opts: {
     } as never,
     from,
     insert,
+    eq,
+    order,
     getSession,
     refreshSession,
     getUser,
@@ -105,6 +116,39 @@ describe("native project data plane foundation", () => {
     const rows = [{ id: "p1", name: "A" }];
     const { client } = mockClient({ list: rows });
     await expect(listProjectsWithClient(client)).resolves.toEqual(rows);
+  });
+
+  it("lists only the authenticated native user's projects", async () => {
+    const rows = [{ id: "p1", name: "A", user_id: "user-1" }];
+    const { client, eq, order, getUser, from } = mockClient({ list: rows });
+    await expect(listProjectsWithClient(client)).resolves.toEqual(rows);
+    expect(getUser).toHaveBeenCalled();
+    expect(from).toHaveBeenCalledWith("projects");
+    expect(eq).toHaveBeenCalledWith("user_id", "user-1");
+    expect(order).toHaveBeenCalledWith("created_at", { ascending: false });
+  });
+
+  it("fails closed when native list has no authenticated user", async () => {
+    const { client, from } = mockClient({ session: null });
+    await expect(listProjectsWithClient(client)).rejects.toThrow(/signed in/i);
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when native list getUser returns an error", async () => {
+    const { client, from } = mockClient({
+      getUserError: { message: "session missing" },
+    });
+    await expect(listProjectsWithClient(client)).rejects.toThrow(/signed in/i);
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("does not accept a caller-supplied owner id on list", async () => {
+    expect(listProjectsWithClient.length).toBe(1);
+    expect(NATIVE_PROJECTS_SRC).not.toMatch(/listProjectsWithClient\([^)]*userId/);
+    expect(NATIVE_PROJECTS_SRC).not.toMatch(/listProjectsNative\([^)]*user/);
+    const { client, eq } = mockClient({ list: [] });
+    await listProjectsWithClient(client);
+    expect(eq.mock.calls).toEqual([["user_id", "user-1"]]);
   });
 
   it("creates project with user_id from the aligned native session only", async () => {

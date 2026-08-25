@@ -11,6 +11,7 @@ export {
   supabaseEstimateRepository,
   saveProjectEstimate,
   getLatestProjectEstimate,
+  getLatestProjectEstimateStrict,
   bindEstimateToScope,
   estimateAuthorityEvidenceFromRow,
   isAuthoritativePricingAuthority,

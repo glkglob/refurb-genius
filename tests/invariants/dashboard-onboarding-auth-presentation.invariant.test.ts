@@ -5,10 +5,10 @@
  * reassignment of a Supabase client imported under another name, dynamic
  * import strings split across concatenations, computed property names.
  *
- * Requires useOnboardingGoalSelection(.
+ * Dashboard must not mount blocking onboarding.
+ * Onboarding infrastructure must still exist (P2 destination: Settings/profile).
  * Bans platform Supabase, supabase.auth, updateUser(, and route-owned
  * onboarding_goal: payload construction in the dashboard route.
- * Allows local mount useEffect, onboarding storage helpers, useAuth, trades.
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -19,6 +19,7 @@ const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 const ROUTE = "src/routes/_authed/dashboard.tsx";
 const HOOK = "src/features/auth/presentation/hooks/useOnboardingGoalSelection.ts";
 const PRIMITIVE = "src/features/auth/infrastructure/updateAuthOnboardingGoal.ts";
+const STORAGE = "src/features/auth/onboardingStorage.ts";
 
 function stripLineComments(line: string): string {
   const idx = line.indexOf("//");
@@ -36,15 +37,18 @@ function stripAllComments(text: string): string {
     .join("\n");
 }
 
-test("dashboard onboarding Auth — Dashboard calls useOnboardingGoalSelection(", () => {
+test("dashboard onboarding Auth — Dashboard does not mount onboarding selection", () => {
   const full = join(ROOT, ROUTE);
   assert.ok(existsSync(full), `missing ${ROUTE}`);
   const text = stripAllComments(readFileSync(full, "utf8"));
-  assert.match(
+  assert.doesNotMatch(
     text,
     /useOnboardingGoalSelection\s*\(/,
-    `${ROUTE} must call useOnboardingGoalSelection(`,
+    `${ROUTE} must not call useOnboardingGoalSelection(`,
   );
+  assert.doesNotMatch(text, /consumeNewUserOnboarding/);
+  assert.doesNotMatch(text, /hydrateOnboardingGoal/);
+  assert.doesNotMatch(text, /ONBOARDING_GOAL_OPTIONS/);
 });
 
 test("dashboard onboarding Auth — route bans platform Supabase and Auth update", () => {
@@ -102,9 +106,13 @@ test("dashboard onboarding Auth — probe: string-only hook name does not satisf
   assert.doesNotMatch(sample, /useOnboardingGoalSelection\s*\(/);
 });
 
-test("dashboard onboarding Auth — legitimate mount useEffect is still present", () => {
-  const text = stripAllComments(readFileSync(join(ROOT, ROUTE), "utf8"));
-  assert.match(text, /useEffect\s*\(/);
-  assert.match(text, /consumeNewUserOnboarding/);
-  assert.match(text, /hydrateOnboardingGoal/);
+test("dashboard onboarding Auth — infrastructure still exists for P2 Settings/profile", () => {
+  assert.ok(existsSync(join(ROOT, HOOK)), `missing ${HOOK}`);
+  assert.ok(existsSync(join(ROOT, PRIMITIVE)), `missing ${PRIMITIVE}`);
+  assert.ok(existsSync(join(ROOT, STORAGE)), `missing ${STORAGE}`);
+  const hook = stripAllComments(readFileSync(join(ROOT, HOOK), "utf8"));
+  assert.match(hook, /useOnboardingGoalSelection\s*\(/);
+  assert.match(hook, /hydrateOnboardingGoal/);
+  const storage = stripAllComments(readFileSync(join(ROOT, STORAGE), "utf8"));
+  assert.match(storage, /consumeNewUserOnboarding/);
 });

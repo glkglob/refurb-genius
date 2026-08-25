@@ -41,9 +41,10 @@ export function MobileStickyNextAction({
   return (
     <div
       className={cn(
-        // Fixed mobile bar; desktop/tablet (≥md) uses header actions instead.
-        "fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-3 pt-2 backdrop-blur md:hidden",
-        "pb-[max(0.75rem,env(safe-area-inset-bottom))]",
+        // Sit ABOVE MobileBottomNav. Nav owns safe-area-inset-bottom.
+        // Hidden from `lg` together with the bottom destination bar.
+        "fixed inset-x-0 z-40 border-t border-border bg-background/95 px-3 py-2 backdrop-blur lg:hidden",
+        "bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))]",
         className,
       )}
       data-testid="mobile-sticky-next-action-bar"

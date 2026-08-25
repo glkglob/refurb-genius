@@ -67,6 +67,43 @@ export function rowToAnalysis(r: Tables<"room_analyses">): RoomAnalysis {
   };
 }
 
+/**
+ * Strict room_analyses list for Dashboard workflow evidence.
+ * Successful absence is `[]`. Transport/auth failure throws.
+ * Does not alter legacy loadFromSupabase null-on-error behaviour.
+ */
+export async function listRoomAnalysesStrict(projectId: string): Promise<RoomAnalysis[]> {
+  if (Capacitor.isNativePlatform()) {
+    const { getNativeSupabase } = await import("@/platform/supabase/native");
+    const client = getNativeSupabase();
+    const {
+      data: { user },
+      error: sessionError,
+    } = await client.auth.getUser();
+    if (sessionError || !user?.id) {
+      throw new Error("You must be signed in.");
+    }
+    const { listRoomAnalysesNative } = await import("@/platform/supabase/native-room-analyses");
+    const rows = await listRoomAnalysesNative(projectId);
+    return rows.map(rowToAnalysis);
+  }
+
+  const user = auth.getUser();
+  if (!user?.id) {
+    throw new Error("You must be signed in.");
+  }
+
+  const { data, error } = await supabase
+    .from("room_analyses")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: true });
+  if (error) {
+    throw new Error(error.message);
+  }
+  return (data ?? []).map(rowToAnalysis);
+}
+
 async function loadFromSupabase(projectId: string): Promise<RoomAnalysis[] | null> {
   if (Capacitor.isNativePlatform()) {
     const { listRoomAnalysesNative } = await import("@/platform/supabase/native-room-analyses");

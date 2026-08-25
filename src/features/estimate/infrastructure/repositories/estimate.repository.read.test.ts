@@ -32,7 +32,11 @@ vi.mock("@/platform/supabase/native", () => ({
   }),
 }));
 
-import { getLatestRoomEstimate, getLatestProjectEstimate } from "./estimate.repository";
+import {
+  getLatestRoomEstimate,
+  getLatestProjectEstimate,
+  getLatestProjectEstimateStrict,
+} from "./estimate.repository";
 
 function mockEmptyEstimateChain() {
   const maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
@@ -75,5 +79,79 @@ describe("estimate read platform split", () => {
     getNativeUser.mockResolvedValue({ data: { user: null }, error: null });
     await expect(getLatestProjectEstimate("proj-1")).resolves.toBeNull();
     expect(fromMock).not.toHaveBeenCalled();
+  });
+
+  it("native signed-out getLatestProjectEstimateStrict throws instead of returning null", async () => {
+    isNativePlatform.mockReturnValue(true);
+    getNativeUser.mockResolvedValue({ data: { user: null }, error: null });
+    await expect(getLatestProjectEstimateStrict("proj-1")).rejects.toThrow(/signed in/i);
+    expect(fromMock).not.toHaveBeenCalled();
+  });
+});
+
+function mockEstimateRows(rows: Array<Record<string, unknown>>, items: unknown[] = []) {
+  fromMock.mockImplementation((table: string) => {
+    if (table === "estimates") {
+      const limit = vi.fn().mockResolvedValue({ data: rows, error: null });
+      const orderId = vi.fn().mockReturnValue({ limit });
+      const orderCreated = vi.fn().mockReturnValue({ order: orderId, limit });
+      const eqUser = vi.fn().mockReturnValue({ order: orderCreated });
+      const eqProject = vi.fn().mockReturnValue({ eq: eqUser });
+      return { select: vi.fn().mockReturnValue({ eq: eqProject }) };
+    }
+    const order = vi.fn().mockResolvedValue({ data: items, error: null });
+    const eq = vi.fn().mockReturnValue({ order });
+    return { select: vi.fn().mockReturnValue({ eq }) };
+  });
+}
+
+describe("getLatestProjectEstimateStrict selection", () => {
+  beforeEach(() => {
+    isNativePlatform.mockReturnValue(false);
+    getUser.mockReset();
+    getNativeUser.mockReset();
+    fromMock.mockReset();
+    getUser.mockReturnValue({ id: "web-user" });
+  });
+
+  it("selects the authoritative estimate bound to the current scope", async () => {
+    const stale = {
+      id: "est-stale",
+      pricing_authority: "category-engine",
+      input_scope_id: "scope-old",
+      created_at: "2026-02-01T00:00:00.000Z",
+    };
+    const current = {
+      id: "est-current",
+      pricing_authority: "category-engine",
+      input_scope_id: "scope-new",
+      created_at: "2026-01-01T00:00:00.000Z",
+    };
+    mockEstimateRows([stale, current]);
+    const out = await getLatestProjectEstimateStrict("proj-1", "scope-new");
+    expect(out?.estimate).toEqual(expect.objectContaining({ id: "est-current" }));
+  });
+
+  it("with no current scope still loads the latest eligible estimate", async () => {
+    const latestAuth = {
+      id: "est-latest",
+      pricing_authority: "measured-boq-engine",
+      input_scope_id: "scope-old",
+      created_at: "2026-03-01T00:00:00.000Z",
+    };
+    const olderAuth = {
+      id: "est-older",
+      pricing_authority: "category-engine",
+      input_scope_id: "scope-new",
+      created_at: "2026-01-01T00:00:00.000Z",
+    };
+    mockEstimateRows([latestAuth, olderAuth]);
+    const out = await getLatestProjectEstimateStrict("proj-1", null);
+    expect(out?.estimate).toEqual(expect.objectContaining({ id: "est-latest" }));
+  });
+
+  it("returns null when no estimate rows exist", async () => {
+    mockEstimateRows([]);
+    await expect(getLatestProjectEstimateStrict("proj-1", "scope-1")).resolves.toBeNull();
   });
 });
