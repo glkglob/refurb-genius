@@ -9,6 +9,7 @@ export {
   saveScopeAnalysis,
   getLatestScopeAnalysis,
   getLatestScopeAuthorityHeader,
+  getLatestScopeAuthorityHeaderStrict,
   type PersistedScopeAnalysis,
   type SaveScopeAnalysisInput,
   type ScopeAuthorityHeader,

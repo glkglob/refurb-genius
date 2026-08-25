@@ -12,6 +12,7 @@ const PROJECTS_SRC = readFileSync(
 
 const {
   fromMock,
+  getBrowserUser,
   loggerError,
   isNativePlatform,
   listProjectsNative,
@@ -21,6 +22,7 @@ const {
   getLatestProjectEstimate,
 } = vi.hoisted(() => ({
   fromMock: vi.fn(),
+  getBrowserUser: vi.fn(),
   loggerError: vi.fn(),
   isNativePlatform: vi.fn(() => false),
   listProjectsNative: vi.fn(),
@@ -39,6 +41,9 @@ vi.mock("@capacitor/core", () => ({
 vi.mock("@/platform/supabase/browser", () => ({
   supabase: {
     from: fromMock,
+    auth: {
+      getUser: (...args: unknown[]) => getBrowserUser(...args),
+    },
   },
 }));
 
@@ -199,22 +204,25 @@ function makeProjectRow(overrides: Record<string, unknown> = {}) {
 
 function mockProjectsListChain(result: { data: unknown; error: { message: string } | null }) {
   const order = vi.fn().mockResolvedValue(result);
-  const select = vi.fn().mockReturnValue({ order });
+  const eq = vi.fn().mockReturnValue({ order });
+  const select = vi.fn().mockReturnValue({ eq });
   fromMock.mockReturnValue({ select });
-  return { select, order };
+  return { select, eq, order };
 }
 
 describe("fetchProjectsList platform split", () => {
   beforeEach(() => {
     fromMock.mockReset();
+    getBrowserUser.mockReset();
     loggerError.mockReset();
     isNativePlatform.mockReturnValue(false);
     listProjectsNative.mockReset();
     getProjectNative.mockReset();
+    getBrowserUser.mockResolvedValue({ data: { user: { id: "session-user" } }, error: null });
   });
 
   it("web uses the browser Supabase client and canonical mapper", async () => {
-    const { select, order } = mockProjectsListChain({
+    const { select, eq, order } = mockProjectsListChain({
       data: [makeProjectRow({ name: "Web Row" })],
       error: null,
     });
@@ -225,8 +233,38 @@ describe("fetchProjectsList platform split", () => {
     expect(listProjectsNative).not.toHaveBeenCalled();
     expect(fromMock).toHaveBeenCalledWith("projects");
     expect(select).toHaveBeenCalledWith("*");
+    expect(eq).toHaveBeenCalledWith("user_id", "session-user");
     expect(order).toHaveBeenCalledWith("created_at", { ascending: false });
     expect(out).toEqual([makeProject({ name: "Web Row" })]);
+  });
+
+  it("web owner filter uses the authenticated session user id", async () => {
+    const { eq } = mockProjectsListChain({ data: [], error: null });
+    await fetchProjectsList();
+    expect(getBrowserUser).toHaveBeenCalled();
+    expect(eq).toHaveBeenCalledWith("user_id", "session-user");
+    expect(eq).not.toHaveBeenCalledWith("user_id", "u1");
+  });
+
+  it("web missing session fails instead of returning an empty list", async () => {
+    getBrowserUser.mockResolvedValue({ data: { user: null }, error: null });
+    await expect(fetchProjectsList()).rejects.toThrow(/signed in/i);
+    expect(fromMock).not.toHaveBeenCalled();
+  });
+
+  it("web session error fails instead of returning an empty list", async () => {
+    getBrowserUser.mockResolvedValue({
+      data: { user: null },
+      error: { message: "jwt expired" },
+    });
+    await expect(fetchProjectsList()).rejects.toThrow(/signed in/i);
+    expect(fromMock).not.toHaveBeenCalled();
+  });
+
+  it("does not accept a caller-supplied owner id", () => {
+    expect(fetchProjectsList.length).toBe(0);
+    expect(PROJECTS_SRC).not.toMatch(/fetchProjectsList\s*\(\s*user/);
+    expect(PROJECTS_SRC).toMatch(/eq\(\s*["']user_id["']\s*,\s*userId\s*\)/);
   });
 
   it("native uses listProjectsNative and the same canonical mapper", async () => {
@@ -236,6 +274,7 @@ describe("fetchProjectsList platform split", () => {
     const out = await fetchProjectsList();
 
     expect(listProjectsNative).toHaveBeenCalledTimes(1);
+    expect(listProjectsNative).toHaveBeenCalledWith();
     expect(fromMock).not.toHaveBeenCalled();
     expect(out).toEqual([makeProject({ name: "Native Row" })]);
   });

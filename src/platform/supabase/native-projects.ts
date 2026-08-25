@@ -35,14 +35,25 @@ export type NativeProjectInsertInput = {
 export type NativeProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
 /**
- * List projects for the authenticated native session (RLS filters by auth.uid()).
+ * List projects owned by the authenticated native session.
+ * Owner filter uses the trusted native session user id — never a caller argument.
  */
 export async function listProjectsWithClient(
   supabase: SupabaseClient<Database>,
 ): Promise<NativeProjectRow[]> {
+  const {
+    data: { user },
+    error: sessionError,
+  } = await supabase.auth.getUser();
+  const userId = user?.id;
+  if (sessionError || !userId) {
+    throw new Error("You must be signed in.");
+  }
+
   const { data, error } = await supabase
     .from("projects")
     .select("*")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) {

@@ -1,7 +1,6 @@
 import { Capacitor } from "@capacitor/core";
 import { queryOptions, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/platform/supabase/browser";
-import { auth } from "@/lib/auth";
 import { rowToProject, rowToPhoto, type ProjectWithProgress } from "@/lib/mappers";
 import {
   getLatestRoomEstimate,
@@ -65,9 +64,19 @@ export async function fetchProjectsList(): Promise<ProjectWithProgress[]> {
     return rows.map(rowToProject);
   }
 
+  const {
+    data: { user },
+    error: sessionError,
+  } = await supabase.auth.getUser();
+  const userId = user?.id;
+  if (sessionError || !userId) {
+    throw new Error("You must be signed in.");
+  }
+
   const { data, error } = await supabase
     .from("projects")
     .select("*")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) {
     logger.error("[queries] projects list fetch failed", { error: error.message });
