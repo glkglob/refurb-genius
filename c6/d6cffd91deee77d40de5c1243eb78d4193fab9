@@ -1,0 +1,48 @@
+src/features/ai-design/infrastructure/index.ts
+  h_7ea6129503670a 12
+src/features/ai-design/infrastructure/repositories/scope-analysis.repository.strict-read.test.ts
+  h_7ea6129503670a 1-111
+src/features/ai-design/infrastructure/repositories/scope-analysis.repository.ts
+  h_7ea6129503670a 7,132-190,212-226
+src/features/ai-upload/infrastructure/index.ts
+  h_7ea6129503670a 12
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.strict-read.test.ts
+  h_7ea6129503670a 1-145
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts
+  h_7ea6129503670a 70-106
+src/features/estimate/infrastructure/index.ts
+  h_7ea6129503670a 14
+src/features/estimate/infrastructure/repositories/estimate.repository.read.test.ts
+  h_7ea6129503670a 35-39,83-156
+src/features/estimate/infrastructure/repositories/estimate.repository.ts
+  h_7ea6129503670a 142-143,177-200
+src/features/export/infrastructure/exportSnapshot.repository.strict-read.test.ts
+  h_7ea6129503670a 1-109
+src/features/export/infrastructure/exportSnapshot.repository.ts
+  h_7ea6129503670a 6,18-76,95-109
+src/features/export/infrastructure/index.ts
+  h_7ea6129503670a 6
+src/features/projects/presentation/workflowEvidenceQueryOptions.test.ts
+  h_7ea6129503670a 1-185
+src/features/projects/presentation/workflowEvidenceQueryOptions.ts
+  h_7ea6129503670a 1-72
+src/lib/queries/projects.test.ts
+  h_7ea6129503670a 15,25,44-46,207-208,210,216,221,225,236,241-269,277
+src/lib/queries/projects.ts
+  h_7ea6129503670a 67-75,79
+src/platform/supabase/native-projects.test.ts
+  h_7ea6129503670a 1-3,11-15,30,49,92,106-107,121-153
+src/platform/supabase/native-projects.ts
+  h_7ea6129503670a 38-39,44-52,56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.24",
+  "base_commit_sha": "c6d6cffd91deee77d40de5c1243eb78d4193fab9",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
