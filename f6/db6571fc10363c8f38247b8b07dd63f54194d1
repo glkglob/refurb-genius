@@ -1,0 +1,14 @@
+scripts/verify-visual-geometry.mjs
+  h_7ea6129503670a 1-657
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "f6db6571fc10363c8f38247b8b07dd63f54194d1",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
