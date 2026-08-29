@@ -92,12 +92,10 @@ vi.mock("@/lib/logger", () => ({
 }));
 
 vi.mock("@/features/auth", () => ({
-  observeNativeAuthIdentity: (queryClient: QueryClient) =>
-    observeNativeAuthIdentity(queryClient),
+  observeNativeAuthIdentity: (queryClient: QueryClient) => observeNativeAuthIdentity(queryClient),
   ensureNativeAuthIdentitySettled: (queryClient: QueryClient) =>
     ensureNativeAuthIdentitySettled(queryClient),
-  signOutNativeAuthIdentity: (queryClient: QueryClient) =>
-    signOutNativeAuthIdentity(queryClient),
+  signOutNativeAuthIdentity: (queryClient: QueryClient) => signOutNativeAuthIdentity(queryClient),
   bindNativeAuthIdentityQueryClient: (queryClient: QueryClient) =>
     bindNativeAuthIdentityQueryClient(queryClient),
 }));
