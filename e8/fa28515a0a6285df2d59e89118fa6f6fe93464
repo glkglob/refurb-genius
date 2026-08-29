@@ -1,0 +1,18 @@
+src/routes/_authed.platform-gate.test.ts
+  h_7ea6129503670a 95,98
+src/styles.css
+  h_7ea6129503670a 8-23,48,104
+tests/invariants/dashboard-home-composition.invariant.test.ts
+  h_7ea6129503670a 26,70-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "e8fa28515a0a6285df2d59e89118fa6f6fe93464",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
