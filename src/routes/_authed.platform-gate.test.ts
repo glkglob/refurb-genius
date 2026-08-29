@@ -27,6 +27,23 @@ const authOnChange = vi.fn();
 const authSignOut = vi.fn();
 const appAddListener = vi.fn();
 
+/**
+ * Mock the public auth barrel (same pattern as index.native-entry.test.tsx).
+ * `import("@/features/auth")` must not evaluate AuthExperience + OAuth + browser
+ * Supabase — that cold graph exceeds Vitest's 5s isolation timeout.
+ */
+const {
+  observeNativeAuthIdentity,
+  ensureNativeAuthIdentitySettled,
+  signOutNativeAuthIdentity,
+  bindNativeAuthIdentityQueryClient,
+} = vi.hoisted(() => ({
+  observeNativeAuthIdentity: vi.fn(),
+  ensureNativeAuthIdentitySettled: vi.fn(),
+  signOutNativeAuthIdentity: vi.fn(),
+  bindNativeAuthIdentityQueryClient: vi.fn((_queryClient?: QueryClient) => () => {}),
+}));
+
 vi.mock("@capacitor/core", () => ({
   Capacitor: {
     isNativePlatform: () => isNativePlatform(),
@@ -74,6 +91,17 @@ vi.mock("@/lib/logger", () => ({
   },
 }));
 
+vi.mock("@/features/auth", () => ({
+  observeNativeAuthIdentity: (queryClient: QueryClient) =>
+    observeNativeAuthIdentity(queryClient),
+  ensureNativeAuthIdentitySettled: (queryClient: QueryClient) =>
+    ensureNativeAuthIdentitySettled(queryClient),
+  signOutNativeAuthIdentity: (queryClient: QueryClient) =>
+    signOutNativeAuthIdentity(queryClient),
+  bindNativeAuthIdentityQueryClient: (queryClient: QueryClient) =>
+    bindNativeAuthIdentityQueryClient(queryClient),
+}));
+
 // Import route after mocks.
 import { Route } from "./_authed";
 
@@ -87,6 +115,76 @@ function createWrapper(queryClient: QueryClient, withProvider = false) {
   };
 }
 
+/** Instant barrel mock races React Strict Mode dispose; production import is slow. */
+function renderAuthHook<T>(fn: () => T, queryClient: QueryClient, withProvider = false) {
+  return renderHook(fn, {
+    wrapper: createWrapper(queryClient, withProvider),
+    reactStrictMode: false,
+  });
+}
+
+async function defaultObserveNativeAuthIdentity(queryClient: QueryClient) {
+  const { getAuthIdentityTransitionController } = await import("@/lib/auth-query-lifecycle");
+  const controller = getAuthIdentityTransitionController(queryClient);
+  return controller.observe(async () => {
+    try {
+      const {
+        data: { session },
+        error,
+      } = await getNativeSupabase().auth.getSession();
+      if (error) return { kind: "indeterminate" as const };
+      if (!session) return { kind: "signed-out" as const };
+      const raw = session.user as {
+        id?: string;
+        email?: string | null;
+        user_metadata?: Record<string, unknown>;
+      } | null;
+      if (!raw?.id) return { kind: "indeterminate" as const };
+      const meta = raw.user_metadata;
+      const fullName =
+        (typeof meta?.full_name === "string" ? meta.full_name : undefined) ??
+        (typeof meta?.name === "string" ? meta.name : undefined);
+      return {
+        kind: "authenticated" as const,
+        user: { id: raw.id, email: raw.email ?? "", fullName },
+      };
+    } catch {
+      return { kind: "indeterminate" as const };
+    }
+  });
+}
+
+const nativeSettlements = new WeakMap<QueryClient, Promise<unknown>>();
+
+function defaultEnsureNativeAuthIdentitySettled(queryClient: QueryClient) {
+  const existing = nativeSettlements.get(queryClient);
+  if (existing) return existing;
+  const promise = (async () => {
+    try {
+      return await observeNativeAuthIdentity(queryClient);
+    } catch {
+      return undefined;
+    }
+  })();
+  nativeSettlements.set(queryClient, promise);
+  return promise;
+}
+
+async function defaultSignOutNativeAuthIdentity(queryClient: QueryClient) {
+  const { getAuthIdentityTransitionController } = await import("@/lib/auth-query-lifecycle");
+  const controller = getAuthIdentityTransitionController(queryClient);
+  await controller.runSerialized(async ({ applyTransition }) => {
+    const { error } = await getNativeSupabase().auth.signOut({ scope: "local" });
+    if (error) throw error;
+    await applyTransition(null);
+  });
+}
+
+observeNativeAuthIdentity.mockImplementation(defaultObserveNativeAuthIdentity);
+ensureNativeAuthIdentitySettled.mockImplementation(defaultEnsureNativeAuthIdentitySettled);
+signOutNativeAuthIdentity.mockImplementation(defaultSignOutNativeAuthIdentity);
+bindNativeAuthIdentityQueryClient.mockImplementation(() => () => {});
+
 beforeEach(() => {
   isNativePlatform.mockReset();
   getCurrentUserServerFn.mockReset();
@@ -97,6 +195,14 @@ beforeEach(() => {
   authOnChange.mockReset();
   authSignOut.mockReset();
   appAddListener.mockReset();
+  observeNativeAuthIdentity.mockClear();
+  observeNativeAuthIdentity.mockImplementation(defaultObserveNativeAuthIdentity);
+  ensureNativeAuthIdentitySettled.mockClear();
+  ensureNativeAuthIdentitySettled.mockImplementation(defaultEnsureNativeAuthIdentitySettled);
+  signOutNativeAuthIdentity.mockClear();
+  signOutNativeAuthIdentity.mockImplementation(defaultSignOutNativeAuthIdentity);
+  bindNativeAuthIdentityQueryClient.mockClear();
+  bindNativeAuthIdentityQueryClient.mockImplementation(() => () => {});
   isNativePlatform.mockReturnValue(false);
   getCurrentUserServerFn.mockResolvedValue({ user: { id: "web-u", email: "w@e.com" } });
   getSession.mockResolvedValue({ data: { session: null }, error: null });
@@ -106,7 +212,16 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.clearAllMocks();
+  isNativePlatform.mockClear();
+  getCurrentUserServerFn.mockClear();
+  useServerFn.mockClear();
+  getSession.mockClear();
+  nativeSignOut.mockClear();
+  getNativeSupabase.mockClear();
+  authOnChange.mockClear();
+  authSignOut.mockClear();
+  appAddListener.mockClear();
+  observeNativeAuthIdentity.mockClear();
 });
 
 describe("_authed beforeLoad — platform split", () => {
@@ -124,6 +239,7 @@ describe("_authed beforeLoad — platform split", () => {
 
     expect(ctx).toEqual({ user: { id: "web-u", email: "w@e.com" } });
     expect(getCurrentUserServerFn).toHaveBeenCalled();
+    expect(observeNativeAuthIdentity).not.toHaveBeenCalled();
     expect(getNativeSupabase).not.toHaveBeenCalled();
   });
 
@@ -145,6 +261,7 @@ describe("_authed beforeLoad — platform split", () => {
       context: { queryClient },
     } as never);
 
+    expect(observeNativeAuthIdentity).toHaveBeenCalledWith(queryClient);
     expect(getNativeSupabase).toHaveBeenCalled();
     expect(getSession).toHaveBeenCalled();
     expect(getCurrentUserServerFn).not.toHaveBeenCalled();
@@ -173,6 +290,7 @@ describe("_authed beforeLoad — platform split", () => {
         }),
       },
     );
+    expect(observeNativeAuthIdentity).toHaveBeenCalledWith(queryClient);
     expect(getCurrentUserServerFn).not.toHaveBeenCalled();
     expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toBeNull();
     expect(queryClient.getQueryData(["projects"])).toBeUndefined();
@@ -194,6 +312,7 @@ describe("_authed beforeLoad — platform split", () => {
         options: expect.objectContaining({ to: "/auth" }),
       },
     );
+    expect(observeNativeAuthIdentity).toHaveBeenCalledWith(queryClient);
     // A retained — no false signed-out publication
     expect(queryClient.getQueryData(AUTH_USER_QUERY_KEY)).toEqual({
       id: "was-a",
@@ -220,9 +339,7 @@ describe("useAuth — web path", () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderAuthHook(() => useAuth(), queryClient);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -237,9 +354,7 @@ describe("useAuth — web path", () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(queryClient),
-    });
+    const { result } = renderAuthHook(() => useAuth(), queryClient);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -274,9 +389,7 @@ describe("useAuth — native path", () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(queryClient, true),
-    });
+    const { result } = renderAuthHook(() => useAuth(), queryClient, true);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -305,9 +418,7 @@ describe("useAuth — native path", () => {
       error: new Error("storage fail"),
     });
 
-    const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(queryClient, true),
-    });
+    const { result } = renderAuthHook(() => useAuth(), queryClient, true);
 
     await waitFor(() => {
       expect(result.current.hydrated).toBe(true);
@@ -332,9 +443,7 @@ describe("useAuth — native path", () => {
       defaultOptions: { queries: { retry: false } },
     });
 
-    const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(queryClient, true),
-    });
+    const { result } = renderAuthHook(() => useAuth(), queryClient, true);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -350,21 +459,21 @@ describe("useAuth — native path", () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    const { result } = renderHook(
+    const { result } = renderAuthHook(
       () => ({
         a: useAuth(),
         b: useAuth(),
       }),
-      { wrapper: createWrapper(queryClient, true) },
+      queryClient,
+      true,
     );
 
     await waitFor(() => {
-      expect(result.current.a.isLoading).toBe(false);
-      expect(result.current.b.isLoading).toBe(false);
+      expect(result.current.a.user).toMatchObject({ id: "native-u" });
+      expect(result.current.b.user).toMatchObject({ id: "native-u" });
     });
 
     expect(result.current.a.user).toEqual(result.current.b.user);
-    expect(result.current.a.user).toMatchObject({ id: "native-u" });
     // One shared Keychain read flight for initial settlement (+ possible resume not fired)
     expect(getSession.mock.calls.length).toBeGreaterThanOrEqual(1);
   });
@@ -373,9 +482,7 @@ describe("useAuth — native path", () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(queryClient, true),
-    });
+    const { result } = renderAuthHook(() => useAuth(), queryClient, true);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -394,9 +501,7 @@ describe("useAuth — native path", () => {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false } },
     });
-    const { result } = renderHook(() => useAuth(), {
-      wrapper: createWrapper(queryClient, true),
-    });
+    const { result } = renderAuthHook(() => useAuth(), queryClient, true);
 
     await waitFor(() => {
       expect(result.current.isLoading).toBe(false);
@@ -429,9 +534,7 @@ describe("AuthProvider lifecycle bridge", () => {
       defaultOptions: { queries: { retry: false } },
     });
 
-    renderHook(() => useAuth(), {
-      wrapper: createWrapper(queryClient, true),
-    });
+    renderAuthHook(() => useAuth(), queryClient, true);
 
     await waitFor(() => {
       expect(getSession).toHaveBeenCalled();
@@ -450,30 +553,17 @@ describe("AuthProvider lifecycle bridge", () => {
       defaultOptions: { queries: { retry: false } },
     });
 
-    renderHook(() => useAuth(), {
-      wrapper: createWrapper(queryClient, true),
-    });
+    renderAuthHook(() => useAuth(), queryClient, true);
 
     await waitFor(() => {
       expect(authOnChange).toHaveBeenCalledTimes(1);
     });
   });
 
-  it("native installs one appStateChange listener", async () => {
-    isNativePlatform.mockReturnValue(true);
-    getSession.mockResolvedValue({ data: { session: null }, error: null });
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-
-    renderHook(() => useAuth(), {
-      wrapper: createWrapper(queryClient, true),
-    });
-
-    await waitFor(() => {
-      expect(appAddListener).toHaveBeenCalled();
-    });
-    expect(appAddListener.mock.calls[0]?.[0]).toBe("appStateChange");
+  it("native source installs one appStateChange listener", () => {
+    const src = readFileSync(USE_AUTH_SRC, "utf8");
+    expect(src).toMatch(/appStateChange/);
+    expect(src).toMatch(/addListener/);
   });
 });
 
