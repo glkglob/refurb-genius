@@ -1,0 +1,14 @@
+tests/invariants/dashboard-home-composition.invariant.test.ts
+  h_7ea6129503670a 69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "784aa651d587c43811f6507340dc28ed279f94cc",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
