@@ -1,0 +1,14 @@
+src/routes/_authed.platform-gate.test.ts
+  h_7ea6129503670a 30-46,94-104,118-187,198-205,215-224,242,264,293,315,342,357,392,421,446,462,467-468,472-473,485,504,537,556,563-566
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "3b17f6eaf2c86b09693b5de98df2bd50663b341d",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
