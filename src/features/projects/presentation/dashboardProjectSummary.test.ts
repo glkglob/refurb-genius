@@ -2,13 +2,31 @@ import { describe, expect, it } from "vitest";
 import {
   briefActionableItems,
   briefStatusCounts,
+  buildDashboardWorkflowStages,
   deriveCurrentScopeIdForEstimate,
   groupSummariesByStage,
+  shellProgressFromWorkflow,
   toDashboardProjectSummary,
   workflowBoardColumns,
   type DashboardProjectSummary,
 } from "./dashboardProjectSummary";
-import type { ProjectNextAction } from "../domain";
+import {
+  buildProjectWorkflowStages,
+  type ProjectNextAction,
+  type ProjectWorkflowState,
+} from "../domain";
+
+function idleStages() {
+  return buildProjectWorkflowStages({
+    progress: {
+      photosDone: false,
+      analysisDone: false,
+      estimateDone: false,
+      reportDone: false,
+    },
+    route: { surface: "overview" },
+  });
+}
 
 function action(overrides: Partial<ProjectNextAction> = {}): ProjectNextAction {
   return {
@@ -37,6 +55,7 @@ function summary(overrides: Partial<DashboardProjectSummary> = {}): DashboardPro
     workflowRoute: "/projects/p1/upload",
     overviewRoute: "/projects/p1",
     listOrder: 0,
+    workflowStages: idleStages(),
     ...overrides,
   };
 }
@@ -84,10 +103,12 @@ describe("deriveCurrentScopeIdForEstimate", () => {
 
 describe("toDashboardProjectSummary", () => {
   it("maps identity helpers and resolver fields", () => {
+    const stages = idleStages();
     const out = toDashboardProjectSummary(
       { id: "p9", name: "Terrace", address: "1 High St", postcode: "E1 1AA" },
       action({ route: "/projects/p9/upload" }),
       2,
+      stages,
     );
     expect(out.projectId).toBe("p9");
     expect(out.name).toBe("Terrace");
@@ -97,6 +118,60 @@ describe("toDashboardProjectSummary", () => {
     expect(out.workflowRoute).toBe("/projects/p9/upload");
     expect(out.overviewRoute).toBe("/projects/p9");
     expect(out.listOrder).toBe(2);
+    expect(out.workflowStages).toHaveLength(5);
+    expect(out.status).toBe("Ready");
+  });
+});
+
+describe("shell-progress parity with useProjectFiveStageWorkflow", () => {
+  it("maps currency to the same done / needs-attention flags then five stages", () => {
+    const workflow: ProjectWorkflowState = {
+      photos: { currency: "current", photoCount: 2 },
+      analysis: { currency: "non_current" },
+      redesign: { currency: "absent" },
+      scope: { currency: "absent" },
+      estimate: { currency: "absent" },
+      export: { currency: "absent" },
+    };
+    const progress = shellProgressFromWorkflow(workflow);
+    expect(progress).toEqual({
+      photosDone: true,
+      analysisDone: true,
+      analysisNeedsAttention: true,
+      redesignDone: false,
+      redesignNeedsAttention: false,
+      estimateDone: false,
+      estimateNeedsAttention: false,
+      reportDone: false,
+      reportNeedsAttention: false,
+    });
+    const stages = buildDashboardWorkflowStages(workflow);
+    expect(stages.map((stage) => stage.id)).toEqual([
+      "photos",
+      "analysis",
+      "redesign",
+      "estimate",
+      "export",
+    ]);
+    expect(stages.find((stage) => stage.id === "photos")?.status).toBe("Complete");
+    expect(stages.find((stage) => stage.id === "analysis")?.status).toBe("Needs attention");
+    expect(stages.find((stage) => stage.id === "redesign")?.status).toBe("Ready");
+  });
+
+  it("surfaces Estimate needs attention when Scope is absent after current Analysis and Redesign", () => {
+    const workflow: ProjectWorkflowState = {
+      photos: { currency: "current" },
+      analysis: { currency: "current" },
+      redesign: { currency: "current" },
+      scope: { currency: "absent" },
+      estimate: { currency: "absent" },
+      export: { currency: "absent" },
+    };
+    const progress = shellProgressFromWorkflow(workflow);
+    expect(progress.estimateNeedsAttention).toBe(true);
+    expect(
+      buildDashboardWorkflowStages(workflow).find((stage) => stage.id === "estimate")?.status,
+    ).toBe("Needs attention");
   });
 });
 

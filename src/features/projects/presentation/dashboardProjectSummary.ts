@@ -7,14 +7,20 @@ import {
   PROJECT_WORKFLOW_STAGES,
   buildProjectIdentitySubtitle,
   buildProjectIdentityTitle,
+  buildProjectWorkflowStages,
   composeProjectWorkflowState,
+  estimateShellFlagsFromCurrency,
   explainProjectNextActionReason,
+  exportShellFlagsFromCurrency,
   type AnalysisAuthorityEvidence,
   type DurablePhotoIdentity,
   type ProjectNextAction,
   type ProjectNextActionKind,
   type ProjectNextActionReason,
+  type ProjectWorkflowProgressInput,
   type ProjectWorkflowStageId,
+  type ProjectWorkflowStagePresentation,
+  type ProjectWorkflowState,
   type ProjectWorkflowStatusLabel,
   type RedesignCandidateEvidence,
   type ScopeAuthorityEvidence,
@@ -34,6 +40,7 @@ export type DashboardProjectSummary = {
   workflowRoute: string;
   overviewRoute: string;
   listOrder: number;
+  workflowStages: ProjectWorkflowStagePresentation[];
 };
 
 export type DashboardBriefCounts = {
@@ -76,10 +83,51 @@ export function deriveCurrentScopeIdForEstimate(input: {
   return workflow.scope.currency === "current" && input.scope ? input.scope.id : null;
 }
 
+/**
+ * Same shell-progress mapping as useProjectFiveStageWorkflow.
+ * Presentation only — does not classify evidence or invent a second workflow model.
+ */
+export function shellProgressFromWorkflow(
+  workflow: ProjectWorkflowState,
+): ProjectWorkflowProgressInput {
+  const estFlags = estimateShellFlagsFromCurrency(workflow.estimate.currency);
+  const expFlags = exportShellFlagsFromCurrency(workflow.export.currency);
+  const analysisDone =
+    workflow.analysis.currency === "current" || workflow.analysis.currency === "non_current";
+  const redesignDone =
+    workflow.redesign.currency === "current" || workflow.redesign.currency === "non_current";
+  return {
+    photosDone: workflow.photos.currency === "current",
+    analysisDone,
+    analysisNeedsAttention: workflow.analysis.currency === "non_current",
+    redesignDone,
+    redesignNeedsAttention: workflow.redesign.currency === "non_current",
+    estimateDone: estFlags.estimateDone,
+    estimateNeedsAttention:
+      estFlags.estimateNeedsAttention ||
+      workflow.scope.currency === "non_current" ||
+      (workflow.scope.currency === "absent" &&
+        workflow.redesign.currency === "current" &&
+        workflow.analysis.currency === "current"),
+    reportDone: expFlags.reportDone,
+    reportNeedsAttention: expFlags.reportNeedsAttention,
+  };
+}
+
+export function buildDashboardWorkflowStages(
+  workflow: ProjectWorkflowState,
+): ProjectWorkflowStagePresentation[] {
+  return buildProjectWorkflowStages({
+    progress: shellProgressFromWorkflow(workflow),
+    route: { surface: "overview" },
+  });
+}
+
 export function toDashboardProjectSummary(
   project: IdentityProject,
   nextAction: ProjectNextAction,
   listOrder: number,
+  workflowStages: readonly ProjectWorkflowStagePresentation[],
 ): DashboardProjectSummary {
   const stage = PROJECT_WORKFLOW_STAGES.find((item) => item.id === nextAction.stage);
   const subtitle = buildProjectIdentitySubtitle(project);
@@ -102,6 +150,7 @@ export function toDashboardProjectSummary(
     workflowRoute: nextAction.route,
     overviewRoute: `/projects/${project.id}`,
     listOrder,
+    workflowStages: [...workflowStages],
   };
 }
 

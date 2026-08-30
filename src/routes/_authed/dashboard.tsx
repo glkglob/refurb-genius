@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppLayout } from "@/components/AppLayout";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
-import { FolderPlus, Loader2 } from "lucide-react";
+import { ChevronDown, FolderPlus, Loader2, Plus } from "lucide-react";
 import { useProjects } from "@/hooks/useProjects";
 import {
   ProjectBrief,
@@ -29,15 +29,20 @@ function DashboardContent() {
 
   return (
     <AppLayout showDealCopilotRail>
-      <div data-testid="dashboard-home">
-        <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <h1 className="text-xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            <span className="lg:hidden">Home</span>
-            <span className="hidden lg:inline">Dashboard</span>
-          </h1>
-          <Button asChild className="min-h-11 w-full lg:w-auto">
+      <div className="min-w-0 max-w-full" data-testid="dashboard-home">
+        <div className="mb-6 flex flex-col gap-3 lg:mb-7 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="font-serif text-2xl font-semibold tracking-tight text-foreground lg:text-[2rem] lg:leading-tight">
+              <span className="lg:hidden">Home</span>
+              <span className="hidden lg:inline">Dashboard</span>
+            </h1>
+            <p className="mt-1 hidden max-w-xl text-sm text-muted-foreground lg:block">
+              See what needs attention across your refurbishment projects.
+            </p>
+          </div>
+          <Button asChild className="min-h-11 w-full shrink-0 lg:w-auto">
             <Link to="/analyze" data-testid="dashboard-new-analysis">
-              <FolderPlus className="h-4 w-4" aria-hidden />
+              <Plus className="h-4 w-4" aria-hidden />
               New Analysis
             </Link>
           </Button>
@@ -71,7 +76,7 @@ function DashboardContent() {
             action={
               <Button asChild>
                 <Link to="/analyze">
-                  <FolderPlus className="h-4 w-4" aria-hidden /> New Analysis
+                  <Plus className="h-4 w-4" aria-hidden /> New Analysis
                 </Link>
               </Button>
             }
@@ -105,19 +110,19 @@ function DashboardContent() {
             }
           />
         ) : (
-          <div className="flex min-w-0 flex-col gap-6">
+          <div className="flex min-w-0 flex-col gap-8 pb-8">
             {brief.visible ? (
               <ProjectBrief summaries={workflow.summaries} onHide={brief.hide} />
             ) : (
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                className="min-h-11 w-full sm:w-auto"
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border/60 bg-card px-3 text-sm text-muted-foreground hover:bg-muted/40"
                 onClick={brief.restore}
                 data-testid="project-brief-restore"
               >
                 Show Project Brief
-              </Button>
+                <ChevronDown className="h-4 w-4" aria-hidden />
+              </button>
             )}
             <WorkflowBoard summaries={workflow.summaries} />
           </div>

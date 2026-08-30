@@ -11,9 +11,12 @@ export {
   ProjectBrief,
   WorkflowBoard,
   WorkflowBoardItem,
+  WorkflowStageProgress,
   type ProjectBriefProps,
   type WorkflowBoardProps,
   type WorkflowBoardItemProps,
+  type WorkflowStageProgressProps,
+  type WorkflowStageProgressVariant,
 } from "./components";
 
 export {
@@ -36,8 +39,10 @@ export {
 export {
   briefActionableItems,
   briefStatusCounts,
+  buildDashboardWorkflowStages,
   deriveCurrentScopeIdForEstimate,
   groupSummariesByStage,
+  shellProgressFromWorkflow,
   toDashboardProjectSummary,
   workflowBoardColumns,
   type DashboardBriefCounts,

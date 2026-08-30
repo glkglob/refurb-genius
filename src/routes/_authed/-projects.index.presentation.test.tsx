@@ -34,6 +34,11 @@ vi.mock("@/features/projects/presentation/hooks/useProjectFiveStageWorkflow", ()
   useProjectFiveStageWorkflow: (...args: unknown[]) => useProjectFiveStageWorkflow(...args),
 }));
 
+vi.mock("@/features/ai-upload", () => ({
+  usePhotos: () => ({ data: [] }),
+  useProjectPhotoDisplayUrl: () => ({ data: undefined }),
+}));
+
 vi.mock("@tanstack/react-router", () => ({
   createFileRoute: (path: string) => (opts: { component: unknown; head?: unknown }) => ({
     options: opts,
@@ -125,8 +130,13 @@ beforeEach(() => {
 describe("Projects index uniform row presentation", () => {
   it("renders the Projects heading and search", () => {
     renderProjects();
-    expect(screen.getByRole("heading", { name: "Projects" })).toBeTruthy();
-    expect(screen.getByTestId("projects-index-search")).toBeTruthy();
+    const heading = screen.getByRole("heading", { name: "Projects" });
+    expect(heading).toBeTruthy();
+    expect(heading.className).toMatch(/\bfont-serif\b/);
+    const search = screen.getByTestId("projects-index-search");
+    expect(search).toBeTruthy();
+    expect(search.parentElement?.className).toMatch(/max-w-sm/);
+    expect(search.parentElement?.className).not.toMatch(/max-w-md/);
   });
 
   it("renders every project as a compact row, including the first", () => {
@@ -137,6 +147,8 @@ describe("Projects index uniform row presentation", () => {
       expect(card.getAttribute("data-layout")).toBe("row");
       expect(card.getAttribute("data-layout")).not.toBe("featured");
     }
+    expect(screen.getByTestId("projects-index-grid").className).toMatch(/gap-4/);
+    expect(screen.getByTestId("projects-index-grid").className).not.toMatch(/divide-y/);
   });
 
   it("does not present Dashboard continuation hierarchy", () => {
@@ -152,8 +164,23 @@ describe("Projects index uniform row presentation", () => {
     const cards = screen.getAllByTestId("project-continuation-card");
     expect(cards).toHaveLength(2);
     for (const card of cards) {
-      expect(within(card).getByTestId("open-overview").textContent).toMatch(/Open project/i);
-      expect(within(card).getByTestId("workflow-stage-list")).toBeTruthy();
+      const open = within(card).getByTestId("open-overview");
+      expect(open.textContent).toMatch(/Open project/i);
+      expect(open.tagName).toBe("A");
+      const track = within(card).getByTestId("workflow-stage-progress");
+      expect(track.getAttribute("data-variant")).toBe("labeled-track");
+      expect(track.className).not.toMatch(/lg:grid-cols-5/);
+      expect(within(card).getByTestId("workflow-stage-label-photos").textContent).toBe("Photos");
+      expect(within(card).getByTestId("workflow-stage-label-analysis").textContent).toBe(
+        "Analysis",
+      );
+      expect(within(card).getByTestId("workflow-stage-label-redesign").textContent).toBe(
+        "Redesign",
+      );
+      expect(within(card).getByTestId("workflow-stage-label-estimate").textContent).toBe(
+        "Estimate",
+      );
+      expect(within(card).queryByTestId("workflow-stage-list")).toBeNull();
       expect(within(card).queryByTestId("workflow-continue-cta")).toBeNull();
     }
     expect(screen.queryAllByTestId("workflow-continue-cta")).toHaveLength(0);

@@ -60,7 +60,9 @@ describe("IA-7 Projects index + nav contracts", () => {
     expect(SRC).toMatch(/ProjectContinuationCard/);
     expect(SRC).toMatch(/layout="row"/);
     expect(SRC).toMatch(/showDealCopilotRail/);
-    expect(SRC).toMatch(/title="Projects"/);
+    expect(SRC).toMatch(/font-serif/);
+    expect(SRC).toMatch(/<h1[\s\S]*?>\s*Projects\s*<\/h1>/);
+    expect(SRC).not.toMatch(/title=["']Projects["']/);
     expect(SRC).toMatch(/to=["']\/analyze["']/);
     expect(SRC).not.toMatch(/index === 0/);
     expect(SRC).not.toMatch(/layout="featured"/);

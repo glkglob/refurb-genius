@@ -13,3 +13,8 @@ export { NewProjectEntry } from "./NewProjectEntry";
 export { ProjectBrief, type ProjectBriefProps } from "./ProjectBrief";
 export { WorkflowBoard, type WorkflowBoardProps } from "./WorkflowBoard";
 export { WorkflowBoardItem, type WorkflowBoardItemProps } from "./WorkflowBoardItem";
+export {
+  WorkflowStageProgress,
+  type WorkflowStageProgressProps,
+  type WorkflowStageProgressVariant,
+} from "./WorkflowStageProgress";

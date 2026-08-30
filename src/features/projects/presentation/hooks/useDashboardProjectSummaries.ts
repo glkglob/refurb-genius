@@ -12,6 +12,7 @@ import {
   type ScopeAuthorityEvidence,
 } from "../../domain";
 import {
+  buildDashboardWorkflowStages,
   deriveCurrentScopeIdForEstimate,
   toDashboardProjectSummary,
   type DashboardProjectSummary,
@@ -194,7 +195,12 @@ export function useDashboardProjectSummaries(
           : null,
       });
       const nextAction = resolveProjectNextAction({ projectId: project.id, workflow });
-      return toDashboardProjectSummary(project, nextAction, index);
+      return toDashboardProjectSummary(
+        project,
+        nextAction,
+        index,
+        buildDashboardWorkflowStages(workflow),
+      );
     });
 
     return { status: "ready", summaries, error: null, retry };

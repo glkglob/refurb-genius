@@ -111,6 +111,9 @@ describe("dashboard Home/Dashboard composition", () => {
     expect(heading.textContent).toMatch(/Dashboard/);
     expect(heading.querySelectorAll("span")).toHaveLength(2);
     expect(screen.getByTestId("dashboard-new-analysis").getAttribute("href")).toBe("/analyze");
+    expect(
+      screen.getByText("See what needs attention across your refurbishment projects."),
+    ).toBeTruthy();
     const head = (Route.options as { head?: () => { meta?: Array<{ title?: string }> } }).head;
     expect(head?.().meta?.[0]?.title).toBe("Dashboard — Refurb Genius");
   });
@@ -203,8 +206,12 @@ describe("dashboard Home/Dashboard composition", () => {
     });
     renderDashboard();
     expect(screen.queryByTestId("project-brief")).toBeNull();
-    fireEvent.click(screen.getByTestId("project-brief-restore"));
+    const restoreControl = screen.getByTestId("project-brief-restore");
+    fireEvent.click(restoreControl);
     expect(restore).toHaveBeenCalled();
     expect(screen.getByTestId("workflow-board")).toBeTruthy();
+    expect(restoreControl.tagName).toBe("BUTTON");
+    expect(restoreControl.className).not.toMatch(/btn-primary-cta/);
+    expect(restoreControl.textContent).toMatch(/Show Project Brief/);
   });
 });

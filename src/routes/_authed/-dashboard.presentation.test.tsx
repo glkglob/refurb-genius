@@ -79,11 +79,37 @@ describe("dashboard presentation", () => {
         createElement(DashboardPage as never),
       ),
     );
+    const heading = screen.getByRole("heading", { level: 1 });
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+    expect(heading.className).toMatch(/\bfont-serif\b/);
     const brief = screen.getByTestId("project-brief");
     const board = screen.getByTestId("workflow-board");
     expect(brief.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByTestId("app-layout").getAttribute("data-rail")).toBe("true");
     expect(screen.getByTestId("dashboard-new-analysis").getAttribute("href")).toBe("/analyze");
+    expect(
+      screen.getByText("See what needs attention across your refurbishment projects."),
+    ).toBeTruthy();
+  });
+
+  it("restores a compact Show Project Brief control when the brief is hidden", () => {
+    useProjectBriefVisibility.mockReturnValue({
+      visible: false,
+      hide: vi.fn(),
+      restore: vi.fn(),
+      resolvedUserId: "u1",
+    });
+    render(
+      createElement(
+        QueryClientProvider,
+        { client: new QueryClient({ defaultOptions: { queries: { retry: false } } }) },
+        createElement(DashboardPage as never),
+      ),
+    );
+    expect(screen.queryByTestId("project-brief")).toBeNull();
+    const restore = screen.getByTestId("project-brief-restore");
+    expect(restore.textContent).toMatch(/Show Project Brief/);
+    expect(restore.className).not.toMatch(/btn-primary-cta/);
+    expect(screen.getByTestId("workflow-board")).toBeTruthy();
   });
 });

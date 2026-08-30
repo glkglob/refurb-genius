@@ -3,6 +3,19 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { createElement } from "react";
 import { ProjectBrief } from "./ProjectBrief";
 import type { DashboardProjectSummary } from "../dashboardProjectSummary";
+import { buildProjectWorkflowStages } from "../../domain";
+
+function idleStages() {
+  return buildProjectWorkflowStages({
+    progress: {
+      photosDone: false,
+      analysisDone: false,
+      estimateDone: false,
+      reportDone: false,
+    },
+    route: { surface: "overview" },
+  });
+}
 
 function summary(overrides: Partial<DashboardProjectSummary> = {}): DashboardProjectSummary {
   return {
@@ -19,12 +32,13 @@ function summary(overrides: Partial<DashboardProjectSummary> = {}): DashboardPro
     workflowRoute: "/projects/p1/upload",
     overviewRoute: "/projects/p1",
     listOrder: 0,
+    workflowStages: idleStages(),
     ...overrides,
   };
 }
 
 describe("ProjectBrief", () => {
-  it("shows counts, ranked rows, workflow CTA, and hide control", () => {
+  it("shows ranked rows, canonical status, workflow CTA, and hide control without KPIs", () => {
     const onHide = vi.fn();
     render(
       createElement(ProjectBrief, {
@@ -51,15 +65,24 @@ describe("ProjectBrief", () => {
         ],
       }),
     );
-    expect(screen.getByRole("heading", { name: "Project Brief" })).toBeTruthy();
-    expect(screen.getByTestId("brief-count-attention").textContent).toBe("1");
-    expect(screen.getByTestId("brief-count-complete").textContent).toBe("1");
+    const heading = screen.getByRole("heading", { name: "Project Brief" });
+    expect(heading).toBeTruthy();
+    expect(heading.className).toMatch(/\bfont-serif\b/);
+    expect(screen.getByText("The next actions that need a decision.")).toBeTruthy();
+    expect(screen.getByTestId("project-brief-hide").textContent).toMatch(/Hide/);
+    expect(screen.queryByTestId("brief-count-attention")).toBeNull();
+    expect(screen.queryByTestId("brief-count-progress")).toBeNull();
+    expect(screen.queryByTestId("brief-count-ready")).toBeNull();
+    expect(screen.queryByTestId("brief-count-complete")).toBeNull();
     expect(screen.getByText("Needs work")).toBeTruthy();
     expect(screen.queryByText("Done")).toBeNull();
+    expect(screen.getByTestId("brief-status-attn").textContent).toBe("Needs attention");
+    expect(screen.getByText("Analysis requires updating because Photos changed.")).toBeTruthy();
     const cta = screen.getByTestId("brief-cta-attn");
     expect(cta.getAttribute("href")).toBe("/projects/attn/analysis");
     expect(cta.textContent).toMatch(/Update Analysis/);
     expect(screen.queryByTestId("workflow-stage-list")).toBeNull();
+    expect(screen.queryByRole("img")).toBeNull();
     fireEvent.click(screen.getByTestId("project-brief-hide"));
     expect(onHide).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId("project-brief-hide").className).toMatch(/min-h-11/);

@@ -213,6 +213,14 @@ describe("useDashboardProjectSummaries", () => {
     expect(result.current.summaries).toHaveLength(1);
     expect(result.current.summaries[0]?.projectId).toBe("p1");
     expect(result.current.summaries[0]?.stage).toBe("photos");
+    expect(result.current.summaries[0]?.workflowStages).toHaveLength(5);
+    expect(result.current.summaries[0]?.workflowStages.map((stage) => stage.id)).toEqual([
+      "photos",
+      "analysis",
+      "redesign",
+      "estimate",
+      "export",
+    ]);
   });
 
   it("enables estimate with derived current scope id when identities match", () => {
