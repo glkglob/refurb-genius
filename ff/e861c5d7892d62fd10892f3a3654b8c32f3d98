@@ -1,0 +1,60 @@
+src/components/DealCopilotRail.test.tsx
+  h_7ea6129503670a 1,7-9,13-34,41-50,54-56,58-91,98-100,102-108
+src/components/DealCopilotRail.tsx
+  h_7ea6129503670a 7-10,12-13,15-122,125-127,130,134-137,139,141,143,146
+src/features/projects/presentation/components/ProjectBrief.test.tsx
+  h_7ea6129503670a 6-18,35,41,68-76,79-80,85
+src/features/projects/presentation/components/ProjectBrief.tsx
+  h_7ea6129503670a 1,3-5,12-19,26,29,32,38-39,43-44,47,49-67,69,72,75-86
+src/features/projects/presentation/components/ProjectContinuationCard.test.tsx
+  h_7ea6129503670a 14-15,21-25,111-114,258,272-306,309-350
+src/features/projects/presentation/components/ProjectContinuationCard.tsx
+  h_7ea6129503670a 15,21,24,52-59,99-154,180-245,273,303,350
+src/features/projects/presentation/components/WorkflowBoard.test.tsx
+  h_7ea6129503670a 9,20-31,47,53,69-71,78,80-82,84-100,110-112,115
+src/features/projects/presentation/components/WorkflowBoard.tsx
+  h_7ea6129503670a 1-2,4,11-20,26-79
+src/features/projects/presentation/components/WorkflowBoardItem.tsx
+  h_7ea6129503670a 2,4-5,11-18,21-22,26-52
+src/features/projects/presentation/components/WorkflowStageProgress.test.tsx
+  h_7ea6129503670a 1-91
+src/features/projects/presentation/components/WorkflowStageProgress.tsx
+  h_7ea6129503670a 1-125
+src/features/projects/presentation/components/index.ts
+  h_7ea6129503670a 16-20
+src/features/projects/presentation/dashboardProjectSummary.test.ts
+  h_7ea6129503670a 5,8,13-29,58,106,111,121-174
+src/features/projects/presentation/dashboardProjectSummary.ts
+  h_7ea6129503670a 10,12,14,20,22-23,43,86-125,130,153
+src/features/projects/presentation/hooks/useDashboardProjectSummaries.test.ts
+  h_7ea6129503670a 216-223
+src/features/projects/presentation/hooks/useDashboardProjectSummaries.ts
+  h_7ea6129503670a 15,198-203
+src/features/projects/presentation/index.ts
+  h_7ea6129503670a 14,18-19,42,45
+src/routes/_authed/-dashboard.presentation.test.tsx
+  h_7ea6129503670a 82,84,90-113
+src/routes/_authed/-dashboard.test.tsx
+  h_7ea6129503670a 114-116,209-210,213-215
+src/routes/_authed/-projects.index.ia7.test.ts
+  h_7ea6129503670a 63-65
+src/routes/_authed/-projects.index.presentation.test.tsx
+  h_7ea6129503670a 37-41,133-139,150-151,167-183
+src/routes/_authed/dashboard.tsx
+  h_7ea6129503670a 5,32-43,45,79,113,117,119,124-125
+src/routes/_authed/projects.index.tsx
+  h_7ea6129503670a 14,40-82,84-96,98-113
+src/styles.css
+  h_7ea6129503670a 244
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "ffe861c5d7892d62fd10892f3a3654b8c32f3d98",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
