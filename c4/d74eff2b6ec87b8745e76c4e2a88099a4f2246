@@ -1,0 +1,18 @@
+src/server/properties.ts
+  h_7ea6129503670a 1-41
+src/types/supabase.ts
+  h_7ea6129503670a 1-2740
+supabase/migrations/20260831000000_property_assessments.sql
+  h_7ea6129503670a 1-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "c4d74eff2b6ec87b8745e76c4e2a88099a4f2246",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
