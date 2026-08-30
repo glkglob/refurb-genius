@@ -1,0 +1,16 @@
+docs/capacitor-ios.md
+  h_7ea6129503670a 33,35-37,41,43,140-141,145,169,174,237,256,325,431,501,608,610
+ios/App/App/Info.plist
+  h_7ea6129503670a 18,65-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "04eb41af9a64cd9fe9297c59f40daaf459430675",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
