@@ -1,0 +1,16 @@
+ios/App/App.xcodeproj/project.pbxproj
+  h_7ea6129503670a 20,37,80,158
+ios/App/App/PrivacyInfo.xcprivacy
+  h_7ea6129503670a 1-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "f0246b5b0e12ef426bd29cd4c4aecb7f911569d8",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
