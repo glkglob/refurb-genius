@@ -30,17 +30,17 @@ This is a **narrow native wrapper only** — no app redesign, no new features, n
 
 ## Current Constraints (Intentional Limitations)
 
-The following are **NOT** included in Phase C:
+Phase C originally excluded several native capabilities. Current iOS shell status:
 
-- ❌ Push notifications
-- ❌ Camera/photo library plugins
-- ❌ Native authentication (continues to use Supabase web auth)
+- ❌ Push notifications (still not included)
+- Camera / photo capture: HTML5 `<input type="file" accept="image/*" capture="environment">` plus `NSCameraUsageDescription` in Info.plist. **Not** `@capacitor/camera`.
+- Native auth: first-party `WebAuthSessionPlugin` (`ASWebAuthenticationSession`) and `@aparajita/capacitor-secure-storage` (iOS Keychain). This replaces Capacitor-as-web-only Supabase browser auth.
 - ❌ Offline sync or background sync
 - ❌ Background job processing
 - ❌ Native-only business logic
-- ❌ Analytics SDKs
+- Analytics / observability: `posthog-js` and `@sentry/react` in the WKWebView shell
 - ❌ Android platform (reserved for Phase D)
-- ❌ App Store submission (reserved for Phase E)
+- Apple P0 Privacy Manifest (`ios/App/App/PrivacyInfo.xcprivacy`) is complete and committed (Phase 4). Remaining App Store submission work is Phase E.
 
 The app remains web-first with a native wrapper layer.
 
@@ -137,11 +137,12 @@ pnpm exec cap sync ios
 
 ```
 ios/
-├── App/                                ← Xcode workspace
-│   ├── App.xcworkspace/                ← Open in Xcode here
+├── App/                                ← Xcode project root
+│   ├── App.xcodeproj/                  ← Open in Xcode here
 │   ├── App/
 │   │   ├── AppDelegate.swift           ← Entry point
 │   │   ├── Info.plist                  ← App metadata
+│   │   ├── capacitor.config.json       ← Copy of root config for iOS
 │   │   ├── public/                     ← Web assets (auto-synced)
 │   │   │   ├── index.html
 │   │   │   ├── assets/                 ← JS, CSS bundles
@@ -150,7 +151,6 @@ ios/
 │   │   └── Base.lproj/
 │   │       └── LaunchScreen.storyboard
 │   └── capacitor-cordova-ios-plugins/  ← Plugin support (empty for Phase C)
-└── capacitor.config.json               ← Copy of root config for iOS
 ```
 
 ---
@@ -166,12 +166,12 @@ npx cap open ios
 If GUI is not available:
 
 ```
-open ios/App/App.xcworkspace
+open ios/App/App.xcodeproj
 ```
 
 ### Build & Run in Xcode
 
-1. Open `ios/App/App.xcworkspace` in Xcode
+1. Open `ios/App/App.xcodeproj` in Xcode
 2. Select target: **App** (top-left dropdown)
 3. Select simulator or connected device
 4. Press **Play** (Cmd+R)
@@ -234,7 +234,7 @@ Verified generated iOS project:
 - App name: `Refurb Genius` ✓
 - Web assets location: `ios/App/App/public/` ✓
 - AppDelegate.swift: Correctly configured for Capacitor ✓
-- Info.plist: No unauthorized permissions ✓
+- Info.plist: `NSCameraUsageDescription` is declared for property photography; no other usage-description keys ✓
 - Orientations: Portrait + Landscape ✓
 
 ### Web Assets Verification ✅
@@ -253,9 +253,7 @@ Assets copied to: `ios/App/App/public/` via `cap copy ios` inside `pnpm prepare:
 
 ### Simulator Test Status
 
-**Environment Limitation:** Terminal environment has Command Line Tools only (not full Xcode GUI).
-
-**Impact:** Cannot launch simulator from terminal, but project is fully configured for local Xcode execution.
+Full Xcode is available. Simulator Debug builds are functional (`xcodebuild` against an installed iPhone Simulator runtime).
 
 **Next Steps (For Local Xcode on macOS):**
 
@@ -324,7 +322,7 @@ iOS-specific metadata:
 - Bundle identifier: `com.refurbgenius.app` (via Xcode)
 - Supported orientations: portrait + landscape
 - Custom URL scheme (2B-1): `com.refurbgenius.app` → callback `com.refurbgenius.app://auth/callback`
-- No unnecessary permissions
+- Camera: `NSCameraUsageDescription` for property photography (HTML5 file input; not `@capacitor/camera`)
 
 ### ios/App/App/App.entitlements
 
@@ -430,11 +428,10 @@ Intended Production `apple-app-site-association` (owner ops; **do not** ship a f
 - ✅ Network requests (CORS-enabled)
 - ✅ PWA manifest
 - ✅ App icon + splash screen
+- ✅ Camera / photo upload (Phase 4): HTML5 `<input type="file">` with `capture="environment"`; `NSCameraUsageDescription` in Info.plist. Not `@capacitor/camera`.
 
 ### Future Phases
 
-- ❌ Camera (Phase F: Photo Analysis)
-- ❌ Photo library access (Phase F: Photo Analysis)
 - ❌ Push notifications (Phase G: Mobile Notifications)
 - ❌ Face ID / biometric auth (Phase H: Secure Auth)
 
@@ -501,7 +498,7 @@ Before App Store submission:
 1. Update version number in Xcode: `Product` → `Scheme` → `Edit Scheme` → `Info` tab
 2. Create App Store Connect record for bundle ID `com.refurbgenius.app`
 3. Configure app metadata (description, screenshots, keywords)
-4. Set up privacy policy URL (already at https://refurb-genius.app/privacy)
+4. Set up privacy policy URL (already at https://www.refurbgenius.info/privacy)
 5. Obtain Apple Developer Program membership
 6. Create signing certificate & provisioning profile
 7. Archive app: `Product` → `Archive`
@@ -608,9 +605,9 @@ pnpm prepare:ios
 
 ### "Auth redirects to wrong URL"
 
-**Cause:** Supabase redirect URL not configured for `capacitor://localhost`.
+**Cause:** Supabase redirect URL not configured for the frozen native scheme `com.refurbgenius.app` (`CFBundleURLSchemes` in Info.plist). Canonical callback: `com.refurbgenius.app://auth/callback`.
 
-**Fix:** (In production, configure Supabase redirect URLs in console; for dev, Capacitor handles this.)
+**Fix:** Allow `com.refurbgenius.app://auth/callback` in the Supabase Auth redirect allowlist. Do not use `capacitor://localhost`.
 
 ---
 
