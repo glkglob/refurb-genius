@@ -1,0 +1,14 @@
+src/server/properties.ts
+  h_7ea6129503670a 1-12,14-28,30,32,37-41,43-44,46-47,49-51,59-64
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "2262ff4ec577c535b9c59a1826ba4290025f1ed5",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
