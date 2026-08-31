@@ -130,7 +130,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: `${SITE_URL}/og-image.jpg` },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
-      { name: "theme-color", content: "#0c0f1a" },
+      { name: "theme-color", content: "#0D2139" },
       ...buildAppleSignInHeadMeta(APPLE_CLIENT_ID, SITE_URL),
       {
         name: "google-site-verification",

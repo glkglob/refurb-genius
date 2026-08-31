@@ -133,13 +133,13 @@ Desktop: after Deal Copilot, before Settings. Mobile: through More — it must n
 
 ### Shell and brand direction
 
-Desktop: persistent dark navy left sidebar, light central workspace, separate right-side Deal Copilot rail, visible boundaries, restrained emerald accents.
+Desktop: persistent dark navy left sidebar, light central workspace, separate right-side Deal Copilot rail, visible boundaries, restrained Teal accents.
 
 Mobile: fixed safe-area-aware bottom navigation (Home, Projects, New, Deal Copilot, More), compact responsive content, no page-level horizontal overflow.
 
 Dark treatment uses layered navy surfaces and visible boundaries — not an indistinguishable near-black field.
 
-Brand direction: deep navy `#0D2139`, emerald `#188E67`, white and light/ivory workspace surfaces, readable text, visible layered boundaries, restrained accent use.
+Brand direction: Navy `#0D2139` (primary), Teal `#1B8D68` (accent / secondary), White `#FFFFFF` (light surface), readable text, visible layered boundaries, restrained accent use. Compact identity is leaf + sparkle (wiring deferred). Wide marks use the approved horizontal logo assets via `BrandLogo`.
 
 ---
 
@@ -147,11 +147,11 @@ Brand direction: deep navy `#0D2139`, emerald `#188E67`, white and light/ivory w
 
 - Use semantic tokens from `src/styles.css` (`bg-background`, `text-foreground`, `bg-card`, `bg-primary`, `border-border`, `ring-ring`, `bg-field`, …).
 - Do not introduce a parallel palette (hardcoded cream/teal/gray/white) on authorised product chrome.
-- Authenticated Web A light mode applies the approved dark-left-navigation / light-workspace hierarchy (RG-UI-01). The Sidebar uses navy / ivory as component-local classes aligned with brand direction deep navy `#0D2139` and light/ivory workspace surfaces. `src/styles.css` semantic OKLCH tokens carry the same direction: ivory page, near-white cards, navy text, emerald actions in light; layered navy surfaces (not near-black) in dark. Popovers stay opaque.
+- Authenticated Web A light mode applies the approved dark-left-navigation / light-workspace hierarchy (RG-UI-01). The Sidebar uses global semantic sidebar tokens (`bg-sidebar` / `text-sidebar-foreground`) aligned with Navy `#0D2139` and White `#FFFFFF` workspace surfaces. `src/styles.css` semantic tokens carry the same direction: White page, Navy text, Navy primary actions, Teal `#1B8D68` rings/accents in light; layered navy surfaces (not near-black) in dark, with Teal not brightened. Popovers stay opaque.
 - Trades, Post a Job, studies and onboarding do not occupy Dashboard/Home first paint. First paint is Project Brief then Workflow Board (approved target; see Authenticated naming and surfaces).
 - Dark mode is first-class. Light mode must remain readable.
 - Colour is never the sole status signal (wording + icon + semantic treatment).
-- Product UI typography remains sans-serif (Inter). Serif treatment belongs to brand artwork only.
+- Product UI typography is Cormorant Garamond (Regular 400 / Semibold 600), inherited by application-controlled UI. Technical exceptions: monospace / `font-mono`, OS-controlled UI, third-party embeds, email HTML, PDF engines, emoji fallbacks.
 
 ---
 

@@ -8,7 +8,7 @@
 
 ## 1. Core Principles
 
-- **Single accent color** — We use **Emerald** as the primary brand accent.
+- **Navy primary, Teal accent** — Navy `#0D2139` is the primary action and text colour. Teal `#1B8D68` is accent / secondary. White `#FFFFFF` is the light surface.
 - **Semantic tokens first** — Always prefer design tokens (`bg-primary`, `text-accent-foreground`, etc.) over hardcoded colors.
 - **Dark mode is first-class** — The product must look excellent in both light and dark mode.
 - **Generous but disciplined rounding** — We favor `rounded-xl` and `rounded-2xl`.
@@ -19,26 +19,41 @@
 
 ## 2. Color System
 
-We use **CSS Variables** (defined in `src/styles.css`) with OKLCH.
+We use **CSS Variables** (defined in `src/styles.css`). Brand primitives are exact hex. Supporting surfaces are opaque `color-mix` values derived from Navy / White (Teal for non-text accent). `--popover` remains opaque `oklch` for the overlay invariant.
 
-### Primary Accent (Emerald brand)
+### Global visual authority (current)
 
-- **Light:** deep emerald CTA / `--primary` + `--accent`
-- **Dark:** bright emerald CTA / `--primary` + `--accent` (high L for contrast on navy)
+| Role | Value | Notes |
+| ---- | ----- | ----- |
+| Navy — PRIMARY | `#0D2139` | Light foreground and primary action fill; dark background |
+| Teal — ACCENT / SECONDARY | `#1B8D68` | Ring, progress, icons, selection indicators. Do not brighten in dark mode. Do not use as small normal text on White (4.15:1) or as White-on-Teal for AA-normal-text. |
+| White — SURFACE | `#FFFFFF` | Light background / card / field |
+
+Approved horizontal logos (byte-authoritative):
+
+- Light `src/assets/brand/logo-light-horizontal.png` SHA-256 `d14a6382bfb50c4ea933ae671f82a8fbae5f2511be648f4f07ef17b452094629`
+- Dark `src/assets/brand/logo-dark-horizontal.jpg` SHA-256 `683792928841dbe439702a529d17a9fbceeafb9815c9ab05b1f96eb490655b20`
+
+Compact identity is **leaf + sparkle**. Compact-mark wiring into Sidebar / Navbar / Auth / PWA is a later slice. Render wide marks through `BrandLogo`.
 
 ### Semantic Tokens (Recommended Usage)
 
 | Token           | Light Mode                         | Dark Mode                         | Usage Example                    |
 | --------------- | ---------------------------------- | --------------------------------- | -------------------------------- |
-| `--background`  | Ivory (`#F5EFE5` direction)        | Layered navy (`#0B1F35` direction)| Page / main workspace            |
-| `--card`        | Near-white                         | Raised navy above the page        | Cards, panels                    |
-| `--primary`     | Emerald (`#169C70` direction)      | Brighter emerald                  | **Primary CTAs** (filled buttons)|
-| `--accent`      | Emerald                            | Brighter emerald                  | Highlights, active nav, links    |
-| `--field`       | Near-white                         | Mid navy, distinct from page      | Input / select / textarea fill   |
-| `--muted`       | Soft ivory-gray                    | Mid navy                          | Secondary backgrounds            |
-| `--placeholder` | Mid gray                           | Soft ivory-gray                   | Placeholder text                 |
-| `--border`      | Visible warm gray                  | Visible navy edge (opaque)        | Borders and hierarchy            |
-| `--popover`     | Opaque near-white                  | Opaque raised navy                | Menus / overlays                 |
+| `--background`  | White `#FFFFFF`                    | Navy `#0D2139`                    | Page / main workspace            |
+| `--foreground`  | Navy `#0D2139`                     | White `#FFFFFF`                   | Body text                        |
+| `--card`        | White                              | Raised navy (White mixed into Navy)| Cards, panels                    |
+| `--primary`     | Navy `#0D2139`                     | White `#FFFFFF`                   | **Primary CTAs** (filled buttons)|
+| `--primary-foreground` | White `#FFFFFF`              | Navy `#0D2139`                    | Text on primary fill             |
+| `--accent`      | Teal `#1B8D68`                     | Teal `#1B8D68` (not brightened)   | Icons, thick indicators          |
+| `--ring`        | Teal `#1B8D68`                     | Teal `#1B8D68`                    | Focus / selection rings          |
+| `--sidebar`     | Navy `#0D2139`                     | Navy `#0D2139`                    | Persistent desktop sidebar       |
+| `--sidebar-foreground` | White `#FFFFFF`              | White `#FFFFFF`                   | Sidebar text                     |
+| `--field`       | White                              | Raised navy                       | Input / select / textarea fill   |
+| `--muted`       | Navy mixed into White              | White mixed into Navy             | Secondary backgrounds            |
+| `--placeholder` | Navy/White mix                     | White/Navy mix                    | Placeholder text                 |
+| `--border`      | Opaque Navy/White mix              | Opaque White/Navy mix             | Borders and hierarchy            |
+| `--popover`     | Opaque White (`oklch`)             | Opaque raised navy (`oklch`)      | Menus / overlays                 |
 
 **Never hardcode:**
 
@@ -48,10 +63,11 @@ We use **CSS Variables** (defined in `src/styles.css`) with OKLCH.
 
 ## 3. Typography
 
-- **Font:** Inter (system)
-- **Headings:** Semibold / Bold, tight tracking
-- **Body:** Regular, good line height
-- **Labels:** Medium weight, slightly smaller
+- **Font:** Cormorant Garamond (self-hosted). Application-controlled UI inherits this family unless a technical exception applies (monospace / `font-mono`, OS UI, third-party embeds, email HTML, PDF engines, emoji fallbacks).
+- **Weights:** Regular 400 and Semibold 600 only. Semantic `medium` maps to 400; `semibold` / `bold` / `extrabold` map to 600. Do not synthesise italic or unapproved weights.
+- **Headings:** Semibold (600)
+- **Body:** Regular (400), good line height
+- **Labels:** Regular (400), slightly smaller
 
 ---
 
@@ -239,13 +255,13 @@ On mobile, Marketplace is reached through **More**. It must not replace one of t
 
 ### 7.8 Shell and brand direction (unchanged)
 
-Desktop: persistent dark navy left sidebar, light central workspace, separate right-side Deal Copilot rail, visible boundaries, restrained emerald accents.
+Desktop: persistent dark navy left sidebar, light central workspace, separate right-side Deal Copilot rail, visible boundaries, restrained Teal accents.
 
 Mobile: fixed safe-area-aware bottom navigation (Home, Projects, New, Deal Copilot, More), compact responsive content, no page-level horizontal overflow.
 
 Dark treatment uses layered navy surfaces and visible boundaries — not an indistinguishable near-black field.
 
-Brand direction: deep navy `#0D2139`, emerald `#188E67`, white and light/ivory workspace surfaces, readable text, visible layered boundaries, restrained accent use.
+Brand direction: Navy `#0D2139` (primary), Teal `#1B8D68` (accent / secondary), White `#FFFFFF` (light surface), readable text, visible layered boundaries, restrained accent use.
 
 ---
 
@@ -283,5 +299,5 @@ Use this when cleaning up legacy code:
 
 ---
 
-**Last Updated:** 24 August 2026
-**Owner:** Product design documentation (interaction/layout). Branding is a separate phase.
+**Last Updated:** 31 August 2026
+**Owner:** Product design documentation (interaction/layout). Compact-mark and iOS AppIcon integration remain separate slices.
