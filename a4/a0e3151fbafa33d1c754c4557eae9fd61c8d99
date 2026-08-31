@@ -1,0 +1,40 @@
+src/components/AppLayout.test.tsx
+  h_7ea6129503670a 67-73
+src/components/AppLayout.tsx
+  h_7ea6129503670a 17,27-31,45
+src/components/MobileBottomNav.tsx
+  h_7ea6129503670a 15,45,60
+src/components/Sidebar.test.tsx
+  h_7ea6129503670a 96-108,118
+src/components/Sidebar.tsx
+  h_7ea6129503670a 2,6,8-16,23-24,45,54,62-72,74-75,77,82
+src/features/projects/presentation/components/ProjectBrief.tsx
+  h_7ea6129503670a 1-2,14-26,37-49,51,55-56,58,60-61,64-65,68-69,72-73,77,79-106
+src/features/projects/presentation/components/WorkflowBoard.test.tsx
+  h_7ea6129503670a 5,76-102
+src/features/projects/presentation/components/WorkflowBoard.tsx
+  h_7ea6129503670a 1-4,14-16,20-40,42-82
+src/features/projects/presentation/components/WorkflowBoardItem.tsx
+  h_7ea6129503670a 9-10,14-18,20-25
+src/routes/_authed/-dashboard.hierarchy.test.ts
+  h_7ea6129503670a 19,22-26
+src/routes/_authed/-dashboard.presentation.test.tsx
+  h_7ea6129503670a 28,32,36-40,52-53,82,94-95,97-100
+src/routes/_authed/-dashboard.test.tsx
+  h_7ea6129503670a 32,36,40-44,61-62,131-136,222-356
+src/routes/_authed/dashboard.tsx
+  h_7ea6129503670a 1,5-13,15,21,23,34-151,160,162-184,248-268
+tests/invariants/dashboard-home-composition.invariant.test.ts
+  h_7ea6129503670a 56,60,62-64,70-71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "a4a0e3151fbafa33d1c754c4557eae9fd61c8d99",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
