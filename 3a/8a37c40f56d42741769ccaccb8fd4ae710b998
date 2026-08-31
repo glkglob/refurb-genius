@@ -1,0 +1,32 @@
+public/manifest.json
+  h_7ea6129503670a 9-10
+src/assets/fonts/cormorant-garamond/OFL.txt
+  h_7ea6129503670a 1-93
+src/components/BrandLogo.test.tsx
+  h_7ea6129503670a 1-61
+src/components/BrandLogo.tsx
+  h_7ea6129503670a 1-46
+src/components/Sidebar.test.tsx
+  h_7ea6129503670a 101-105
+src/components/Sidebar.tsx
+  h_7ea6129503670a 56,59-60,64,81-82,91,94,98-99,107,109,114
+src/docs/design-system.md
+  h_7ea6129503670a 11,22,24,26-37,43-56,66-70,258,264,302-303
+src/docs/ios-product-design.md
+  h_7ea6129503670a 136,142,150,154
+src/routes/__root.tsx
+  h_7ea6129503670a 133
+src/styles.css
+  h_7ea6129503670a 7-22,26-35,43-44,55,57-68,122-125,176-196,201-203,209-219,223-238,243-245,251-261,269-273,277-278,281-290
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "3a8a37c40f56d42741769ccaccb8fd4ae710b998",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
