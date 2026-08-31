@@ -29,13 +29,19 @@ vi.mock("@/components/AppLayout", () => ({
   AppLayout: ({
     children,
     showDealCopilotRail,
+    showMobileTopBar,
   }: {
     children: ReactNode;
     showDealCopilotRail?: boolean;
+    showMobileTopBar?: boolean;
   }) =>
     createElement(
       "div",
-      { "data-testid": "app-layout", "data-rail": showDealCopilotRail ? "true" : "false" },
+      {
+        "data-testid": "app-layout",
+        "data-rail": showDealCopilotRail ? "true" : "false",
+        "data-mobile-top-bar": showMobileTopBar === false ? "false" : "true",
+      },
       children,
     ),
 }));
@@ -52,6 +58,8 @@ vi.mock("@tanstack/react-router", () => ({
   }),
   Link: ({ children, to, ...rest }: { children?: ReactNode; to: string; [key: string]: unknown }) =>
     createElement("a", { href: to, ...rest }, children),
+  useRouterState: ({ select }: { select: (s: { location: { pathname: string } }) => string }) =>
+    select({ location: { pathname: "/dashboard" } }),
 }));
 
 import { Route } from "./dashboard";
@@ -120,7 +128,12 @@ describe("dashboard Home/Dashboard composition", () => {
     const brief = screen.getByTestId("project-brief");
     const board = screen.getByTestId("workflow-board");
     expect(brief.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByTestId("app-layout").getAttribute("data-rail")).toBe("true");
+    expect(screen.getByTestId("app-layout").getAttribute("data-rail")).toBe("false");
+    expect(screen.getByTestId("app-layout").getAttribute("data-mobile-top-bar")).toBe("false");
+    expect(screen.getByTestId("dashboard-deal-copilot-open").getAttribute("href")).toBe(
+      "/deal-copilot",
+    );
+    expect(screen.queryByTestId("deal-copilot-rail")).toBeNull();
   });
 
   it("does not render My projects, featured hierarchy, search, or continuation cards", () => {
@@ -206,5 +219,140 @@ describe("dashboard Home/Dashboard composition", () => {
     fireEvent.click(screen.getByTestId("project-brief-restore"));
     expect(restore).toHaveBeenCalled();
     expect(screen.getByTestId("workflow-board")).toBeTruthy();
+    expect(screen.queryByTestId("project-brief-hide")).toBeNull();
+  });
+
+  it("renders at most five Recent projects in existing listOrder with overview routes", () => {
+    useProjects.mockReturnValue({
+      data: Array.from({ length: 7 }, (_, index) => ({
+        id: `p${index}`,
+        name: `Project ${index}`,
+      })),
+      isLoading: false,
+      isPending: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+    useDashboardProjectSummaries.mockReturnValue({
+      status: "ready",
+      summaries: [
+        {
+          projectId: "p5",
+          name: "Sixth newest",
+          listOrder: 5,
+          overviewRoute: "/projects/p5",
+          workflowRoute: "/projects/p5/upload",
+        },
+        {
+          projectId: "p1",
+          name: "Second newest",
+          listOrder: 1,
+          overviewRoute: "/projects/p1",
+          workflowRoute: "/projects/p1/upload",
+        },
+        {
+          projectId: "p0",
+          name: "Newest created",
+          listOrder: 0,
+          overviewRoute: "/projects/p0",
+          workflowRoute: "/projects/p0/upload",
+        },
+        {
+          projectId: "p3",
+          name: "Fourth newest",
+          listOrder: 3,
+          overviewRoute: "/projects/p3",
+          workflowRoute: "/projects/p3/upload",
+        },
+        {
+          projectId: "p6",
+          name: "Seventh newest",
+          listOrder: 6,
+          overviewRoute: "/projects/p6",
+          workflowRoute: "/projects/p6/upload",
+        },
+        {
+          projectId: "p2",
+          name: "Third newest",
+          listOrder: 2,
+          overviewRoute: "/projects/p2",
+          workflowRoute: "/projects/p2/upload",
+        },
+        {
+          projectId: "p4",
+          name: "Fifth newest",
+          listOrder: 4,
+          overviewRoute: "/projects/p4",
+          workflowRoute: "/projects/p4/upload",
+        },
+      ],
+      error: null,
+      retry: vi.fn(),
+    });
+
+    renderDashboard();
+
+    const recent = screen.getByTestId("dashboard-recent-projects");
+    const rendered = [
+      "dashboard-recent-project-p0",
+      "dashboard-recent-project-p1",
+      "dashboard-recent-project-p2",
+      "dashboard-recent-project-p3",
+      "dashboard-recent-project-p4",
+    ].map((id) => screen.getByTestId(id));
+
+    expect(recent.querySelectorAll("[data-testid^='dashboard-recent-project-']")).toHaveLength(5);
+    expect(screen.queryByTestId("dashboard-recent-project-p5")).toBeNull();
+    expect(screen.queryByTestId("dashboard-recent-project-p6")).toBeNull();
+
+    for (let i = 1; i < rendered.length; i += 1) {
+      expect(
+        Boolean(
+          rendered[i - 1]!.compareDocumentPosition(rendered[i]!) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+      ).toBe(true);
+    }
+
+    expect(screen.getByTestId("dashboard-recent-project-p0").getAttribute("href")).toBe(
+      "/projects/p0",
+    );
+    expect(screen.getByTestId("dashboard-recent-project-p4").getAttribute("href")).toBe(
+      "/projects/p4",
+    );
+
+    const src = readFileSync(ROUTE_SRC, "utf8");
+    expect(src).toMatch(/listOrder/);
+    expect(src).toMatch(/\.slice\(\s*0\s*,\s*5\s*\)/);
+    expect(src).toMatch(/overviewRoute/);
+    expect(src).not.toMatch(/updated_at/);
+    expect(src).not.toMatch(/last viewed|lastViewed|lastOpened|last_active/);
+  });
+
+  it("opens a Dashboard-only hamburger sheet of existing destinations", () => {
+    renderDashboard();
+    const trigger = screen.getByTestId("dashboard-mobile-nav-trigger");
+    expect(trigger.getAttribute("aria-label")).toBe("Open navigation");
+    fireEvent.click(trigger);
+    expect(screen.getByTestId("dashboard-mobile-nav-dashboard").getAttribute("href")).toBe(
+      "/dashboard",
+    );
+    expect(screen.getByTestId("dashboard-mobile-nav-projects").getAttribute("href")).toBe(
+      "/projects",
+    );
+    expect(screen.getByTestId("dashboard-mobile-nav-new_analysis").getAttribute("href")).toBe(
+      "/analyze",
+    );
+    expect(screen.getByTestId("dashboard-mobile-nav-deal_copilot").getAttribute("href")).toBe(
+      "/deal-copilot",
+    );
+    expect(screen.getByTestId("dashboard-mobile-nav-trades_marketplace").getAttribute("href")).toBe(
+      "/marketplace",
+    );
+    expect(screen.getByTestId("dashboard-mobile-nav-settings").getAttribute("href")).toBe(
+      "/settings",
+    );
+    expect(screen.queryByTestId("global-nav-dashboard")).toBeNull();
+    expect(screen.queryByTestId("dashboard-mobile-nav-sign-out")).toBeNull();
+    expect(screen.queryByText("Sign out")).toBeNull();
   });
 });

@@ -14,6 +14,7 @@ export function AppLayout({
   actions,
   mobileBottomReserve = false,
   showDealCopilotRail = false,
+  showMobileTopBar = true,
 }: {
   children: ReactNode;
   title?: string;
@@ -23,6 +24,11 @@ export function AppLayout({
   mobileBottomReserve?: boolean;
   /** Web A contextual rail; rendered from `xl` only. */
   showDealCopilotRail?: boolean;
+  /**
+   * Default identity chrome for authenticated mobile surfaces.
+   * Dashboard opts out and supplies its own header.
+   */
+  showMobileTopBar?: boolean;
 }) {
   return (
     <RequireAuth>
@@ -36,7 +42,7 @@ export function AppLayout({
         </a>
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col bg-background">
-          <MobileTopBar />
+          {showMobileTopBar ? <MobileTopBar /> : null}
           <div className="relative flex min-h-0 min-w-0 flex-1">
             <main
               id="main-content"

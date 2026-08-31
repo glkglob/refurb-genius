@@ -11,8 +11,8 @@ import {
   Briefcase,
   FolderKanban,
   Home,
-  LineChart,
   LogOut,
+  MessageCircle,
   Moon,
   MoreHorizontal,
   Plus,
@@ -42,7 +42,7 @@ const MOBILE_ICONS: Record<GlobalNavItemId, LucideIcon> = {
   dashboard: Home,
   projects: FolderKanban,
   new_analysis: Plus,
-  deal_copilot: LineChart,
+  deal_copilot: MessageCircle,
   trades_marketplace: Briefcase,
   settings: Settings,
 };
@@ -57,7 +57,7 @@ const PRIMARY_VISIBLE_LABEL: Partial<Record<GlobalNavItemId, string>> = {
 const itemButtonClass = (active: boolean, emphasizeNew = false) =>
   cn(
     "flex min-h-11 min-w-0 flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1 text-xs leading-tight active:scale-[0.97]",
-    active && "text-foreground",
+    active && "text-primary",
     !active && "text-muted-foreground",
     emphasizeNew && "text-primary",
   );

@@ -93,6 +93,19 @@ describe("Sidebar IA-7 global navigation", () => {
     expect(screen.getByTestId("global-nav-projects").getAttribute("data-active")).toBe("false");
   });
 
+  it("shows a primary left indicator on the active destination only", () => {
+    render(createElement(Sidebar));
+    const active = screen.getByTestId("global-nav-dashboard");
+    const inactive = screen.getByTestId("global-nav-projects");
+    expect(active.getAttribute("aria-current")).toBe("page");
+    expect(inactive.getAttribute("aria-current")).toBeNull();
+    expect(active.className).toMatch(/before:bg-primary/);
+    expect(inactive.className).not.toMatch(/before:bg-primary/);
+    const src = readFileSync(join(__dirname, "Sidebar.tsx"), "utf8");
+    expect(src).toMatch(/before:bg-primary/);
+    expect(src).toMatch(/isGlobalNavItemActive/);
+  });
+
   it("uses lg persistent chrome and light-mode dark sidebar surface", () => {
     render(createElement(Sidebar));
     const src = readFileSync(join(__dirname, "Sidebar.tsx"), "utf8");
@@ -102,6 +115,7 @@ describe("Sidebar IA-7 global navigation", () => {
     expect(src).toMatch(/dark:bg-card/);
     expect(src).not.toMatch(/from-teal-500/);
     expect(src).toMatch(/GLOBAL_NAV_ITEMS/);
+    expect(src).toMatch(/getGlobalNavItem\("settings"\)/);
     expect(src).toMatch(/to=\{item\.to\}/);
     expect(src).toMatch(/\{item\.label\}/);
     expect(src).not.toMatch(/SIDEBAR_VISIBLE_LABEL/);

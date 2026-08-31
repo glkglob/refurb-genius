@@ -53,17 +53,22 @@ test("dashboard Home evidence orchestration does not swallow errors", () => {
   assert.match(hook, /useQueries/);
 });
 
-test("dashboard Home is read-only and keeps the Copilot rail and route", () => {
+test("dashboard Home is read-only and keeps a Deal Copilot path without embedding chat", () => {
   const src = read(ROUTE);
   const board = read(BOARD);
   const brief = read(BRIEF);
-  assert.match(src, /showDealCopilotRail/);
+  assert.match(src, /to="\/deal-copilot"/);
   assert.match(src, /createFileRoute\("\/_authed\/dashboard"\)/);
+  assert.doesNotMatch(src, /showDealCopilotRail/);
+  assert.doesNotMatch(src, /DealCopilotRail/);
+  assert.doesNotMatch(src, /DealChat/);
   assert.doesNotMatch(src, /useSetProjectStage|draggable|onDrop/);
   assert.doesNotMatch(board, /useSetProjectStage|draggable|onDrop/);
   assert.doesNotMatch(brief, /useSetProjectStage|draggable|onDrop/);
   assert.doesNotMatch(src, /\.from\s*\(/);
   assert.doesNotMatch(src, /@\/platform\/supabase/);
+  assert.doesNotMatch(src, /useMutation/);
+  assert.doesNotMatch(src, /serverFn/);
 });
 
 test("dashboard brief visibility key is user-scoped", () => {

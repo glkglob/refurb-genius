@@ -16,10 +16,14 @@ describe("Dashboard Home hierarchy", () => {
     expect(SRC.indexOf("ProjectBrief")).toBeLessThan(SRC.indexOf("WorkflowBoard"));
   });
 
-  it("has one New Analysis action and Deal Copilot rail", () => {
+  it("has one New Analysis action and an in-page Deal Copilot path", () => {
     expect(SRC).toMatch(/data-testid="dashboard-new-analysis"/);
     expect(SRC.match(/data-testid="dashboard-new-analysis"/g)?.length).toBe(1);
-    expect(SRC).toMatch(/showDealCopilotRail/);
+    expect(SRC).toMatch(/showMobileTopBar=\{false\}/);
+    expect(SRC).not.toMatch(/showDealCopilotRail/);
+    expect(SRC).toMatch(/to="\/deal-copilot"/);
+    expect(SRC).not.toMatch(/DealChat/);
+    expect(SRC).not.toMatch(/DealCopilotRail/);
   });
 
   it("does not own trades, featured projects, or My projects", () => {
