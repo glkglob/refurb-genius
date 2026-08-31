@@ -25,13 +25,19 @@ vi.mock("@/components/AppLayout", () => ({
   AppLayout: ({
     children,
     showDealCopilotRail,
+    showMobileTopBar,
   }: {
     children: ReactNode;
     showDealCopilotRail?: boolean;
+    showMobileTopBar?: boolean;
   }) =>
     createElement(
       "div",
-      { "data-testid": "app-layout", "data-rail": String(Boolean(showDealCopilotRail)) },
+      {
+        "data-testid": "app-layout",
+        "data-rail": String(Boolean(showDealCopilotRail)),
+        "data-mobile-top-bar": showMobileTopBar === false ? "false" : "true",
+      },
       children,
     ),
 }));
@@ -43,6 +49,8 @@ vi.mock("@tanstack/react-router", () => ({
   }),
   Link: ({ children, to, ...rest }: { children?: ReactNode; to: string; [key: string]: unknown }) =>
     createElement("a", { href: to, ...rest }, children),
+  useRouterState: ({ select }: { select: (s: { location: { pathname: string } }) => string }) =>
+    select({ location: { pathname: "/dashboard" } }),
 }));
 
 import { Route } from "./dashboard";
@@ -71,7 +79,7 @@ describe("dashboard presentation", () => {
     });
   });
 
-  it("keeps one h1, Brief before Board, and the Deal Copilot rail", () => {
+  it("keeps one h1, Brief before Board, and an in-page Deal Copilot path", () => {
     render(
       createElement(
         QueryClientProvider,
@@ -83,7 +91,12 @@ describe("dashboard presentation", () => {
     const brief = screen.getByTestId("project-brief");
     const board = screen.getByTestId("workflow-board");
     expect(brief.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByTestId("app-layout").getAttribute("data-rail")).toBe("true");
+    expect(screen.getByTestId("app-layout").getAttribute("data-rail")).toBe("false");
+    expect(screen.getByTestId("app-layout").getAttribute("data-mobile-top-bar")).toBe("false");
     expect(screen.getByTestId("dashboard-new-analysis").getAttribute("href")).toBe("/analyze");
+    expect(screen.getByTestId("dashboard-deal-copilot-open").getAttribute("href")).toBe(
+      "/deal-copilot",
+    );
+    expect(screen.queryByTestId("deal-copilot-rail")).toBeNull();
   });
 });

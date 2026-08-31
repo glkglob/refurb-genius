@@ -64,6 +64,13 @@ describe("AppLayout iOS interaction chrome", () => {
     expect(screen.getByTestId("deal-copilot-rail")).toBeTruthy();
   });
 
+  it("mounts MobileTopBar by default and hides it when showMobileTopBar is false", () => {
+    const { rerender } = render(createElement(AppLayout, { children: "body" }));
+    expect(screen.getByTestId("mobile-top-bar")).toBeTruthy();
+    rerender(createElement(AppLayout, { showMobileTopBar: false, children: "body" }));
+    expect(screen.queryByTestId("mobile-top-bar")).toBeNull();
+  });
+
   it("does not wrap the page header in glass-panel or a radial wash", () => {
     expect(SRC).not.toMatch(/glass-panel/);
     expect(SRC).not.toMatch(/radial-gradient/);

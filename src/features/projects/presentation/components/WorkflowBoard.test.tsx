@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { createElement } from "react";
 import { WorkflowBoard } from "./WorkflowBoard";
 import type { DashboardProjectSummary } from "../dashboardProjectSummary";
@@ -72,5 +72,32 @@ describe("WorkflowBoard", () => {
     expect(SRC).toMatch(/min-w-0/);
     expect(ITEM_SRC).not.toMatch(/draggable|onDrop|useSetProjectStage/);
     expect(ITEM_SRC).not.toMatch(/shellProgress|workflow-stage-list/);
+  });
+
+  it("defaults Photos open and keeps later stages collapsed until opened", () => {
+    render(
+      createElement(WorkflowBoard, {
+        summaries: [
+          summary({ projectId: "photo", name: "Photo project", stage: "photos" }),
+          summary({
+            projectId: "analysis",
+            name: "Analysis project",
+            stage: "analysis",
+            stageLabel: "Analysis",
+            workflowRoute: "/projects/analysis/analysis",
+          }),
+        ],
+      }),
+    );
+    expect(screen.getByTestId("workflow-stage-toggle-photos").getAttribute("aria-expanded")).toBe(
+      "true",
+    );
+    expect(screen.getByTestId("workflow-stage-toggle-analysis").getAttribute("aria-expanded")).toBe(
+      "false",
+    );
+    fireEvent.click(screen.getByTestId("workflow-stage-toggle-analysis"));
+    expect(screen.getByTestId("workflow-stage-toggle-analysis").getAttribute("aria-expanded")).toBe(
+      "true",
+    );
   });
 });
