@@ -1,0 +1,16 @@
+src/routes/index.tsx
+  h_7ea6129503670a 224,494
+tests/invariants/design-token-contrast.invariant.test.ts
+  h_7ea6129503670a 423-473
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "31c201f17f9afc79e57617f8104921929e6bcfc5",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
