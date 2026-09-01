@@ -420,3 +420,54 @@ test("shared Card primitive paints opaque semantic bg-card", () => {
   assert.doesNotMatch(src, /bg-card\/\d+/);
   assert.doesNotMatch(src, /backdrop-blur/);
 });
+
+test("HowItWorks step numerals use muted-foreground with >= 3:1 contrast against card", () => {
+  const src = read("src/routes/index.tsx");
+  const fn = src.match(/function HowItWorks\(\) \{[\s\S]*?\nfunction /);
+  assert.ok(fn, "HowItWorks function must exist");
+
+  const numeralClass = [...fn[0].matchAll(/<span className="([^"]+)"/g)]
+    .map((match) => match[1])
+    .find((className) => /\btext-5xl\b/.test(className) && /\bfont-bold\b/.test(className));
+  assert.ok(numeralClass, "HowItWorks step numeral span must exist");
+  assert.match(numeralClass, /\btext-muted-foreground\b/);
+  assert.doesNotMatch(numeralClass, /\btext-secondary\b/);
+  assert.match(numeralClass, /\babsolute\b/);
+
+  const css = read("src/styles.css");
+  for (const mode of ["light", "dark"] as const) {
+    const vars = modeVars(css, mode);
+    const fg = resolveValue(vars["--muted-foreground"], vars);
+    const bg = resolveValue(vars["--card"], vars);
+    const ratio = contrastRatio(fg, bg);
+    assert.ok(
+      ratio >= 3,
+      `HowItWorks numeral ${mode} muted-foreground vs card ${ratio.toFixed(2)}:1 (${rgbToHex(fg)} on ${rgbToHex(bg)})`,
+    );
+  }
+});
+
+test("BeforeAfter After label uses opaque card surface with >= 4.5:1 contrast", () => {
+  const src = read("src/routes/index.tsx");
+  const fn = src.match(/function BeforeAfter\(\) \{[\s\S]*?\nfunction /);
+  assert.ok(fn, "BeforeAfter function must exist");
+
+  const afterClass = fn[0].match(/<span className="([^"]+)"[^>]*>\s*After\s*</)?.[1];
+  assert.ok(afterClass, "BeforeAfter After label span must exist");
+  assert.match(afterClass, /\bbg-card\b/);
+  assert.match(afterClass, /\btext-card-foreground\b/);
+  assert.doesNotMatch(afterClass, /bg-accent\/15/);
+  assert.doesNotMatch(afterClass, /bg-card\/\d+/);
+
+  const css = read("src/styles.css");
+  for (const mode of ["light", "dark"] as const) {
+    const vars = modeVars(css, mode);
+    const fg = resolveValue(vars["--card-foreground"], vars);
+    const bg = resolveValue(vars["--card"], vars);
+    const ratio = contrastRatio(fg, bg);
+    assert.ok(
+      ratio >= 4.5,
+      `BeforeAfter After label ${mode} card-foreground vs card ${ratio.toFixed(2)}:1 (${rgbToHex(fg)} on ${rgbToHex(bg)})`,
+    );
+  }
+});

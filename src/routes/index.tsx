@@ -221,7 +221,7 @@ function HowItWorks() {
           {steps.map((s, i) => (
             <Card key={s.title} className="relative overflow-hidden">
               <CardContent className="p-6">
-                <span className="absolute right-4 top-4 text-5xl font-bold text-secondary">
+                <span className="absolute right-4 top-4 text-5xl font-bold text-muted-foreground">
                   {i + 1}
                 </span>
                 <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -491,7 +491,7 @@ function BeforeAfter() {
           </div>
           <div className="overflow-hidden rounded-2xl border border-border shadow-lg">
             <div className="relative">
-              <span className="absolute left-4 top-4 z-10 rounded-full border border-accent/30 bg-accent/15 px-3 py-1 text-xs font-semibold text-accent-text">
+              <span className="absolute left-4 top-4 z-10 rounded-full border border-accent/30 bg-card px-3 py-1 text-xs font-semibold text-card-foreground">
                 After
               </span>
               <img
