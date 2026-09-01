@@ -1,0 +1,100 @@
+packages/ui/src/components/badge.tsx
+  h_7ea6129503670a 7
+packages/ui/src/components/button.tsx
+  h_7ea6129503670a 8
+packages/ui/src/components/calendar.tsx
+  h_7ea6129503670a 65,92,94,96,168
+packages/ui/src/components/card.tsx
+  h_7ea6129503670a 10
+packages/ui/src/components/command.tsx
+  h_7ea6129503670a 47,114
+packages/ui/src/components/context-menu.tsx
+  h_7ea6129503670a 28,81,97,120
+packages/ui/src/components/dialog.tsx
+  h_7ea6129503670a 47
+packages/ui/src/components/dropdown-menu.tsx
+  h_7ea6129503670a 30,85,101,124
+packages/ui/src/components/input.tsx
+  h_7ea6129503670a 14
+packages/ui/src/components/menubar.tsx
+  h_7ea6129503670a 49,66,122,138,161
+packages/ui/src/components/navigation-menu.tsx
+  h_7ea6129503670a 38
+packages/ui/src/components/select.tsx
+  h_7ea6129503670a 24,117
+packages/ui/src/components/textarea.tsx
+  h_7ea6129503670a 12
+packages/ui/src/components/toggle.tsx
+  h_7ea6129503670a 10,16
+src/components/MobileBottomNav.tsx
+  h_7ea6129503670a 129,148
+src/components/MobileTopBar.tsx
+  h_7ea6129503670a 42
+src/components/Navbar.test.tsx
+  h_7ea6129503670a 17-27,84-150
+src/components/Navbar.tsx
+  h_7ea6129503670a 15-22,31,41,48-55,68-69,74-78,95,104,115,122-126,136,145,152-154
+src/components/ProjectCard.tsx
+  h_7ea6129503670a 25,34,38-39
+src/components/StatusBadge.test.tsx
+  h_7ea6129503670a 1-45
+src/components/StatusBadge.tsx
+  h_7ea6129503670a 8,25
+src/components/ThemeToggle.tsx
+  h_7ea6129503670a 13-18
+src/components/deal-copilot/DealCopilotFeedback.tsx
+  h_7ea6129503670a 131,143
+src/components/deal-copilot/DealIntakeForm.tsx
+  h_7ea6129503670a 497,597,643,675
+src/components/gallery/ProjectCard.tsx
+  h_7ea6129503670a 40,53,89
+src/components/marketplace/TradepersonCard.tsx
+  h_7ea6129503670a 86
+src/docs/COMPONENT_STANDARDS.md
+  h_7ea6129503670a 15,19,94,103,120,122-123
+src/docs/design-system.md
+  h_7ea6129503670a 11-12,16-18,24,32,45,47-49,53-54,58-60,73-76,113,119-121,178-179,206,276,310-311,315
+src/features/auth/presentation/AuthExperience.tsx
+  h_7ea6129503670a 47-48
+src/features/estimate/presentation/components/CostSummary.tsx
+  h_7ea6129503670a 77,81,96,102,108,114
+src/features/projects/presentation/components/WorkflowBoard.tsx
+  h_7ea6129503670a 31
+src/features/projects/presentation/components/WorkflowBoardItem.tsx
+  h_7ea6129503670a 17,21
+src/routes/__root.tsx
+  h_7ea6129503670a 80,253
+src/routes/_authed/dashboard.tsx
+  h_7ea6129503670a 122-124
+src/routes/_authed/marketplace.tsx
+  h_7ea6129503670a 219
+src/routes/_authed/projects.$id.scope.tsx
+  h_7ea6129503670a 386
+src/routes/_authed/projects.index.tsx
+  h_7ea6129503670a 68
+src/routes/_authed/trades_.profile.tsx
+  h_7ea6129503670a 237
+src/routes/auth_.callback.tsx
+  h_7ea6129503670a 98
+src/routes/index.tsx
+  h_7ea6129503670a 214,265-266,309-310,342,407-408,435,494,532,554-556
+src/routes/trades.tsx
+  h_7ea6129503670a 258,270,332,612-614
+src/routes/trades_.$jobId.tsx
+  h_7ea6129503670a 465
+src/styles.css
+  h_7ea6129503670a 30-34,36-39,85-86,97,108,147-148,159,170,195-196,200-202,213,236-237,241,244,246-247,255,259,282-283,356,360,362
+tests/invariants/design-token-contrast.invariant.test.ts
+  h_7ea6129503670a 1-422
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "9fab5cf2a69d078ccd5884721cdaebcab88951f3",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
