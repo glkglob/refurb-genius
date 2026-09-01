@@ -37,7 +37,7 @@ export function ProjectCard({ gallery }: ProjectCardProps) {
           </div>
         )}
         {gallery.featured && (
-          <Badge className="absolute top-3 right-3 bg-accent text-accent-foreground">
+          <Badge className="absolute top-3 right-3 border-accent/30 bg-accent/15 text-accent-text">
             Featured
           </Badge>
         )}
@@ -50,7 +50,7 @@ export function ProjectCard({ gallery }: ProjectCardProps) {
 
       <CardContent className="p-5 flex-1 flex flex-col">
         <div className="flex-1">
-          <h3 className="font-semibold text-lg tracking-tight line-clamp-2 group-hover:text-accent transition">
+          <h3 className="font-semibold text-lg tracking-tight line-clamp-2 group-hover:text-accent-text transition">
             {gallery.title || displayLocation}
           </h3>
           {p.address && p.address !== displayLocation && (
@@ -86,7 +86,7 @@ export function ProjectCard({ gallery }: ProjectCardProps) {
             asChild
             size="sm"
             variant="outline"
-            className="group-hover:bg-accent group-hover:text-accent-foreground"
+            className="group-hover:bg-primary group-hover:text-primary-foreground"
           >
             <Link to="/gallery/$slug" params={{ slug: gallery.id }}>
               View Project <ArrowRight className="ml-1.5 h-3.5 w-3.5" />

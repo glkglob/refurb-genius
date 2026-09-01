@@ -22,7 +22,7 @@ function ProjectCardComponent({ project }: ProjectCardProps) {
         <div className="h-28 bg-gradient-to-br from-primary via-primary to-accent/90" />
         <CardContent className="p-5">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold tracking-tight text-foreground group-hover:text-accent">
+            <h3 className="font-semibold tracking-tight text-foreground group-hover:text-accent-text">
               {project.name}
             </h3>
             <StatusBadge tone="accent">{project.status}</StatusBadge>
@@ -31,12 +31,12 @@ function ProjectCardComponent({ project }: ProjectCardProps) {
             <MapPin className="h-3.5 w-3.5" /> {project.region}
           </p>
           <div className="mt-5 flex items-center justify-between text-sm">
-            <span className="font-medium text-foreground">
+            <span className="font-semibold lining-nums tabular-nums text-foreground">
               £{estimatedRefurbCost(project).toLocaleString()}
               <span className="ml-1 text-xs font-normal text-muted-foreground">refurb</span>
             </span>
-            <span className="flex items-center gap-1 font-medium text-accent transition group-hover:gap-1.5">
-              Open <ArrowRight className="h-3.5 w-3.5" />
+            <span className="flex items-center gap-1 font-medium text-accent-text transition group-hover:gap-1.5">
+              Open <ArrowRight className="h-3.5 w-3.5 text-accent" />
             </span>
           </div>
         </CardContent>

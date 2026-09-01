@@ -494,7 +494,7 @@ export function DealIntakeForm() {
                 <div className="mt-2 text-right">
                   <a
                     href="/projects/new"
-                    className="text-xs font-medium text-accent underline-offset-2 hover:underline"
+                    className="text-xs font-medium text-accent-text underline-offset-2 hover:underline"
                   >
                     Start a full project for photo-based estimates →
                   </a>
@@ -594,7 +594,7 @@ function DealScorePanel({
           onClick={() => {
             void onSaveOpportunity();
           }}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground shadow-sm transition hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
           {isSaving ? "Saving…" : "Save opportunity"}
@@ -640,7 +640,7 @@ function TextInput({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/30"
+        className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none transition placeholder:text-placeholder focus:border-field-ring focus:ring-2 focus:ring-field-ring"
       />
     </label>
   );
@@ -672,7 +672,7 @@ function SelectInput<TValue extends string>({
       <select
         value={value}
         onChange={(event) => onChange(event.target.value as TValue)}
-        className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/30"
+        className="mt-2 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground shadow-sm outline-none transition placeholder:text-placeholder focus:border-field-ring focus:ring-2 focus:ring-field-ring"
       >
         {options.map((option) => (
           <option key={option} value={option}>

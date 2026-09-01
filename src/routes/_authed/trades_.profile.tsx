@@ -234,7 +234,7 @@ function TradeProfileForm() {
                     onClick={() => toggleCategory(cat.value)}
                     className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                       active
-                        ? "border-accent bg-accent/10 text-accent"
+                        ? "border-accent bg-accent/10 text-accent-text"
                         : "border-border bg-background text-muted-foreground hover:border-accent/50 hover:text-foreground"
                     }`}
                   >

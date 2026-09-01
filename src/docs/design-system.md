@@ -8,37 +8,58 @@
 
 ## 1. Core Principles
 
-- **Single accent color** — We use **Emerald** as the primary brand accent.
-- **Semantic tokens first** — Always prefer design tokens (`bg-primary`, `text-accent-foreground`, etc.) over hardcoded colors.
+- **Navy primary, Teal accent** — Navy `#0D2139` is the primary action and text colour. Teal `#1B8D68` is accent / secondary. Light page canvas is `#F4F6F8`. Supporting section / background band is `#F2F5F6` light / `#14283E` dark (`--section`, not a brand primary). White `#FFFFFF` is the light elevated card / panel surface. Dark elevated card is `#162A41` and dark nested / inset is `#102338` — supporting implementation surfaces, not additional brand-primary colours.
+- **Semantic tokens first** — Always prefer design tokens (`bg-primary`, `text-accent-text`, `text-primary-foreground`, etc.) over hardcoded colors.
 - **Dark mode is first-class** — The product must look excellent in both light and dark mode.
 - **Generous but disciplined rounding** — We favor `rounded-xl` and `rounded-2xl`.
 - **Clear visual hierarchy** — Strong use of typography weight, color, and spacing.
-- **Accessibility** — Minimum contrast ratios must be respected.
+- **Accessibility** — Minimum contrast ratios must be respected. Normal-size
+  text uses `--accent-text` (or another readable semantic), not Teal. Large
+  text may use Teal only where 3:1 is met.
 
 ---
 
 ## 2. Color System
 
-We use **CSS Variables** (defined in `src/styles.css`) with OKLCH.
+We use **CSS Variables** (defined in `src/styles.css`). Brand primitives are exact hex (`#0D2139`, `#1B8D68`, `#FFFFFF`). Supporting surfaces may be exact approved HEX or opaque `color-mix` values derived from Navy / White (Teal for non-text accent). `#162A41` (dark `--card`) and `#102338` (dark `--inset`) are supporting implementation surfaces, not additional brand primaries. `--popover` remains opaque `oklch` for the overlay invariant.
 
-### Primary Accent (Emerald brand)
+### Global visual authority (current)
 
-- **Light:** deep emerald CTA / `--primary` + `--accent`
-- **Dark:** bright emerald CTA / `--primary` + `--accent` (high L for contrast on navy)
+| Role | Value | Notes |
+| ---- | ----- | ----- |
+| Navy — PRIMARY | `#0D2139` | Light foreground and primary action fill; dark background |
+| Teal — ACCENT / SECONDARY | `#1B8D68` | Ring, progress, icons, selection indicators. Do not brighten in dark mode. Do not use as small normal text on White (4.15:1) or as White-on-Teal for AA-normal-text. |
+| White — SURFACE | `#FFFFFF` | Light elevated card / panel / field |
+
+Approved horizontal logos (byte-authoritative):
+
+- Light `src/assets/brand/logo-light-horizontal.png` SHA-256 `d14a6382bfb50c4ea933ae671f82a8fbae5f2511be648f4f07ef17b452094629`
+- Dark `src/assets/brand/logo-dark-horizontal.jpg` SHA-256 `683792928841dbe439702a529d17a9fbceeafb9815c9ab05b1f96eb490655b20`
+
+Compact identity is **leaf + sparkle**. Compact-mark wiring into Sidebar / Navbar / Auth / PWA is a later slice. Render wide marks through `BrandLogo`.
 
 ### Semantic Tokens (Recommended Usage)
 
 | Token           | Light Mode                         | Dark Mode                         | Usage Example                    |
 | --------------- | ---------------------------------- | --------------------------------- | -------------------------------- |
-| `--background`  | Ivory (`#F5EFE5` direction)        | Layered navy (`#0B1F35` direction)| Page / main workspace            |
-| `--card`        | Near-white                         | Raised navy above the page        | Cards, panels                    |
-| `--primary`     | Emerald (`#169C70` direction)      | Brighter emerald                  | **Primary CTAs** (filled buttons)|
-| `--accent`      | Emerald                            | Brighter emerald                  | Highlights, active nav, links    |
-| `--field`       | Near-white                         | Mid navy, distinct from page      | Input / select / textarea fill   |
-| `--muted`       | Soft ivory-gray                    | Mid navy                          | Secondary backgrounds            |
-| `--placeholder` | Mid gray                           | Soft ivory-gray                   | Placeholder text                 |
-| `--border`      | Visible warm gray                  | Visible navy edge (opaque)        | Borders and hierarchy            |
-| `--popover`     | Opaque near-white                  | Opaque raised navy                | Menus / overlays                 |
+| `--background`  | Canvas `#F4F6F8`                   | Navy `#0D2139`                    | Page / main workspace            |
+| `--foreground`  | Navy `#0D2139`                     | White `#FFFFFF`                   | Body text                        |
+| `--card`        | White `#FFFFFF`                    | Elevated card `#162A41` (supporting, not a brand primary) | Cards, panels                    |
+| `--section`     | Supporting band `#F2F5F6`          | Supporting band `#14283E`         | Section / grouped background     |
+| `--inset`       | Reuses `--section` `#F2F5F6` (no new light HEX) | Nested / inset `#102338` (supporting, not a brand primary) | Nested wells / inset surfaces    |
+| `--primary`     | Navy `#0D2139`                     | White `#FFFFFF`                   | **Primary CTAs** (filled buttons)|
+| `--primary-foreground` | White `#FFFFFF`              | Navy `#0D2139`                    | Text on primary fill             |
+| `--accent`      | Teal `#1B8D68`                     | Teal `#1B8D68` (not brightened)   | Icons, thick indicators          |
+| `--accent-text` | Navy `#0D2139`                     | White `#FFFFFF`                   | Normal-size accent labels        |
+| `--ring`        | Teal `#1B8D68`                     | Teal `#1B8D68`                    | Non-field focus / selection rings|
+| `--sidebar`     | Navy `#0D2139`                     | Navy `#0D2139`                    | Persistent desktop sidebar       |
+| `--sidebar-foreground` | White `#FFFFFF`              | White `#FFFFFF`                   | Sidebar text                     |
+| `--field`       | White                              | Raised navy                       | Input / select / textarea fill   |
+| `--field-ring`  | Teal `#1B8D68`                     | White `#FFFFFF`                   | Field focus indicator            |
+| `--muted`       | Navy mixed into White              | Nested `--inset` `#102338`        | Secondary / nested backgrounds   |
+| `--placeholder` | Navy 62% / White                   | White 62% / Navy                  | Placeholder text (≥ 4.5:1)       |
+| `--border`      | Opaque Navy/White mix              | Opaque White/Navy mix             | Borders and hierarchy            |
+| `--popover`     | Opaque White (`oklch`)             | Opaque raised navy (`oklch`)      | Menus / overlays                 |
 
 **Never hardcode:**
 
@@ -48,10 +69,14 @@ We use **CSS Variables** (defined in `src/styles.css`) with OKLCH.
 
 ## 3. Typography
 
-- **Font:** Inter (system)
-- **Headings:** Semibold / Bold, tight tracking
-- **Body:** Regular, good line height
-- **Labels:** Medium weight, slightly smaller
+- **Font:** Cormorant Garamond (self-hosted). Application-controlled UI inherits this family unless a technical exception applies (monospace / `font-mono`, OS UI, third-party embeds, email HTML, PDF engines, emoji fallbacks).
+- **Weights:** Regular 400 and Semibold 600 only. Semantic `medium` maps to 400; `semibold` / `bold` / `extrabold` map to 600. Do not synthesise italic or unapproved weights. Do not globally remap `font-medium` to 600 — that would incorrectly thicken helpers, form labels, and body copy.
+- **Supporting / body / helper information:** Regular (400)
+- **Important headings, navigation, actions, status labels, and key values:** Semibold (600), including shared `Button` and `Badge` bases
+- **Important metric numerals:** Semibold (600) plus lining and tabular figures (`lining-nums tabular-nums`). Do not apply lining/tabular figures to all body text.
+- **Headings:** Semibold (600)
+- **Body:** Regular (400), good line height
+- **Labels:** Regular (400), slightly smaller
 
 ---
 
@@ -85,12 +110,15 @@ We use **CSS Variables** (defined in `src/styles.css`) with OKLCH.
 ### Input / Textarea / Select
 
 - Default: `rounded-xl`
-- Strong focus ring (`ring-2 ring-ring`)
+- Strong field focus ring (`ring-2 ring-field-ring`) without opacity that drops the indicator below 3:1
 
 ### Navigation
 
 - Use semantic colors only (`text-muted-foreground`, `hover:text-foreground`)
 - No more multi-color nav links (blue, purple, amber, etc.)
+- Public light-mode top-navigation **controls** (Dashboard, Deal Copilot, Trades, Post Job, Sign in, theme toggle) are raised White `--card` (`#FFFFFF`) against canvas `--background` (`#F4F6F8`), with Navy `--foreground` text, semantic `--border`, and hover `--section` (`#F2F5F6`). Do not solve this by painting only the Navbar shell White while leaving transparent controls.
+- Dark-mode equivalent uses raised `--card` (`#162A41`) against Navy canvas (`#0D2139`). Do not use White pills in dark mode.
+- Get started remains the primary Navy CTA (`variant="default"` / `--primary`). Secondary destinations are raised card controls, not primary-filled.
 
 ### Status / Badges
 
@@ -147,8 +175,8 @@ Desktop authenticated Dashboard-route page heading: **Dashboard**.
 
 Approved default order on authenticated Home/Dashboard:
 
-1. **Project Brief**
-2. **Workflow Board**
+1. **Project Brief** — elevated `--card` surface
+2. **Workflow Board** — grouped on the supporting `--section` band against the page canvas; cards inside remain `--card`
 
 Project Brief is visible by default. The user must be able to hide it, restore it, and retain that preference between sessions. When it is hidden, Workflow Board remains visible, occupies the primary Dashboard position, and no empty Project Brief container or unexplained gap remains.
 
@@ -175,7 +203,7 @@ Exact item-selection rule, priority ordering, maximum item count, summary contra
 
 ### 7.4 Workflow Board
 
-Workflow Board is the approved Option 2 cross-project workflow presentation. It shows workflow position across active projects at a glance.
+Workflow Board is the approved Option 2 cross-project workflow presentation. It shows workflow position across active projects at a glance. On Dashboard it sits on the supporting `--section` surface so the five-stage board reads as a grouped section against the global canvas.
 
 Canonical five-stage order:
 
@@ -239,13 +267,13 @@ On mobile, Marketplace is reached through **More**. It must not replace one of t
 
 ### 7.8 Shell and brand direction (unchanged)
 
-Desktop: persistent dark navy left sidebar, light central workspace, separate right-side Deal Copilot rail, visible boundaries, restrained emerald accents.
+Desktop: persistent dark navy left sidebar, light central workspace, separate right-side Deal Copilot rail, visible boundaries, restrained Teal accents.
 
 Mobile: fixed safe-area-aware bottom navigation (Home, Projects, New, Deal Copilot, More), compact responsive content, no page-level horizontal overflow.
 
 Dark treatment uses layered navy surfaces and visible boundaries — not an indistinguishable near-black field.
 
-Brand direction: deep navy `#0D2139`, emerald `#188E67`, white and light/ivory workspace surfaces, readable text, visible layered boundaries, restrained accent use.
+Brand direction: Navy `#0D2139` (primary), Teal `#1B8D68` (accent / secondary), light canvas `#F4F6F8`, supporting section `#F2F5F6` / `#14283E`, White `#FFFFFF` (light elevated card / panel), dark elevated card `#162A41`, dark nested / inset `#102338`. `#162A41` and `#102338` are supporting implementation surfaces, not additional brand-primary colours. Readable text, visible layered boundaries, restrained accent use.
 
 ---
 
@@ -279,9 +307,10 @@ Use this when cleaning up legacy code:
 - [ ] Replace `bg-teal-*` / `text-teal-*` / `border-teal-*` → semantic tokens (`primary`, `accent`, etc.)
 - [ ] Replace `rounded-md` on cards/surfaces → `rounded-2xl`
 - [ ] Replace raw `<button>` and `<input>` with `<Button>` and `<Input>` components where possible
-- [ ] Ensure all new components use `focus-visible:ring-2 ring-ring`
+- [ ] Ensure field controls use `focus-visible:ring-2 ring-field-ring`
+- [ ] Use `text-accent-text` for normal-size accent labels; keep Teal on icons/indicators
 
 ---
 
-**Last Updated:** 24 August 2026
-**Owner:** Product design documentation (interaction/layout). Branding is a separate phase.
+**Last Updated:** 1 September 2026
+**Owner:** Product design documentation (interaction/layout). Compact-mark and iOS AppIcon integration remain separate slices.

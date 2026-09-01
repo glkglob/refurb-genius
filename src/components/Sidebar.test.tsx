@@ -98,8 +98,11 @@ describe("Sidebar IA-7 global navigation", () => {
     const src = readFileSync(join(__dirname, "Sidebar.tsx"), "utf8");
     expect(src).toMatch(/lg:flex/);
     expect(src).not.toMatch(/md:flex/);
-    expect(src).toMatch(/bg-\[#0B1F35\]/);
-    expect(src).toMatch(/dark:bg-card/);
+    expect(src).toMatch(/bg-sidebar/);
+    expect(src).toMatch(/text-sidebar-foreground/);
+    expect(src).not.toMatch(/#0B1F35/);
+    expect(src).not.toMatch(/#F5EFE5/);
+    expect(src).not.toMatch(/dark:bg-card/);
     expect(src).not.toMatch(/from-teal-500/);
     expect(src).toMatch(/GLOBAL_NAV_ITEMS/);
     expect(src).toMatch(/to=\{item\.to\}/);

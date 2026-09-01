@@ -74,11 +74,11 @@ export function CostSummary({
     <Card className={cn("p-6 space-y-4", className)}>
       <div className="space-y-1">
         <p className="text-sm text-muted-foreground">{title}</p>
-        <p className="text-3xl font-semibold tracking-tight tabular-nums">
+        <p className="text-3xl font-semibold tracking-tight lining-nums tabular-nums">
           {formatGbp(mid)}
           <span className="ml-2 text-base font-normal text-muted-foreground">mid</span>
         </p>
-        <p className="text-sm text-muted-foreground tabular-nums">
+        <p className="text-sm text-muted-foreground lining-nums tabular-nums">
           Likely range {formatGbp(low)} – {formatGbp(high)}
         </p>
       </div>
@@ -93,25 +93,25 @@ export function CostSummary({
           {labour != null && (
             <div>
               <p className="text-muted-foreground">Labour</p>
-              <p className="font-medium tabular-nums">{formatGbp(labour)}</p>
+              <p className="font-semibold lining-nums tabular-nums">{formatGbp(labour)}</p>
             </div>
           )}
           {materials != null && (
             <div>
               <p className="text-muted-foreground">Materials</p>
-              <p className="font-medium tabular-nums">{formatGbp(materials)}</p>
+              <p className="font-semibold lining-nums tabular-nums">{formatGbp(materials)}</p>
             </div>
           )}
           {contingency != null && (
             <div>
               <p className="text-muted-foreground">Contingency</p>
-              <p className="font-medium tabular-nums">{formatGbp(contingency)}</p>
+              <p className="font-semibold lining-nums tabular-nums">{formatGbp(contingency)}</p>
             </div>
           )}
           {vat != null && (
             <div>
               <p className="text-muted-foreground">VAT</p>
-              <p className="font-medium tabular-nums">{formatGbp(vat)}</p>
+              <p className="font-semibold lining-nums tabular-nums">{formatGbp(vat)}</p>
             </div>
           )}
         </div>

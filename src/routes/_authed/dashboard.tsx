@@ -119,7 +119,9 @@ function DashboardContent() {
                 Show Project Brief
               </Button>
             )}
-            <WorkflowBoard summaries={workflow.summaries} />
+            <div className="rounded-2xl bg-section p-4 sm:p-5">
+              <WorkflowBoard summaries={workflow.summaries} />
+            </div>
           </div>
         )}
       </div>
