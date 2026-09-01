@@ -65,7 +65,7 @@ function ProjectsIndexPage() {
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search projects"
             data-testid="projects-index-search"
-            className="field-surface h-11 w-full rounded-xl pr-3 pl-10 text-sm text-foreground placeholder:text-placeholder focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="field-surface h-11 w-full rounded-xl pr-3 pl-10 text-sm text-foreground placeholder:text-placeholder focus-visible:ring-2 focus-visible:ring-field-ring focus-visible:outline-none"
           />
         </div>
       </div>

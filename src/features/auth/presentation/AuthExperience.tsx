@@ -44,8 +44,8 @@ function decorativeIconProps(className?: string) {
 
 const fieldClassName = cn(
   "field-surface h-14 min-h-11 rounded-2xl px-4",
-  "placeholder:text-muted-foreground/70",
-  "focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30",
+  "placeholder:text-placeholder",
+  "focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary",
 );
 
 const primaryButtonClassName = cn(

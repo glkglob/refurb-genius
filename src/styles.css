@@ -27,11 +27,16 @@
  * - Typeface: Cormorant Garamond Regular 400 and Semibold 600 only
  * - Navy #0D2139 — PRIMARY
  * - Teal #1B8D68 — ACCENT / SECONDARY (do not brighten in dark mode)
- * - White #FFFFFF — light background / surface
+ * - White #FFFFFF — elevated card / panel surface
+ * - Light canvas #F4F6F8 — page / workspace background
+ * - Supporting section / background band — light #F2F5F6, dark #14283E
+ * - Dark elevated card — #162A41 (supporting surface, not a brand primary)
+ * - Dark nested / inset — #102338 (supporting surface, not a brand primary)
  *
- * Supporting surfaces are derived from Navy and White (Teal only as non-text
- * accent) via color-mix or equivalent opaque values. They are not additional
- * brand primaries.
+ * Supporting surfaces (--section, --inset, dark --card, and Navy/White
+ * color-mix values) are not additional brand primaries.
+ * Teal remains the accent / icon / indicator colour. Normal-size accent
+ * text uses --accent-text (Navy in light, White in dark).
  *
  * The @theme inline block maps CSS custom properties to Tailwind utility
  * classes (e.g. --color-primary -> bg-primary, text-primary).
@@ -77,6 +82,8 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-section: var(--section);
+  --color-inset: var(--inset);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -87,6 +94,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-text: var(--accent-text);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
@@ -97,6 +105,7 @@
   --color-ring-offset-background: var(--background);
   --color-field: var(--field);
   --color-field-foreground: var(--field-foreground);
+  --color-field-ring: var(--field-ring);
   --color-placeholder: var(--placeholder);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -135,6 +144,8 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-section: var(--section);
+  --color-inset: var(--inset);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -145,6 +156,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-text: var(--accent-text);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
@@ -155,6 +167,7 @@
   --color-ring-offset-background: var(--background);
   --color-field: var(--field);
   --color-field-foreground: var(--field-foreground);
+  --color-field-ring: var(--field-ring);
   --color-placeholder: var(--placeholder);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -179,11 +192,14 @@
   --rg-teal: #1b8d68;
   --rg-white: #ffffff;
 
-  /* Light — White surface, Navy foreground, Navy primary action fill */
-  --background: var(--rg-white);
+  /* Light — #F4F6F8 page canvas, #F2F5F6 section band, White elevated surfaces */
+  --background: #f4f6f8;
   --foreground: var(--rg-navy);
   --card: var(--rg-white);
   --card-foreground: var(--rg-navy);
+  --section: #f2f5f6;
+  /* Light inset reuses the approved supporting section surface. No new HEX. */
+  --inset: var(--section);
   --popover: oklch(1 0 0);
   --popover-foreground: var(--rg-navy);
   --primary: var(--rg-navy);
@@ -194,6 +210,7 @@
   --muted-foreground: color-mix(in srgb, var(--rg-navy) 70%, var(--rg-white));
   --accent: var(--rg-teal);
   --accent-foreground: var(--rg-white);
+  --accent-text: var(--rg-navy);
   --destructive: oklch(0.55 0.22 27);
   --destructive-foreground: oklch(0.99 0.003 248);
   --success: oklch(0.55 0.14 164);
@@ -216,15 +233,18 @@
   --sidebar-ring: var(--rg-teal);
   --field: var(--rg-white);
   --field-foreground: var(--rg-navy);
-  --placeholder: color-mix(in srgb, var(--rg-navy) 45%, var(--rg-white));
+  --field-ring: var(--rg-teal);
+  --placeholder: color-mix(in srgb, var(--rg-navy) 62%, var(--rg-white));
 }
 
 .dark {
-  /* Dark — Navy surface, White foreground. Teal stays #1B8D68 (not brightened). */
+  /* Dark — Navy canvas, #14283E section, #162A41 card, #102338 inset. Teal stays #1B8D68. */
   --background: var(--rg-navy);
   --foreground: var(--rg-white);
-  --card: color-mix(in srgb, var(--rg-white) 8%, var(--rg-navy));
+  --card: #162a41;
   --card-foreground: var(--rg-white);
+  --section: #14283e;
+  --inset: #102338;
   /* Opaque raised navy: sRGB mix 12% White into Navy → oklch (overlay invariant). */
   --popover: oklch(0.3503 0.0437 252.834);
   --popover-foreground: var(--rg-white);
@@ -232,10 +252,11 @@
   --primary-foreground: var(--rg-navy);
   --secondary: color-mix(in srgb, var(--rg-white) 10%, var(--rg-navy));
   --secondary-foreground: var(--rg-white);
-  --muted: color-mix(in srgb, var(--rg-white) 8%, var(--rg-navy));
+  --muted: var(--inset);
   --muted-foreground: color-mix(in srgb, var(--rg-white) 60%, var(--rg-navy));
   --accent: var(--rg-teal);
   --accent-foreground: var(--rg-white);
+  --accent-text: var(--rg-white);
   --destructive: oklch(0.68 0.19 22);
   --destructive-foreground: oklch(0.99 0.003 248);
   --success: oklch(0.72 0.13 165);
@@ -258,7 +279,8 @@
   --sidebar-ring: var(--rg-teal);
   --field: color-mix(in srgb, var(--rg-white) 10%, var(--rg-navy));
   --field-foreground: var(--rg-white);
-  --placeholder: color-mix(in srgb, var(--rg-white) 55%, var(--rg-navy));
+  --field-ring: var(--rg-white);
+  --placeholder: color-mix(in srgb, var(--rg-white) 62%, var(--rg-navy));
 }
 
 @layer base {
@@ -331,13 +353,13 @@
   }
 
   .field-surface:hover:not(:disabled):not(:focus-visible) {
-    border-color: color-mix(in oklch, var(--color-ring) 45%, var(--color-input));
+    border-color: color-mix(in oklch, var(--color-field-ring) 45%, var(--color-input));
   }
 
   .field-surface:focus-visible {
-    border-color: var(--color-ring);
+    border-color: var(--color-field-ring);
     box-shadow:
-      0 0 0 2px color-mix(in oklch, var(--color-ring) 35%, transparent),
+      0 0 0 2px var(--color-field-ring),
       inset 0 1px 0 oklch(1 0 0 / 4%);
   }
 

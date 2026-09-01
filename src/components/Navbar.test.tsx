@@ -14,8 +14,17 @@ vi.mock("@/hooks/useAuth", () => ({
 }));
 
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children, to, ...rest }: { children?: ReactNode; to: string; [key: string]: unknown }) =>
-    createElement("a", { href: typeof to === "string" ? to : "#", ...rest }, children),
+  Link: ({
+    children,
+    to,
+    activeProps: _activeProps,
+    inactiveProps: _inactiveProps,
+    ...rest
+  }: {
+    children?: ReactNode;
+    to: string;
+    [key: string]: unknown;
+  }) => createElement("a", { href: typeof to === "string" ? to : "#", ...rest }, children),
 }));
 
 vi.mock("@/components/ThemeToggle", () => ({
@@ -70,5 +79,72 @@ describe("Navbar marketing safe-area", () => {
     expect(screen.getByRole("link", { name: "Go to Dashboard" })).toBeTruthy();
     expect(screen.getAllByRole("link", { name: "Deal Copilot" }).length).toBeGreaterThan(1);
     expect(screen.getAllByRole("link", { name: "Dashboard" }).length).toBeGreaterThan(0);
+  });
+});
+
+describe("Navbar public raised controls", () => {
+  const SRC = readFileSync(join(__dirname, "Navbar.tsx"), "utf8");
+
+  beforeEach(() => {
+    useAuth.mockReturnValue({ isAuthenticated: false });
+  });
+
+  it("keeps public nav labels and hrefs unchanged", () => {
+    render(createElement(Navbar));
+    expect(screen.getByRole("link", { name: "Dashboard" }).getAttribute("href")).toBe("/dashboard");
+    expect(screen.getByRole("link", { name: "Deal Copilot" }).getAttribute("href")).toBe(
+      "/deal-copilot",
+    );
+    expect(screen.getByRole("link", { name: "Trades" }).getAttribute("href")).toBe("/trades");
+    expect(screen.getByRole("link", { name: "Post Job" }).getAttribute("href")).toBe("/trades/new");
+    expect(screen.getByTestId("marketing-nav-sign-in").getAttribute("href")).toBe("/auth");
+    expect(screen.getByTestId("marketing-nav-get-started").getAttribute("href")).toBe("/auth");
+    expect(SRC).toMatch(/to:\s*"\/dashboard"/);
+    expect(SRC).toMatch(/to:\s*"\/deal-copilot"/);
+    expect(SRC).toMatch(/to:\s*"\/trades"/);
+    expect(SRC).toMatch(/to:\s*"\/trades\/new"/);
+    expect(SRC).toMatch(/search=\{\{\s*mode:\s*"signin"\s*\}\}/);
+    expect(SRC).toMatch(/search=\{\{\s*mode:\s*"signup"\s*\}\}/);
+  });
+
+  it("uses raised semantic card treatment on secondary controls, not primary fill", () => {
+    expect(SRC).toMatch(/NAV_CONTROL_CLASS/);
+    expect(SRC).toMatch(/bg-card/);
+    expect(SRC).toMatch(/hover:bg-section/);
+    expect(SRC).toMatch(/font-semibold/);
+    expect(SRC).toMatch(/variant="ghost"/);
+    expect(SRC).not.toMatch(/bg-white/);
+    const ghostBlocks = SRC.match(/variant="ghost"[\s\S]*?<\/Button>/g) ?? [];
+    expect(ghostBlocks.length).toBeGreaterThan(0);
+    for (const block of ghostBlocks) {
+      expect(block).not.toMatch(/btn-primary-cta/);
+      expect(block).not.toMatch(/variant="default"/);
+    }
+  });
+
+  it("keeps Get started as the default primary CTA and Sign in as a ghost destination", () => {
+    render(createElement(Navbar));
+    const getStarted = screen.getByTestId("marketing-nav-get-started");
+    const signIn = screen.getByTestId("marketing-nav-sign-in");
+    expect(getStarted.textContent).toMatch(/Get started free/);
+    expect(signIn.textContent).toMatch(/Sign in/);
+    expect(SRC).toMatch(
+      /<Button asChild size="sm">\s*<Link[\s\S]*?to="\/auth"[\s\S]*?search=\{\{\s*mode:\s*"signup"\s*\}\}/,
+    );
+    expect(SRC).toMatch(
+      /<Button asChild variant="ghost" size="sm" className=\{NAV_CONTROL_CLASS\}>\s*<Link[\s\S]*?to="\/auth"[\s\S]*?search=\{\{\s*mode:\s*"signin"\s*\}\}/,
+    );
+    expect(getStarted.closest("a")?.className ?? getStarted.className).not.toMatch(/\bbg-card\b/);
+  });
+
+  it("renders signed-out secondary labels without filling them as primary CTAs", () => {
+    render(createElement(Navbar));
+    for (const name of ["Dashboard", "Deal Copilot", "Trades", "Post Job", "Sign in"]) {
+      const link = screen.getAllByRole("link", { name })[0];
+      expect(link).toBeTruthy();
+      expect(link.className).not.toMatch(/btn-primary-cta/);
+    }
+    const cta = screen.getByTestId("marketing-nav-get-started");
+    expect(cta.className).toMatch(/btn-primary-cta/);
   });
 });

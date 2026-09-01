@@ -83,7 +83,7 @@ export function TradepersonCard({ tradesperson, onRequestQuote, projectId }: Tra
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div>
-            <CardTitle className="text-lg group-hover:text-accent transition-colors">
+            <CardTitle className="text-lg group-hover:text-accent-text transition-colors">
               {tradesperson.business_name}
             </CardTitle>
             <CardDescription>{tradesperson.contact_name}</CardDescription>

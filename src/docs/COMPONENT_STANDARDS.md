@@ -12,11 +12,11 @@ iOS interaction/layout: `src/docs/ios-product-design.md`.
 
 ### Must Follow
 
-- Always use semantic design tokens (`bg-card`, `text-foreground`, `border-border`, `ring-ring`, etc.).
+- Always use semantic design tokens (`bg-card`, `bg-section`, `bg-background`, `text-foreground`, `border-border`, `ring-ring`, `text-accent-text`, `ring-field-ring`, etc.).
 - Prefer our custom components (`<Button>`, `<Card>`, `<Input>`, etc.) over raw HTML elements.
 - Use `rounded-xl` for interactive elements (buttons, inputs) and `rounded-2xl` for surfaces (cards, dialogs).
 - All components must support both light and dark mode without extra `dark:` classes when possible.
-- Focus rings must be visible (`focus-visible:ring-2 ring-ring`).
+- Focus rings must be visible. Fields use `focus-visible:ring-2 ring-field-ring` (no opacity below 3:1). Other controls may use `ring-ring` or `ring-primary` at full contrast.
 
 ### Forbidden Patterns
 
@@ -91,7 +91,7 @@ iOS interaction/layout: `src/docs/ios-product-design.md`.
 ## 5. Navigation & Links
 
 - Use `text-muted-foreground` + `hover:text-foreground`
-- Active state: `text-foreground font-medium` or `bg-accent`
+- Active state: `text-foreground font-medium` or `bg-secondary text-secondary-foreground`
 - Never use colored links (`text-blue-600`, `text-purple-600`, etc.)
 
 ---
@@ -100,7 +100,7 @@ iOS interaction/layout: `src/docs/ios-product-design.md`.
 
 - Use `<Badge>` for status labels.
 - Preferred variants: `default`, `secondary`, `destructive`, `outline`
-- For score/priority indicators, prefer semantic colors (`text-accent`, `text-destructive`)
+- For score/priority indicators, prefer semantic colors (`text-accent-text`, `text-destructive`). Keep Teal (`text-accent`) on icons and thick indicators, not normal-size text.
 
 ---
 
@@ -117,10 +117,10 @@ iOS interaction/layout: `src/docs/ios-product-design.md`.
 
 ## 8. Dark Mode Checklist (for new components)
 
-- [ ] Uses `bg-card`, `bg-background`, `text-foreground`
+- [ ] Uses `bg-card`, `bg-section`, `bg-background`, `text-foreground`
 - [ ] Borders use `border-border`
-- [ ] Focus states use `ring-ring`
-- [ ] Hover states use `hover:bg-accent` or `hover:bg-secondary`
+- [ ] Field focus states use `ring-field-ring`; other focus may use `ring-ring`
+- [ ] Hover / selected / on states for text-bearing controls use `hover:bg-secondary` (not White-on-Teal)
 - [ ] No hard-coded light-only colors (`bg-white`, `text-gray-700`, etc.)
 
 ---

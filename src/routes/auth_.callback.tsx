@@ -95,7 +95,7 @@ function AuthCallback() {
           <AlertCircle className="mx-auto h-8 w-8 text-destructive" aria-hidden />
           <h1 className="font-semibold text-foreground">Authentication failed</h1>
           <p className="text-sm text-muted-foreground">{error}</p>
-          <a href="/auth" className="text-sm font-medium text-accent hover:underline">
+          <a href="/auth" className="text-sm font-medium text-accent-text hover:underline">
             ← Back to sign in
           </a>
         </main>

@@ -216,7 +216,7 @@ function MarketplacePage() {
           </Button>
         </div>
         {projectId && (
-          <div className="mt-2 inline-flex items-center rounded-md bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+          <div className="mt-2 inline-flex items-center rounded-md bg-accent/10 px-3 py-1 text-xs font-medium text-accent-text">
             Context: Project {projectId.slice(0, 8)}…
             <Link
               to="/projects/$id"

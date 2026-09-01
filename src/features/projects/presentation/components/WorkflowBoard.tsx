@@ -28,7 +28,7 @@ export function WorkflowBoard({ summaries }: WorkflowBoardProps) {
                 {column.label}
               </h3>
               <p
-                className="text-xs text-muted-foreground"
+                className="text-xs font-semibold lining-nums tabular-nums text-muted-foreground"
                 data-testid={`workflow-count-${column.id}`}
               >
                 {column.count}

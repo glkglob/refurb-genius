@@ -14,11 +14,11 @@ export function WorkflowBoardItem({ summary }: WorkflowBoardItemProps) {
       data-project-id={summary.projectId}
     >
       <CardContent className="space-y-2 p-3">
-        <p className="break-words font-medium text-foreground">{summary.name}</p>
+        <p className="break-words font-semibold text-foreground">{summary.name}</p>
         {summary.location ? (
           <p className="truncate text-xs text-muted-foreground">{summary.location}</p>
         ) : null}
-        <p className="text-xs font-medium text-foreground">{summary.status}</p>
+        <p className="text-xs font-semibold text-foreground">{summary.status}</p>
         {summary.reasonExplanation ? (
           <p className="text-xs text-muted-foreground">{summary.reasonExplanation}</p>
         ) : null}

@@ -126,7 +126,7 @@ export function MobileBottomNav() {
                 ) : (
                   <Icon className="h-4 w-4 shrink-0" aria-hidden />
                 )}
-                <span className="max-w-full whitespace-normal text-center font-medium">
+                <span className="max-w-full whitespace-normal text-center font-semibold">
                   {visibleLabel}
                 </span>
               </Link>
@@ -145,7 +145,7 @@ export function MobileBottomNav() {
               data-active={moreActive ? "true" : "false"}
             >
               <MoreHorizontal className="h-4 w-4 shrink-0" aria-hidden />
-              <span className="font-medium">More</span>
+              <span className="font-semibold">More</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent

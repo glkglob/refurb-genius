@@ -39,7 +39,7 @@ export function MobileTopBar() {
 
   return (
     <header
-      className="sticky top-0 z-30 w-full border-b border-border bg-background/95 backdrop-blur supports-[padding:max(0px)]:pt-[env(safe-area-inset-top)] lg:hidden"
+      className="sticky top-0 z-30 w-full border-b border-border bg-card supports-[padding:max(0px)]:pt-[env(safe-area-inset-top)] lg:hidden"
       data-testid="mobile-top-bar"
     >
       <div
