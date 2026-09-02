@@ -87,6 +87,24 @@ describe("IA-3 analysisCurrencyFromEvidence", () => {
     ).toBe("non_current");
   });
 
+  it("deleting one of four catalogue photos invalidates a four-row analysis set", () => {
+    expect(
+      analysisCurrencyFromEvidence({
+        photos: [{ id: "p2" }, { id: "p3" }, { id: "p4" }],
+        analyses: [
+          { photoId: "p1", source: "ai" },
+          { photoId: "p2", source: "ai" },
+          { photoId: "p3", source: "ai" },
+          { photoId: "p4", source: "ai" },
+        ],
+      }).currency,
+    ).toBe("non_current");
+    expect(analysisShellFlagsFromCurrency("non_current")).toEqual({
+      analysisDone: true,
+      analysisNeedsAttention: true,
+    });
+  });
+
   it("analysis running → running", () => {
     expect(
       analysisCurrencyFromEvidence({

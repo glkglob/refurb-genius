@@ -462,7 +462,7 @@ function OwnerInterestsSection({ jobId }: { jobId: string }) {
                               {profile.tradeCategories.map((cat) => (
                                 <span
                                   key={cat}
-                                  className="inline-flex items-center rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent"
+                                  className="inline-flex items-center rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent-text"
                                 >
                                   {cat}
                                 </span>

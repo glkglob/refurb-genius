@@ -1,9 +1,10 @@
 # Refurb Genius — Component Standards
 
-**Version:** 1.1  
-**Last Updated:** June 2026  
+**Version:** 1.2
+**Last Updated:** August 2026
 **Purpose:** Component usage rules for this codebase. Import shared primitives from
 `@repo/ui` (migrating from `src/components/ui/` shims). Index: `docs/README.md`.
+iOS interaction/layout: `src/docs/ios-product-design.md`.
 
 ---
 
@@ -11,11 +12,11 @@
 
 ### Must Follow
 
-- Always use semantic design tokens (`bg-card`, `text-foreground`, `border-border`, `ring-ring`, etc.).
+- Always use semantic design tokens (`bg-card`, `bg-section`, `bg-background`, `text-foreground`, `border-border`, `ring-ring`, `text-accent-text`, `ring-field-ring`, etc.).
 - Prefer our custom components (`<Button>`, `<Card>`, `<Input>`, etc.) over raw HTML elements.
 - Use `rounded-xl` for interactive elements (buttons, inputs) and `rounded-2xl` for surfaces (cards, dialogs).
 - All components must support both light and dark mode without extra `dark:` classes when possible.
-- Focus rings must be visible (`focus-visible:ring-2 ring-ring`).
+- Focus rings must be visible. Fields use `focus-visible:ring-2 ring-field-ring` (no opacity below 3:1). Other controls may use `ring-ring` or `ring-primary` at full contrast.
 
 ### Forbidden Patterns
 
@@ -90,7 +91,7 @@
 ## 5. Navigation & Links
 
 - Use `text-muted-foreground` + `hover:text-foreground`
-- Active state: `text-foreground font-medium` or `bg-accent`
+- Active state: `text-foreground font-medium` or `bg-secondary text-secondary-foreground`
 - Never use colored links (`text-blue-600`, `text-purple-600`, etc.)
 
 ---
@@ -99,23 +100,27 @@
 
 - Use `<Badge>` for status labels.
 - Preferred variants: `default`, `secondary`, `destructive`, `outline`
-- For score/priority indicators, prefer semantic colors (`text-accent`, `text-destructive`)
+- For score/priority indicators, prefer semantic colors (`text-accent-text`, `text-destructive`). Keep Teal (`text-accent`) on icons and thick indicators, not normal-size text.
 
 ---
 
 ## 7. Responsive & Mobile
 
-- All interactive elements should have minimum 44px touch target on mobile.
+- All interactive elements should have minimum 44px (`h-11` / `min-h-11`) touch target on mobile.
+- Button `size="icon"` is `h-11 w-11`. Do not use `size="sm"` for primary journey actions.
+- Safe-area: pad the sticky header, not a fixed-height inner row. Bottom chrome uses `env(safe-area-inset-bottom)`.
+- Prefer `min-h-dvh` on full-height iOS shells.
 - Use `md:` breakpoints for desktop-only elements (e.g., Sidebar).
+- Details: `src/docs/ios-product-design.md`.
 
 ---
 
 ## 8. Dark Mode Checklist (for new components)
 
-- [ ] Uses `bg-card`, `bg-background`, `text-foreground`
+- [ ] Uses `bg-card`, `bg-section`, `bg-background`, `text-foreground`
 - [ ] Borders use `border-border`
-- [ ] Focus states use `ring-ring`
-- [ ] Hover states use `hover:bg-accent` or `hover:bg-secondary`
+- [ ] Field focus states use `ring-field-ring`; other focus may use `ring-ring`
+- [ ] Hover / selected / on states for text-bearing controls use `hover:bg-secondary` (not White-on-Teal)
 - [ ] No hard-coded light-only colors (`bg-white`, `text-gray-700`, etc.)
 
 ---
@@ -139,12 +144,4 @@ Otherwise, compose existing components + Tailwind.
 
 ---
 
-**Next Step Recommendation:**
-Start a systematic audit + migration of the most visible pages:
-
-1. Dashboard
-2. Deal Copilot pages
-3. Projects list + detail pages
-4. Trades pages
-
-Would you like me to begin the migration on one of these pages using the standards above?
+iOS product chrome follows `src/docs/ios-product-design.md`. Branding, plugins, and IA-0 authority are out of scope for that file.

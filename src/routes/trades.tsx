@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Navbar } from "@/components/Navbar";
+import { useAuth } from "@/hooks/useAuth";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -70,6 +71,8 @@ function TradesPage() {
 }
 
 function TradesHero() {
+  const { user } = useAuth();
+
   return (
     <section className="relative overflow-hidden">
       <div
@@ -102,6 +105,15 @@ function TradesHero() {
           >
             Create a trade profile
           </a>
+          {user ? (
+            <Link
+              to="/marketplace"
+              data-testid="trades-marketplace-home"
+              className="inline-flex items-center justify-center rounded-lg border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-secondary"
+            >
+              Marketplace — My Jobs and My Interests
+            </Link>
+          ) : null}
         </div>
       </div>
     </section>
@@ -243,7 +255,7 @@ function LiveJobListings() {
             onClick={() => setActiveCategory("")}
             className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
               activeCategory === ""
-                ? "border-accent bg-accent/10 text-accent"
+                ? "border-accent bg-accent/10 text-accent-text"
                 : "border-border bg-background text-muted-foreground hover:border-accent/50 hover:text-foreground"
             }`}
           >
@@ -255,7 +267,7 @@ function LiveJobListings() {
               onClick={() => setActiveCategory(cat.value)}
               className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                 activeCategory === cat.value
-                  ? "border-accent bg-accent/10 text-accent"
+                  ? "border-accent bg-accent/10 text-accent-text"
                   : "border-border bg-background text-muted-foreground hover:border-accent/50 hover:text-foreground"
               }`}
             >
@@ -317,7 +329,7 @@ function JobCard({ job }: { job: PublicTradesJob }) {
       <CardContent className="flex flex-1 flex-col gap-4 p-5">
         {/* Category pill */}
         <div className="flex items-center justify-between">
-          <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
+          <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent-text">
             {formatCategoryLabel(job.jobCategory)}
           </span>
           <span className="text-xs text-muted-foreground">{formatShortDate(job.createdAt)}</span>
@@ -597,7 +609,9 @@ function SectionHeader({
 }) {
   return (
     <div className="mx-auto max-w-2xl text-center">
-      <span className="text-xs font-semibold uppercase tracking-wider text-accent">{eyebrow}</span>
+      <span className="text-xs font-semibold uppercase tracking-wider text-accent-text">
+        {eyebrow}
+      </span>
       <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
         {title}
       </h2>

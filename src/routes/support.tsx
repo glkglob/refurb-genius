@@ -312,8 +312,8 @@ function SupportPage() {
                       How do I delete my account?
                     </h4>
                     <p className="mt-1 text-sm text-foreground/80">
-                      Go to Settings and select "Delete Account". Your account and all associated
-                      data (projects, properties, analyses) will be deleted within 7 business days.
+                      Go to Settings and select "Delete Account". Your account and associated data
+                      (projects, properties, analyses) are deleted before the app reports success.
                       This action is irreversible.
                     </p>
                   </div>

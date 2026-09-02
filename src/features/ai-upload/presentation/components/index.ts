@@ -8,3 +8,4 @@ export { PhotoAnalysisViewer } from "@/components/photos/PhotoAnalysisViewer";
 export { PhotoAnalysisCard } from "@/components/photos/PhotoAnalysisCard";
 export { PhotoAnalysisFilters } from "@/components/photos/PhotoAnalysisFilters";
 export { PhotoUploadZone, type PhotoUploadZoneProps } from "./PhotoUploadZone";
+export { PhotoRemoveButton, type PhotoRemoveButtonProps } from "./PhotoRemoveButton";

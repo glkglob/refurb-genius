@@ -8,7 +8,7 @@
  * wrapper indirection.
  */
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
@@ -16,6 +16,11 @@ const ROOT = new URL("../../", import.meta.url).pathname.replace(/\/$/, "");
 
 const SIDEBAR = "src/components/Sidebar.tsx";
 const MOBILE = "src/components/MobileTopBar.tsx";
+/** Mobile A moved the primary destination row (and its More menu) here. */
+const MOBILE_BOTTOM = "src/components/MobileBottomNav.tsx";
+
+/** Every shell component permitted to consume useSignOut. */
+const SHELL_SIGN_OUT_CONSUMERS = [SIDEBAR, MOBILE, MOBILE_BOTTOM] as const;
 const HOOK = "src/features/auth/presentation/hooks/useSignOut.ts";
 const INFRA = "src/features/auth/infrastructure/signOutSession.ts";
 const PRESENTATION_API = "src/features/auth/presentation/index.ts";
@@ -54,6 +59,36 @@ function assertShellCanonical(rel: string): void {
   assert.match(text, /await\s+signOut\s*\(/, `${rel} must await signOut(`);
   assert.match(text, /navigate\s*\(/, `${rel} must call navigate(`);
   assert.match(text, /to\s*:\s*["']\/["']/, `${rel} must navigate to "/"`);
+}
+
+/** Sign-out must complete before the shell leaves the authenticated surface. */
+function assertSignOutPrecedesNavigation(rel: string): void {
+  const text = read(rel);
+  const handler = text.match(
+    /const\s+handleLogout\s*=\s*async\s*\(\s*\)\s*=>\s*\{([\s\S]*?)\n\s*\};/,
+  );
+  assert.ok(handler?.[1], `${rel} must define an async handleLogout sign-out handler`);
+  const body = handler[1];
+  assert.match(body, /await\s+signOut\s*\(\s*\)/, `${rel} must await signOut()`);
+  assert.match(body, /navigate\s*\(\s*\{\s*to\s*:\s*["']\/["']\s*\}\s*\)/, `${rel} must go to "/"`);
+  assert.ok(
+    body.indexOf("await signOut()") < body.indexOf("navigate("),
+    `${rel} must await signOut() before navigating to "/"`,
+  );
+}
+
+/** Recursively list .tsx sources under a directory, excluding test files. */
+function listComponentSources(relDir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(join(ROOT, relDir), { withFileTypes: true })) {
+    const rel = `${relDir}/${entry.name}`;
+    if (entry.isDirectory()) {
+      out.push(...listComponentSources(rel));
+      continue;
+    }
+    if (entry.name.endsWith(".tsx") && !entry.name.endsWith(".test.tsx")) out.push(rel);
+  }
+  return out;
 }
 
 function assertShellBans(rel: string): void {
@@ -104,9 +139,31 @@ test("shell sign-out — MobileTopBar imports useSignOut from @/features/auth", 
   assertShellCanonical(MOBILE);
 });
 
+test("shell sign-out — MobileBottomNav imports useSignOut from @/features/auth", () => {
+  assertShellCanonical(MOBILE_BOTTOM);
+});
+
 test("shell sign-out — shell components ban residual auth infrastructure", () => {
   assertShellBans(SIDEBAR);
   assertShellBans(MOBILE);
+  assertShellBans(MOBILE_BOTTOM);
+});
+
+test("shell sign-out — every shell awaits signOut before navigating to /", () => {
+  for (const rel of SHELL_SIGN_OUT_CONSUMERS) {
+    assertSignOutPrecedesNavigation(rel);
+  }
+});
+
+test("shell sign-out — mobile sign-out ownership is completely enumerated", () => {
+  const actual = listComponentSources("src/components")
+    .filter((rel) => /useSignOut\s*\(/.test(read(rel)))
+    .sort();
+  assert.deepEqual(
+    actual,
+    [...SHELL_SIGN_OUT_CONSUMERS].sort(),
+    "every src/components sign-out consumer must be sealed by this invariant",
+  );
 });
 
 test("shell sign-out — hook owns signOutSession delegation without QC or navigation", () => {

@@ -13,7 +13,7 @@ import type {
 } from "../../domain";
 import { PROJECT_PHOTOS_BUCKET } from "@/lib/photos-write";
 
-const AI_SIGNED_URL_TTL_SECONDS = 300;
+export const AI_SIGNED_URL_TTL_SECONDS = 300;
 
 type AuthorizedScopePhoto = {
   id: string;
@@ -22,23 +22,81 @@ type AuthorizedScopePhoto = {
   retrievalUrl: string;
 };
 
+export type ScopeAnalysisAuthClient = {
+  from: (table: string) => {
+    select: (columns: string) => {
+      eq: (
+        column: string,
+        value: string,
+      ) => {
+        eq: (
+          column: string,
+          value: string,
+        ) => {
+          maybeSingle: () => PromiseLike<{
+            data: { id: string } | null;
+            error: { message?: string } | null;
+          }>;
+          in: (
+            column: string,
+            values: string[],
+          ) => PromiseLike<{
+            data: Array<{
+              id: string;
+              url: string | null;
+              name: string | null;
+              storage_path: string | null;
+              project_id: string;
+              user_id: string;
+            }> | null;
+            error: { message?: string } | null;
+          }>;
+        };
+      };
+    };
+  };
+  storage: {
+    from: (bucket: string) => {
+      createSignedUrl: (
+        path: string,
+        expiresIn: number,
+      ) => PromiseLike<{
+        data: { signedUrl?: string } | null;
+        error: { message?: string } | null;
+      }>;
+    };
+  };
+};
+
+export type ScopeAnalysisAuth = {
+  userId: string;
+  supabase: ScopeAnalysisAuthClient;
+};
+
+async function resolveScopeAuth(auth?: ScopeAnalysisAuth): Promise<ScopeAnalysisAuth> {
+  if (auth) return auth;
+  const { requireUser, createSupabaseServerClient } = await import("@/serverFns/auth.server");
+  const user = await requireUser();
+  const supabase = await createSupabaseServerClient();
+  return { userId: user.id, supabase: supabase as unknown as ScopeAnalysisAuthClient };
+}
+
 async function resolveAndSignScopePhotos(
   input: ScopeAnalysisInput,
+  auth: ScopeAnalysisAuth,
 ): Promise<AuthorizedScopePhoto[]> {
   const photoIds = input.photos.map((p) => p.id);
   if (new Set(photoIds).size !== photoIds.length) {
     throw new Error("Source photo set mismatch");
   }
 
-  const { requireUser, createSupabaseServerClient } = await import("@/serverFns/auth.server");
-  const user = await requireUser();
-  const supabase = await createSupabaseServerClient();
+  const { userId, supabase } = auth;
 
   const { data: project, error: projectError } = await supabase
     .from("projects")
     .select("id")
     .eq("id", input.projectId)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (projectError || !project) {
@@ -49,7 +107,7 @@ async function resolveAndSignScopePhotos(
     .from("photos")
     .select("id,url,name,storage_path,project_id,user_id")
     .eq("project_id", input.projectId)
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .in("id", photoIds);
 
   if (photosError || !photos || photos.length !== photoIds.length) {
@@ -60,12 +118,7 @@ async function resolveAndSignScopePhotos(
   const ordered: AuthorizedScopePhoto[] = [];
   for (const id of photoIds) {
     const row = byId.get(id);
-    if (
-      !row ||
-      row.project_id !== input.projectId ||
-      row.user_id !== user.id ||
-      !row.storage_path
-    ) {
+    if (!row || row.project_id !== input.projectId || row.user_id !== userId || !row.storage_path) {
       throw new Error("Source photos not authorised");
     }
     const { data: signed, error: signError } = await supabase.storage
@@ -76,8 +129,8 @@ async function resolveAndSignScopePhotos(
     }
     ordered.push({
       id: row.id,
-      url: row.url,
-      name: row.name,
+      url: row.url ?? "",
+      name: row.name ?? "",
       retrievalUrl: signed.signedUrl,
     });
   }
@@ -268,6 +321,7 @@ function parseGptJson(text: string): unknown {
 
 export async function runSecureScopeAnalysis(
   input: ScopeAnalysisInput,
+  auth?: ScopeAnalysisAuth,
 ): Promise<ScopeAnalysisResult> {
   const apiKey = process.env.OPENAI_API_KEY;
 
@@ -291,6 +345,9 @@ export async function runSecureScopeAnalysis(
     return buildMockScopeResult(input);
   }
 
+  const resolvedAuth = await resolveScopeAuth(auth);
+  const authorizedPhotos = await resolveAndSignScopePhotos(input, resolvedAuth);
+
   const systemPrompt = buildSystemPrompt(input);
 
   addDiagnosticBreadcrumb("ai:gpt4o:scope:start", {
@@ -306,8 +363,6 @@ export async function runSecureScopeAnalysis(
       | { type: "image_url"; image_url: { url: string; detail: "low" } }
       | { type: "text"; text: string }
     > = [];
-
-    const authorizedPhotos = await resolveAndSignScopePhotos(input);
 
     for (const photo of authorizedPhotos.slice(0, 10)) {
       userContent.push({

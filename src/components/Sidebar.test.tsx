@@ -46,7 +46,7 @@ beforeEach(() => {
 });
 
 describe("Sidebar IA-7 global navigation", () => {
-  it("renders the six canonical primary destinations", () => {
+  it("renders the six canonical primary destinations with Marketplace after Deal Copilot", () => {
     render(createElement(Sidebar));
     expect(screen.getByTestId("global-nav-dashboard")).toBeTruthy();
     expect(screen.getByTestId("global-nav-projects")).toBeTruthy();
@@ -56,7 +56,29 @@ describe("Sidebar IA-7 global navigation", () => {
     expect(screen.getByTestId("global-nav-settings")).toBeTruthy();
     expect(screen.getByText("Projects")).toBeTruthy();
     expect(screen.getByText("New Analysis")).toBeTruthy();
-    expect(screen.getByText("Trades")).toBeTruthy();
+    expect(screen.getByText("Marketplace")).toBeTruthy();
+    expect(screen.queryByText("Trades")).toBeNull();
+    expect(screen.getByTestId("global-nav-trades_marketplace").getAttribute("href")).toBe(
+      "/marketplace",
+    );
+    expect(screen.getByTestId("global-nav-deal_copilot").getAttribute("href")).toBe(
+      "/deal-copilot",
+    );
+    const order = [
+      "global-nav-dashboard",
+      "global-nav-projects",
+      "global-nav-new_analysis",
+      "global-nav-deal_copilot",
+      "global-nav-trades_marketplace",
+      "global-nav-settings",
+    ].map((id) => screen.getByTestId(id));
+    for (let i = 1; i < order.length; i += 1) {
+      expect(
+        Boolean(
+          order[i - 1]!.compareDocumentPosition(order[i]!) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+      ).toBe(true);
+    }
   });
 
   it("does not expose Studies as a primary nav item", () => {
@@ -69,6 +91,34 @@ describe("Sidebar IA-7 global navigation", () => {
     render(createElement(Sidebar));
     expect(screen.getByTestId("global-nav-dashboard").getAttribute("data-active")).toBe("true");
     expect(screen.getByTestId("global-nav-projects").getAttribute("data-active")).toBe("false");
+  });
+
+  it("uses lg persistent chrome and light-mode dark sidebar surface", () => {
+    render(createElement(Sidebar));
+    const src = readFileSync(join(__dirname, "Sidebar.tsx"), "utf8");
+    expect(src).toMatch(/lg:flex/);
+    expect(src).not.toMatch(/md:flex/);
+    expect(src).toMatch(/bg-sidebar/);
+    expect(src).toMatch(/text-sidebar-foreground/);
+    expect(src).not.toMatch(/#0B1F35/);
+    expect(src).not.toMatch(/#F5EFE5/);
+    expect(src).not.toMatch(/dark:bg-card/);
+    expect(src).not.toMatch(/from-teal-500/);
+    expect(src).toMatch(/GLOBAL_NAV_ITEMS/);
+    expect(src).toMatch(/to=\{item\.to\}/);
+    expect(src).toMatch(/\{item\.label\}/);
+    expect(src).not.toMatch(/SIDEBAR_VISIBLE_LABEL/);
+    expect(src).not.toMatch(/item\.id === "trades_marketplace"/);
+    expect(src).not.toMatch(/Partial<Record<GlobalNavItemId,\s*string>>/);
+    expect(screen.getByTestId("app-sidebar")).toBeTruthy();
+    const globalNav = readFileSync(join(__dirname, "../features/navigation/globalNav.ts"), "utf8");
+    expect(globalNav).toMatch(/id: "trades_marketplace"/);
+    expect(globalNav).toMatch(/label:\s*"Marketplace"/);
+    expect(globalNav).toMatch(/to: "\/marketplace"/);
+    expect(globalNav).not.toMatch(/label:\s*"Trades"/);
+    const mobileNav = readFileSync(join(__dirname, "./MobileBottomNav.tsx"), "utf8");
+    expect(mobileNav).toMatch(/Home \| Projects \| New \| Deal Copilot \| More/);
+    expect(mobileNav).not.toMatch(/Home \| Projects \| New \| Deal Copilot \| Marketplace/);
   });
 });
 

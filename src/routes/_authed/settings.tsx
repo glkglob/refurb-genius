@@ -71,8 +71,9 @@ function SettingsPage() {
 
     setIsDeleting(true);
     try {
-      const { deleteAccountServerFn } = await import("@/serverFns/auth");
-      await deleteAccountServerFn({});
+      const { deleteAccountForClient } =
+        await import("@/features/account-deletion/presentation/deleteAccountForClient");
+      await deleteAccountForClient();
 
       toast.success("Your account has been deleted.");
 
@@ -144,19 +145,19 @@ function SettingsPage() {
               <div className="flex flex-wrap gap-3">
                 <a
                   href="/privacy"
-                  className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary"
+                  className="inline-flex min-h-11 items-center rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary"
                 >
                   Privacy Policy
                 </a>
                 <a
                   href="/terms"
-                  className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary"
+                  className="inline-flex min-h-11 items-center rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary"
                 >
                   Terms of Service
                 </a>
                 <a
                   href="/support"
-                  className="inline-flex items-center rounded-lg border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary"
+                  className="inline-flex min-h-11 items-center rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary"
                 >
                   Contact support
                 </a>
@@ -166,28 +167,27 @@ function SettingsPage() {
         </Card>
 
         {/* Danger Zone */}
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-destructive/30 bg-destructive/5">
           <CardContent className="p-6">
-            <h2 className="text-lg font-semibold text-red-900 mb-4">Danger Zone</h2>
+            <h2 className="mb-4 text-lg font-semibold text-destructive">Danger Zone</h2>
             <div className="space-y-4">
               <div>
-                <h3 className="font-medium text-sm text-red-900">Delete Account</h3>
-                <p className="text-sm text-red-800 mt-1">
+                <h3 className="text-sm font-medium text-foreground">Delete Account</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
                   Permanently delete your account, all projects, properties, and analysis history.
-                  This action cannot be undone.
+                  Deletion completes before this app reports success. This action cannot be undone.
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
-                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                variant="destructive"
                 onClick={() => setShowDeleteDialog(true)}
                 disabled={isDeleting}
               >
                 {isDeleting ? "Processing…" : "Delete Account"}
-              </button>
-              <p className="text-xs text-red-800">
-                Deletion will be processed within 7 business days. Your data will be permanently
-                removed from our servers.
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Your data will be permanently removed from our servers when deletion completes.
               </p>
             </div>
           </CardContent>
@@ -198,15 +198,15 @@ function SettingsPage() {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-900">Delete Account?</AlertDialogTitle>
+            <AlertDialogTitle className="text-destructive">Delete Account?</AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
               <p>
                 Are you sure you want to permanently delete your account? This action cannot be
                 undone.
               </p>
-              <div className="bg-red-50 border border-red-200 rounded p-3 space-y-2">
-                <p className="text-sm font-medium text-red-900">This will delete:</p>
-                <ul className="text-sm text-red-800 space-y-1">
+              <div className="space-y-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3">
+                <p className="text-sm font-medium text-foreground">This will delete:</p>
+                <ul className="space-y-1 text-sm text-muted-foreground">
                   <li>• Your account and profile</li>
                   <li>• All projects and properties</li>
                   <li>• All analysis history and estimates</li>
@@ -214,8 +214,7 @@ function SettingsPage() {
                 </ul>
               </div>
               <p className="text-sm">
-                We'll process your deletion request within 7 business days. You'll be signed out
-                immediately.
+                You will be signed out after deletion completes. This cannot be undone.
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -224,7 +223,7 @@ function SettingsPage() {
             <AlertDialogAction
               onClick={handleDeleteAccount}
               disabled={isDeleting}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeleting ? "Processing..." : "Delete Account"}
             </AlertDialogAction>

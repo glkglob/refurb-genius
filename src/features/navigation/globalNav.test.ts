@@ -25,9 +25,12 @@ describe("IA-7 / IA-8 global navigation contract", () => {
       "Projects",
       "New Analysis",
       "Deal Copilot",
-      "Trades",
+      "Marketplace",
       "Settings",
     ]);
+    const marketplace = GLOBAL_NAV_ITEMS.find((i) => i.id === "trades_marketplace");
+    expect(marketplace?.label).toBe("Marketplace");
+    expect(marketplace?.to).toBe("/marketplace");
   });
 
   it("does not include Studies or stage routes as primary destinations", () => {
@@ -82,11 +85,12 @@ describe("IA-7 / IA-8 global navigation contract", () => {
     expect(resolveGlobalNavArea("/deal-copilot/opp-1")).toBe("deal_copilot");
   });
 
-  it("matches Trades across trades and marketplace surfaces", () => {
+  it("matches Marketplace area across /marketplace and /trades board surfaces", () => {
+    expect(resolveGlobalNavArea("/marketplace")).toBe("trades_marketplace");
+    expect(resolveGlobalNavArea("/marketplace/")).toBe("trades_marketplace");
     expect(resolveGlobalNavArea("/trades")).toBe("trades_marketplace");
     expect(resolveGlobalNavArea("/trades/new")).toBe("trades_marketplace");
     expect(resolveGlobalNavArea("/trades/job-1")).toBe("trades_marketplace");
-    expect(resolveGlobalNavArea("/marketplace")).toBe("trades_marketplace");
   });
 
   it("matches Settings", () => {
@@ -119,7 +123,10 @@ describe("IA-7 / IA-8 global navigation contract", () => {
       "/analyze",
       "/deal-copilot",
     ]);
-    expect(more.map((i) => i.to)).toEqual(["/trades", "/settings"]);
+    expect(more.map((i) => i.to)).toEqual(["/marketplace", "/settings"]);
+    expect(more.map((i) => i.label)).toEqual(["Marketplace", "Settings"]);
+    expect(getGlobalNavItem("trades_marketplace").to).toBe("/marketplace");
+    expect(getGlobalNavItem("trades_marketplace").label).toBe("Marketplace");
     expect(getGlobalNavItem("new_analysis").to).toBe("/analyze");
   });
 });

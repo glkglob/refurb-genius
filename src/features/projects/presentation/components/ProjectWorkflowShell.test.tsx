@@ -75,4 +75,9 @@ describe("ProjectWorkflowShell customer copy (IA-8-VR-R1)", () => {
     expect(src).not.toMatch(/Overview is the project home — not a workflow stage/);
     expect(src).not.toMatch(/Scope is not a separate journey stage/);
   });
+
+  it("reserves AppLayout footer space when a sticky next action is present", () => {
+    const src = readFileSync(join(__dirname, "ProjectWorkflowShell.tsx"), "utf8");
+    expect(src).toMatch(/mobileBottomReserve=\{Boolean\(stickyNextAction\)\}/);
+  });
 });

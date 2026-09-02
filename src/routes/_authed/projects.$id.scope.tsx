@@ -383,7 +383,7 @@ function ScopeContent({
                   <Link
                     to="/projects/$id/upload"
                     params={{ id }}
-                    className="font-medium text-foreground underline underline-offset-4 hover:text-accent"
+                    className="font-medium text-foreground underline underline-offset-4 hover:text-accent-text"
                   >
                     Upload photos
                   </Link>

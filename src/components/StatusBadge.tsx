@@ -5,7 +5,7 @@ type Tone = "default" | "accent" | "success" | "warning" | "destructive" | "mute
 
 const toneClasses: Record<Tone, string> = {
   default: "bg-secondary text-foreground border-border",
-  accent: "bg-accent/10 text-accent border-accent/20",
+  accent: "bg-accent/10 text-accent-text border-accent/20",
   success: "bg-success/10 text-success border-success/20",
   warning: "bg-amber-500/10 text-amber-600 border-amber-500/20",
   destructive: "bg-destructive/10 text-destructive border-destructive/20",
@@ -22,7 +22,7 @@ export function StatusBadge({ children, tone = "default", className }: StatusBad
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-xs font-medium",
+        "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-xs font-semibold",
         toneClasses[tone],
         className,
       )}

@@ -9,7 +9,7 @@
  *
  * IA-8 final mobile presentation:
  *   Home | Projects | + New | Copilot | More
- * More: Trades, Settings, Sign out
+ * More: Marketplace, Settings, Sign out
  * Destinations always derive from GLOBAL_NAV_ITEMS (no second route map).
  */
 
@@ -66,9 +66,9 @@ export const GLOBAL_NAV_ITEMS: readonly GlobalNavItem[] = [
   },
   {
     id: "trades_marketplace",
-    label: "Trades",
-    to: "/trades",
-    description: "Trades job board and related tools",
+    label: "Marketplace",
+    to: "/marketplace",
+    description: "Marketplace, Trades job board, and related job tools",
   },
   {
     id: "settings",

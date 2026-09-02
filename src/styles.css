@@ -1,12 +1,42 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@fontsource-variable/inter";
 
 /* Scan the shared UI package for Tailwind classes (Tailwind v4 @source directive) */
 @source "../packages/ui/src/**/*";
 
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./assets/fonts/cormorant-garamond/CormorantGaramond-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Cormorant Garamond";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("./assets/fonts/cormorant-garamond/CormorantGaramond-SemiBold.woff2") format("woff2");
+}
+
 /*
  * Design system definition.
+ *
+ * Human Product Owner visual authority (web / WebView foundation):
+ * - Typeface: Cormorant Garamond Regular 400 and Semibold 600 only
+ * - Navy #0D2139 — PRIMARY
+ * - Teal #1B8D68 — ACCENT / SECONDARY (do not brighten in dark mode)
+ * - White #FFFFFF — elevated card / panel surface
+ * - Light canvas #F4F6F8 — page / workspace background
+ * - Supporting section / background band — light #F2F5F6, dark #14283E
+ * - Dark elevated card — #162A41 (supporting surface, not a brand primary)
+ * - Dark nested / inset — #102338 (supporting surface, not a brand primary)
+ *
+ * Supporting surfaces (--section, --inset, dark --card, and Navy/White
+ * color-mix values) are not additional brand primaries.
+ * Teal remains the accent / icon / indicator colour. Normal-size accent
+ * text uses --accent-text (Navy in light, White in dark).
  *
  * The @theme inline block maps CSS custom properties to Tailwind utility
  * classes (e.g. --color-primary -> bg-primary, text-primary).
@@ -15,8 +45,8 @@
  * are never generated — computed background becomes transparent and overlay
  * content bleeds through (IA-8-R1 / More menu, Select, Popover, etc.).
  *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
+ * --popover remains a fully opaque oklch value (overlay-opaque-surface invariant).
+ * Destructive, success, and chart categorical tokens remain functional semantics.
  *
  * To add a new semantic color:
  * 1. Add the variable to :root (light value) and .dark (dark value)
@@ -27,8 +57,20 @@
 /* Tailwind v4 theme registration — required for semantic color utilities (bg-, text-, border-) */
 @theme inline {
   --font-sans:
-    "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif, "Apple Color Emoji",
+    "Cormorant Garamond", ui-serif, Georgia, "Times New Roman", Times, serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-serif:
+    "Cormorant Garamond", ui-serif, Georgia, "Times New Roman", Times, serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-weight-thin: 400;
+  --font-weight-extralight: 400;
+  --font-weight-light: 400;
+  --font-weight-normal: 400;
+  --font-weight-medium: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 600;
+  --font-weight-extrabold: 600;
+  --font-weight-black: 600;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -40,6 +82,8 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-section: var(--section);
+  --color-inset: var(--inset);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -50,6 +94,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-text: var(--accent-text);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
@@ -60,6 +105,7 @@
   --color-ring-offset-background: var(--background);
   --color-field: var(--field);
   --color-field-foreground: var(--field-foreground);
+  --color-field-ring: var(--field-ring);
   --color-placeholder: var(--placeholder);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -82,7 +128,10 @@
  */
 :root {
   --font-sans:
-    "Inter Variable", ui-sans-serif, system-ui, -apple-system, sans-serif, "Apple Color Emoji",
+    "Cormorant Garamond", ui-serif, Georgia, "Times New Roman", Times, serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-serif:
+    "Cormorant Garamond", ui-serif, Georgia, "Times New Roman", Times, serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -95,6 +144,8 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-section: var(--section);
+  --color-inset: var(--inset);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -105,6 +156,7 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-text: var(--accent-text);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
@@ -115,6 +167,7 @@
   --color-ring-offset-background: var(--background);
   --color-field: var(--field);
   --color-field-foreground: var(--field-foreground);
+  --color-field-ring: var(--field-ring);
   --color-placeholder: var(--placeholder);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
@@ -133,89 +186,101 @@
 
 :root {
   --radius: 0.75rem;
-  /* Light — cool slate surfaces, emerald brand CTA */
-  --background: oklch(0.985 0.008 250);
-  --foreground: oklch(0.22 0.04 258);
-  --card: oklch(1 0.004 248);
-  --card-foreground: oklch(0.22 0.04 258);
-  --popover: oklch(1 0.004 248);
-  --popover-foreground: oklch(0.22 0.04 258);
-  /* Primary CTA = emerald brand */
-  --primary: oklch(0.55 0.15 168);
-  --primary-foreground: oklch(0.99 0.004 176);
-  --secondary: oklch(0.955 0.014 250);
-  --secondary-foreground: oklch(0.28 0.04 258);
-  --muted: oklch(0.955 0.012 250);
-  --muted-foreground: oklch(0.45 0.03 255);
-  --accent: oklch(0.58 0.14 168);
-  --accent-foreground: oklch(0.99 0.004 176);
+
+  /* Approved brand primitives — not independent extra palettes */
+  --rg-navy: #0d2139;
+  --rg-teal: #1b8d68;
+  --rg-white: #ffffff;
+
+  /* Light — #F4F6F8 page canvas, #F2F5F6 section band, White elevated surfaces */
+  --background: #f4f6f8;
+  --foreground: var(--rg-navy);
+  --card: var(--rg-white);
+  --card-foreground: var(--rg-navy);
+  --section: #f2f5f6;
+  /* Light inset reuses the approved supporting section surface. No new HEX. */
+  --inset: var(--section);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--rg-navy);
+  --primary: var(--rg-navy);
+  --primary-foreground: var(--rg-white);
+  --secondary: color-mix(in srgb, var(--rg-navy) 6%, var(--rg-white));
+  --secondary-foreground: var(--rg-navy);
+  --muted: color-mix(in srgb, var(--rg-navy) 5%, var(--rg-white));
+  --muted-foreground: color-mix(in srgb, var(--rg-navy) 70%, var(--rg-white));
+  --accent: var(--rg-teal);
+  --accent-foreground: var(--rg-white);
+  --accent-text: var(--rg-navy);
   --destructive: oklch(0.55 0.22 27);
   --destructive-foreground: oklch(0.99 0.003 248);
   --success: oklch(0.55 0.14 164);
   --success-foreground: oklch(0.99 0.003 248);
-  --border: oklch(0.88 0.016 255);
-  --input: oklch(0.9 0.014 255);
-  --ring: oklch(0.55 0.15 168);
+  --border: color-mix(in srgb, var(--rg-navy) 14%, var(--rg-white));
+  --input: color-mix(in srgb, var(--rg-navy) 12%, var(--rg-white));
+  --ring: var(--rg-teal);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.98 0.006 248);
-  --sidebar-foreground: oklch(0.22 0.04 258);
-  --sidebar-primary: oklch(0.55 0.15 168);
-  --sidebar-primary-foreground: oklch(0.99 0.004 176);
-  --sidebar-accent: oklch(0.955 0.012 250);
-  --sidebar-accent-foreground: oklch(0.28 0.04 258);
-  --sidebar-border: oklch(0.9 0.014 255);
-  --sidebar-ring: oklch(0.55 0.15 168);
-  /* Form field surface (elevated fill for inputs) */
-  --field: oklch(1 0.002 250);
-  --field-foreground: oklch(0.22 0.04 258);
-  --placeholder: oklch(0.5 0.025 255);
+  --sidebar: var(--rg-navy);
+  --sidebar-foreground: var(--rg-white);
+  --sidebar-primary: var(--rg-teal);
+  --sidebar-primary-foreground: var(--rg-white);
+  --sidebar-accent: color-mix(in srgb, var(--rg-white) 12%, var(--rg-navy));
+  --sidebar-accent-foreground: var(--rg-white);
+  --sidebar-border: color-mix(in srgb, var(--rg-white) 16%, var(--rg-navy));
+  --sidebar-ring: var(--rg-teal);
+  --field: var(--rg-white);
+  --field-foreground: var(--rg-navy);
+  --field-ring: var(--rg-teal);
+  --placeholder: color-mix(in srgb, var(--rg-navy) 62%, var(--rg-white));
 }
 
 .dark {
-  /* Dark-first product palette — deep navy slate + bright emerald CTAs */
-  --background: oklch(0.16 0.028 262);
-  --foreground: oklch(0.97 0.008 250);
-  --card: oklch(0.22 0.03 260);
-  --card-foreground: oklch(0.97 0.008 250);
-  --popover: oklch(0.23 0.03 260);
-  --popover-foreground: oklch(0.97 0.008 250);
-  /* Primary CTA: bright emerald, dark text for WCAG on filled buttons */
-  --primary: oklch(0.78 0.16 168);
-  --primary-foreground: oklch(0.18 0.04 262);
-  --secondary: oklch(0.28 0.028 258);
-  --secondary-foreground: oklch(0.96 0.008 250);
-  --muted: oklch(0.27 0.028 258);
-  --muted-foreground: oklch(0.78 0.025 255);
-  /* Accent matches brand (was too dark at ~0.36 L — nearly invisible) */
-  --accent: oklch(0.78 0.15 168);
-  --accent-foreground: oklch(0.18 0.04 262);
+  /* Dark — Navy canvas, #14283E section, #162A41 card, #102338 inset. Teal stays #1B8D68. */
+  --background: var(--rg-navy);
+  --foreground: var(--rg-white);
+  --card: #162a41;
+  --card-foreground: var(--rg-white);
+  --section: #14283e;
+  --inset: #102338;
+  /* Opaque raised navy: sRGB mix 12% White into Navy → oklch (overlay invariant). */
+  --popover: oklch(0.3503 0.0437 252.834);
+  --popover-foreground: var(--rg-white);
+  --primary: var(--rg-white);
+  --primary-foreground: var(--rg-navy);
+  --secondary: color-mix(in srgb, var(--rg-white) 10%, var(--rg-navy));
+  --secondary-foreground: var(--rg-white);
+  --muted: var(--inset);
+  --muted-foreground: color-mix(in srgb, var(--rg-white) 60%, var(--rg-navy));
+  --accent: var(--rg-teal);
+  --accent-foreground: var(--rg-white);
+  --accent-text: var(--rg-white);
   --destructive: oklch(0.68 0.19 22);
   --destructive-foreground: oklch(0.99 0.003 248);
-  --success: oklch(0.78 0.14 165);
-  --success-foreground: oklch(0.18 0.04 262);
-  --border: oklch(0.92 0.012 252 / 28%);
-  --input: oklch(0.92 0.012 252 / 36%);
-  --ring: oklch(0.78 0.16 168);
+  --success: oklch(0.72 0.13 165);
+  --success-foreground: oklch(0.2 0.04 250);
+  --border: color-mix(in srgb, var(--rg-white) 18%, var(--rg-navy));
+  --input: color-mix(in srgb, var(--rg-white) 16%, var(--rg-navy));
+  --ring: var(--rg-teal);
   --chart-1: oklch(0.55 0.2 250);
   --chart-2: oklch(0.72 0.15 165);
   --chart-3: oklch(0.78 0.16 90);
   --chart-4: oklch(0.65 0.2 300);
   --chart-5: oklch(0.68 0.18 25);
-  --sidebar: oklch(0.14 0.03 262);
-  --sidebar-foreground: oklch(0.96 0.008 250);
-  --sidebar-primary: oklch(0.78 0.16 168);
-  --sidebar-primary-foreground: oklch(0.18 0.04 262);
-  --sidebar-accent: oklch(0.26 0.03 258);
-  --sidebar-accent-foreground: oklch(0.96 0.008 250);
-  --sidebar-border: oklch(1 0 0 / 14%);
-  --sidebar-ring: oklch(0.78 0.16 168);
-  --field: oklch(0.2 0.028 260);
-  --field-foreground: oklch(0.97 0.008 250);
-  --placeholder: oklch(0.68 0.025 255);
+  --sidebar: var(--rg-navy);
+  --sidebar-foreground: var(--rg-white);
+  --sidebar-primary: var(--rg-teal);
+  --sidebar-primary-foreground: var(--rg-white);
+  --sidebar-accent: color-mix(in srgb, var(--rg-white) 12%, var(--rg-navy));
+  --sidebar-accent-foreground: var(--rg-white);
+  --sidebar-border: color-mix(in srgb, var(--rg-white) 16%, var(--rg-navy));
+  --sidebar-ring: var(--rg-teal);
+  --field: color-mix(in srgb, var(--rg-white) 10%, var(--rg-navy));
+  --field-foreground: var(--rg-white);
+  --field-ring: var(--rg-white);
+  --placeholder: color-mix(in srgb, var(--rg-white) 62%, var(--rg-navy));
 }
 
 @layer base {
@@ -223,15 +288,35 @@
     border-color: var(--color-border);
   }
 
+  html {
+    font-family: var(--font-sans);
+    font-synthesis: none;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    font-family: var(--font-sans);
+    font-synthesis: none;
     text-rendering: optimizeLegibility;
     background-image:
-      radial-gradient(circle at 16% 0%, oklch(0.78 0.15 174 / 0.1), transparent 32%),
-      radial-gradient(circle at 85% 6%, oklch(0.7 0.12 245 / 0.08), transparent 30%);
+      radial-gradient(
+        circle at 16% 0%,
+        color-mix(in srgb, var(--rg-teal) 18%, transparent),
+        transparent 32%
+      ),
+      radial-gradient(
+        circle at 85% 6%,
+        color-mix(in srgb, var(--rg-navy) 12%, transparent),
+        transparent 30%
+      );
     background-attachment: fixed;
+  }
+
+  @media (pointer: coarse) {
+    body {
+      background-attachment: scroll;
+    }
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -268,13 +353,13 @@
   }
 
   .field-surface:hover:not(:disabled):not(:focus-visible) {
-    border-color: color-mix(in oklch, var(--color-ring) 45%, var(--color-input));
+    border-color: color-mix(in oklch, var(--color-field-ring) 45%, var(--color-input));
   }
 
   .field-surface:focus-visible {
-    border-color: var(--color-ring);
+    border-color: var(--color-field-ring);
     box-shadow:
-      0 0 0 2px color-mix(in oklch, var(--color-ring) 35%, transparent),
+      0 0 0 2px var(--color-field-ring),
       inset 0 1px 0 oklch(1 0 0 / 4%);
   }
 

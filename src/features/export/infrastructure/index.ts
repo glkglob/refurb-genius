@@ -3,6 +3,7 @@ export { SupabaseExportRepository, supabaseExportRepository } from "./reportRepo
 export { captureElementScreenshot, type CapturedElementImage } from "./imageEmbedder";
 export {
   getLatestExportSnapshot,
+  getLatestExportSnapshotStrict,
   saveExportSnapshot,
   type ExportSnapshotHeader,
 } from "./exportSnapshot.repository";

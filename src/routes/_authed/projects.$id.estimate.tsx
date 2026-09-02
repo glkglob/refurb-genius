@@ -684,7 +684,7 @@ function EstimateContent({ id, project }: { id: string; project: ProjectWithProg
                         Generate a polished investor report with these numbers.
                       </p>
                     </div>
-                    <Button asChild size="sm">
+                    <Button asChild>
                       <Link to="/projects/$id/report" params={{ id }} onClick={handleReportClick}>
                         View report <ArrowRight className="ml-1 h-4 w-4" />
                       </Link>

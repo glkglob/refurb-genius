@@ -10,7 +10,12 @@ export function ThemeToggle({ className }: { className?: string }) {
       variant="ghost"
       size="icon"
       onClick={toggleTheme}
-      className={className}
+      className={[
+        "border border-border bg-card text-foreground shadow-sm hover:bg-section hover:text-foreground",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       aria-label="Toggle theme"
     >
       {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}

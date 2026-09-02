@@ -47,7 +47,9 @@ export {
   PhotoAnalysisCard,
   PhotoAnalysisFilters,
   PhotoUploadZone,
+  PhotoRemoveButton,
   type PhotoUploadZoneProps,
+  type PhotoRemoveButtonProps,
 } from "./components";
 export {
   formatPhotoUploadError,

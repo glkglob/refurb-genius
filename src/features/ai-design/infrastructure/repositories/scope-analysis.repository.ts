@@ -4,6 +4,7 @@
  * IA-5-R1: publication via save_project_scope_analysis SECURITY DEFINER RPC.
  * Client submits content only; server derives Analysis + Redesign provenance.
  */
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/platform/supabase/browser";
 import type { Database } from "@repo/supabase";
 import type {
@@ -128,6 +129,65 @@ export async function saveScopeAnalysis(
   };
 }
 
+type ScopeReadClient = {
+  from: typeof supabase.from;
+};
+
+async function resolveScopeReadContext(): Promise<{
+  client: ScopeReadClient;
+  userId: string;
+} | null> {
+  if (Capacitor.isNativePlatform()) {
+    const { getNativeSupabase } = await import("@/platform/supabase/native");
+    const client = getNativeSupabase();
+    const {
+      data: { user },
+      error,
+    } = await client.auth.getUser();
+    if (error || !user?.id) return null;
+    return { client, userId: user.id };
+  }
+
+  const user = auth.getUser();
+  if (!user?.id) return null;
+  return { client: supabase, userId: user.id };
+}
+
+function mapScopeAuthorityHeader(data: {
+  id: string;
+  analysis_identity: string | null;
+  redesign_identity: string | null;
+  redesign_concept_id: string | null;
+  created_at: string;
+}): ScopeAuthorityHeader {
+  return {
+    id: data.id,
+    analysisIdentity: data.analysis_identity ?? "",
+    redesignIdentity: data.redesign_identity ?? "",
+    redesignConceptId: data.redesign_concept_id ?? null,
+    createdAt: data.created_at,
+  };
+}
+
+async function loadLatestScopeAuthorityHeader(
+  client: ScopeReadClient,
+  projectId: string,
+  userId: string,
+): Promise<ScopeAuthorityHeader | null> {
+  const { data, error } = await client
+    .from("scope_analyses")
+    .select("id, analysis_identity, redesign_identity, redesign_concept_id, created_at")
+    .eq("property_id", projectId)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  return mapScopeAuthorityHeader(data);
+}
+
 /**
  * IA-5 — load latest Scope authority header for workflow currentness.
  */
@@ -149,13 +209,21 @@ export async function getLatestScopeAuthorityHeader(
   if (error) throw new Error(error.message);
   if (!data) return null;
 
-  return {
-    id: data.id,
-    analysisIdentity: data.analysis_identity ?? "",
-    redesignIdentity: data.redesign_identity ?? "",
-    redesignConceptId: data.redesign_concept_id ?? null,
-    createdAt: data.created_at,
-  };
+  return mapScopeAuthorityHeader(data);
+}
+
+/**
+ * Strict Scope header read for Dashboard workflow evidence.
+ * Successful absence is `null`. Missing session and query failure throw.
+ */
+export async function getLatestScopeAuthorityHeaderStrict(
+  projectId: string,
+): Promise<ScopeAuthorityHeader | null> {
+  const ctx = await resolveScopeReadContext();
+  if (!ctx) {
+    throw new Error("You must be signed in.");
+  }
+  return loadLatestScopeAuthorityHeader(ctx.client, projectId, ctx.userId);
 }
 
 export async function getLatestScopeAnalysis(

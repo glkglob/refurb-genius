@@ -84,7 +84,7 @@ export function ProjectWorkflowShell({
     <div
       className={
         stickyNextAction
-          ? "hidden flex-wrap items-center gap-2 md:flex"
+          ? "hidden flex-wrap items-center gap-2 lg:flex"
           : "flex flex-wrap items-center gap-2"
       }
     >
@@ -100,7 +100,13 @@ export function ProjectWorkflowShell({
   );
 
   return (
-    <AppLayout title={title} subtitle={subtitle} actions={shellActions}>
+    <AppLayout
+      title={title}
+      subtitle={subtitle}
+      actions={shellActions}
+      mobileBottomReserve={Boolean(stickyNextAction)}
+      showDealCopilotRail
+    >
       <div className="mb-2 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           Project workflow
@@ -111,7 +117,7 @@ export function ProjectWorkflowShell({
           </p>
         ) : activeStage ? (
           <p
-            className="text-xs text-muted-foreground md:hidden"
+            className="text-xs text-muted-foreground lg:hidden"
             data-testid="mobile-active-stage-hint"
           >
             Current stage: <span className="font-medium text-foreground">{activeStage.label}</span>
@@ -127,8 +133,8 @@ export function ProjectWorkflowShell({
         </div>
       ) : null}
 
-      {/* Reserve space so sticky CTA never permanently covers content. */}
-      <div className={stickyNextAction ? "pb-24 md:pb-0" : undefined}>{children}</div>
+      {/* Reserve space so sticky CTA never permanently covers stage content. */}
+      <div className={stickyNextAction ? "pb-8 lg:pb-0" : undefined}>{children}</div>
 
       {stickyNextAction ? <MobileStickyNextAction {...stickyNextAction} /> : null}
     </AppLayout>

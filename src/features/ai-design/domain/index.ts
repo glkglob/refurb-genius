@@ -31,6 +31,7 @@ export {
   redesignPaletteItemSchema,
   redesignConceptTextSchema,
   safeParseScopeResult,
+  assertScopeAnalysisResult,
   safeParseRedesignText,
   type ValidatedScopeAnalysisResult,
   type ValidatedRedesignConceptText,

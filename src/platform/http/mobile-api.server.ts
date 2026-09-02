@@ -11,6 +11,8 @@ export const MOBILE_API_PATH_PREFIX = "/api/mobile/" as const;
 export const MOBILE_SESSION_PING_PATHNAME = "/api/mobile/v1/session/ping" as const;
 export const MOBILE_REDESIGN_GENERATE_PATHNAME = "/api/mobile/v1/redesign/generate" as const;
 export const MOBILE_ANALYSIS_RUN_PATHNAME = "/api/mobile/v1/analysis/run" as const;
+export const MOBILE_ACCOUNT_DELETE_PATHNAME = "/api/mobile/v1/account/delete" as const;
+export const MOBILE_SCOPE_ANALYZE_PATHNAME = "/api/mobile/v1/scope/analyze" as const;
 
 export function isMobileApiPath(pathname: string): boolean {
   return pathname === "/api/mobile" || pathname.startsWith(MOBILE_API_PATH_PREFIX);
@@ -52,6 +54,18 @@ export async function handleMobileApiRequest(request: Request): Promise<Response
     const { handleMobileAnalysisRun } =
       await import("@/features/ai-upload/presentation/mobileAnalysisRun.server");
     return withMobileCors(request, await handleMobileAnalysisRun(request));
+  }
+
+  if (url.pathname === MOBILE_ACCOUNT_DELETE_PATHNAME) {
+    const { handleMobileAccountDelete } =
+      await import("@/features/account-deletion/presentation/mobileAccountDelete.server");
+    return withMobileCors(request, await handleMobileAccountDelete(request));
+  }
+
+  if (url.pathname === MOBILE_SCOPE_ANALYZE_PATHNAME) {
+    const { handleMobileScopeAnalyze } =
+      await import("@/features/ai-design/presentation/mobileScopeAnalyze.server");
+    return withMobileCors(request, await handleMobileScopeAnalyze(request));
   }
 
   return withMobileCors(request, jsonResponse({ error: "Not found" }, 404));

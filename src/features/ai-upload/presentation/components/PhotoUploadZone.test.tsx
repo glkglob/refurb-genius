@@ -88,6 +88,19 @@ describe("PhotoUploadZone", () => {
     expect(library).toHaveAttribute("aria-hidden", "true");
   });
 
+  it("local preview remove is 44px, named, and updates File[] only", async () => {
+    const onPhotosSelected = vi.fn();
+    render(createElement(PhotoUploadZone, { onPhotosSelected }));
+    fireFiles(getLibraryInput(), [makeImage("room.jpg")]);
+    const remove = await screen.findByRole("button", { name: "Remove room.jpg" });
+    expect(remove.className).toMatch(/(?:^|\s)h-11(?:\s|$)/);
+    expect(remove.className).toMatch(/(?:^|\s)w-11(?:\s|$)/);
+    expect(remove.getAttribute("data-testid")).toBe("local-preview-remove");
+    fireEvent.click(remove);
+    const last = onPhotosSelected.mock.calls.at(-1)?.[0] as File[];
+    expect(last).toEqual([]);
+  });
+
   it("accepts image files and reports them to the parent", async () => {
     const onPhotosSelected = vi.fn();
     render(createElement(PhotoUploadZone, { onPhotosSelected }));

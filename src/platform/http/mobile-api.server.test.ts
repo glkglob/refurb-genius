@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const requireMobileBearer = vi.fn();
 const handleMobileRedesignGenerate = vi.fn();
 const handleMobileAnalysisRun = vi.fn();
+const handleMobileAccountDelete = vi.fn();
+const handleMobileScopeAnalyze = vi.fn();
 
 vi.mock("./mobile-bearer.server", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./mobile-bearer.server")>();
@@ -20,6 +22,14 @@ vi.mock("@/features/ai-upload/presentation/mobileAnalysisRun.server", () => ({
   handleMobileAnalysisRun: (...args: unknown[]) => handleMobileAnalysisRun(...args),
 }));
 
+vi.mock("@/features/account-deletion/presentation/mobileAccountDelete.server", () => ({
+  handleMobileAccountDelete: (...args: unknown[]) => handleMobileAccountDelete(...args),
+}));
+
+vi.mock("@/features/ai-design/presentation/mobileScopeAnalyze.server", () => ({
+  handleMobileScopeAnalyze: (...args: unknown[]) => handleMobileScopeAnalyze(...args),
+}));
+
 import { handleMobileApiRequest, MOBILE_SESSION_PING_PATHNAME } from "./mobile-api.server";
 
 describe("handleMobileApiRequest session ping canary", () => {
@@ -27,6 +37,8 @@ describe("handleMobileApiRequest session ping canary", () => {
     requireMobileBearer.mockReset();
     handleMobileRedesignGenerate.mockReset();
     handleMobileAnalysisRun.mockReset();
+    handleMobileAccountDelete.mockReset();
+    handleMobileScopeAnalyze.mockReset();
   });
 
   it("OPTIONS is unauthenticated preflight", async () => {
@@ -150,6 +162,63 @@ describe("handleMobileApiRequest session ping canary", () => {
     expect(handleMobileRedesignGenerate).not.toHaveBeenCalled();
     expect(res.status).toBe(200);
     expect(res.headers.get("Access-Control-Allow-Origin")).toBe("capacitor://localhost");
+  });
+
+  it("POST account/delete is dispatched to the Bearer delete handler", async () => {
+    handleMobileAccountDelete.mockResolvedValue(
+      new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "content-type": "application/json" },
+      }),
+    );
+    const res = await handleMobileApiRequest(
+      new Request("https://www.refurbgenius.info/api/mobile/v1/account/delete", {
+        method: "POST",
+        headers: {
+          Origin: "capacitor://localhost",
+          Authorization: "Bearer synthetic",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ userId: "attacker" }),
+      }),
+    );
+    expect(handleMobileAccountDelete).toHaveBeenCalledTimes(1);
+    expect(handleMobileAnalysisRun).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe("capacitor://localhost");
+  });
+
+  it("POST scope/analyze is dispatched to the Bearer scope handler", async () => {
+    handleMobileScopeAnalyze.mockResolvedValue(
+      new Response(
+        JSON.stringify({ overall_score: 6, summary: "ok", rooms: [{ room: "Kitchen" }] }),
+        {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        },
+      ),
+    );
+    const res = await handleMobileApiRequest(
+      new Request("https://www.refurbgenius.info/api/mobile/v1/scope/analyze", {
+        method: "POST",
+        headers: {
+          Origin: "capacitor://localhost",
+          Authorization: "Bearer synthetic",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          projectId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1",
+          photos: [{ id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb1", url: "x", name: "a.jpg" }],
+          roomTags: ["Kitchen"],
+          propertyType: "Terraced",
+          bedrooms: 3,
+          region: "London",
+        }),
+      }),
+    );
+    expect(handleMobileScopeAnalyze).toHaveBeenCalledTimes(1);
+    expect(handleMobileAccountDelete).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
   });
 
   it("GET on generate is 405 and does not authenticate", async () => {

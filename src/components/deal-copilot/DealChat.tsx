@@ -234,38 +234,43 @@ export function DealChat({ opportunityId }: { opportunityId: string }) {
 
         {/* Input */}
         {selectedThreadId && (
-          <div className="border-t border-border p-3">
-            <div className="flex gap-2">
+          <div className="sticky bottom-0 border-t border-border bg-background/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] backdrop-blur">
+            <div className="flex items-end gap-2">
               <Textarea
-                className="min-h-[40px] max-h-32 resize-none text-sm"
+                className="min-h-11 max-h-32 resize-none text-sm"
                 placeholder="Ask about this deal… (Enter to send, Shift+Enter for newline)"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={handleKeyDown}
                 disabled={sendMutation.isPending}
                 rows={1}
+                aria-label="Deal Copilot message"
               />
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-2">
                 <Button
-                  size="sm"
+                  size="icon"
                   onClick={handleSend}
                   disabled={!draft.trim() || sendMutation.isPending}
-                  className="px-3"
+                  aria-label="Send message"
                 >
                   {sendMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                   ) : (
-                    <Send className="h-4 w-4" />
+                    <Send className="h-4 w-4" aria-hidden />
                   )}
                 </Button>
                 <Button
-                  size="sm"
+                  size="icon"
                   variant={isListening ? "destructive" : "outline"}
                   onClick={toggleVoice}
                   title={isListening ? "Stop listening" : "Voice input"}
-                  className="px-3"
+                  aria-label={isListening ? "Stop listening" : "Voice input"}
                 >
-                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  {isListening ? (
+                    <MicOff className="h-4 w-4" aria-hidden />
+                  ) : (
+                    <Mic className="h-4 w-4" aria-hidden />
+                  )}
                 </Button>
               </div>
             </div>

@@ -1,4 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { Capacitor } from "@capacitor/core";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +23,23 @@ import beforeImg from "@/assets/before.jpg";
 import afterImg from "@/assets/after.jpg";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: async ({ context }) => {
+    // Web SSR and web clients keep the public landing. Native SPA only.
+    if (typeof window === "undefined" || !Capacitor.isNativePlatform()) {
+      return;
+    }
+    let destination: "/dashboard" | "/auth" = "/auth";
+    try {
+      const { observeNativeAuthIdentity } = await import("@/features/auth");
+      const outcome = await observeNativeAuthIdentity(context.queryClient);
+      if (outcome.kind === "authenticated") {
+        destination = "/dashboard";
+      }
+    } catch {
+      destination = "/auth";
+    }
+    throw redirect({ to: destination });
+  },
   head: () => ({
     meta: [
       { title: "Refurb Genius — Upload a property and instantly see its future potential" },
@@ -193,7 +211,7 @@ function HowItWorks() {
     },
   ];
   return (
-    <section id="workflow" className="border-t border-border bg-secondary/30 py-20">
+    <section id="workflow" className="border-t border-border bg-section py-20">
       <div className="mx-auto max-w-6xl px-6">
         <SectionHeader
           eyebrow="How it works"
@@ -203,7 +221,7 @@ function HowItWorks() {
           {steps.map((s, i) => (
             <Card key={s.title} className="relative overflow-hidden">
               <CardContent className="p-6">
-                <span className="absolute right-4 top-4 text-5xl font-bold text-secondary">
+                <span className="absolute right-4 top-4 text-5xl font-bold text-muted-foreground">
                   {i + 1}
                 </span>
                 <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -244,8 +262,8 @@ function FeatureSplit({
           className={`grid items-center gap-12 lg:grid-cols-2 ${reverse ? "lg:[&>*:first-child]:order-2" : ""}`}
         >
           <div>
-            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent">
-              <Icon className="h-4 w-4" /> {eyebrow}
+            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent-text">
+              <Icon className="h-4 w-4 text-accent" /> {eyebrow}
             </span>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
               {title}
@@ -288,8 +306,8 @@ function CostEstimator() {
       <div className="mx-auto max-w-6xl px-6">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
-            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent">
-              <Calculator className="h-4 w-4" /> UK Refurb Cost Estimator
+            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary-foreground">
+              <Calculator className="h-4 w-4 text-accent" /> UK Refurb Cost Estimator
             </span>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
               Costs benchmarked across every UK region.
@@ -321,7 +339,7 @@ function CostEstimator() {
                 </p>
                 <p className="mt-1 text-3xl font-semibold">£64,500</p>
               </div>
-              <span className="rounded-full bg-accent/20 px-3 py-1 text-xs font-medium text-accent">
+              <span className="rounded-full bg-accent/20 px-3 py-1 text-xs font-medium text-primary-foreground">
                 London
               </span>
             </div>
@@ -386,8 +404,8 @@ function ReportExport() {
       <div className="mx-auto max-w-6xl px-6">
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div>
-            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent">
-              <FileDown className="h-4 w-4" /> Report Export
+            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-accent-text">
+              <FileDown className="h-4 w-4 text-accent" /> Report Export
             </span>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
               Investor-ready reports in one click.
@@ -414,7 +432,7 @@ function ReportExport() {
               <p className="text-sm font-semibold text-foreground">
                 Refurb Report — sample property
               </p>
-              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+              <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent-text">
                 PDF
               </span>
             </div>
@@ -473,7 +491,7 @@ function BeforeAfter() {
           </div>
           <div className="overflow-hidden rounded-2xl border border-border shadow-lg">
             <div className="relative">
-              <span className="absolute left-4 top-4 z-10 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
+              <span className="absolute left-4 top-4 z-10 rounded-full border border-accent/30 bg-card px-3 py-1 text-xs font-semibold text-card-foreground">
                 After
               </span>
               <img
@@ -511,7 +529,7 @@ function FinalCTA() {
             <Link
               to="/auth"
               search={{ mode: "signup" }}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-foreground px-6 py-3 text-sm font-semibold text-primary shadow-sm transition hover:opacity-90 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
             >
               Get started free <ArrowRight className="h-4 w-4" />
             </Link>
@@ -533,7 +551,9 @@ function SectionHeader({
 }) {
   return (
     <div className="mx-auto max-w-2xl text-center">
-      <span className="text-xs font-semibold uppercase tracking-wider text-accent">{eyebrow}</span>
+      <span className="text-xs font-semibold uppercase tracking-wider text-accent-text">
+        {eyebrow}
+      </span>
       <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
         {title}
       </h2>
