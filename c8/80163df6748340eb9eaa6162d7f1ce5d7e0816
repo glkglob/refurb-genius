@@ -1,0 +1,352 @@
+docs/compliance/apple/00-compliance-register.md
+  h_7ea6129503670a 1-244
+docs/compliance/apple/03-technical-baseline.md
+  h_7ea6129503670a 1-179
+docs/compliance/apple/04-sdk-and-permissions-inventory.md
+  h_7ea6129503670a 1-186
+docs/compliance/apple/05-data-inventory.md
+  h_7ea6129503670a 1-209
+docs/compliance/apple/06-account-deletion-evidence.md
+  h_7ea6129503670a 1-140
+docs/compliance/apple/07-sign-in-with-apple-revocation-worksheet.md
+  h_7ea6129503670a 1-95
+docs/compliance/apple/08-app-privacy-declarations-worksheet.md
+  h_7ea6129503670a 1-90
+packages/ui/src/components/badge.tsx
+  h_7ea6129503670a 7
+packages/ui/src/components/button.tsx
+  h_7ea6129503670a 8,26
+packages/ui/src/components/calendar.tsx
+  h_7ea6129503670a 65,92,94,96,168
+packages/ui/src/components/card.tsx
+  h_7ea6129503670a 10
+packages/ui/src/components/command.tsx
+  h_7ea6129503670a 47,114
+packages/ui/src/components/context-menu.tsx
+  h_7ea6129503670a 28,81,97,120
+packages/ui/src/components/dialog.tsx
+  h_7ea6129503670a 47
+packages/ui/src/components/dropdown-menu.tsx
+  h_7ea6129503670a 30,85,101,124
+packages/ui/src/components/input.tsx
+  h_7ea6129503670a 14
+packages/ui/src/components/menubar.tsx
+  h_7ea6129503670a 49,66,122,138,161
+packages/ui/src/components/navigation-menu.tsx
+  h_7ea6129503670a 38
+packages/ui/src/components/select.tsx
+  h_7ea6129503670a 24,117
+packages/ui/src/components/textarea.tsx
+  h_7ea6129503670a 12
+packages/ui/src/components/toggle.tsx
+  h_7ea6129503670a 10,16
+public/manifest.json
+  h_7ea6129503670a 9-10
+src/assets/fonts/cormorant-garamond/OFL.txt
+  h_7ea6129503670a 1-93
+src/components/AppLayout.test.tsx
+  h_7ea6129503670a 1-71
+src/components/AppLayout.tsx
+  h_7ea6129503670a 2,6-7,15-16,22-25,29-36,38,40-48,50-68,70-80
+src/components/BrandLogo.test.tsx
+  h_7ea6129503670a 1-61
+src/components/BrandLogo.tsx
+  h_7ea6129503670a 1-46
+src/components/DealCopilotRail.test.tsx
+  h_7ea6129503670a 1-30
+src/components/DealCopilotRail.tsx
+  h_7ea6129503670a 1-38
+src/components/EmptyState.tsx
+  h_7ea6129503670a 22,36
+src/components/EstimateTable.tsx
+  h_7ea6129503670a 42
+src/components/Footer.tsx
+  h_7ea6129503670a 17,25
+src/components/LoadingState.tsx
+  h_7ea6129503670a 5-10,12
+src/components/MobileBottomNav.test.tsx
+  h_7ea6129503670a 1-352
+src/components/MobileBottomNav.tsx
+  h_7ea6129503670a 1-215
+src/components/MobileTopBar.test.tsx
+  h_7ea6129503670a 2,5,10,13-16,32,34-35,42,45-51,53,55-56,58-63,66,68-69,72,74-85,88,90-106,109,119-124,126
+src/components/MobileTopBar.tsx
+  h_7ea6129503670a 1-12,21-28,31,42,45-47,49-61,63-71,73-91
+src/components/Navbar.test.tsx
+  h_7ea6129503670a 17-27,84-150
+src/components/Navbar.tsx
+  h_7ea6129503670a 15-22,31,41,48-55,68-69,74-78,95,104,115,122-126,136,145,152-154
+src/components/ProjectCard.tsx
+  h_7ea6129503670a 25,34,38-39
+src/components/Sidebar.test.tsx
+  h_7ea6129503670a 49,59-81,95-122
+src/components/Sidebar.tsx
+  h_7ea6129503670a 55-60,63-64,79,81-82,86,91,94,98-99,107,109,114
+src/components/StatusBadge.test.tsx
+  h_7ea6129503670a 1-45
+src/components/StatusBadge.tsx
+  h_7ea6129503670a 8,25
+src/components/ThemeToggle.tsx
+  h_7ea6129503670a 13-18
+src/components/deal-copilot/DealChat.tsx
+  h_7ea6129503670a 237-238,240,247,249,251,254,257,259,263,267,269-273
+src/components/deal-copilot/DealCopilotFeedback.tsx
+  h_7ea6129503670a 131,143
+src/components/deal-copilot/DealIntakeForm.tsx
+  h_7ea6129503670a 497,597,643,675
+src/components/gallery/ProjectCard.tsx
+  h_7ea6129503670a 40,53,89
+src/components/marketplace/TradepersonCard.tsx
+  h_7ea6129503670a 86
+src/components/ui/sonner.tsx
+  h_7ea6129503670a 9-20
+src/docs/COMPONENT_STANDARDS.md
+  h_7ea6129503670a 3-4,7,15,19,94,103,109-112,114,120,122-123,147
+src/docs/design-system.md
+  h_7ea6129503670a 3-5,11-12,16-18,24,26,28-39,43-62,72-79,98-99,103,113,119-121,137-280,282-286,290,298,310-311,315-316
+src/docs/ios-product-design.md
+  h_7ea6129503670a 1-266
+src/features/account-deletion/application/deleteOwnedStorage.server.test.ts
+  h_7ea6129503670a 1-189
+src/features/account-deletion/application/deleteOwnedStorage.server.ts
+  h_7ea6129503670a 1-184
+src/features/account-deletion/application/executeAccountDeletion.server.test.ts
+  h_7ea6129503670a 1-306
+src/features/account-deletion/application/executeAccountDeletion.server.ts
+  h_7ea6129503670a 1-229
+src/features/account-deletion/domain/accountDeletionContract.ts
+  h_7ea6129503670a 1-48
+src/features/account-deletion/presentation/deleteAccountForClient.test.ts
+  h_7ea6129503670a 1-97
+src/features/account-deletion/presentation/deleteAccountForClient.ts
+  h_7ea6129503670a 1-24
+src/features/account-deletion/presentation/mobileAccountDelete.server.test.ts
+  h_7ea6129503670a 1-92
+src/features/account-deletion/presentation/mobileAccountDelete.server.ts
+  h_7ea6129503670a 1-83
+src/features/ai-design/domain/index.ts
+  h_7ea6129503670a 34
+src/features/ai-design/domain/validation.test.ts
+  h_7ea6129503670a 1-51
+src/features/ai-design/domain/validation.ts
+  h_7ea6129503670a 63-88
+src/features/ai-design/infrastructure/adapters/ai-scope.adapter.server.test.ts
+  h_7ea6129503670a 138-218
+src/features/ai-design/infrastructure/adapters/ai-scope.adapter.server.ts
+  h_7ea6129503670a 16,25-83,86,93,99,110,121,132-133,324,348-350
+src/features/ai-design/infrastructure/index.ts
+  h_7ea6129503670a 12
+src/features/ai-design/infrastructure/repositories/scope-analysis.repository.strict-read.test.ts
+  h_7ea6129503670a 1-111
+src/features/ai-design/infrastructure/repositories/scope-analysis.repository.ts
+  h_7ea6129503670a 7,132-190,212-226
+src/features/ai-design/infrastructure/runAuthenticatedScopeAnalysis.server.test.ts
+  h_7ea6129503670a 1-115
+src/features/ai-design/infrastructure/runAuthenticatedScopeAnalysis.server.ts
+  h_7ea6129503670a 1-46
+src/features/ai-design/presentation/hooks/useScopeAnalysis.ts
+  h_7ea6129503670a 7,11
+src/features/ai-design/presentation/index.ts
+  h_7ea6129503670a 11
+src/features/ai-design/presentation/mobileScopeAnalyze.server.test.ts
+  h_7ea6129503670a 1-125
+src/features/ai-design/presentation/mobileScopeAnalyze.server.ts
+  h_7ea6129503670a 1-152
+src/features/ai-design/presentation/runScopeAnalysisForClient.test.ts
+  h_7ea6129503670a 1-144
+src/features/ai-design/presentation/runScopeAnalysisForClient.ts
+  h_7ea6129503670a 1-24
+src/features/ai-design/presentation/serverFns.ts
+  h_7ea6129503670a 102-105,108-119
+src/features/ai-upload/infrastructure/index.ts
+  h_7ea6129503670a 12
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.strict-read.test.ts
+  h_7ea6129503670a 1-145
+src/features/ai-upload/infrastructure/repositories/room-analysis.repository.ts
+  h_7ea6129503670a 70-106
+src/features/ai-upload/presentation/components/PhotoRemoveButton.test.tsx
+  h_7ea6129503670a 1-55
+src/features/ai-upload/presentation/components/PhotoRemoveButton.tsx
+  h_7ea6129503670a 1-29
+src/features/ai-upload/presentation/components/PhotoUploadZone.test.tsx
+  h_7ea6129503670a 91-103
+src/features/ai-upload/presentation/components/PhotoUploadZone.tsx
+  h_7ea6129503670a 220,231,233,235
+src/features/ai-upload/presentation/components/index.ts
+  h_7ea6129503670a 11
+src/features/ai-upload/presentation/hooks/usePhotos.test.ts
+  h_7ea6129503670a 475-506,516-518,634-652
+src/features/ai-upload/presentation/hooks/usePhotos.ts
+  h_7ea6129503670a 8,24-29,168
+src/features/ai-upload/presentation/index.ts
+  h_7ea6129503670a 50,52
+src/features/auth/presentation/AuthExperience.test.tsx
+  h_7ea6129503670a 732-739
+src/features/auth/presentation/AuthExperience.tsx
+  h_7ea6129503670a 46-48,52-53,58-59,63,458,467,470,473,479,490-491,504-505,545,562,571,578,603,616,624,643,663-664,666,670,675,689,707,719-721,725,728,780-781,793-794,797,821,893,898,917-918,921-924,944,954-957,963,989,994-995,999,1002,1017,1019,1022-1023,1030,1035,1038,1042-1045,1050-1051,1054-1055,1058-1059,1066,1070-1071,1073,1077,1081,1085-1086,1088-1089
+src/features/estimate/infrastructure/index.ts
+  h_7ea6129503670a 14
+src/features/estimate/infrastructure/repositories/estimate.repository.read.test.ts
+  h_7ea6129503670a 35-39,83-156
+src/features/estimate/infrastructure/repositories/estimate.repository.ts
+  h_7ea6129503670a 142-143,177-200
+src/features/estimate/presentation/components/CostSummary.tsx
+  h_7ea6129503670a 77,81,96,102,108,114
+src/features/export/infrastructure/exportSnapshot.repository.strict-read.test.ts
+  h_7ea6129503670a 1-109
+src/features/export/infrastructure/exportSnapshot.repository.ts
+  h_7ea6129503670a 6,18-76,95-109
+src/features/export/infrastructure/index.ts
+  h_7ea6129503670a 6
+src/features/navigation/globalNav.test.ts
+  h_7ea6129503670a 28,31-33,88-90,126-129
+src/features/navigation/globalNav.ts
+  h_7ea6129503670a 12,69-71
+src/features/projects/domain/photosAnalysisWorkflowAdapter.test.ts
+  h_7ea6129503670a 90-107
+src/features/projects/presentation/components/MobileStickyNextAction.test.tsx
+  h_7ea6129503670a 33-47
+src/features/projects/presentation/components/MobileStickyNextAction.tsx
+  h_7ea6129503670a 44-47
+src/features/projects/presentation/components/ProjectBrief.test.tsx
+  h_7ea6129503670a 1-67
+src/features/projects/presentation/components/ProjectBrief.tsx
+  h_7ea6129503670a 1-103
+src/features/projects/presentation/components/ProjectContinuationCard.test.tsx
+  h_7ea6129503670a 219-267,459
+src/features/projects/presentation/components/ProjectContinuationCard.tsx
+  h_7ea6129503670a 23-24,27-28,64-91,111-112,116-120,122,131-135,142-147,150-155,160-164,174,177-194,224-235
+src/features/projects/presentation/components/ProjectStageNav.test.tsx
+  h_7ea6129503670a 88-91
+src/features/projects/presentation/components/ProjectStageNav.tsx
+  h_7ea6129503670a 120,131,147,170
+src/features/projects/presentation/components/ProjectWorkflowShell.test.tsx
+  h_7ea6129503670a 78-82
+src/features/projects/presentation/components/ProjectWorkflowShell.tsx
+  h_7ea6129503670a 87,103-109,120,136-137
+src/features/projects/presentation/components/WorkflowBoard.test.tsx
+  h_7ea6129503670a 1-76
+src/features/projects/presentation/components/WorkflowBoard.tsx
+  h_7ea6129503670a 1-53
+src/features/projects/presentation/components/WorkflowBoardItem.tsx
+  h_7ea6129503670a 1-33
+src/features/projects/presentation/components/index.ts
+  h_7ea6129503670a 13-15
+src/features/projects/presentation/dashboardProjectSummary.test.ts
+  h_7ea6129503670a 1-185
+src/features/projects/presentation/dashboardProjectSummary.ts
+  h_7ea6129503670a 1-165
+src/features/projects/presentation/hooks/useDashboardProjectSummaries.test.ts
+  h_7ea6129503670a 1-319
+src/features/projects/presentation/hooks/useDashboardProjectSummaries.ts
+  h_7ea6129503670a 1-202
+src/features/projects/presentation/hooks/useProjectBriefVisibility.test.ts
+  h_7ea6129503670a 1-109
+src/features/projects/presentation/hooks/useProjectBriefVisibility.ts
+  h_7ea6129503670a 1-74
+src/features/projects/presentation/index.ts
+  h_7ea6129503670a 11-16,26-47
+src/features/projects/presentation/workflowEvidenceQueryOptions.test.ts
+  h_7ea6129503670a 1-185
+src/features/projects/presentation/workflowEvidenceQueryOptions.ts
+  h_7ea6129503670a 1-72
+src/lib/queries/projects.test.ts
+  h_7ea6129503670a 15,25,44-46,207-208,210,216,221,225,236,241-269,277
+src/lib/queries/projects.ts
+  h_7ea6129503670a 67-75,79
+src/platform/http/mobile-account-delete.test.ts
+  h_7ea6129503670a 1-48
+src/platform/http/mobile-account-delete.ts
+  h_7ea6129503670a 1-18
+src/platform/http/mobile-api.server.test.ts
+  h_7ea6129503670a 6-7,25-32,40-41,167-223
+src/platform/http/mobile-api.server.ts
+  h_7ea6129503670a 14-15,59-70
+src/platform/http/mobile-scope-analyze.test.ts
+  h_7ea6129503670a 1-69
+src/platform/http/mobile-scope-analyze.ts
+  h_7ea6129503670a 1-50
+src/platform/supabase/native-projects.test.ts
+  h_7ea6129503670a 1-3,11-15,30,49,92,106-107,121-153
+src/platform/supabase/native-projects.ts
+  h_7ea6129503670a 38-39,44-52,56
+src/routes/__root.tsx
+  h_7ea6129503670a 80,133,253
+src/routes/_authed/-dashboard.hierarchy.test.ts
+  h_7ea6129503670a 2,10-16,19-22,25-32,35-41
+src/routes/_authed/-dashboard.presentation.test.tsx
+  h_7ea6129503670a 1-89
+src/routes/_authed/-dashboard.test.tsx
+  h_7ea6129503670a 2,12-13,19-25,31,34,38,44-45,62,64-68,72-73,76-83,85-96,98-102,104,106-107,109-115,118,120-123,126,128-136,139-167,169,172-189,191-193,196-203,205-208
+src/routes/_authed/-projects.$id.estimate.cta.test.ts
+  h_7ea6129503670a 30-34
+src/routes/_authed/-projects.$id.overview.ia6.test.ts
+  h_7ea6129503670a 37-38
+src/routes/_authed/-projects.index.ia7.test.ts
+  h_7ea6129503670a 58-70
+src/routes/_authed/-projects.index.presentation.test.tsx
+  h_7ea6129503670a 1-162
+src/routes/_authed/dashboard.tsx
+  h_7ea6129503670a 5,8-12,24-28,31-41,44,46-50,52-110,112-120,122-123,128
+src/routes/_authed/marketplace.tsx
+  h_7ea6129503670a 12-23,32-107,110,120-121,188-203,210,214-216,219,234,238-243,309-316,357-672
+src/routes/_authed/projects.$id.estimate.tsx
+  h_7ea6129503670a 687
+src/routes/_authed/projects.$id.report.tsx
+  h_7ea6129503670a 12,266,268,274,280,290-296,298,304-310,316,345-350
+src/routes/_authed/projects.$id.scope.tsx
+  h_7ea6129503670a 386
+src/routes/_authed/projects.$id.upload.tsx
+  h_7ea6129503670a 34,591-595
+src/routes/_authed/projects.index.tsx
+  h_7ea6129503670a 8,13-14,21-30,33-37,42,44,46,52-71,91,97-102,104-106
+src/routes/_authed/settings.tsx
+  h_7ea6129503670a 74-76,148,154,160,170,172,175-176,178,181,183,188-190,201,207-209,217,226
+src/routes/_authed/trades_.profile.tsx
+  h_7ea6129503670a 237
+src/routes/auth_.callback.tsx
+  h_7ea6129503670a 98
+src/routes/index.native-entry.test.tsx
+  h_7ea6129503670a 1-97
+src/routes/index.tsx
+  h_7ea6129503670a 1-2,26-42,214,224,265-266,309-310,342,407-408,435,494,532,554-556
+src/routes/support.tsx
+  h_7ea6129503670a 315-316
+src/routes/trades.tsx
+  h_7ea6129503670a 4,74-75,108-116,258,270,332,612-614
+src/routes/trades_.$jobId.tsx
+  h_7ea6129503670a 465
+src/serverFns/auth.ts
+  h_7ea6129503670a 46-47,53-55,57-68
+src/styles.css
+  h_7ea6129503670a 7-22,26-40,48-49,60,62-73,85-86,97,108,131-134,147-148,159,170,189-213,218-220,226-237,241-259,262-266,272-283,291-295,299-300,303-312,316-321,356,360,362
+tests/invariants/dashboard-home-composition.invariant.test.ts
+  h_7ea6129503670a 1-77
+tests/invariants/dashboard-onboarding-auth-presentation.invariant.test.ts
+  h_7ea6129503670a 8-9,22,40,44,47,49-51,109-117
+tests/invariants/design-token-contrast.invariant.test.ts
+  h_7ea6129503670a 1-473
+tests/invariants/feature-slice.invariant.test.ts
+  h_7ea6129503670a 172,181-184
+tests/invariants/native-account-delete.invariant.test.ts
+  h_7ea6129503670a 1-55
+tests/invariants/native-scope-analysis.invariant.test.ts
+  h_7ea6129503670a 1-103
+tests/invariants/overlay-opaque-surface.invariant.test.ts
+  h_7ea6129503670a 90-102,104-105
+tests/invariants/shell-auth-signout-ownership.invariant.test.ts
+  h_7ea6129503670a 11,19-23,64-93,142-145,149-166
+tests/invariants/trades-availability-truth.invariant.test.ts
+  h_7ea6129503670a 86,88,90-93,96-121,123-127,129-179
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "c880163df6748340eb9eaa6162d7f1ce5d7e0816",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
