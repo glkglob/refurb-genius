@@ -121,3 +121,21 @@ test("deprecated horizontal raster assets are absent", () => {
   assert.equal(existsSync(abs("src/assets/brand/logo-light-horizontal.png")), false);
   assert.equal(existsSync(abs("src/assets/brand/logo-dark-horizontal.jpg")), false);
 });
+
+test("BrandLogo adaptive selection does not use OS prefers-color-scheme or media dark: utilities", () => {
+  const src = read("src/components/BrandLogo.tsx");
+  assert.doesNotMatch(src, /prefers-color-scheme/);
+  assert.doesNotMatch(src, /matchMedia/);
+  assert.doesNotMatch(src, /dark:hidden/);
+  assert.doesNotMatch(src, /hidden dark:block/);
+});
+
+test("report branding header follows app theme on screen and on-light for PDF export", () => {
+  const report = read("src/routes/_authed/projects.$id.report.tsx");
+  const header = report.match(/\{\/\* Branding header \*\/\}[\s\S]*?<\/header>/);
+  assert.ok(header, "report branding header block must exist");
+  assert.doesNotMatch(header[0]!, /surface="light"/);
+  assert.match(header[0]!, /pdfExporting/);
+  assert.match(header[0]!, /"adaptive"/);
+  assert.match(header[0]!, /"light"/);
+});

@@ -369,7 +369,7 @@ function ReportPage() {
               <div className="flex items-center">
                 <BrandLogo
                   variant="primary"
-                  surface="light"
+                  surface={pdfExporting ? "light" : "adaptive"}
                   className="h-8 w-auto min-w-[7.5rem] max-w-full"
                 />
               </div>

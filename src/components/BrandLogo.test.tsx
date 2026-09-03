@@ -34,17 +34,34 @@ describe("BrandLogo", () => {
     expect(imgSrc(images[0]!)).toMatch(/rg-wordmark-on-dark/);
   });
 
-  it("follows application theme for surface=adaptive via dark: utilities", () => {
+  it("encodes adaptive visibility as a .dark ancestor rule, not OS dark: media", () => {
     const { container } = render(
       createElement(BrandLogo, { variant: "primary", surface: "adaptive" }),
     );
     const images = container.querySelectorAll("img");
     expect(images).toHaveLength(2);
-    expect(imgSrc(images[0]!)).toMatch(/rg-wordmark-on-light/);
-    expect(images[0]!.className).toMatch(/dark:hidden/);
-    expect(imgSrc(images[1]!)).toMatch(/rg-wordmark-on-dark/);
-    expect(images[1]!.className).toMatch(/hidden/);
-    expect(images[1]!.className).toMatch(/dark:block/);
+
+    const onLight = images[0]!;
+    const onDark = images[1]!;
+    const onLightClasses = onLight.className.split(/\s+/);
+    const onDarkClasses = onDark.className.split(/\s+/);
+
+    expect(imgSrc(onLight)).toMatch(/rg-wordmark-on-light/);
+    expect(onLightClasses).toContain("[.dark_&]:hidden");
+    expect(onLightClasses).toContain("print:!block");
+    expect(onLightClasses).not.toContain("dark:hidden");
+
+    expect(imgSrc(onDark)).toMatch(/rg-wordmark-on-dark/);
+    expect(onDarkClasses).toContain("hidden");
+    expect(onDarkClasses).toContain("[.dark_&]:block");
+    expect(onDarkClasses).toContain("print:!hidden");
+    expect(onDarkClasses).not.toContain("dark:block");
+
+    expect(SOURCE).toMatch(/\[\.dark_&\]:hidden/);
+    expect(SOURCE).toMatch(/\[\.dark_&\]:block/);
+    expect(SOURCE).not.toMatch(/dark:hidden/);
+    expect(SOURCE).not.toMatch(/hidden dark:block/);
+    expect(SOURCE).not.toMatch(/matchMedia/);
   });
 
   it("renders compact and compactMicro from the approved leaf+sparkle masters", () => {

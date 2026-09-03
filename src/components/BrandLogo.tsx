@@ -33,6 +33,11 @@ export type BrandLogoProps = {
 
 const imgClassName = "block h-full w-auto max-h-full max-w-full object-contain object-left";
 
+// Adaptive follows the application `.dark` ancestor (html.dark), not `dark:` media.
+// Print always forces the on-light asset onto the light printed surface.
+const ADAPTIVE_ON_LIGHT_CLASS = "[.dark_&]:hidden print:!block";
+const ADAPTIVE_ON_DARK_CLASS = "hidden [.dark_&]:block print:!hidden";
+
 function BrandMarkImg({
   src,
   width,
@@ -73,8 +78,8 @@ export function BrandLogo({ variant, surface, decorative = false, className }: B
         <BrandMarkImg {...pair.dark} />
       ) : (
         <>
-          <BrandMarkImg {...pair.light} className="dark:hidden" />
-          <BrandMarkImg {...pair.dark} className="hidden dark:block" />
+          <BrandMarkImg {...pair.light} className={ADAPTIVE_ON_LIGHT_CLASS} />
+          <BrandMarkImg {...pair.dark} className={ADAPTIVE_ON_DARK_CLASS} />
         </>
       )}
     </div>
