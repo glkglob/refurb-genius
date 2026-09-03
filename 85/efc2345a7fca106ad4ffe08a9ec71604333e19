@@ -1,0 +1,20 @@
+src/components/BrandLogo.test.tsx
+  h_7ea6129503670a 37,43-64
+src/components/BrandLogo.tsx
+  h_7ea6129503670a 36-40,81-82
+src/routes/_authed/projects.$id.report.tsx
+  h_7ea6129503670a 372
+tests/invariants/brand-assets.invariant.test.ts
+  h_7ea6129503670a 124-141
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "85efc2345a7fca106ad4ffe08a9ec71604333e19",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
