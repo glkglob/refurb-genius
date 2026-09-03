@@ -19,6 +19,7 @@ import { Separator } from "@repo/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useAuthPasswordCredentials } from "./hooks/useAuthPasswordCredentials";
 import { useOAuthSignIn } from "./hooks/useOAuthSignIn";
 import { useAuthEmailAccess } from "./hooks/useAuthEmailAccess";
@@ -943,19 +944,15 @@ function AuthPageShell({
   return (
     <div className="min-h-dvh bg-background text-foreground supports-[padding:max(0px)]:pt-[env(safe-area-inset-top)]">
       <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-5 lg:px-10">
-        <div className="flex min-w-0 items-center gap-3">
-          <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-sm font-semibold text-white"
-            aria-hidden="true"
-          >
-            RG
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-foreground">Refurb Genius</p>
-            <p className="truncate text-xs text-muted-foreground">
-              Property refurbishment analysis
-            </p>
-          </div>
+        <div className="flex min-w-0 flex-col gap-1">
+          <BrandLogo
+            variant="primary"
+            surface="adaptive"
+            className="h-8 w-auto min-w-[7.5rem] max-w-full"
+          />
+          <p className="min-w-0 truncate text-xs text-muted-foreground">
+            Property refurbishment analysis
+          </p>
         </div>
         <Button
           type="button"

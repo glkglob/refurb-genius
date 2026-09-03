@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router";
-import { Building2, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/hooks/useAuth";
+import { BrandLogo } from "@/components/BrandLogo";
 
 const NAV_LINKS = [
   { to: "/dashboard", label: "Dashboard" },
@@ -33,13 +34,13 @@ export function Navbar() {
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Building2 className="h-5 w-5" />
-          </div>
-          <span className="text-lg font-semibold tracking-tight text-foreground">
-            Refurb<span className="text-accent-text">Genius</span>
-          </span>
+        <Link to="/" className="flex items-center gap-2" aria-label="Refurb Genius home">
+          <BrandLogo
+            variant="primary"
+            surface="adaptive"
+            decorative
+            className="h-8 w-auto min-w-[7.5rem] max-w-full"
+          />
         </Link>
 
         {/* Desktop nav */}

@@ -139,7 +139,7 @@ Mobile: fixed safe-area-aware bottom navigation (Home, Projects, New, Deal Copil
 
 Dark treatment uses layered navy surfaces and visible boundaries — not an indistinguishable near-black field.
 
-Brand direction: Navy `#0D2139` (primary), Teal `#1B8D68` (accent / secondary), White `#FFFFFF` (light surface), readable text, visible layered boundaries, restrained accent use. Compact identity is leaf + sparkle (wiring deferred). Wide marks use the approved horizontal logo assets via `BrandLogo`.
+Brand direction: Navy `#0D2139` (primary), Teal `#1B8D68` (accent / secondary), White `#FFFFFF` (light surface), readable text, visible layered boundaries, restrained accent use. Compact identity is leaf + sparkle, wired through `BrandLogo` (`compact` / `compactMicro`). Primary wordmark uses the approved serif + sparkle SVG masters via `BrandLogo` (`primary`). Secondary/tagline is not published pending provenance verification.
 
 ---
 
