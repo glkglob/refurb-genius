@@ -4,7 +4,6 @@ import {
   FolderKanban,
   FolderPlus,
   Settings,
-  Building2,
   LogOut,
   LineChart,
   Briefcase,
@@ -14,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useSignOut } from "@/features/auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { BrandLogo } from "@/components/BrandLogo";
 import {
   GLOBAL_NAV_ITEMS,
   isGlobalNavItemActive,
@@ -57,12 +57,11 @@ export function Sidebar() {
       data-testid="app-sidebar"
     >
       <div className="flex min-h-16 items-center gap-2 border-b border-sidebar-border px-5 py-2">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-          <Building2 className="h-5 w-5" />
-        </div>
-        <span className="min-w-0 break-words text-base font-semibold leading-tight">
-          Refurb<span>Genius</span>
-        </span>
+        <BrandLogo
+          variant="primary"
+          surface="dark"
+          className="h-8 w-auto min-w-[7.5rem] max-w-full"
+        />
       </div>
       <nav className="flex-1 space-y-1 p-3" aria-label="Primary">
         {GLOBAL_NAV_ITEMS.map((item) => {

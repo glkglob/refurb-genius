@@ -13,7 +13,6 @@ import { AppLayout } from "@/components/AppLayout";
 import { LoadingState } from "@/components/LoadingState";
 import { EmptyState } from "@/components/EmptyState";
 import {
-  Building2,
   Printer,
   Download,
   Loader2,
@@ -22,6 +21,7 @@ import {
   ShieldCheck,
   AlertCircle,
 } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { addDiagnosticBreadcrumb } from "@/lib/sentry";
 import { logger } from "@/lib/logger";
 import { ReportSection as Section } from "@/components/ReportSection";
@@ -366,11 +366,12 @@ function ReportPage() {
           {/* Branding header */}
           <header className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <div className="flex items-center gap-2 text-primary">
-                <Building2 className="h-5 w-5" />
-                <span className="text-sm font-semibold uppercase tracking-[0.2em]">
-                  Refurb Genius
-                </span>
+              <div className="flex items-center">
+                <BrandLogo
+                  variant="primary"
+                  surface={pdfExporting ? "light" : "adaptive"}
+                  className="h-8 w-auto min-w-[7.5rem] max-w-full"
+                />
               </div>
               <h1 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
                 Investor report

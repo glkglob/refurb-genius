@@ -31,12 +31,25 @@ We use **CSS Variables** (defined in `src/styles.css`). Brand primitives are exa
 | Teal — ACCENT / SECONDARY | `#1B8D68` | Ring, progress, icons, selection indicators. Do not brighten in dark mode. Do not use as small normal text on White (4.15:1) or as White-on-Teal for AA-normal-text. |
 | White — SURFACE | `#FFFFFF` | Light elevated card / panel / field |
 
-Approved horizontal logos (byte-authoritative):
+Approved identity (byte-authoritative SVG masters; see `src/assets/brand/PROVENANCE.md`):
 
-- Light `src/assets/brand/logo-light-horizontal.png` SHA-256 `d14a6382bfb50c4ea933ae671f82a8fbae5f2511be648f4f07ef17b452094629`
-- Dark `src/assets/brand/logo-dark-horizontal.jpg` SHA-256 `683792928841dbe439702a529d17a9fbceeafb9815c9ab05b1f96eb490655b20`
+| Role | Use | Asset | SHA-256 |
+| ---- | --- | ----- | ------- |
+| PRIMARY wordmark | 120 px+ horizontal | `rg-wordmark-master.svg` / `rg-wordmark-on-light.svg` | `d82f9c8b2bd22954981728f78dcac91a5d7972f89d6c833ac2a10221fadba58c` |
+| PRIMARY on-dark | Dark surfaces | `rg-wordmark-on-dark.svg` | `311ecfb0fb2c7a278341708d492c07982870ffbe730f6a83aa5304c3db4d561c` |
+| COMPACT normal | 32 px+ leaf + four-point sparkle | `rg-compact-master.svg` / `rg-compact-on-light.svg` | `9416454ece2f542d102de12ee1ba721c8c0a759e16d1303b2a2b16f912edc925` |
+| COMPACT on-dark | Dark surfaces | `rg-compact-on-dark.svg` | `cfd40c54cadf8a7dd3630433cf6e4d901c59e83a7ba3ba8e6cf24e809cafc9db` |
+| COMPACT MICRO | 16–24 px only | `rg-compact-micro-master.svg` / `rg-compact-micro-on-light.svg` | `4c6a788bd73876f8e0b1cf0ff8cb36e95047c7801c977f41fed0fbbbcc02c6b2` |
+| MICRO on-dark | 16–24 px dark | `rg-compact-micro-on-dark.svg` | `2c5a143712cf86a04271f7b972213bdaaff1a1ba1b4b7b3db75007f77cb300fa` |
+| Canonical sparkle | Shared four-point geometry | `rg-sparkle-canonical.svg` | `dea4b018772b43386cb15c9773a4085938a1308e1c15ff2f34656fab3b6f5f1c` |
+| App icon SVG | Flat leaf + sparkle on Navy | `rg-app-icon-master.svg` | `ab4b46b69b75617a730f2e813968c576fe2e207f91fbbfa7852245f3a259e470` |
+| App icon 1024 PNG | iOS AppIcon / PWA source | `rg-app-icon-master-1024.png` | `cfa939b38739047513606d9d956b4971450cd7fcb51446dcd1f54c49f686fff6` |
 
-Compact identity is **leaf + sparkle**. Compact-mark wiring into Sidebar / Navbar / Auth / PWA is a later slice. Render wide marks through `BrandLogo`.
+Render product marks through `BrandLogo` (`variant`: `primary` \| `compact` \| `compactMicro`; `surface`: `light` \| `dark` \| `adaptive`). Compact wiring is implemented: Sidebar uses primary on dark; MobileTopBar uses compact adaptive; Navbar uses primary adaptive; Auth shell uses primary adaptive; report branding header uses primary on light.
+
+Secondary / tagline lockup is Human-approved visually but is **not** published in this repository pending Avenir Next outline provenance/licensing verification. Do not add R2 secondary or tagline files. Do not substitute Cormorant as a tagline/wordmark font.
+
+Old raster horizontal assets (`logo-light-horizontal.png`, `logo-dark-horizontal.jpg`) are superseded.
 
 ### Semantic Tokens (Recommended Usage)
 
@@ -281,7 +294,7 @@ Brand direction: Navy `#0D2139` (primary), Teal `#1B8D68` (accent / secondary), 
 
 - Some legacy pages still use hardcoded colors (`teal-*`, `gray-*`, `bg-white`).
 - ThemeProvider may still flash on first load (not an iOS interaction-slice repair unless the provider file is authorised).
-- Branding (app icon, splash, LaunchScreen, PWA marks) is **not** owned here — see `IOS-BRAND-ASSETS-1`.
+- Splash, LaunchScreen, and OG/social images remain separate slices. Product marks, favicon, PWA icons, and iOS AppIcon bytes follow `src/assets/brand/` (see `PROVENANCE.md`).
 - iOS interaction/layout/safe-area rules live in `src/docs/ios-product-design.md`.
 - Home/Dashboard Project Brief + Workflow Board, Home/Dashboard headings, removal of “My projects”, and uniform Projects rows are approved design targets, not current implementation.
 
@@ -312,5 +325,5 @@ Use this when cleaning up legacy code:
 
 ---
 
-**Last Updated:** 1 September 2026
-**Owner:** Product design documentation (interaction/layout). Compact-mark and iOS AppIcon integration remain separate slices.
+**Last Updated:** 2 September 2026
+**Owner:** Product design documentation (interaction/layout). Compact and primary identity wiring is implemented via `BrandLogo`.

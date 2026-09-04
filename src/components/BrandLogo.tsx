@@ -1,46 +1,87 @@
 import { cn } from "@repo/ui";
-import logoLight from "@/assets/brand/logo-light-horizontal.png";
-import logoDark from "@/assets/brand/logo-dark-horizontal.jpg";
+import wordmarkOnLight from "@/assets/brand/rg-wordmark-on-light.svg";
+import wordmarkOnDark from "@/assets/brand/rg-wordmark-on-dark.svg";
+import compactOnLight from "@/assets/brand/rg-compact-on-light.svg";
+import compactOnDark from "@/assets/brand/rg-compact-on-dark.svg";
+import compactMicroOnLight from "@/assets/brand/rg-compact-micro-on-light.svg";
+import compactMicroOnDark from "@/assets/brand/rg-compact-micro-on-dark.svg";
 
-const LIGHT_WIDTH = 597;
-const LIGHT_HEIGHT = 165;
-const DARK_WIDTH = 593;
-const DARK_HEIGHT = 164;
+const WORDMARK = { width: 1260, height: 288 } as const;
+const COMPACT = { width: 596, height: 743 } as const;
 
-type BrandLogoProps = {
-  className?: string;
-  /** When true, hide the mark from the accessibility tree (parent already names the product). */
+const ASSETS = {
+  primary: {
+    light: { src: wordmarkOnLight, ...WORDMARK },
+    dark: { src: wordmarkOnDark, ...WORDMARK },
+  },
+  compact: {
+    light: { src: compactOnLight, ...COMPACT },
+    dark: { src: compactOnDark, ...COMPACT },
+  },
+  compactMicro: {
+    light: { src: compactMicroOnLight, ...COMPACT },
+    dark: { src: compactMicroOnDark, ...COMPACT },
+  },
+} as const;
+
+export type BrandLogoProps = {
+  variant: "primary" | "compact" | "compactMicro";
+  surface: "light" | "dark" | "adaptive";
   decorative?: boolean;
+  className?: string;
 };
 
-const imgClassName = "block h-auto w-full max-w-full object-contain object-left";
+const imgClassName = "block h-full w-auto max-h-full max-w-full object-contain object-left";
 
-export function BrandLogo({ className, decorative = false }: BrandLogoProps) {
+// Adaptive follows the application `.dark` ancestor (html.dark), not `dark:` media.
+// Print always forces the on-light asset onto the light printed surface.
+const ADAPTIVE_ON_LIGHT_CLASS = "[.dark_&]:hidden print:!block";
+const ADAPTIVE_ON_DARK_CLASS = "hidden [.dark_&]:block print:!hidden";
+
+function BrandMarkImg({
+  src,
+  width,
+  height,
+  className,
+}: {
+  src: string;
+  width: number;
+  height: number;
+  className?: string;
+}) {
+  return (
+    <img
+      src={src}
+      width={width}
+      height={height}
+      alt=""
+      draggable={false}
+      className={cn(imgClassName, className)}
+      style={{ aspectRatio: `${width} / ${height}` }}
+    />
+  );
+}
+
+export function BrandLogo({ variant, surface, decorative = false, className }: BrandLogoProps) {
+  const pair = ASSETS[variant];
+
   return (
     <div
-      className={cn("inline-block max-w-full", className)}
+      className={cn("inline-flex max-w-full items-center", className)}
       role={decorative ? undefined : "img"}
       aria-label={decorative ? undefined : "Refurb Genius"}
       aria-hidden={decorative ? true : undefined}
     >
-      <img
-        src={logoLight}
-        width={LIGHT_WIDTH}
-        height={LIGHT_HEIGHT}
-        alt=""
-        draggable={false}
-        className={cn(imgClassName, "dark:hidden")}
-        style={{ aspectRatio: `${LIGHT_WIDTH} / ${LIGHT_HEIGHT}` }}
-      />
-      <img
-        src={logoDark}
-        width={DARK_WIDTH}
-        height={DARK_HEIGHT}
-        alt=""
-        draggable={false}
-        className={cn(imgClassName, "hidden dark:block")}
-        style={{ aspectRatio: `${DARK_WIDTH} / ${DARK_HEIGHT}` }}
-      />
+      {surface === "light" ? (
+        <BrandMarkImg {...pair.light} />
+      ) : surface === "dark" ? (
+        <BrandMarkImg {...pair.dark} />
+      ) : (
+        <>
+          <BrandMarkImg {...pair.light} className={ADAPTIVE_ON_LIGHT_CLASS} />
+          <BrandMarkImg {...pair.dark} className={ADAPTIVE_ON_DARK_CLASS} />
+        </>
+      )}
     </div>
   );
 }

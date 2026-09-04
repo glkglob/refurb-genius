@@ -57,6 +57,10 @@ describe("MobileTopBar identity chrome", () => {
     render(createElement(MobileTopBar));
     expect(screen.getByTestId("mobile-nav-brand").getAttribute("href")).toBe("/dashboard");
     expect(screen.getByLabelText("Refurb Genius home")).toBeTruthy();
+    expect(SRC).toMatch(/BrandLogo/);
+    expect(SRC).toMatch(/variant="compact"/);
+    expect(SRC).toMatch(/surface="adaptive"/);
+    expect(SRC).not.toMatch(/Building2/);
     expect(screen.queryByTestId("mobile-primary-nav")).toBeNull();
     expect(screen.queryByTestId("mobile-nav-dashboard")).toBeNull();
     expect(screen.queryByTestId("mobile-nav-deal_copilot")).toBeNull();

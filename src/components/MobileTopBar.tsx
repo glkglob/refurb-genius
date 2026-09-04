@@ -7,8 +7,9 @@
  * second route map.
  */
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Building2, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useSignOut } from "@/features/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,9 +53,7 @@ export function MobileTopBar() {
           aria-label="Refurb Genius home"
           data-testid="mobile-nav-brand"
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Building2 className="h-4 w-4" aria-hidden />
-          </div>
+          <BrandLogo variant="compact" surface="adaptive" decorative className="h-8 w-8 shrink-0" />
           <span className="min-w-0 break-words text-sm font-semibold leading-tight text-foreground">
             Refurb Genius
           </span>

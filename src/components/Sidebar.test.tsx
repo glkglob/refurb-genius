@@ -104,6 +104,10 @@ describe("Sidebar IA-7 global navigation", () => {
     expect(src).not.toMatch(/#F5EFE5/);
     expect(src).not.toMatch(/dark:bg-card/);
     expect(src).not.toMatch(/from-teal-500/);
+    expect(src).toMatch(/BrandLogo/);
+    expect(src).toMatch(/variant="primary"/);
+    expect(src).toMatch(/surface="dark"/);
+    expect(src).not.toMatch(/Building2/);
     expect(src).toMatch(/GLOBAL_NAV_ITEMS/);
     expect(src).toMatch(/to=\{item\.to\}/);
     expect(src).toMatch(/\{item\.label\}/);

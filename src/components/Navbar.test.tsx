@@ -64,10 +64,15 @@ describe("Navbar marketing safe-area", () => {
   });
 
   it("keeps marketing navigation controls present", () => {
+    const src = readFileSync(join(__dirname, "Navbar.tsx"), "utf8");
     render(createElement(Navbar));
     expect(screen.getByTestId("marketing-nav-dashboard").getAttribute("href")).toBe("/dashboard");
     expect(screen.getByTestId("marketing-nav-menu").getAttribute("aria-label")).toBe("Toggle menu");
-    expect(screen.getByRole("link", { name: /refurb/i })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Refurb Genius home" })).toBeTruthy();
+    expect(src).toMatch(/BrandLogo/);
+    expect(src).toMatch(/variant="primary"/);
+    expect(src).toMatch(/surface="adaptive"/);
+    expect(src).not.toMatch(/Building2/);
     expect(screen.getByRole("link", { name: "Deal Copilot" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Trades" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "Post Job" })).toBeTruthy();
