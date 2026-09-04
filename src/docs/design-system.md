@@ -45,7 +45,7 @@ Approved identity (byte-authoritative SVG masters; see `src/assets/brand/PROVENA
 | App icon SVG | Flat leaf + sparkle on Navy | `rg-app-icon-master.svg` | `ab4b46b69b75617a730f2e813968c576fe2e207f91fbbfa7852245f3a259e470` |
 | App icon 1024 PNG | iOS AppIcon / PWA source | `rg-app-icon-master-1024.png` | `cfa939b38739047513606d9d956b4971450cd7fcb51446dcd1f54c49f686fff6` |
 
-Render product marks through `BrandLogo` (`variant`: `primary` \| `compact` \| `compactMicro`; `surface`: `light` \| `dark` \| `adaptive`). Compact wiring is implemented: Sidebar uses primary on dark; MobileTopBar uses compact adaptive; Navbar uses primary adaptive; Auth shell uses primary adaptive; report branding header uses primary on light.
+Render product marks through `BrandLogo` (`variant`: `primary` \| `compact` \| `compactMicro`; `surface`: `light` \| `dark` \| `adaptive`). Compact wiring is implemented: Sidebar uses primary on dark; MobileTopBar uses compact adaptive; Navbar uses primary adaptive; Auth shell uses primary adaptive; report branding header uses primary adaptive on screen, with the on-light mark forced for browser print and PDF export.
 
 Secondary / tagline lockup is Human-approved visually but is **not** published in this repository pending Avenir Next outline provenance/licensing verification. Do not add R2 secondary or tagline files. Do not substitute Cormorant as a tagline/wordmark font.
 
