@@ -1,10 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  briefActionableItems,
-  briefStatusCounts,
-  type DashboardProjectSummary,
-} from "../dashboardProjectSummary";
+import { briefActionableItems, type DashboardProjectSummary } from "../dashboardProjectSummary";
 
 export type ProjectBriefProps = {
   summaries: readonly DashboardProjectSummary[];
@@ -12,7 +8,6 @@ export type ProjectBriefProps = {
 };
 
 export function ProjectBrief({ summaries, onHide }: ProjectBriefProps) {
-  const counts = briefStatusCounts(summaries);
   const items = briefActionableItems(summaries, 3);
 
   return (
@@ -38,40 +33,6 @@ export function ProjectBrief({ summaries, onHide }: ProjectBriefProps) {
           Hide Project Brief
         </Button>
       </div>
-      <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Needs attention
-          </dt>
-          <dd className="text-lg font-semibold text-foreground" data-testid="brief-count-attention">
-            {counts.needsAttention}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            In progress
-          </dt>
-          <dd className="text-lg font-semibold text-foreground" data-testid="brief-count-progress">
-            {counts.inProgress}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Ready
-          </dt>
-          <dd className="text-lg font-semibold text-foreground" data-testid="brief-count-ready">
-            {counts.ready}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Complete
-          </dt>
-          <dd className="text-lg font-semibold text-foreground" data-testid="brief-count-complete">
-            {counts.complete}
-          </dd>
-        </div>
-      </dl>
       {items.length > 0 ? (
         <ul className="mt-4 flex flex-col gap-3" data-testid="project-brief-items">
           {items.map((item) => (

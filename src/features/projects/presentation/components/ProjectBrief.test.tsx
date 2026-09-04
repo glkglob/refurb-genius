@@ -24,7 +24,7 @@ function summary(overrides: Partial<DashboardProjectSummary> = {}): DashboardPro
 }
 
 describe("ProjectBrief", () => {
-  it("shows counts, ranked rows, workflow CTA, and hide control", () => {
+  it("shows ranked rows, workflow CTA, and hide control without a status-count snapshot", () => {
     const onHide = vi.fn();
     render(
       createElement(ProjectBrief, {
@@ -52,8 +52,10 @@ describe("ProjectBrief", () => {
       }),
     );
     expect(screen.getByRole("heading", { name: "Project Brief" })).toBeTruthy();
-    expect(screen.getByTestId("brief-count-attention").textContent).toBe("1");
-    expect(screen.getByTestId("brief-count-complete").textContent).toBe("1");
+    expect(screen.queryByTestId("brief-count-attention")).toBeNull();
+    expect(screen.queryByTestId("brief-count-progress")).toBeNull();
+    expect(screen.queryByTestId("brief-count-ready")).toBeNull();
+    expect(screen.queryByTestId("brief-count-complete")).toBeNull();
     expect(screen.getByText("Needs work")).toBeTruthy();
     expect(screen.queryByText("Done")).toBeNull();
     const cta = screen.getByTestId("brief-cta-attn");
