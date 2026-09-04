@@ -75,3 +75,12 @@ test("dashboard brief visibility key is user-scoped", () => {
   );
   assert.match(src, /resolvedUserId !== currentUserId/);
 });
+
+test("Project Brief does not duplicate Workflow Board status-count snapshot", () => {
+  const brief = read(BRIEF);
+  assert.doesNotMatch(brief, /briefStatusCounts/);
+  assert.doesNotMatch(brief, /brief-count-attention/);
+  assert.doesNotMatch(brief, /brief-count-progress/);
+  assert.doesNotMatch(brief, /brief-count-ready/);
+  assert.doesNotMatch(brief, /brief-count-complete/);
+});
