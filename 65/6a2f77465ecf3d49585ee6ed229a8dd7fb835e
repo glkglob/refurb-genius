@@ -1,0 +1,20 @@
+src/core/dealCopilot/server/dealChat.adapter.server.test.ts
+  h_7ea6129503670a 1-146
+src/core/dealCopilot/server/dealChat.adapter.server.ts
+  h_7ea6129503670a 11-16,40-41,44-48,53,59-66,70-74
+src/serverFns/dealChat.ts
+  h_7ea6129503670a 185
+tests/invariants/deal-chat-financial-provenance.invariant.test.ts
+  h_7ea6129503670a 1-69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "656a2f77465ecf3d49585ee6ed229a8dd7fb835e",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
