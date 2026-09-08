@@ -182,7 +182,7 @@ export const sendMessageServerFn = createServerFn({ method: "POST" })
         bedrooms: opp?.bedrooms ?? undefined,
         purchasePrice: opp?.purchase_price ?? undefined,
         estimatedGdv: opp?.estimated_gdv ?? undefined,
-        refurbBudget: opp?.refurb_budget ?? undefined,
+        userRefurbBudgetAssumption: opp.refurb_budget ?? undefined,
       });
 
       // Persist assistant reply.

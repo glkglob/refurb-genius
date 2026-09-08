@@ -8,6 +8,12 @@
  * OpenAI streaming is used internally for faster time-to-first-token on the
  * server side. The complete response is accumulated and returned — TanStack
  * serverFns don't support HTTP streaming to the client.
+ *
+ * Chat financial fields are user-provided context, not deterministic-engine
+ * output: purchasePrice is a user-provided financial input; estimatedGdv is a
+ * user-provided estimate; userRefurbBudgetAssumption is a user-provided
+ * underwriting assumption. userRefurbBudgetAssumption is never
+ * pricing.mid_total and never deterministic-engine output.
  */
 import "@tanstack/react-start/server-only";
 
@@ -31,27 +37,41 @@ export type DealChatContext = {
   bedrooms?: number;
   purchasePrice?: number;
   estimatedGdv?: number;
-  refurbBudget?: number;
+  /** User-provided underwriting assumption. NEVER treat as pricing.mid_total. */
+  userRefurbBudgetAssumption?: number;
 };
 
-function buildSystemPrompt(ctx: DealChatContext): string {
+function formatGbp(n: number | undefined): string {
+  return n != null ? `£${n.toLocaleString("en-GB")}` : "not provided";
+}
+
+export function buildSystemPrompt(ctx: DealChatContext): string {
   const lines = [
     "You are Deal Copilot, a conservative UK property investment assistant embedded in Refurb Genius.",
     "You help investors think through refurbishment opportunities — risks, scope, market reality, next steps.",
     "",
-    "Opportunity context (authoritative — provided by the user's deterministic engine):",
+    "Opportunity facts (user-recorded metadata — not deterministic engine output):",
     `  Title: ${ctx.opportunityTitle}`,
     `  Status: ${ctx.opportunityStatus}`,
     `  Postcode: ${ctx.postcode ?? "not provided"}`,
     `  Property type: ${ctx.propertyType ?? "not provided"}`,
     `  Bedrooms: ${ctx.bedrooms ?? "not provided"}`,
-    `  Purchase price: ${ctx.purchasePrice != null ? `£${ctx.purchasePrice.toLocaleString("en-GB")}` : "not provided"}`,
-    `  Estimated GDV: ${ctx.estimatedGdv != null ? `£${ctx.estimatedGdv.toLocaleString("en-GB")}` : "not provided"}`,
-    `  Refurb budget: ${ctx.refurbBudget != null ? `£${ctx.refurbBudget.toLocaleString("en-GB")}` : "not provided"}`,
+    "",
+    "User-provided financial context:",
+    `  Purchase price (user-provided financial input): ${formatGbp(ctx.purchasePrice)}`,
+    `  Estimated GDV (user-provided estimate): ${formatGbp(ctx.estimatedGdv)}`,
+    `  Refurb budget (user-provided underwriting assumption): ${formatGbp(ctx.userRefurbBudgetAssumption)}`,
+    "",
+    "These user-provided values are context, not deterministic-engine outputs.",
+    "Deterministic pricing and ROI results are not present in this chat context. Do not invent them.",
     "",
     "Rules:",
     "- Be concise. 2-4 sentences per response unless asked for more.",
-    "- Never recompute or override the user's financial figures above.",
+    "- You remain advisory.",
+    "- You may discuss, challenge, or stress-test user-provided assumptions and estimates, and identify risks.",
+    "- Do not relabel user-provided inputs, estimates, or assumptions as deterministic engine outputs.",
+    "- Do not present a substitute refurb cost, ROI, or GDV as system or engine authority.",
+    "- Do not represent the user's refurb budget assumption as pricing.mid_total.",
     "- Flag risks, recommend next steps, and reason about UK market realities.",
     "- If you reference comparable values or yields, be explicit that they are estimates.",
     "- Decline off-topic requests politely and stay focused on this deal.",
