@@ -56,7 +56,7 @@ export const analyzeDealServerFn = createServerFn({ method: "POST" })
       bedrooms: row.bedrooms ?? undefined,
       purchasePrice: row.purchase_price ?? undefined,
       estimatedGdv: row.estimated_gdv ?? undefined,
-      refurbBudget: row.refurb_budget ?? undefined,
+      userRefurbBudgetAssumption: row.refurb_budget ?? undefined,
       expectedMonthlyRent: row.expected_monthly_rent ?? undefined,
       targetExitStrategy: row.target_exit_strategy ?? undefined,
       promptContext: data.promptContext,
