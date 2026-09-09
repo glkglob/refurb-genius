@@ -1,0 +1,16 @@
+.github/workflows/ci.yml
+  h_7ea6129503670a 12,14,18,42,44,48
+.github/workflows/security.yml
+  h_7ea6129503670a 20,25,45,47,51,74,76,80,98,100,104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "a0d848979fcc831b85ce07ebe4a6891c4eb3e1c0",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
