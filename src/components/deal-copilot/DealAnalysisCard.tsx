@@ -72,8 +72,9 @@ export function DealAnalysisCard({ opportunityId }: { opportunityId: string }) {
               AI deal analysis
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Qualitative underwriting read. Valuation and ROI figures stay with the deterministic
-              engine above.
+              Qualitative advisory read based on saved opportunity inputs and assumptions. AI
+              analysis does not replace Refurb Genius deterministic pricing or ROI authority where
+              those results exist.
             </p>
           </div>
           <div className="flex gap-2">
@@ -125,7 +126,8 @@ export function DealAnalysisCard({ opportunityId }: { opportunityId: string }) {
                     AI opinion · not authoritative
                   </h3>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    The model's independent estimate. Your figures above remain the source of truth.
+                    Independent second opinion against the saved inputs and assumptions above. Not
+                    pricing, ROI, or system authority.
                   </p>
                   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                     {typeof analysis.aiOpinion.estimatedValue === "number" && (
