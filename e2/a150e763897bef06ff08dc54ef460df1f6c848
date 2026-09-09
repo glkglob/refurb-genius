@@ -1,0 +1,22 @@
+src/components/deal-copilot/DealAnalysisCard.tsx
+  h_7ea6129503670a 75-77,129-130
+src/core/dealCopilot/server/dealAnalysis.adapter.server.test.ts
+  h_7ea6129503670a 1-193
+src/core/dealCopilot/server/dealAnalysis.adapter.server.ts
+  h_7ea6129503670a 9-16,40-41,51-86,88-102,116-117,175
+src/serverFns/dealAnalysis.ts
+  h_7ea6129503670a 59
+tests/invariants/deal-analysis-financial-provenance.invariant.test.ts
+  h_7ea6129503670a 1-85
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.2",
+  "base_commit_sha": "e2a150e763897bef06ff08dc54ef460df1f6c848",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
