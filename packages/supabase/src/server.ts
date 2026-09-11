@@ -9,7 +9,7 @@
 
 import { createServerClient as _createServerClient } from "@supabase/ssr";
 import { createClient } from "@supabase/supabase-js";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { assertSupabaseEnv } from "./env";
 
 /** A simple cookie map: name -> value. */
@@ -114,8 +114,7 @@ export async function verifyToken<DB = unknown>(
 ): Promise<{
   supabase: SupabaseClient<DB>;
   userId: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  user: any;
+  user: User;
 }> {
   const supabase = createTokenSupabase<DB>(token);
   const { data, error } = await supabase.auth.getUser(token);
