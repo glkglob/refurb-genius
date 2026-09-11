@@ -1,0 +1,14 @@
+packages/supabase/src/server.ts
+  h_7ea6129503670a 12,117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "157d5320007a37371990fd2dd10859c855228982",
+  "prompts": {},
+  "humans": {
+    "h_7ea6129503670a": {
+      "author": "Kris <kris.solo@rissololtd.co.uk>"
+    }
+  }
+}
